@@ -29,19 +29,25 @@ This keeps the implementation simple and avoids CNN-specific code.
 
 ```text
 dqn/
-  __init__.py
-  config.py
-  model.py
-  training.py
-  visualize.py
+  notebooks/
+    Reinforcement_Learning_(DQN).ipynb
+    reinforcement_learning_(dqn).py
 
-  envs/
-    __init__.py
-    myfreeway.py
+  src/
+    dqn/
+      __init__.py
+      config.py
+      model.py
+      training.py
+      visualize.py
 
-  scripts/
-    train_cartpole.py
-    train_myfreeway.py
+      envs/
+        __init__.py
+        myfreeway.py
+
+      scripts/
+        train_cartpole.py
+        train_myfreeway.py
 ```
 
 This is intentionally compact. Smaller pieces such as replay memory, action selection, optimization, and the training loop all belong in `training.py` for now. They can be split out later if the project grows.
@@ -156,7 +162,7 @@ register(
 )
 ```
 
-### `scripts/train_cartpole.py`
+### `src/dqn/scripts/train_cartpole.py`
 
 Creates the CartPole environment and passes it to the reusable trainer:
 
@@ -171,7 +177,7 @@ config = TrainingConfig()
 result = train(env, config)
 ```
 
-### `scripts/train_myfreeway.py`
+### `src/dqn/scripts/train_myfreeway.py`
 
 Creates the MyFreeway environment and passes it to the same trainer:
 
@@ -192,8 +198,8 @@ result = train(env, config)
 ```text
 Notebook code / concept                  Target module
 
-import gymnasium as gym                  scripts/train_cartpole.py
-env = gym.make("CartPole-v1")            scripts/train_cartpole.py
+import gymnasium as gym                  src/dqn/scripts/train_cartpole.py
+env = gym.make("CartPole-v1")            src/dqn/scripts/train_cartpole.py
 
 device selection                         config.py or training.py helper
 seed setup                               training.py
@@ -380,7 +386,10 @@ Setup:
 !git clone https://github.com/DEIN_NAME/rl_lab.git
 %cd rl_lab
 
-!pip install "gymnasium[classic-control]" matplotlib
+!pip install -r dqn/requirements.txt
+
+import sys
+sys.path.insert(0, "dqn/src")
 ```
 
 Training:

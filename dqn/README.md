@@ -8,9 +8,10 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r dqn\requirements.txt
+$env:PYTHONPATH = "dqn\src"
 ```
 
-Run scripts from the repository root so `dqn` is importable as a package:
+Run scripts from the repository root:
 
 ```powershell
 python -m dqn.scripts.train_cartpole
@@ -22,4 +23,6 @@ python -m dqn.scripts.train_cartpole
 !git clone https://github.com/DEIN_NAME/rl_lab.git
 %cd rl_lab
 !pip install -r dqn/requirements.txt
+import sys
+sys.path.insert(0, "dqn/src")
 ```
