@@ -17,6 +17,12 @@ Run scripts from the repository root:
 python -m dqn.scripts.train_cartpole
 ```
 
+Run tests from the repository root:
+
+```powershell
+pytest -c dqn\pytest.ini dqn\tests
+```
+
 ## Colab Setup
 
 ```python
