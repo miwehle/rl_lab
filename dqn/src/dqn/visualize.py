@@ -86,6 +86,7 @@ def show_animation(frames: list[Any], interval: int = 20) -> Any:
         return [image]
 
     ani = animation.FuncAnimation(fig, update, frames=frames, interval=interval, blit=True)
+    plt.close(fig)
 
     try:
         from IPython.display import HTML
@@ -93,4 +94,3 @@ def show_animation(frames: list[Any], interval: int = 20) -> Any:
         return HTML(ani.to_jshtml())
     except ImportError:
         return ani
-
