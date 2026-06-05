@@ -58,7 +58,7 @@ def test_training_can_continue_with_another_config() -> None:
     assert trainer.steps_done == steps_after_first_run + 6
     assert trainer.memory is not None
     assert len(trainer.memory) == 8
-    assert trainer.optimizer.param_groups[0]["lr"] == 1e-4
+    assert trainer.optimizer.param_groups[0]["lr"] == pytest.approx(1e-4)
 
 
 # 23 s
