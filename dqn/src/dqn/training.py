@@ -40,7 +40,13 @@ class TrainingResult:
 
 
 class Trainer:
-    def __init__(self, env, seed: int | None = None, device=None, replay_memory_capacity: int = 10_000) -> None:
+    def __init__(
+        self,
+        env,
+        seed: int | None = None,
+        device=None,
+        replay_memory_capacity: int = 10_000,
+    ) -> None:
         self.env = env
         self.seed = seed
         self.steps_done = 0
@@ -59,6 +65,7 @@ class Trainer:
         self.optimizer = optim.AdamW(
             self.policy_net.parameters(),
             lr=TrainingConfig().learning_rate,
+            weight_decay=0.01,
             amsgrad=True,
         )
         self.memory = ReplayMemory(replay_memory_capacity)
@@ -133,7 +140,11 @@ class Trainer:
         transitions = self.memory.sample(self.config.batch_size)
         batch = Transition(*zip(*transitions))
 
-        non_final_mask = torch.tensor(tuple(state is not None for state in batch.next_state), device=self.device, dtype=torch.bool)
+        non_final_mask = torch.tensor(
+            tuple(state is not None for state in batch.next_state),
+            device=self.device,
+            dtype=torch.bool,
+        )
         non_final_states = [state for state in batch.next_state if state is not None]
 
         state_batch = torch.cat(batch.state)
@@ -162,7 +173,7 @@ class Trainer:
         target_net_state_dict = self.target_net.state_dict()
         policy_net_state_dict = self.policy_net.state_dict()
 
-        # θ′ ← τ θ + (1 −τ )θ′
+        # θ′ ← τ θ + (1−τ) θ′
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key] * self.config.tau + target_net_state_dict[key] * (1 - self.config.tau)
 
@@ -170,9 +181,13 @@ class Trainer:
 
 
 def resolve_device(device=None) -> torch.device:
-    return device or torch.device(
-        "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-    )
+    if device is not None:
+        return device
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
 
 def set_seeds(env, seed: int) -> None:
