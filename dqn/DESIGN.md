@@ -281,16 +281,15 @@ class TrainingResult:
     policy_net: DQN
     episode_returns: list[float]
     episode_lengths: list[int]
-    device: torch.device
 ```
 
-`TrainingResult` replaces the notebook globals needed after training, especially `policy_net`, the collected episode metrics, and the resolved device for inference visualization.
+`TrainingResult` replaces the notebook globals needed after training, especially `policy_net` and the collected episode metrics.
 
 ## Mental Model for Usage
 
 **`Trainer` → `trainer.train(config)` → `TrainingResult`**
 
-`Trainer` owns the long-lived agent state: environment, device, networks, optimizer, replay memory, seed, and step count. `TrainingConfig` contains the choices for one training run. `trainer.train(config)` performs the reusable DQN training loop and can be called again with another config to continue from the current trainer state. `TrainingResult` replaces the notebook globals needed after training, especially the trained policy network, collected episode metrics for this run, and resolved device.
+`Trainer` owns the long-lived agent state: environment, device, networks, optimizer, replay memory, seed, and step count. `TrainingConfig` contains the choices for one training run. `trainer.train(config)` performs the reusable DQN training loop and can be called again with another config to continue from the current trainer state. `TrainingResult` replaces the notebook globals needed after training, especially the trained policy network and collected episode metrics for this run.
 
 ## Environment Wiring
 
@@ -422,7 +421,7 @@ from dqn.visualize import record_episode, show_animation
 frames = record_episode(
     make_env=lambda: gym.make("CartPole-v1", render_mode="rgb_array"),
     policy_net=result.policy_net,
-    device=result.device,
+    device=trainer.device,
 )
 
 show_animation(frames)

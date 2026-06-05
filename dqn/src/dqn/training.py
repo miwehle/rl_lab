@@ -38,7 +38,6 @@ class TrainingResult:
     policy_net: nn.Module
     episode_returns: list[float]
     episode_lengths: list[int]
-    device: torch.device
 
 
 class Trainer:
@@ -117,7 +116,7 @@ class Trainer:
 
                     break
 
-        return TrainingResult(self.policy_net, episode_returns, episode_lengths, self.device)
+        return TrainingResult(self.policy_net, episode_returns, episode_lengths)
 
     def select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()

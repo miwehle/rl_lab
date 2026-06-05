@@ -24,7 +24,7 @@ def test_cartpole_training_smoke() -> None:
     assert isinstance(result, TrainingResult)
     assert len(result.episode_returns) == 1
     assert result.episode_lengths[0] > 0
-    assert result.device.type in {"cpu", "cuda", "mps"}
+    assert trainer.device.type in {"cpu", "cuda", "mps"}
 
 
 def test_training_can_continue_with_another_config() -> None:
@@ -87,7 +87,7 @@ def test_cartpole_training() -> None:
     # increasingly strict asserts
     assert isinstance(result, TrainingResult)
     assert len(result.episode_returns) == episodes
-    assert result.device.type in {"cpu", "cuda", "mps"}
+    assert trainer.device.type in {"cpu", "cuda", "mps"}
     assert emas[episodes-1] > 150
     assert emas[episodes-1] == pytest.approx(171.0, abs=0.1)
     assert model_hash(result.policy_net) == "0d99a213bfe0afc6c5e902f000e39e79cd0f67c6313090a014a2056d58b16707"
