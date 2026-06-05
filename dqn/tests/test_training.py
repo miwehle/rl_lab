@@ -2,6 +2,7 @@ import gymnasium as gym
 import pytest
 
 from dqn.config import TrainingConfig
+from dqn.model import DQN
 from dqn.training import Trainer, TrainingResult
 from helpers import model_hash, ema
 
@@ -69,7 +70,7 @@ def test_cartpole_training() -> None:
     )
     
     try:
-        trainer = Trainer(env, seed=42)
+        trainer = Trainer(env, model_factory=DQN, seed=42)
         result = trainer.train(config)
     finally:
         env.close()
