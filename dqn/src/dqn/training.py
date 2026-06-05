@@ -51,7 +51,6 @@ class Trainer:
         model_factory: ModelFactory = DQN,
     ) -> None:
         self.env = env
-        self.seed = seed
         self.steps_done = 0
         self.device = resolve_device(device)
 
@@ -59,7 +58,7 @@ class Trainer:
             set_seeds(env, seed)
 
         n_actions = env.action_space.n
-        state, _ = env.reset()
+        state, _ = env.reset(seed=seed)
         n_observations = len(state)
 
         self.policy_net = model_factory(n_observations, n_actions).to(self.device)
@@ -81,9 +80,8 @@ class Trainer:
         episode_returns: list[float] = []
         episode_lengths: list[int] = []
 
-        for episode_index in range(config.num_episodes):
-            reset_seed = self.seed if episode_index == 0 and self.steps_done == 0 else None
-            state, _ = self.env.reset(seed=reset_seed)
+        for _ in range(config.num_episodes):
+            state, _ = self.env.reset()
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             episode_return = 0.0
 

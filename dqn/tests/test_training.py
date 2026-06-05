@@ -89,5 +89,5 @@ def test_cartpole_training() -> None:
     assert len(result.episode_returns) == episodes
     assert result.device.type in {"cpu", "cuda", "mps"}
     assert emas[episodes-1] > 150
-    assert emas[episodes-1] == pytest.approx(167.4, abs=0.1)
-    assert model_hash(result.policy_net) == "631a91e7115d4ae23f17ecc44f0ff29afa6b7b9491507756a6b09728677ee6ac"
+    assert emas[episodes-1] == pytest.approx(171.0, abs=0.1)
+    assert model_hash(result.policy_net) == "0d99a213bfe0afc6c5e902f000e39e79cd0f67c6313090a014a2056d58b16707"
