@@ -85,7 +85,7 @@ class Trainer:
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             episode_return = 0.0
 
-            for step_index in count():
+            for t in count():
                 action = self.select_action(state)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
@@ -110,7 +110,7 @@ class Trainer:
 
                 if done:
                     episode_returns.append(episode_return)
-                    episode_lengths.append(step_index + 1)
+                    episode_lengths.append(t + 1)
 
                     if plotter is not None:
                         plotter.plot_returns(episode_returns)
