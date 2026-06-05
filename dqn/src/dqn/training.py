@@ -100,7 +100,11 @@ class Trainer:
                 if terminated or step_limit_reached:
                     next_state = None
                 else:
-                    next_state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    next_state = torch.tensor(
+                        observation,
+                        dtype=torch.float32,
+                        device=self.device,
+                    ).unsqueeze(0)
 
                 self.memory.push(state, action, next_state, reward_tensor)
                 state = next_state
@@ -128,6 +132,7 @@ class Trainer:
 
         if sample > eps_threshold:
             with torch.no_grad():
+                # Choose the action with the highest expected reward
                 return self.policy_net(state).max(1).indices.view(1, 1)
 
         action = self.env.action_space.sample()
@@ -138,8 +143,12 @@ class Trainer:
             return
 
         transitions = self.memory.sample(self.config.batch_size)
+        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+        # detailed explanation). This converts batch-array of Transitions
+        # to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
 
+        # Mask states that are not terminal
         non_final_mask = torch.tensor(
             tuple(state is not None for state in batch.next_state),
             device=self.device,
@@ -151,21 +160,29 @@ class Trainer:
         action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
 
+        # Select Q-values for the actions that were actually taken
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
+        # Final states keep value 0
         next_state_values = torch.zeros(self.config.batch_size, device=self.device)
         if non_final_states:
             non_final_next_states = torch.cat(non_final_states)
             with torch.no_grad():
-                next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
+                # Estimate next-state values with the older target network
+                next_state_values[non_final_mask] = self.target_net(
+                    non_final_next_states
+                ).max(1).values
 
+        # Bellman target
         expected_state_action_values = (next_state_values * self.config.gamma) + reward_batch
 
+        # Huber loss
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
         self.optimizer.zero_grad()
         loss.backward()
+        # Clip gradients in-place
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
