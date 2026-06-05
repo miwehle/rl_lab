@@ -3,13 +3,14 @@
 import gymnasium as gym
 
 from dqn.config import TrainingConfig
-from dqn.training import train
+from dqn.training import Trainer
 
 
 def main() -> None:
     env = gym.make("CartPole-v1")
     config = TrainingConfig()
-    result = train(env, config)
+    trainer = Trainer(env)
+    result = trainer.train(config)
     env.close()
 
     final_return = result.episode_returns[-1] if result.episode_returns else 0.0
@@ -18,4 +19,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

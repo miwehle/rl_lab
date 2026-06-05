@@ -70,17 +70,15 @@ class TrainingConfig:
     eps_decay: int = 2500
     tau: float = 0.005
     learning_rate: float = 3e-4
-    replay_memory_capacity: int = 10_000
     num_episodes: int = 50
     max_steps_per_episode: int | None = None
-    seed: int | None = None
-    device: torch.device | None = None
 ```
 
-The config is passed explicitly into the training function:
+The config is passed explicitly into the trainer method:
 
 ```python
-result = train(env, config)
+trainer = Trainer(env, seed=42)
+result = trainer.train(config)
 ```
 
 ### `model.py`
@@ -105,10 +103,8 @@ Expected contents:
 Transition
 ReplayMemory
 TrainingResult
-select_action(...)
-optimize_model(...)
-soft_update(...)
-train(env, config) -> TrainingResult
+Trainer
+Trainer.train(config, plotter=None) -> TrainingResult
 ```
 
 This is the central module. It should not call `gym.make("CartPole-v1")` and should not import `MyFreewayEnv`. The concrete environment is created outside and passed in.
@@ -170,11 +166,12 @@ Creates the CartPole environment and passes it to the reusable trainer:
 import gymnasium as gym
 
 from dqn.config import TrainingConfig
-from dqn.training import train
+from dqn.training import Trainer
 
 env = gym.make("CartPole-v1")
 config = TrainingConfig()
-result = train(env, config)
+trainer = Trainer(env)
+result = trainer.train(config)
 ```
 
 ### `src/dqn/scripts/train_myfreeway.py`
@@ -186,11 +183,12 @@ import gymnasium as gym
 import dqn.envs
 
 from dqn.config import TrainingConfig
-from dqn.training import train
+from dqn.training import Trainer
 
 env = gym.make("MyFreeway-v0")
 config = TrainingConfig(num_episodes=500)
-result = train(env, config)
+trainer = Trainer(env)
+result = trainer.train(config)
 ```
 
 ## Notebook To Module Mapping
@@ -217,19 +215,19 @@ class DQN                              model.py
 Transition                              training.py
 ReplayMemory                            training.py
 
-steps_done                              training.py, local training state
-select_action(state)                    training.py: select_action(...)
+steps_done                              training.py: Trainer state
+select_action(state)                    training.py: Trainer.select_action(...)
 
-policy_net setup                        training.py: train(...)
-target_net setup                        training.py: train(...)
-optimizer setup                         training.py: train(...)
-memory setup                            training.py: train(...)
+policy_net setup                        training.py: Trainer
+target_net setup                        training.py: Trainer
+optimizer setup                         training.py: Trainer
+memory setup                            training.py: Trainer
 
-optimize_model()                        training.py: optimize_model(...)
+optimize_model()                        training.py: Trainer.optimize_model()
 
-soft target update inside loop          training.py: soft_update(...)
+soft target update inside loop          training.py: Trainer.soft_update()
 
-training loop from notebook cell 16     training.py: train(env, config)
+training loop from notebook cell 16     training.py: Trainer.train(config)
 
 episode_durations                       training.py: TrainingResult
 episode_lengths                         training.py: TrainingResult
@@ -249,19 +247,19 @@ episode_durations -> episode_returns
 plot_durations(...) -> plot_returns(...)
 ```
 
-## Training Function
+## Trainer
 
-The notebook currently has a top-level training loop. In the package this should become a function:
+The notebook currently has a top-level training loop. In the package this should become a trainer object:
 
 ```python
-def train(env, config: TrainingConfig, plotter=None) -> TrainingResult:
-    ...
+trainer = Trainer(env, seed=42)
+result = trainer.train(config, plotter=plotter)
 ```
 
-The function is responsible for:
+The trainer is responsible for:
 
 ```text
-validating action_space and observation_space
+reading action and observation sizes from the environment
 setting seeds, if configured
 creating policy_net and target_net
 creating optimizer and replay memory
@@ -273,6 +271,7 @@ soft-updating the target network
 collecting episode returns and episode lengths
 passing episode returns to the plotter, if one was provided
 returning TrainingResult
+keeping policy_net, target_net, replay memory, optimizer, and steps_done so training can continue with another config
 ```
 
 Expected result object:
@@ -290,30 +289,33 @@ class TrainingResult:
 
 ## Mental Model for Usage
 
-**`TrainingConfig` → `train(...)` → `TrainingResult`**
+**`Trainer` → `trainer.train(config)` → `TrainingResult`**
 
-`TrainingConfig` contains the choices for a training run. `train(...)` performs the reusable DQN training loop. `TrainingResult` replaces the notebook globals needed after training, especially the trained policy network, collected episode metrics, and resolved device.
+`Trainer` owns the long-lived agent state: environment, device, networks, optimizer, replay memory, seed, and step count. `TrainingConfig` contains the choices for one training run. `trainer.train(config)` performs the reusable DQN training loop and can be called again with another config to continue from the current trainer state. `TrainingResult` replaces the notebook globals needed after training, especially the trained policy network, collected episode metrics for this run, and resolved device.
 
 ## Environment Wiring
 
 `training.py` is environment-agnostic:
 
 ```python
-result = train(env, config)
+trainer = Trainer(env)
+result = trainer.train(config)
 ```
 
 CartPole wiring:
 
 ```python
 env = gym.make("CartPole-v1")
-result = train(env, config)
+trainer = Trainer(env)
+result = trainer.train(config)
 ```
 
 MyFreeway wiring:
 
 ```python
 env = gym.make("MyFreeway-v0")
-result = train(env, config)
+trainer = Trainer(env)
+result = trainer.train(config)
 ```
 
 The reusable boundary is the Gymnasium environment object.
@@ -371,7 +373,8 @@ The notebook should become a consumer of the package:
 ```text
 choose env
 choose config
-call train(env, config)
+create Trainer(env)
+call trainer.train(config)
 plot results
 record/render episodes
 ```
@@ -398,18 +401,18 @@ Training:
 import gymnasium as gym
 
 from dqn.config import TrainingConfig
-from dqn.training import train
+from dqn.training import Trainer
 from dqn.visualize import EpisodePlotter
 
 env = gym.make("CartPole-v1")
 
 config = TrainingConfig(
     num_episodes=50,
-    seed=42,
 )
 
 plotter = EpisodePlotter(y_label="Duration")
-result = train(env, config, plotter=plotter)
+trainer = Trainer(env, seed=42)
+result = trainer.train(config, plotter=plotter)
 ```
 
 Visualization:
@@ -440,4 +443,4 @@ prioritized replay
 polished MyFreeway rendering
 ```
 
-These can be added later once CartPole and the first MyFreeway version both run through the same `train(env, config)` path.
+These can be added later once CartPole and the first MyFreeway version both run through the same `Trainer(env).train(config)` path.
