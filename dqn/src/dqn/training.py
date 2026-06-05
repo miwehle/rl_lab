@@ -184,14 +184,15 @@ class Trainer:
         self.optimizer.step()
 
     def soft_update(self) -> None:
-        target_net_state_dict = self.target_net.state_dict()
-        policy_net_state_dict = self.policy_net.state_dict()
+        target_net_state = self.target_net.state_dict()
+        policy_net_state = self.policy_net.state_dict()
 
         # θ′ ← τ θ + (1−τ) θ′
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key] * self.config.tau + target_net_state_dict[key] * (1 - self.config.tau)
+        tau = self.config.tau
+        for key in policy_net_state:
+            target_net_state[key] = policy_net_state[key] * tau + target_net_state[key] * (1 - tau)
 
-        self.target_net.load_state_dict(target_net_state_dict)
+        self.target_net.load_state_dict(target_net_state)
 
 
 def resolve_device(device=None) -> torch.device:
