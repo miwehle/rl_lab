@@ -1,5 +1,6 @@
 """Reusable DQN training loop for Gymnasium environments."""
 
+from collections.abc import Callable
 from collections import deque, namedtuple
 from dataclasses import dataclass
 from itertools import count
@@ -15,6 +16,7 @@ from dqn.model import DQN
 
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+ModelFactory = Callable[[int, int], nn.Module]
 
 
 class ReplayMemory:
@@ -33,7 +35,7 @@ class ReplayMemory:
 
 @dataclass
 class TrainingResult:
-    policy_net: DQN
+    policy_net: nn.Module
     episode_returns: list[float]
     episode_lengths: list[int]
     device: torch.device
@@ -46,6 +48,7 @@ class Trainer:
         seed: int | None = None,
         device=None,
         replay_memory_capacity: int = 10_000,
+        model_factory: ModelFactory = DQN,
     ) -> None:
         self.env = env
         self.seed = seed
@@ -59,8 +62,8 @@ class Trainer:
         state, _ = env.reset()
         n_observations = len(state)
 
-        self.policy_net = DQN(n_observations, n_actions).to(self.device)
-        self.target_net = DQN(n_observations, n_actions).to(self.device)
+        self.policy_net = model_factory(n_observations, n_actions).to(self.device)
+        self.target_net = model_factory(n_observations, n_actions).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.optimizer = optim.AdamW(
             self.policy_net.parameters(),
