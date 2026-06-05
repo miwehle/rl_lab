@@ -43,8 +43,7 @@ def test_cartpole_training() -> None:
         env.close()
 
     emas = ema(result.episode_returns) 
-    mh = model_hash(result.policy_net)
-    n = config.num_episodes
+    episodes = config.num_episodes
 
     """
     print(result.episode_returns)
@@ -55,8 +54,8 @@ def test_cartpole_training() -> None:
 
     # increasingly strict asserts
     assert isinstance(result, TrainingResult)
-    assert len(result.episode_returns) == n
+    assert len(result.episode_returns) == episodes
     assert result.device.type in {"cpu", "cuda", "mps"}
-    assert emas[n-1] > 150
-    assert emas[n-1] == pytest.approx(167.4, abs=0.1)
-    assert mh == "631a91e7115d4ae23f17ecc44f0ff29afa6b7b9491507756a6b09728677ee6ac"
+    assert emas[episodes-1] > 150
+    assert emas[episodes-1] == pytest.approx(167.4, abs=0.1)
+    assert model_hash(result.policy_net) == "631a91e7115d4ae23f17ecc44f0ff29afa6b7b9491507756a6b09728677ee6ac"
