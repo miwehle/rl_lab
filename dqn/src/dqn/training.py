@@ -186,9 +186,9 @@ class Trainer:
     def soft_update(self) -> None:
         target_net_state = self.target_net.state_dict()
         policy_net_state = self.policy_net.state_dict()
+        tau = self.config.tau
 
         # θ′ ← τ θ + (1−τ) θ′
-        tau = self.config.tau
         for key in policy_net_state:
             target_net_state[key] = policy_net_state[key] * tau + target_net_state[key] * (1 - tau)
 
