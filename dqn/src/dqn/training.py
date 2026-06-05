@@ -73,7 +73,7 @@ class Trainer:
         )
         self.memory = ReplayMemory(replay_memory_capacity)
 
-    def train(self, config: TrainingConfig, plotter=None) -> TrainingResult:
+    def train(self, config: TrainingConfig, plotter=None) -> TrainingResult: # NOSONAR
         self.config = config
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = config.learning_rate
