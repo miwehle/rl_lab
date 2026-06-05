@@ -74,7 +74,6 @@ class Trainer:
 
     def train(self, config: TrainingConfig, plotter=None) -> TrainingResult: # NOSONAR
         """Train for the configured episodes, continuing existing trainer state."""
-        self.config = config
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = config.learning_rate
 
@@ -87,7 +86,7 @@ class Trainer:
             episode_return = 0.0
 
             for t in count():
-                action = self.select_action(state)
+                action = self.select_action(state, config)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
                 reward_tensor = torch.tensor([reward], device=self.device)
@@ -106,8 +105,8 @@ class Trainer:
                 self.memory.push(state, action, next_state, reward_tensor)
                 state = next_state
 
-                self.optimize_model()
-                self.soft_update()
+                self.optimize_model(config)
+                self.soft_target_update(config.tau)
 
                 if done:
                     episode_returns.append(episode_return)
@@ -120,11 +119,11 @@ class Trainer:
 
         return TrainingResult(self.policy_net, episode_returns, episode_lengths, self.device)
 
-    def select_action(self, state: torch.Tensor) -> torch.Tensor:
+    def select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()
-        eps_threshold = self.config.eps_end + (
-            self.config.eps_start - self.config.eps_end
-        ) * math.exp(-1.0 * self.steps_done / self.config.eps_decay)
+        eps_threshold = config.eps_end + (
+            config.eps_start - config.eps_end
+        ) * math.exp(-1.0 * self.steps_done / config.eps_decay)
         self.steps_done += 1
 
         if sample > eps_threshold:
@@ -135,11 +134,11 @@ class Trainer:
         action = self.env.action_space.sample()
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
-    def optimize_model(self) -> None:
-        if len(self.memory) < self.config.batch_size:
+    def optimize_model(self, config: TrainingConfig) -> None:
+        if len(self.memory) < config.batch_size:
             return
 
-        transitions = self.memory.sample(self.config.batch_size)
+        transitions = self.memory.sample(config.batch_size)
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
@@ -161,7 +160,7 @@ class Trainer:
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
         # Final states keep value 0
-        next_state_values = torch.zeros(self.config.batch_size, device=self.device)
+        next_state_values = torch.zeros(config.batch_size, device=self.device)
         if non_final_states:
             non_final_next_states = torch.cat(non_final_states)
             with torch.no_grad():
@@ -171,7 +170,7 @@ class Trainer:
                 ).max(1).values
 
         # Bellman target
-        expected_state_action_values = (next_state_values * self.config.gamma) + reward_batch
+        expected_state_action_values = (next_state_values * config.gamma) + reward_batch
 
         # Huber loss
         criterion = nn.SmoothL1Loss()
@@ -183,16 +182,15 @@ class Trainer:
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
-    def soft_update(self) -> None:
-        target_net_state = self.target_net.state_dict()
-        policy_net_state = self.policy_net.state_dict()
-        tau = self.config.tau
+    def soft_target_update(self, tau: float) -> None:
+        target = self.target_net.state_dict()
+        policy = self.policy_net.state_dict()
 
-        # θ′ ← τ θ + (1−τ) θ′
-        for key in policy_net_state:
-            target_net_state[key] = policy_net_state[key] * tau + target_net_state[key] * (1 - tau)
+        # target is an EMA of policy
+        for key in policy:
+            target[key] = tau * policy[key] + (1 - tau) * target[key]
 
-        self.target_net.load_state_dict(target_net_state)
+        self.target_net.load_state_dict(target)
 
 
 def resolve_device(device=None) -> torch.device:

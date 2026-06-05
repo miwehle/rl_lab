@@ -224,7 +224,7 @@ memory setup                            training.py: Trainer
 
 optimize_model()                        training.py: Trainer.optimize_model()
 
-soft target update inside loop          training.py: Trainer.soft_update()
+soft target update inside loop          training.py: Trainer.soft_target_update()
 
 training loop from notebook cell 16     training.py: Trainer.train(config)
 
