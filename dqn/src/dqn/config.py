@@ -13,4 +13,3 @@ class TrainingConfig:
     tau: float = 0.005
     learning_rate: float = 3e-4
     num_episodes: int = 50
-    max_steps_per_episode: int | None = None

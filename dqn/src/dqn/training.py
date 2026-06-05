@@ -86,21 +86,16 @@ class Trainer:
             state, _ = self.env.reset(seed=reset_seed)
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             episode_return = 0.0
-            steps = range(config.max_steps_per_episode) if config.max_steps_per_episode is not None else count()
 
-            for step_index in steps:
+            for step_index in count():
                 action = self.select_action(state)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
                 reward_tensor = torch.tensor([reward], device=self.device)
 
-                step_limit_reached = (
-                    config.max_steps_per_episode is not None
-                    and step_index + 1 >= config.max_steps_per_episode
-                )
-                done = terminated or truncated or step_limit_reached
+                done = terminated or truncated
 
-                if terminated or step_limit_reached:
+                if terminated:
                     next_state = None
                 else:
                     next_state = torch.tensor(

@@ -15,7 +15,6 @@ def test_cartpole_training_smoke() -> None:
         result = trainer.train(
             TrainingConfig(
                 num_episodes=1,
-                max_steps_per_episode=5,
                 batch_size=2,
             ),
         )
@@ -24,7 +23,7 @@ def test_cartpole_training_smoke() -> None:
 
     assert isinstance(result, TrainingResult)
     assert len(result.episode_returns) == 1
-    assert result.episode_lengths == [5]
+    assert result.episode_lengths[0] > 0
     assert result.device.type in {"cpu", "cuda", "mps"}
 
 
@@ -36,7 +35,6 @@ def test_training_can_continue_with_another_config() -> None:
         first_result = trainer.train(
             TrainingConfig(
                 num_episodes=1,
-                max_steps_per_episode=2,
                 batch_size=2,
             )
         )
@@ -45,7 +43,6 @@ def test_training_can_continue_with_another_config() -> None:
         second_result = trainer.train(
             TrainingConfig(
                 num_episodes=2,
-                max_steps_per_episode=3,
                 batch_size=2,
                 learning_rate=1e-4,
             )
@@ -53,11 +50,13 @@ def test_training_can_continue_with_another_config() -> None:
     finally:
         env.close()
 
-    assert first_result.episode_lengths == [2]
-    assert second_result.episode_lengths == [3, 3]
-    assert trainer.steps_done == steps_after_first_run + 6
+    assert len(first_result.episode_lengths) == 1
+    assert len(second_result.episode_lengths) == 2
+    assert all(length > 0 for length in first_result.episode_lengths)
+    assert all(length > 0 for length in second_result.episode_lengths)
+    assert trainer.steps_done == steps_after_first_run + sum(second_result.episode_lengths)
     assert trainer.memory is not None
-    assert len(trainer.memory) == 8
+    assert len(trainer.memory) == trainer.steps_done
     assert trainer.optimizer.param_groups[0]["lr"] == pytest.approx(1e-4)
 
 
