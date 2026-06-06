@@ -1,4 +1,12 @@
-"""Reusable DQN training loop for Gymnasium environments."""
+"""Reusable DQN training loop for Gymnasium environments.
+
+The DQN Big 5 are:
+- Q-function represented as neural network
+- Target network (innovation)
+- Bellman target
+- TD error
+- Replay memory (innovation)
+"""
 
 from collections.abc import Callable
 from collections import deque, namedtuple
@@ -60,11 +68,11 @@ class Trainer:
         state, _ = env.reset(seed=seed)
         n_observations = len(state)
 
-        self.policy_net = model_factory(n_observations, n_actions).to(self.device)
+        self.q_net = model_factory(n_observations, n_actions).to(self.device)
         self.target_net = model_factory(n_observations, n_actions).to(self.device)
-        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = optim.AdamW(
-            self.policy_net.parameters(),
+            self.q_net.parameters(),
             lr=TrainingConfig().learning_rate,
             weight_decay=0.01,
             amsgrad=True,
@@ -116,7 +124,7 @@ class Trainer:
 
                     break
 
-        return TrainingResult(self.policy_net, episode_returns, episode_lengths)
+        return TrainingResult(self.q_net, episode_returns, episode_lengths)
 
     def select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()
@@ -128,7 +136,7 @@ class Trainer:
         if sample > eps_threshold:
             with torch.no_grad():
                 # Choose the action with the highest expected reward
-                return self.policy_net(state).max(1).indices.view(1, 1)
+                return self.q_net(state).max(1).indices.view(1, 1)
 
         action = self.env.action_space.sample()
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
@@ -156,37 +164,36 @@ class Trainer:
         reward_batch = torch.cat(batch.reward)
 
         # Select Q-values for the actions that were actually taken
-        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        q_values = self.q_net(state_batch).gather(1, action_batch)
 
         # Final states keep value 0
-        next_state_values = torch.zeros(config.batch_size, device=self.device)
+        next_q_values = torch.zeros(config.batch_size, device=self.device)
         if non_final_states:
             non_final_next_states = torch.cat(non_final_states)
             with torch.no_grad():
                 # Estimate next-state values with the older target network
-                next_state_values[non_final_mask] = self.target_net(
-                    non_final_next_states
-                ).max(1).values
+                next_q_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
 
-        # Bellman target
-        expected_state_action_values = (next_state_values * config.gamma) + reward_batch
+        # DQN Big 5: Bellman targets
+        bellman_targets = (next_q_values * config.gamma) + reward_batch
 
-        # Huber loss
+        # Huber loss on the TD error (bellman_target - q_values)
         criterion = nn.SmoothL1Loss()
-        loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+        loss = criterion(q_values, bellman_targets.unsqueeze(1))
 
         self.optimizer.zero_grad()
         loss.backward()
         # Clip gradients in-place
-        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+        torch.nn.utils.clip_grad_value_(self.q_net.parameters(), 100)
+        # Update q_net weights to move q_values toward Bellman targets
         self.optimizer.step()
 
     def soft_target_update(self, tau: float) -> None:
         target = self.target_net.state_dict()
-        policy = self.policy_net.state_dict()
+        policy = self.q_net.state_dict()
 
-        # target is an EMA of policy
         for key in policy:
+            # target is an EMA of policy
             target[key] = tau * policy[key] + (1 - tau) * target[key]
 
         self.target_net.load_state_dict(target)
