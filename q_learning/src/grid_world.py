@@ -108,7 +108,7 @@ def q_learning(
             if done:
                 break
 
-def print_policy(start, goal):
+def policy_as_string(start, goal):
     symbols = {
         UP: "^",
         DOWN: "v",
@@ -116,6 +116,7 @@ def print_policy(start, goal):
         RIGHT: ">",
     }
 
+    lines = []
     for y in range(height):
         row = []
         for x in range(width):
@@ -134,16 +135,5 @@ def print_policy(start, goal):
                     row.append("?")
                 else:
                     row.append(symbols[best_actions[0]])
-        print(" ".join(row))
-
-start = (0, 0)
-goal = (2, 2)
-
-q_learning(
-    start = start, goal = goal,
-    goal_reward = 10,
-    num_episodes = 20, max_steps = 50,
-    alpha=0.3, gamma=0.9, epsilon=0.2,
-)
-
-print_policy(start, goal)
+        lines.append(" ".join(row))
+    return "\n".join(lines)
