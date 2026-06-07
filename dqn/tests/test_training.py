@@ -1,3 +1,5 @@
+import time
+
 import gymnasium as gym
 import pytest
 
@@ -6,7 +8,11 @@ from dqn.model import DQN
 from dqn.training import Trainer, TrainingResult
 from helpers import model_hash, ema
 
+MAX_SMOKE_TEST_SECONDS = 6.0
+MAX_TEST_SECONDS = 29.0
+
 # 5 s
+@pytest.mark.timeout(MAX_SMOKE_TEST_SECONDS)
 def test_cartpole_training_smoke() -> None:
     env = gym.make("CartPole-v1")
 
@@ -61,6 +67,7 @@ def test_training_can_continue_with_another_config() -> None:
 
 
 # 23 s
+@pytest.mark.timeout(MAX_TEST_SECONDS)
 def test_cartpole_training() -> None:
     env = gym.make("CartPole-v1")
 
@@ -70,7 +77,9 @@ def test_cartpole_training() -> None:
     
     try:
         trainer = Trainer(env, model_factory=DQN, seed=42)
+        start_time = time.perf_counter()
         result = trainer.train(config)
+        elapsed_seconds = time.perf_counter() - start_time
     finally:
         env.close()
 
@@ -83,11 +92,13 @@ def test_cartpole_training() -> None:
     print(emas)
     print(mh)
     """
+    print(f"elapsed_seconds = {elapsed_seconds:.2f}")
 
     # increasingly strict asserts
     assert isinstance(result, TrainingResult)
     assert len(result.episode_returns) == episodes
     assert trainer.device.type in {"cpu", "cuda", "mps"}
+    assert elapsed_seconds <= MAX_TEST_SECONDS - 5.0
     assert emas[episodes-1] > 150
     assert emas[episodes-1] == pytest.approx(171.0, abs=0.1)
     assert model_hash(result.policy_net) == "0d99a213bfe0afc6c5e902f000e39e79cd0f67c6313090a014a2056d58b16707"
