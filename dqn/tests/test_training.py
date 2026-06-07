@@ -90,10 +90,9 @@ def test_cartpole_training() -> None:
     print(result.episode_returns)
     print(result.episode_lengths)
     print(emas)
-    print(mh)
-    """
     print(f"elapsed_seconds = {elapsed_seconds:.2f}")
-
+    """
+    
     # increasingly strict asserts
     assert isinstance(result, TrainingResult)
     assert len(result.episode_returns) == episodes
