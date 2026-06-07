@@ -34,9 +34,17 @@ RIGHT = 3
 q = np.zeros((height, width, num_actions), dtype=float)
 q[~grid] = np.nan
 
-rng = np.random.default_rng(seed=42)
+_rng = np.random.default_rng(seed=42)
 
-def move(state, action):
+def reset(seed=42):
+    """Reset the Q-table and random number generator."""
+    global _rng
+
+    q[:] = 0.0
+    q[~grid] = np.nan
+    _rng = np.random.default_rng(seed=seed)
+
+def _move(state, action):
     y, x = state
 
     if action == UP:
@@ -63,14 +71,14 @@ def move(state, action):
 
     return next_y, next_x
 
-def choose_action(state, epsilon):
-    if rng.random() < epsilon:
-        return rng.integers(q.shape[2])
+def _select_action(state, epsilon):
+    if _rng.random() < epsilon:
+        return _rng.integers(q.shape[2])
 
     action_values = q[state]
     best_value = np.nanmax(action_values)
     best_actions = np.flatnonzero(action_values == best_value)
-    return rng.choice(best_actions)
+    return _rng.choice(best_actions)
 
 def q_learning(
     start, goal,
@@ -92,8 +100,8 @@ def q_learning(
         state = start
 
         for _ in range(max_steps):
-            action = choose_action(state, epsilon)
-            next_state = move(state, action)
+            action = _select_action(state, epsilon)
+            next_state = _move(state, action)
             done = next_state == goal
 
             # core: Q-learning update rule (cf. 

@@ -1,5 +1,3 @@
-import numpy as np
-
 import grid_world
 
 
@@ -15,9 +13,6 @@ EXPECTED_POLICY = (
 def test_q_learning():
     start = (0, 0)
     goal = (2, 2)
-    grid_world.q[:] = 0.0
-    grid_world.q[~grid_world.grid] = np.nan
-    grid_world.rng = np.random.default_rng(seed=42)
 
     grid_world.q_learning(
         start=start, goal=goal,
