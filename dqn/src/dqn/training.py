@@ -146,7 +146,9 @@ class Trainer:
 
     def optimize_model(self, config: TrainingConfig) -> None:
         """
-        cf. https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 67
+        cf.
+        https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 67
+        (https://introml.mit.edu/notes/reinforcement_learning.html#q-learning-with-function-approximation)
         """
         if len(self.memory) < config.batch_size:
             return
