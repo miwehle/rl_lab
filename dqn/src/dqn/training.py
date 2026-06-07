@@ -2,9 +2,9 @@
 
 The Big 5 in DQN are:
 - Q-function represented as neural network
-- Target network (innovation)
-- Bellman target
+- TD target
 - TD error
+- Target network (innovation)
 - Replay memory (innovation)
 
 They can easily be found in this module via naming and comments.
@@ -182,12 +182,12 @@ class Trainer:
                 # Estimate next-state values with the older target network
                 next_q_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
 
-        # DQN Big 5: Bellman targets
-        bellman_targets = (next_q_values * config.gamma) + reward_batch
+        # DQN Big 5: TD targets
+        td_targets = (next_q_values * config.gamma) + reward_batch
 
-        # Huber loss on the TD error (bellman_target - q_values)
+        # Huber loss on the TD error (td_target - q_values)
         criterion = nn.SmoothL1Loss()
-        loss = criterion(q_values, bellman_targets.unsqueeze(1))
+        loss = criterion(q_values, td_targets.unsqueeze(1))
 
         self.optimizer.zero_grad()
         loss.backward()

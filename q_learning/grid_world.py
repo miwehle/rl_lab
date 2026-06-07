@@ -99,8 +99,8 @@ def q_learning(
             # core: Q-learning update rule
             reward = goal_reward if done else 0.0
             next_q_value = 0.0 if done else np.nanmax(q[next_state])
-            target = reward + gamma * next_q_value
-            error = target - q[state][action]
+            td_target = reward + gamma * next_q_value
+            error = td_target - q[state][action]
             q[state][action] += alpha * error
 
             state = next_state
