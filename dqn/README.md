@@ -1,6 +1,7 @@
 # DQN
 
-This project is based on: https://docs.pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
+This project is based on:  [PyTorch DQN tutorial](https://docs.pytorch.org/tutorials/intermediate/reinforcement_q_learning.html)
+
 
 ## Local Setup
 
