@@ -76,11 +76,14 @@ def q_learning(
     start, goal,
     goal_reward,
     num_episodes, max_steps,
-    lr,
-    gamma, # discount_factor
-    epsilon # exploration_rate
+    alpha, gamma, epsilon
 ):
     """
+    Args:
+        alpha: learning rate
+        gamma: discount factor
+        epsilon: exploration rate
+
     cf.
     https://introml.mit.edu/notes/reinforcement_learning.html#sec-q_learning
     (https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 35f.)
@@ -98,7 +101,7 @@ def q_learning(
             next_q_value = 0.0 if done else np.nanmax(q[next_state])
             target = reward + gamma * next_q_value
             error = target - q[state][action]
-            q[state][action] += lr * error
+            q[state][action] += alpha * error
 
             state = next_state
 
@@ -140,7 +143,7 @@ q_learning(
     start = start, goal = goal,
     goal_reward = 10,
     num_episodes = 20, max_steps = 50,
-    lr=0.3, gamma=0.9, epsilon=0.2,
+    alpha=0.3, gamma=0.9, epsilon=0.2,
 )
 
 print_policy(start, goal)
