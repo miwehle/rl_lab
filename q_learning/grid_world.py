@@ -63,8 +63,8 @@ def move(state, action):
 
     return next_y, next_x
 
-def choose_action(state, exploration_rate):
-    if rng.random() < exploration_rate:
+def choose_action(state, epsilon):
+    if rng.random() < epsilon:
         return rng.integers(q.shape[2])
 
     action_values = q[state]
@@ -76,7 +76,9 @@ def q_learning(
     start, goal,
     goal_reward,
     num_episodes, max_steps,
-    lr, discount_factor, exploration_rate
+    lr,
+    gamma, # discount_factor
+    epsilon # exploration_rate
 ):
     """
     cf.
@@ -87,14 +89,14 @@ def q_learning(
         state = start
 
         for _ in range(max_steps):
-            action = choose_action(state, exploration_rate)
+            action = choose_action(state, epsilon)
             next_state = move(state, action)
             done = next_state == goal
 
             # core: Q-learning update rule
             reward = goal_reward if done else 0.0
-            next_value = 0.0 if done else np.nanmax(q[next_state])
-            target = reward + discount_factor * next_value
+            next_q_value = 0.0 if done else np.nanmax(q[next_state])
+            target = reward + gamma * next_q_value
             error = target - q[state][action]
             q[state][action] += lr * error
 
@@ -138,7 +140,7 @@ q_learning(
     start = start, goal = goal,
     goal_reward = 10,
     num_episodes = 20, max_steps = 50,
-    lr=0.3, discount_factor=0.9, exploration_rate=0.2,
+    lr=0.3, gamma=0.9, epsilon=0.2,
 )
 
 print_policy(start, goal)
