@@ -78,6 +78,11 @@ def q_learning(
     num_episodes, max_steps,
     lr, discount_factor, exploration_rate
 ):
+    """
+    cf.
+    https://introml.mit.edu/notes/reinforcement_learning.html#sec-q_learning
+    https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 35f.
+    """
     for _ in range(num_episodes):
         state = start
 

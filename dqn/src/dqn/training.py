@@ -1,11 +1,13 @@
 """Reusable DQN training loop for Gymnasium environments.
 
-The DQN Big 5 are:
+The Big 5 in DQN are:
 - Q-function represented as neural network
 - Target network (innovation)
 - Bellman target
 - TD error
 - Replay memory (innovation)
+
+They can easily be found in this module via naming and comments.
 """
 
 from collections.abc import Callable
@@ -26,7 +28,7 @@ from dqn.model import DQN
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 ModelFactory = Callable[[int, int], nn.Module]
 
-
+# DQN Big 5 member
 class ReplayMemory:
     def __init__(self, capacity: int) -> None:
         self.memory: deque[Transition] = deque([], maxlen=capacity)
@@ -68,6 +70,7 @@ class Trainer:
         state, _ = env.reset(seed=seed)
         n_observations = len(state)
 
+        # DQN Big 5 members: Q-network and target network
         self.q_net = model_factory(n_observations, n_actions).to(self.device)
         self.target_net = model_factory(n_observations, n_actions).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
@@ -142,6 +145,9 @@ class Trainer:
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
     def optimize_model(self, config: TrainingConfig) -> None:
+        """
+        cf. https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 67
+        """
         if len(self.memory) < config.batch_size:
             return
 
