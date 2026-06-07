@@ -1,6 +1,6 @@
 ## RL concepts
 
-[grid_world](q_learning/grid_world.py) and [dqn](dqn/src/dqn/training.py) both use the following concepts.
+[q_learning](q_learning/grid_world.py) and [dqn](dqn/src/dqn/training.py) both use the following concepts.
 
 The *TD target* estimates what $Q(s,a)$ should be by looking one step ahead:
 
