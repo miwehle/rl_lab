@@ -72,6 +72,7 @@ def _move(y, x, action):
     return (next_y, next_x)
 
 def _step(state, action, goal, goal_reward):
+    """Grid World equivalent of Gymnasium's env.step(), called execute(a) in MIT 6.390 IntroML."""
     y, x = state
     next_state = _move(y, x, action)
     done = next_state == goal
