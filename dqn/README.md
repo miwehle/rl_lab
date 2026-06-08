@@ -36,13 +36,3 @@ dqn\.venv\Scripts\python.exe -m pip install -r dqn\requirements.txt
 ## Notebooks
 
 Use `dqn/notebooks/RL_(DQN).ipynb` for normal work. The longer tutorial-style notebook is archived at `dqn/notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb` as historical reference.
-
-## Colab Setup
-
-```python
-!git clone https://github.com/DEIN_NAME/rl_lab.git
-%cd rl_lab
-!pip install -r dqn/requirements.txt
-import sys
-sys.path.insert(0, "dqn/src")
-```
