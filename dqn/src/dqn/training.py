@@ -8,6 +8,11 @@ The Big 5 in DQN are:
 - Replay memory (innovation)
 
 They can easily be found in this module via naming and comments.
+
+
+References:
+    https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 62-67
+    https://introml.mit.edu/notes/reinforcement_learning.html#q-learning-with-function-approximation, ch. 12.2
 """
 
 from collections.abc import Callable
@@ -145,11 +150,6 @@ class Trainer:
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
     def _optimize_model(self, config: TrainingConfig) -> None:
-        """
-        References:
-            https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 67
-            (https://introml.mit.edu/notes/reinforcement_learning.html#q-learning-with-function-approximation)
-        """
         if len(self.memory) < config.batch_size:
             return
 
