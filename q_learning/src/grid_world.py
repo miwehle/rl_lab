@@ -71,6 +71,12 @@ def _move(state, action):
 
     return next_y, next_x
 
+def _step(state, action, goal, goal_reward):
+    next_state = _move(state, action)
+    done = next_state == goal
+    reward = goal_reward if done else 0.0
+    return next_state, reward, done
+
 def _select_action(state, epsilon):
     if _rng.random() < epsilon:
         return _rng.integers(q.shape[2])
@@ -101,11 +107,9 @@ def q_learning(
 
         for _ in range(max_steps):
             action = _select_action(state, epsilon)
-            next_state = _move(state, action)
-            done = next_state == goal
+            next_state, reward, done = _step(state, action, goal, goal_reward)
 
             # core: Q-learning update rule (cf. 
-            reward = goal_reward if done else 0.0
             next_q_value = 0.0 if done else np.nanmax(q[next_state])
             td_target = reward + gamma * next_q_value
             td_error = td_target - q[state][action]
