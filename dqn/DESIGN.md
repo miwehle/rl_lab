@@ -30,8 +30,9 @@ This keeps the implementation simple and avoids CNN-specific code.
 ```text
 dqn/
   notebooks/
-    Reinforcement_Learning_(DQN).ipynb
-    reinforcement_learning_(dqn).py
+    RL_(DQN).ipynb
+    archive/
+      Reinforcement_Learning_(DQN)_legacy.ipynb
 
   src/
     dqn/
@@ -217,7 +218,7 @@ ReplayMemory                            training.py
 steps_done                              training.py: Trainer state
 select_action(state)                    training.py: Trainer.select_action(...)
 
-policy_net setup                        training.py: Trainer
+q_net setup                             training.py: Trainer
 target_net setup                        training.py: Trainer
 optimizer setup                         training.py: Trainer
 memory setup                            training.py: Trainer
@@ -260,7 +261,7 @@ The trainer is responsible for:
 ```text
 reading action and observation sizes from the environment
 setting seeds, if configured
-creating policy_net and target_net
+creating q_net and target_net
 creating optimizer and replay memory
 running episodes
 selecting actions with epsilon-greedy exploration
@@ -270,7 +271,7 @@ soft-updating the target network
 collecting episode returns and episode lengths
 passing episode returns to the plotter, if one was provided
 returning TrainingResult
-keeping policy_net, target_net, replay memory, optimizer, and steps_done so training can continue with another config
+keeping q_net, target_net, replay memory, optimizer, and steps_done so training can continue with another config
 ```
 
 Expected result object:
@@ -278,18 +279,18 @@ Expected result object:
 ```python
 @dataclass
 class TrainingResult:
-    policy_net: DQN
+    q_net: DQN
     episode_returns: list[float]
     episode_lengths: list[int]
 ```
 
-`TrainingResult` replaces the notebook globals needed after training, especially `policy_net` and the collected episode metrics.
+`TrainingResult` replaces the notebook globals needed after training, especially `q_net` and the collected episode metrics.
 
 ## Mental Model for Usage
 
 **`Trainer` → `trainer.train(config)` → `TrainingResult`**
 
-`Trainer` owns the long-lived agent state: environment, device, networks, optimizer, replay memory, seed, and step count. `TrainingConfig` contains the choices for one training run. `trainer.train(config)` performs the reusable DQN training loop and can be called again with another config to continue from the current trainer state. `TrainingResult` replaces the notebook globals needed after training, especially the trained policy network and collected episode metrics for this run.
+`Trainer` owns the long-lived agent state: environment, device, networks, optimizer, replay memory, seed, and step count. `TrainingConfig` contains the choices for one training run. `trainer.train(config)` performs the reusable DQN training loop and can be called again with another config to continue from the current trainer state. `TrainingResult` replaces the notebook globals needed after training, especially the trained Q-network and collected episode metrics for this run.
 
 ## Environment Wiring
 
@@ -420,7 +421,7 @@ from dqn.visualize import record_episode, show_animation
 
 frames = record_episode(
     make_env=lambda: gym.make("CartPole-v1", render_mode="rgb_array"),
-    policy_net=result.policy_net,
+    q_net=result.q_net,
     device=trainer.device,
 )
 

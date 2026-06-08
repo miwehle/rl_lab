@@ -48,7 +48,7 @@ class EpisodePlotter:
 
 def record_episode(
     make_env: Callable[[], Any],
-    policy_net: DQN,
+    q_net: DQN,
     device: torch.device,
     max_steps: int = 500,
 ) -> list[Any]:
@@ -57,13 +57,13 @@ def record_episode(
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
     frames = []
-    policy_net.eval()
+    q_net.eval()
 
     for _ in range(max_steps):
         frames.append(env.render())
 
         with torch.no_grad():
-            action = policy_net(state).argmax(dim=1).item()
+            action = q_net(state).argmax(dim=1).item()
 
         observation, _, terminated, truncated, _ = env.step(action)
 
