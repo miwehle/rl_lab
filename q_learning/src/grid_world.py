@@ -44,9 +44,7 @@ def reset(seed=42):
     q[~grid] = np.nan
     _rng = np.random.default_rng(seed=seed)
 
-def _move(state, action):
-    y, x = state
-
+def _move(y, x, action):
     if action == UP:
         next_y, next_x = y - 1, x
     elif action == DOWN:
@@ -60,19 +58,22 @@ def _move(state, action):
 
     height, width = grid.shape
 
-    if next_y < 0 or next_y >= height:
-        return state
+    is_outside_grid = (
+        next_y < 0 or next_y >= height
+        or next_x < 0 or next_x >= width
+    )
 
-    if next_x < 0 or next_x >= width:
-        return state
+    if is_outside_grid:
+        return (y, x)
 
     if not grid[next_y, next_x]:
-        return state
+        return (y, x)
 
-    return next_y, next_x
+    return (next_y, next_x)
 
 def _step(state, action, goal, goal_reward):
-    next_state = _move(state, action)
+    y, x = state
+    next_state = _move(y, x, action)
     done = next_state == goal
     reward = goal_reward if done else 0.0
     return next_state, reward, done
