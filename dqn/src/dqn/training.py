@@ -96,7 +96,7 @@ class Trainer:
             episode_return = 0.0
 
             for t in count():
-                action = self.select_action(state, config)
+                action = self._select_action(state, config)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
                 reward_tensor = torch.tensor([reward], device=self.device)
@@ -115,8 +115,8 @@ class Trainer:
                 self.memory.push(state, action, next_state, reward_tensor)
                 state = next_state
 
-                self.optimize_model(config)
-                self.soft_target_update(config.tau)
+                self._optimize_model(config)
+                self._soft_target_update(config.tau)
 
                 if done:
                     episode_returns.append(episode_return)
@@ -129,7 +129,7 @@ class Trainer:
 
         return TrainingResult(self.q_net, episode_returns, episode_lengths)
 
-    def select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
+    def _select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()
         eps_threshold = config.eps_end + (
             config.eps_start - config.eps_end
@@ -144,7 +144,7 @@ class Trainer:
         action = self.env.action_space.sample()
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
-    def optimize_model(self, config: TrainingConfig) -> None:
+    def _optimize_model(self, config: TrainingConfig) -> None:
         """
         References:
             https://web.stanford.edu/class/cs234/slides/lecture4pre.pdf, p. 67
@@ -196,7 +196,7 @@ class Trainer:
         # Update q_net weights to move q_values toward Bellman targets
         self.optimizer.step()
 
-    def soft_target_update(self, tau: float) -> None:
+    def _soft_target_update(self, tau: float) -> None:
         target = self.target_net.state_dict()
         policy = self.q_net.state_dict()
 
