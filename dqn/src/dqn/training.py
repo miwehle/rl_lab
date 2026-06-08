@@ -45,7 +45,7 @@ class ReplayMemory:
 
 @dataclass
 class TrainingResult:
-    policy_net: nn.Module
+    q_net: nn.Module
     episode_returns: list[float]
     episode_lengths: list[int]
 

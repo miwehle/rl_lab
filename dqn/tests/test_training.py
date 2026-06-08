@@ -100,4 +100,4 @@ def test_cartpole_training() -> None:
     assert elapsed_seconds <= MAX_TEST_SECONDS - 5.0
     assert emas[episodes-1] > 150
     assert emas[episodes-1] == pytest.approx(171.0, abs=0.1)
-    assert model_hash(result.policy_net) == "0d99a213bfe0afc6c5e902f000e39e79cd0f67c6313090a014a2056d58b16707"
+    assert model_hash(result.q_net) == "0d99a213bfe0afc6c5e902f000e39e79cd0f67c6313090a014a2056d58b16707"
