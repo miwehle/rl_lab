@@ -1,423 +1,116 @@
-# DQN Module Design
+# DQN Design Notes
+
+This package is a small study implementation of DQN. The code is the source of
+truth; this document only records the design intent that is useful to keep in
+mind while changing it.
+
+## Origin
+
+This package started as a refactoring of the official
+[PyTorch Reinforcement Learning (DQN) tutorial](https://docs.pytorch.org/tutorials/intermediate/reinforcement_q_learning.html). The original notebook version is kept in
+`notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb`.
+
+Some CartPole-specific tutorial names were generalized during the refactoring.
+For example, `episode_durations` became `episode_returns`, because the trainer
+should also make sense for environments where an episode score is not simply a
+duration.
 
 ## Goal
 
-Build a small reusable DQN package that can train on both:
+The DQN code should be reusable across simple Gymnasium environments. The trainer
+receives an environment object and should not know whether it is training on
+CartPole, MyFreeway, or another compatible environment.
+
+Supported environments are intentionally limited for now:
 
 ```text
-CartPole-v1
-MyFreeway-v0
+Discrete action space
+Flat vector observations
+Gymnasium reset/step API
 ```
 
-The training code should not know which concrete environment it is training on. It should only rely on the Gymnasium API:
+The trainer only relies on the standard Gymnasium interaction shape:
 
 ```python
 state, info = env.reset()
 next_state, reward, terminated, truncated, info = env.step(action)
 ```
 
-For the first version, supported environments should have:
+This keeps the implementation focused on the DQN learning loop instead of
+environment-specific wiring, image observations, or CNN models.
 
-```text
-Discrete action space
-Flat Box observation space with shape=(n,)
-```
+## Training Boundary
 
-This keeps the implementation simple and avoids CNN-specific code.
-
-## Proposed Package Structure
-
-```text
-dqn/
-  notebooks/
-    RL_DQN.ipynb
-    archive/
-      Reinforcement_Learning_(DQN)_legacy.ipynb
-
-  src/
-    dqn/
-      __init__.py
-      model.py
-      training.py
-      visualize.py
-
-      envs/
-        __init__.py
-        myfreeway.py
-
-      scripts/
-        train_cartpole.py
-        train_myfreeway.py
-```
-
-This is intentionally compact. Smaller pieces such as replay memory, action selection, optimization, and the training loop all belong in `training.py` for now. They can be split out later if the project grows.
-
-## Module Overview
-
-### `model.py`
-
-Contains the neural network.
-
-Expected contents:
-
-```text
-DQN(nn.Module)
-```
-
-The first model is a feed-forward network for flat observation vectors. It should not contain any CartPole or MyFreeway logic.
-
-### `training.py`
-
-Contains the reusable DQN training implementation and its configuration dataclass.
-
-Expected contents:
-
-```text
-Transition
-ReplayMemory
-TrainingConfig
-TrainingResult
-Trainer
-Trainer.train(config, plotter=None) -> TrainingResult
-```
-
-The config is passed explicitly into the trainer method:
+The reusable boundary is the Gymnasium environment object:
 
 ```python
 trainer = Trainer(env, seed=42)
 result = trainer.train(config)
 ```
 
-This is the central module. It should not call `gym.make("CartPole-v1")` and should not import `MyFreewayEnv`. The concrete environment is created outside and passed in.
+`Trainer` owns the long-lived training state: networks, optimizer, replay memory,
+device, step counter, and environment. `TrainingConfig` describes one training
+run. Calling `train()` again continues from the current trainer state.
 
-### `visualize.py`
-
-Contains optional plotting and rendering helpers.
-
-Expected contents:
-
-```text
-EpisodePlotter
-record_episode(...)
-show_animation(...)
-```
-
-`EpisodePlotter` replaces the old notebook function `plot_durations(...)`. Its main method should be `plot_returns(...)`, using the more general name `returns`. The plotted value is usually the episode return, while the y-axis label can be chosen per environment, for example `Duration` for CartPole or `Return` for MyFreeway.
-
-### `envs/myfreeway.py`
-
-Contains the custom Gymnasium environment.
-
-Expected contents:
+The training loop should remain easy to read. The important DQN steps should stay
+visible in `Trainer.train()`:
 
 ```text
-MyFreewayEnv(gym.Env)
+select action
+step environment
+store transition
+optimize q-network when appropriate
+soft-update target network
+finish episode bookkeeping
 ```
 
-The environment implements:
-
-```text
-reset(...)
-step(action)
-render()
-close()
-action_space
-observation_space
-metadata
-```
-
-### `envs/__init__.py`
-
-Optionally registers `MyFreeway-v0` with Gymnasium:
-
-```python
-from gymnasium.envs.registration import register
-
-register(
-    id="MyFreeway-v0",
-    entry_point="dqn.envs.myfreeway:MyFreewayEnv",
-)
-```
-
-### `src/dqn/scripts/train_cartpole.py`
-
-Creates the CartPole environment and passes it to the reusable trainer:
-
-```python
-import gymnasium as gym
-
-from dqn.training import Trainer, TrainingConfig
-
-env = gym.make("CartPole-v1")
-config = TrainingConfig()
-trainer = Trainer(env)
-result = trainer.train(config)
-```
-
-### `src/dqn/scripts/train_myfreeway.py`
-
-Creates the MyFreeway environment and passes it to the same trainer:
-
-```python
-import gymnasium as gym
-import dqn.envs
-
-from dqn.training import Trainer, TrainingConfig
-
-env = gym.make("MyFreeway-v0")
-config = TrainingConfig(num_episodes=500)
-trainer = Trainer(env)
-result = trainer.train(config)
-```
-
-## Notebook To Module Mapping
-
-```text
-Notebook code / concept                  Target module
-
-import gymnasium as gym                  src/dqn/scripts/train_cartpole.py
-env = gym.make("CartPole-v1")            src/dqn/scripts/train_cartpole.py
-
-device selection                         training.py helper
-seed setup                               training.py
-
-BATCH_SIZE                               training.py: TrainingConfig.batch_size
-GAMMA                                    training.py: TrainingConfig.gamma
-EPS_START                                training.py: TrainingConfig.eps_start
-EPS_END                                  training.py: TrainingConfig.eps_end
-EPS_DECAY                                training.py: TrainingConfig.eps_decay
-TAU                                      training.py: TrainingConfig.tau
-LR                                       training.py: TrainingConfig.learning_rate
-
-class DQN                              model.py
-
-Transition                              training.py
-ReplayMemory                            training.py
-
-steps_done                              training.py: Trainer state
-select_action(state)                    training.py: Trainer.select_action(...)
-
-q_net setup                             training.py: Trainer
-target_net setup                        training.py: Trainer
-optimizer setup                         training.py: Trainer
-memory setup                            training.py: Trainer
-
-optimize_model()                        training.py: Trainer.optimize_model()
-
-soft target update inside loop          training.py: Trainer.soft_target_update()
-
-training loop from notebook cell 16     training.py: Trainer.train(config)
-
-episode_durations                       training.py: TrainingResult
-episode_lengths                         training.py: TrainingResult
-
-plot_durations(...)                     visualize.py: EpisodePlotter.plot_returns(...)
-record_episode(...)                     visualize.py
-matplotlib animation code               visualize.py or notebook-only
-
-MyFreewayEnv                            envs/myfreeway.py
-gym registration for MyFreeway-v0       envs/__init__.py
-```
-
-The notebook names are CartPole-specific. During extraction they should be generalized:
-
-```text
-episode_durations -> episode_returns
-plot_durations(...) -> plot_returns(...)
-```
-
-## Trainer
-
-The notebook currently has a top-level training loop. In the package this should become a trainer object:
-
-```python
-trainer = Trainer(env, seed=42)
-result = trainer.train(config, plotter=plotter)
-```
-
-The trainer is responsible for:
-
-```text
-reading action and observation sizes from the environment
-setting seeds, if configured
-creating q_net and target_net
-creating optimizer and replay memory
-running episodes
-selecting actions with epsilon-greedy exploration
-storing transitions
-optimizing the policy network
-soft-updating the target network
-collecting episode returns and episode lengths
-passing episode returns to the plotter, if one was provided
-returning TrainingResult
-keeping q_net, target_net, replay memory, optimizer, and steps_done so training can continue with another config
-```
-
-Expected result object:
-
-```python
-@dataclass
-class TrainingResult:
-    q_net: DQN
-    episode_returns: list[float]
-    episode_lengths: list[int]
-```
-
-`TrainingResult` replaces the notebook globals needed after training, especially `q_net` and the collected episode metrics.
+Helper methods are fine when they reduce noise, but they should not hide the
+core learning flow.
 
 ## Mental Model for Usage
 
-**`Trainer` → `trainer.train(config)` → `TrainingResult`**
+**`Trainer` -> `trainer.train(config)` -> `TrainingResult`**
 
-`Trainer` owns the long-lived agent state: environment, device, networks, optimizer, replay memory, seed, and step count. `TrainingConfig` contains the choices for one training run. `trainer.train(config)` performs the reusable DQN training loop and can be called again with another config to continue from the current trainer state. `TrainingResult` replaces the notebook globals needed after training, especially the trained Q-network and collected episode metrics for this run.
+`Trainer` owns the long-lived agent state: environment, device, networks,
+optimizer, replay memory, seed, and step count. `TrainingConfig` contains the
+choices for one training run. `trainer.train(config)` runs the DQN loop and can
+be called again to continue from the current trainer state. `TrainingResult`
+contains the trained Q-network and the episode metrics collected during that
+run.
 
-## Environment Wiring
+## Tuned Trainer
 
-`training.py` is environment-agnostic:
-
-```python
-trainer = Trainer(env)
-result = trainer.train(config)
-```
-
-CartPole wiring:
-
-```python
-env = gym.make("CartPole-v1")
-trainer = Trainer(env)
-result = trainer.train(config)
-```
-
-MyFreeway wiring:
-
-```python
-env = gym.make("MyFreeway-v0")
-trainer = Trainer(env)
-result = trainer.train(config)
-```
-
-The reusable boundary is the Gymnasium environment object.
-
-## MyFreeway First Version
-
-`MyFreewayEnv` should start simple.
-
-Initial assumptions:
+`TunedTrainer` is a small subclass for practical training improvements while
+keeping the baseline trainer simple. Its current responsibilities are:
 
 ```text
-action_space = gymnasium.spaces.Discrete(n)
-observation_space = gymnasium.spaces.Box(shape=(k,), dtype=np.float32)
-terminated = True on goal or crash
-truncated = True on max_steps
+wait for learning_starts before optimizing
+optimize only every optimize_every steps
+save the best checkpoint at the end of an episode
 ```
 
-Possible actions:
+The subclass should stay small. If a tuning feature requires copying the whole
+training loop, the base trainer probably needs a clearer extension point first.
+
+## Notebook Role
+
+Notebooks are consumers of the package. They may choose an environment, configure
+training, plot results, and render episodes. They should not contain the
+canonical model, replay memory, optimization step, or training loop.
+
+## Possible Next Steps
 
 ```text
-stay
-up
-down
-left
-right
+hyperparameter sweeps
 ```
 
-Possible observation features:
-
-```text
-player_x
-player_y
-lane_1_car_x
-lane_1_car_speed
-lane_2_car_x
-lane_2_car_speed
-...
-```
-
-Possible rewards:
-
-```text
-+goal_reward
--crash_penalty
--step_penalty
-+progress_reward, optional
-```
-
-The observation should be a flat numeric vector, preferably normalized to stable ranges.
-
-## Notebook Role After Refactoring
-
-The notebook should become a consumer of the package:
-
-```text
-choose env
-choose config
-create Trainer(env)
-call trainer.train(config)
-plot results
-record/render episodes
-```
-
-It should no longer contain the canonical implementation of the DQN model, replay memory, optimization step, or training loop.
-
-A Colab notebook can stay small and use three code cells: setup, training, visualization.
-
-Setup:
-
-```python
-!git clone https://github.com/DEIN_NAME/rl_lab.git
-%cd rl_lab
-
-!pip install -r dqn/requirements.txt
-
-import sys
-sys.path.insert(0, "dqn/src")
-```
-
-Training:
-
-```python
-import gymnasium as gym
-
-from dqn.training import Trainer, TrainingConfig
-from dqn.visualize import EpisodePlotter
-
-env = gym.make("CartPole-v1")
-
-config = TrainingConfig(
-    num_episodes=50,
-)
-
-plotter = EpisodePlotter(y_label="Duration")
-trainer = Trainer(env, seed=42)
-result = trainer.train(config, plotter=plotter)
-```
-
-Visualization:
-
-```python
-from dqn.visualize import record_episode, show_animation
-
-frames = record_episode(
-    make_env=lambda: gym.make("CartPole-v1", render_mode="rgb_array"),
-    q_net=result.q_net,
-    device=trainer.device,
-)
-
-show_animation(frames)
-```
-
-## Non-Goals For The First Implementation
+## Non-Goals For Now
 
 ```text
 CNN support
 image observations
-checkpointing
 vectorized environments
-hyperparameter sweeps
 advanced logging
-Double DQN
 prioritized replay
-polished MyFreeway rendering
+polished custom-environment rendering
 ```
-
-These can be added later once CartPole and the first MyFreeway version both run through the same `Trainer(env).train(config)` path.
