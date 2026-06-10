@@ -104,28 +104,23 @@ class Trainer:
                 action = self._select_action(state, config)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
-                reward_tensor = torch.tensor([reward], device=self.device)
 
                 done = terminated or truncated
-
-                if terminated:
-                    next_state = None
-                else:
-                    next_state = torch.tensor(
-                        observation,
-                        dtype=torch.float32,
-                        device=self.device,
-                    ).unsqueeze(0)
+                reward_tensor, observation_tensor = self._as_tensors(reward, observation)
+                next_state = None if terminated else observation_tensor
 
                 self.memory.push(state, action, next_state, reward_tensor)
                 state = next_state
 
-                self._optimize_model(config)
+                if self._should_optimize(config):
+                    self._optimize_model(config)
                 self._soft_target_update(config.tau)
 
                 if done:
                     episode_returns.append(episode_return)
                     episode_lengths.append(t + 1)
+
+                    self._after_episode(episode_returns, episode_lengths, config)
 
                     if plotter is not None:
                         plotter.plot_returns(episode_returns)
@@ -133,6 +128,27 @@ class Trainer:
                     break
 
         return TrainingResult(self.q_net, episode_returns, episode_lengths)
+
+    def _as_tensors(self, reward, observation) -> tuple[torch.Tensor, torch.Tensor]:
+        reward_tensor = torch.tensor([reward], device=self.device)
+        observation_tensor = torch.tensor(
+            observation,
+            dtype=torch.float32,
+            device=self.device,
+        ).unsqueeze(0)
+
+        return reward_tensor, observation_tensor
+
+    def _should_optimize(self, config: TrainingConfig) -> bool:
+        return len(self.memory) >= config.batch_size
+
+    def _after_episode(
+        self,
+        episode_returns: list[float],
+        episode_lengths: list[int],
+        config: TrainingConfig,
+    ) -> None:
+        pass
 
     def _select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()
@@ -150,9 +166,6 @@ class Trainer:
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
     def _optimize_model(self, config: TrainingConfig) -> None:
-        if len(self.memory) < config.batch_size:
-            return
-
         transitions = self.memory.sample(config.batch_size)
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
