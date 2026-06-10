@@ -3,9 +3,8 @@ import time
 import gymnasium as gym
 import pytest
 
-from dqn.config import TrainingConfig
 from dqn.model import DQN
-from dqn.training import Trainer, TrainingResult
+from dqn.training import Trainer, TrainingConfig, TrainingResult
 from helpers import model_hash, ema
 
 MAX_SMOKE_TEST_SECONDS = 6.0

@@ -2,8 +2,7 @@
 
 import gymnasium as gym
 
-from dqn.config import TrainingConfig
-from dqn.training import Trainer
+from dqn.training import Trainer, TrainingConfig
 
 
 def main() -> None:

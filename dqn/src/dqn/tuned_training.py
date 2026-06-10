@@ -5,8 +5,7 @@ from pathlib import Path
 
 import torch
 
-from dqn.config import TrainingConfig
-from dqn.training import Trainer
+from dqn.training import Trainer, TrainingConfig
 
 
 @dataclass

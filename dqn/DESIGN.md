@@ -37,7 +37,6 @@ dqn/
   src/
     dqn/
       __init__.py
-      config.py
       model.py
       training.py
       visualize.py
@@ -55,32 +54,6 @@ This is intentionally compact. Smaller pieces such as replay memory, action sele
 
 ## Module Overview
 
-### `config.py`
-
-Contains the training configuration as a dataclass.
-
-Expected contents:
-
-```python
-@dataclass
-class TrainingConfig:
-    batch_size: int = 128
-    gamma: float = 0.99
-    eps_start: float = 0.9
-    eps_end: float = 0.01
-    eps_decay: int = 2500
-    tau: float = 0.005
-    learning_rate: float = 3e-4
-    num_episodes: int = 50
-```
-
-The config is passed explicitly into the trainer method:
-
-```python
-trainer = Trainer(env, seed=42)
-result = trainer.train(config)
-```
-
 ### `model.py`
 
 Contains the neural network.
@@ -95,16 +68,24 @@ The first model is a feed-forward network for flat observation vectors. It shoul
 
 ### `training.py`
 
-Contains the reusable DQN training implementation.
+Contains the reusable DQN training implementation and its configuration dataclass.
 
 Expected contents:
 
 ```text
 Transition
 ReplayMemory
+TrainingConfig
 TrainingResult
 Trainer
 Trainer.train(config, plotter=None) -> TrainingResult
+```
+
+The config is passed explicitly into the trainer method:
+
+```python
+trainer = Trainer(env, seed=42)
+result = trainer.train(config)
 ```
 
 This is the central module. It should not call `gym.make("CartPole-v1")` and should not import `MyFreewayEnv`. The concrete environment is created outside and passed in.
@@ -165,8 +146,7 @@ Creates the CartPole environment and passes it to the reusable trainer:
 ```python
 import gymnasium as gym
 
-from dqn.config import TrainingConfig
-from dqn.training import Trainer
+from dqn.training import Trainer, TrainingConfig
 
 env = gym.make("CartPole-v1")
 config = TrainingConfig()
@@ -182,8 +162,7 @@ Creates the MyFreeway environment and passes it to the same trainer:
 import gymnasium as gym
 import dqn.envs
 
-from dqn.config import TrainingConfig
-from dqn.training import Trainer
+from dqn.training import Trainer, TrainingConfig
 
 env = gym.make("MyFreeway-v0")
 config = TrainingConfig(num_episodes=500)
@@ -199,16 +178,16 @@ Notebook code / concept                  Target module
 import gymnasium as gym                  src/dqn/scripts/train_cartpole.py
 env = gym.make("CartPole-v1")            src/dqn/scripts/train_cartpole.py
 
-device selection                         config.py or training.py helper
+device selection                         training.py helper
 seed setup                               training.py
 
-BATCH_SIZE                               config.py: TrainingConfig.batch_size
-GAMMA                                    config.py: TrainingConfig.gamma
-EPS_START                                config.py: TrainingConfig.eps_start
-EPS_END                                  config.py: TrainingConfig.eps_end
-EPS_DECAY                                config.py: TrainingConfig.eps_decay
-TAU                                      config.py: TrainingConfig.tau
-LR                                       config.py: TrainingConfig.learning_rate
+BATCH_SIZE                               training.py: TrainingConfig.batch_size
+GAMMA                                    training.py: TrainingConfig.gamma
+EPS_START                                training.py: TrainingConfig.eps_start
+EPS_END                                  training.py: TrainingConfig.eps_end
+EPS_DECAY                                training.py: TrainingConfig.eps_decay
+TAU                                      training.py: TrainingConfig.tau
+LR                                       training.py: TrainingConfig.learning_rate
 
 class DQN                              model.py
 
@@ -399,8 +378,7 @@ Training:
 ```python
 import gymnasium as gym
 
-from dqn.config import TrainingConfig
-from dqn.training import Trainer
+from dqn.training import Trainer, TrainingConfig
 from dqn.visualize import EpisodePlotter
 
 env = gym.make("CartPole-v1")
