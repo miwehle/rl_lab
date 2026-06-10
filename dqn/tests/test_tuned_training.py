@@ -21,6 +21,11 @@ def test_tuned_training_config_rejects_invalid_values(kwargs) -> None:
         TunedTrainingConfig(**kwargs)
 
 
+def test_tuned_training_config_warns_when_epsilon_decays_before_learning_starts() -> None:
+    with pytest.warns(UserWarning, match="eps_decay may be too small"):
+        TunedTrainingConfig(learning_starts=1000, eps_decay=500)
+
+
 def test_tuned_trainer_waits_for_warmup_and_optimizes_every_n_steps() -> None:
     env = gym.make("CartPole-v1")
     checkpoint_path = Path("dqn/tests/tuned_best.pt")

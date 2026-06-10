@@ -1,7 +1,9 @@
 """Tuned DQN trainer with a few practical training improvements."""
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
+import warnings
 
 import torch
 
@@ -24,6 +26,13 @@ class TunedTrainingConfig(TrainingConfig):
             raise ValueError("optimize_every must be >= 1")
         if self.checkpoint_window < 1:
             raise ValueError("checkpoint_window must be >= 1")
+
+        remaining_exploration = math.exp(-self.learning_starts / self.eps_decay)
+        if remaining_exploration < 0.5:
+            warnings.warn(
+                "eps_decay may be too small relative to learning_starts",
+                stacklevel=2,
+            )
 
 
 class TunedTrainer(Trainer):
