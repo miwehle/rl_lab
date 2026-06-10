@@ -30,7 +30,7 @@ This keeps the implementation simple and avoids CNN-specific code.
 ```text
 dqn/
   notebooks/
-    RL_(DQN).ipynb
+    RL_DQN.ipynb
     archive/
       Reinforcement_Learning_(DQN)_legacy.ipynb
 

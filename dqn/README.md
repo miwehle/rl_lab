@@ -35,4 +35,4 @@ dqn\.venv\Scripts\python.exe -m pip install -r dqn\requirements.txt
 
 ## Notebooks
 
-Use `dqn/notebooks/RL_(DQN).ipynb` for normal work. The longer tutorial-style notebook is archived at `dqn/notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb` as historical reference.
+Use `dqn/notebooks/RL_DQN.ipynb` for normal work. The longer tutorial-style notebook is archived at `dqn/notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb` as historical reference.
