@@ -1,9 +1,24 @@
 from pathlib import Path
 
 import gymnasium as gym
+import pytest
 import torch
 
 from dqn.tuned_training import TunedTrainer, TunedTrainingConfig
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"learning_starts": -1},
+        {"optimize_every": 0},
+        {"checkpoint_window": 0},
+        {"batch_size": 0},
+    ],
+)
+def test_tuned_training_config_rejects_invalid_values(kwargs) -> None:
+    with pytest.raises(ValueError):
+        TunedTrainingConfig(**kwargs)
 
 
 def test_tuned_trainer_waits_for_warmup_and_optimizes_every_n_steps() -> None:
@@ -17,6 +32,7 @@ def test_tuned_trainer_waits_for_warmup_and_optimizes_every_n_steps() -> None:
             batch_size=4,
             learning_starts=8,
             optimize_every=4,
+            checkpoint_window=2,
             checkpoint_path=checkpoint_path,
         )
 
@@ -43,14 +59,17 @@ def test_tuned_trainer_saves_best_checkpoint() -> None:
 
     try:
         trainer = TunedTrainer(env, seed=42)
-        config = TunedTrainingConfig(checkpoint_path=checkpoint_path)
+        config = TunedTrainingConfig(checkpoint_window=2, checkpoint_path=checkpoint_path)
 
         trainer._after_episode([1.0], [10], config)
         assert checkpoint_path.exists()
-        assert trainer.best_checkpoint_return == 1.0
+        assert trainer.best_checkpoint_score == 1.0
 
         trainer._after_episode([1.0, 0.5], [10, 8], config)
-        assert trainer.best_checkpoint_return == 1.0
+        assert trainer.best_checkpoint_score == 1.0
+
+        trainer._after_episode([1.0, 0.5, 2.0], [10, 8, 12], config)
+        assert trainer.best_checkpoint_score == 1.25
 
         checkpoint = torch.load(checkpoint_path, weights_only=True)
         assert set(checkpoint) == set(trainer.q_net.state_dict())

@@ -58,6 +58,27 @@ class TrainingConfig:
     learning_rate: float = 3e-4
     num_episodes: int = 50
 
+    def __post_init__(self) -> None:
+        positive_counts = {
+            "batch_size": self.batch_size,
+            "eps_decay": self.eps_decay,
+            "num_episodes": self.num_episodes,
+        }
+        if any(value < 1 for value in positive_counts.values()):
+            raise ValueError(f"must be >= 1: {', '.join(positive_counts)}")
+
+        probabilities = {
+            "gamma": self.gamma,
+            "eps_start": self.eps_start,
+            "eps_end": self.eps_end,
+            "tau": self.tau,
+        }
+        if any(value < 0 or value > 1 for value in probabilities.values()):
+            raise ValueError(f"must be between 0 and 1: {', '.join(probabilities)}")
+
+        if self.learning_rate <= 0:
+            raise ValueError("learning_rate must be > 0")
+
 
 @dataclass
 class TrainingResult:

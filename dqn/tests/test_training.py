@@ -10,6 +10,25 @@ from helpers import model_hash, ema
 MAX_SMOKE_TEST_SECONDS = 6.0
 MAX_TEST_SECONDS = 29.0
 
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"batch_size": 0},
+        {"eps_decay": 0},
+        {"num_episodes": 0},
+        {"gamma": -0.1},
+        {"eps_start": 1.1},
+        {"eps_end": -0.1},
+        {"tau": 1.1},
+        {"learning_rate": 0},
+    ],
+)
+def test_training_config_rejects_invalid_values(kwargs) -> None:
+    with pytest.raises(ValueError):
+        TrainingConfig(**kwargs)
+
+
 # 5 s
 @pytest.mark.timeout(MAX_SMOKE_TEST_SECONDS)
 def test_cartpole_training_smoke() -> None:
