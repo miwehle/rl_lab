@@ -59,6 +59,7 @@ class TrainingConfig:
     num_episodes: int = 50
 
     def __post_init__(self) -> None:
+        """Validate config."""
         positive_counts = {
             "batch_size": self.batch_size,
             "eps_decay": self.eps_decay,

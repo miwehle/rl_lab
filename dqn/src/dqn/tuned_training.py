@@ -18,6 +18,7 @@ class TunedTrainingConfig(TrainingConfig):
     checkpoint_path: str | Path = "best_checkpoint.pt"
 
     def __post_init__(self) -> None:
+        """Validate config."""
         super().__post_init__()
 
         if self.learning_starts < 0:
