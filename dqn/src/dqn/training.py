@@ -169,6 +169,7 @@ class Trainer:
         return reward_tensor, observation_tensor
 
     def _should_optimize(self, config: TrainingConfig) -> bool:
+        """Hook used by train() to decide whether to run a gradient update."""
         return len(self.memory) >= config.batch_size
 
     def _after_episode(
@@ -178,6 +179,7 @@ class Trainer:
         config: TrainingConfig,
         plotter=None,
     ) -> None:
+        """Hook used by train() after an episode has finished."""
         if plotter is not None:
             plotter.plot_returns(episode_returns)
 
