@@ -82,41 +82,81 @@ def record_episode(
     q_net: DQN,
     device: torch.device,
     max_steps: int = 500,
-) -> list[Any]:
+    return_scores: bool = False,
+) -> list[Any] | tuple[list[Any], list[float]]:
     env = make_env()
     state, _ = env.reset()
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
     frames = []
+    scores = []
+    episode_return = 0.0
     q_net.eval()
 
     for _ in range(max_steps):
         frames.append(env.render())
+        scores.append(episode_return)
 
         with torch.no_grad():
             action = q_net(state).argmax(dim=1).item()
 
-        observation, _, terminated, truncated, _ = env.step(action)
+        observation, reward, terminated, truncated, _ = env.step(action)
+        episode_return += float(reward)
 
         if terminated or truncated:
+            frames.append(env.render())
+            scores.append(episode_return)
             break
 
         state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
     env.close()
+    if return_scores:
+        return frames, scores
     return frames
 
 
-def show_animation(frames: list[Any], interval: int = 20) -> Any:
+def show_animation(
+    frames: list[Any],
+    interval: int = 20,
+    scores: list[float] | None = None,
+) -> Any:
     fig = plt.figure()
     plt.axis("off")
     image = plt.imshow(frames[0])
+    score_text = None
 
-    def update(frame: Any) -> list[Any]:
+    if scores is not None:
+        score_text = plt.text(
+            0.02,
+            0.95,
+            "",
+            color="white",
+            fontsize=12,
+            transform=plt.gca().transAxes,
+        )
+
+    animation_frames = list(enumerate(frames))
+
+    def update(frame_data: tuple[int, Any]) -> list[Any]:
+        frame_index, frame = frame_data
         image.set_array(frame)
-        return [image]
+        artists = [image]
 
-    ani = animation.FuncAnimation(fig, update, frames=frames, interval=interval, blit=True)
+        if score_text is not None:
+            score = scores[frame_index]
+            score_text.set_text(f"Return: {score:.1f}")
+            artists.append(score_text)
+
+        return artists
+
+    ani = animation.FuncAnimation(
+        fig,
+        update,
+        frames=animation_frames,
+        interval=interval,
+        blit=True,
+    )
     plt.close(fig)
 
     try:
