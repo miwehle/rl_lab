@@ -2,6 +2,7 @@
 
 from collections import deque
 import copy
+import logging
 from pathlib import Path
 import random
 from typing import Any
@@ -12,10 +13,12 @@ from dqn.training import ReplayMemory, Trainer
 
 
 CHECKPOINT_VERSION = 1
+logger = logging.getLogger(__name__)
 
 
 def save_checkpoint(trainer: Trainer, path: str | Path) -> None:
     """Save enough trainer state to resume training."""
+    logger.info("Saving checkpoint to %s", path)
     torch.save(_trainer_state(trainer), path)
 
 
