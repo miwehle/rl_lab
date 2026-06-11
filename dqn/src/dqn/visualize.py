@@ -35,8 +35,8 @@ class EpisodePlotter:
         if len(returns) >= 100:
             returns_t = torch.tensor(returns, dtype=torch.float)
             means = returns_t.unfold(0, 100, 1).mean(1).view(-1)
-            means = torch.cat((torch.zeros(99), means))
-            plt.plot(means.numpy())
+            mean_episodes = range(99, 99 + len(means))
+            plt.plot(mean_episodes, means.numpy())
 
         plt.pause(0.001)
 
