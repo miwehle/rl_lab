@@ -24,19 +24,31 @@ class EpisodePlotter:
 
         plt.ion()
 
-    def plot_returns(self, returns: list[float], show_result: bool = False) -> None:
+    def plot_returns(
+        self,
+        returns: list[float],
+        show_result: bool = False,
+        epsilons: list[float] | None = None,
+    ) -> None:
         plt.figure(1)
         plt.clf()
-        plt.title("Result" if show_result else "Training...")
-        plt.xlabel("Episode")
-        plt.ylabel(self.y_label)
-        plt.plot(returns)
+        ax_returns = plt.gca()
+        ax_returns.set_title("Result" if show_result else "Training...")
+        ax_returns.set_xlabel("Episode")
+        ax_returns.set_ylabel(self.y_label)
+        ax_returns.plot(returns)
 
         if len(returns) >= 100:
             returns_t = torch.tensor(returns, dtype=torch.float)
             means = returns_t.unfold(0, 100, 1).mean(1).view(-1)
             mean_episodes = range(99, 99 + len(means))
-            plt.plot(mean_episodes, means.numpy())
+            ax_returns.plot(mean_episodes, means.numpy())
+
+        if epsilons is not None:
+            ax_epsilon = ax_returns.twinx()
+            ax_epsilon.set_ylabel("Epsilon")
+            ax_epsilon.set_ylim(0, 1)
+            ax_epsilon.plot(epsilons, color="tab:green", linestyle="--")
 
         plt.pause(0.001)
 

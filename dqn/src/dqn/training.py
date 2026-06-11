@@ -99,6 +99,7 @@ class Trainer:
     ) -> None:
         self.env = env
         self.steps_done = 0
+        self.epsilons: list[float] = []
         self.device = resolve_device(device)
 
         if seed is not None:
@@ -183,13 +184,19 @@ class Trainer:
     ) -> None:
         """Hook used by train() after an episode has finished."""
         if plotter is not None:
-            plotter.plot_returns(episode_returns)
+            self.epsilons.append(self._exploration_rate(config))
+            epsilons = self.epsilons[-len(episode_returns):]
+            plotter.plot_returns(episode_returns, epsilons=epsilons)
+
+    def _exploration_rate(self, config: TrainingConfig, step: int | None = None) -> float:
+        step = self.steps_done if step is None else step
+        return config.eps_end + (
+            config.eps_start - config.eps_end
+        ) * math.exp(-1.0 * step / config.eps_decay)
 
     def _select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()
-        eps_threshold = config.eps_end + (
-            config.eps_start - config.eps_end
-        ) * math.exp(-1.0 * self.steps_done / config.eps_decay)
+        eps_threshold = self._exploration_rate(config)
         self.steps_done += 1
 
         if sample > eps_threshold:
