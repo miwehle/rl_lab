@@ -121,6 +121,17 @@ class Trainer:
 
     def train(self, config: TrainingConfig, plotter=None) -> TrainingResult: # NOSONAR
         """Train for the configured episodes, continuing existing trainer state."""
+
+        def as_tensors(reward, observation) -> tuple[torch.Tensor, torch.Tensor]:
+            reward_tensor = torch.tensor([reward], device=self.device)
+            observation_tensor = torch.tensor(
+                observation,
+                dtype=torch.float32,
+                device=self.device,
+            ).unsqueeze(0)
+
+            return reward_tensor, observation_tensor
+
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = config.learning_rate
 
@@ -137,7 +148,7 @@ class Trainer:
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
 
-                reward_tensor, observation_tensor = self._as_tensors(reward, observation)
+                reward_tensor, observation_tensor = as_tensors(reward, observation)
                 next_state = None if terminated else observation_tensor
 
                 self.memory.push(state, action, next_state, reward_tensor)
@@ -157,16 +168,6 @@ class Trainer:
                     break
 
         return TrainingResult(self.q_net, episode_returns, episode_lengths)
-
-    def _as_tensors(self, reward, observation) -> tuple[torch.Tensor, torch.Tensor]:
-        reward_tensor = torch.tensor([reward], device=self.device)
-        observation_tensor = torch.tensor(
-            observation,
-            dtype=torch.float32,
-            device=self.device,
-        ).unsqueeze(0)
-
-        return reward_tensor, observation_tensor
 
     def _should_optimize(self, config: TrainingConfig) -> bool:
         """Hook used by train() to decide whether to run a gradient update."""
