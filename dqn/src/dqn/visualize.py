@@ -14,7 +14,7 @@ from dqn.model import DQN
 class EpisodePlotter:
     def __init__(self, y_label: str = "Return") -> None:
         self.y_label = y_label
-        self.episode_marks: dict[str, int] = {}
+        self.episode_marks: dict[str, list[int]] = {}
         self.epsilons: list[float] | None = None
         self.is_ipython = "inline" in matplotlib.get_backend()
         self.display: Any = None
@@ -26,8 +26,10 @@ class EpisodePlotter:
 
         plt.ion()
 
-    def mark_episode(self, episode: int, label: str) -> None:
-        self.episode_marks.setdefault(label, episode)
+    def mark_episode(self, episode: int, label: str, repeat: bool = False) -> None:
+        episodes = self.episode_marks.setdefault(label, [])
+        if repeat or not episodes:
+            episodes.append(episode)
 
     def plot_returns(
         self,
@@ -50,8 +52,15 @@ class EpisodePlotter:
             mean_episodes = range(rolling_window - 1, rolling_window - 1 + len(means))
             ax_returns.plot(mean_episodes, means.numpy())
 
-        for label, episode in self.episode_marks.items():
-            ax_returns.axvline(episode, color="tab:red", linestyle=":", label=label)
+        for label, episodes in self.episode_marks.items():
+            for index, episode in enumerate(episodes):
+                legend_label = label if index == 0 else "_nolegend_"
+                ax_returns.axvline(
+                    episode,
+                    color="tab:red",
+                    linestyle=":",
+                    label=legend_label,
+                )
 
         if self.episode_marks:
             ax_returns.legend(loc="lower right")

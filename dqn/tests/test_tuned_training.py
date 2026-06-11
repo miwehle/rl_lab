@@ -13,6 +13,7 @@ from dqn.tuned_training import TunedTrainer, TunedTrainingConfig
         {"learning_starts": -1},
         {"optimize_every": 0},
         {"checkpoint_window": 0},
+        {"checkpoint_min_score_delta": -1.0},
         {"batch_size": 0},
     ],
 )
@@ -67,6 +68,8 @@ def test_tuned_trainer_saves_best_checkpoint() -> None:
         config = TunedTrainingConfig(
             save_best_checkpoint=True,
             checkpoint_window=2,
+            checkpoint_min_score=0.0,
+            checkpoint_min_score_delta=0.0,
             checkpoint_path=checkpoint_path,
         )
 
@@ -83,6 +86,29 @@ def test_tuned_trainer_saves_best_checkpoint() -> None:
         checkpoint = torch.load(checkpoint_path, weights_only=False)
         assert checkpoint["version"] == 1
         assert set(checkpoint["trainer"]["q_net"]) == set(trainer.q_net.state_dict())
+    finally:
+        checkpoint_path.unlink(missing_ok=True)
+        env.close()
+
+
+def test_tuned_trainer_skips_checkpoint_below_min_score() -> None:
+    env = gym.make("CartPole-v1")
+    checkpoint_path = Path("dqn/tests/tuned_best.pt")
+    checkpoint_path.unlink(missing_ok=True)
+
+    try:
+        trainer = TunedTrainer(env, seed=42)
+        config = TunedTrainingConfig(
+            save_best_checkpoint=True,
+            checkpoint_window=2,
+            checkpoint_min_score=10.0,
+            checkpoint_path=checkpoint_path,
+        )
+
+        trainer._after_episode([9.0], [10], config)
+
+        assert not checkpoint_path.exists()
+        assert trainer.best_checkpoint_score == float("-inf")
     finally:
         checkpoint_path.unlink(missing_ok=True)
         env.close()

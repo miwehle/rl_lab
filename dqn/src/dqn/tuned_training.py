@@ -15,6 +15,8 @@ class TunedTrainingConfig(TrainingConfig):
     optimize_every: int = 4
     save_best_checkpoint: bool = False
     checkpoint_window: int = 10
+    checkpoint_min_score: float = 150.0
+    checkpoint_min_score_delta: float = 5.0
     checkpoint_path: str | Path = "best_checkpoint.pt"
 
     def __post_init__(self) -> None:
@@ -27,6 +29,8 @@ class TunedTrainingConfig(TrainingConfig):
             raise ValueError("optimize_every must be >= 1")
         if self.checkpoint_window < 1:
             raise ValueError("checkpoint_window must be >= 1")
+        if self.checkpoint_min_score_delta < 0:
+            raise ValueError("checkpoint_min_score_delta must be >= 0")
 
         remaining_exploration = math.exp(-self.learning_starts / self.eps_decay)
         if remaining_exploration < 0.5:
@@ -69,8 +73,12 @@ class TunedTrainer(Trainer):
         checkpoint_returns = self.checkpoint_returns[-config.checkpoint_window :]
         checkpoint_score = sum(checkpoint_returns) / len(checkpoint_returns)
 
-        if checkpoint_score <= self.best_checkpoint_score:
+        if checkpoint_score < config.checkpoint_min_score:
+            return
+        if checkpoint_score < self.best_checkpoint_score + config.checkpoint_min_score_delta:
             return
 
         self.best_checkpoint_score = checkpoint_score
         save_checkpoint(self, config.checkpoint_path)
+        if plotter is not None:
+            plotter.mark_episode(len(episode_returns) - 1, "Checkpoint", repeat=True)
