@@ -137,7 +137,6 @@ class Trainer:
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
 
-                done = terminated or truncated
                 reward_tensor, observation_tensor = self._as_tensors(reward, observation)
                 next_state = None if terminated else observation_tensor
 
@@ -148,14 +147,12 @@ class Trainer:
                     self._optimize_model(config)
                 self._soft_target_update(config.tau)
 
+                done = terminated or truncated
                 if done:
                     episode_returns.append(episode_return)
                     episode_lengths.append(t + 1)
 
-                    self._after_episode(episode_returns, episode_lengths, config)
-
-                    if plotter is not None:
-                        plotter.plot_returns(episode_returns)
+                    self._after_episode(episode_returns, episode_lengths, config, plotter)
 
                     break
 
@@ -179,8 +176,10 @@ class Trainer:
         episode_returns: list[float],
         episode_lengths: list[int],
         config: TrainingConfig,
+        plotter=None,
     ) -> None:
-        pass
+        if plotter is not None:
+            plotter.plot_returns(episode_returns)
 
     def _select_action(self, state: torch.Tensor, config: TrainingConfig) -> torch.Tensor:
         sample = random.random()

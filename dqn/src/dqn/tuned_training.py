@@ -52,7 +52,10 @@ class TunedTrainer(Trainer):
         episode_returns: list[float],
         episode_lengths: list[int],
         config: TunedTrainingConfig,
+        plotter=None,
     ) -> None:
+        super()._after_episode(episode_returns, episode_lengths, config, plotter)
+
         checkpoint_returns = episode_returns[-config.checkpoint_window :]
         checkpoint_score = sum(checkpoint_returns) / len(checkpoint_returns)
 
