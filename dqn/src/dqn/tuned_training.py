@@ -5,8 +5,7 @@ import math
 from pathlib import Path
 import warnings
 
-import torch
-
+from dqn.checkpointing import save_checkpoint
 from dqn.training import Trainer, TrainingConfig
 
 
@@ -14,6 +13,7 @@ from dqn.training import Trainer, TrainingConfig
 class TunedTrainingConfig(TrainingConfig):
     learning_starts: int = 1000
     optimize_every: int = 4
+    save_best_checkpoint: bool = False
     checkpoint_window: int = 10
     checkpoint_path: str | Path = "best_checkpoint.pt"
 
@@ -40,6 +40,7 @@ class TunedTrainer(Trainer):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.best_checkpoint_score = float("-inf")
+        self.checkpoint_returns: list[float] = []
 
     def _should_optimize(self, config: TunedTrainingConfig) -> bool:
         return (
@@ -57,11 +58,16 @@ class TunedTrainer(Trainer):
     ) -> None:
         super()._after_episode(episode_returns, episode_lengths, config, plotter)
 
-        checkpoint_returns = episode_returns[-config.checkpoint_window :]
+        self.checkpoint_returns.append(episode_returns[-1])
+
+        if not config.save_best_checkpoint:
+            return
+
+        checkpoint_returns = self.checkpoint_returns[-config.checkpoint_window :]
         checkpoint_score = sum(checkpoint_returns) / len(checkpoint_returns)
 
         if checkpoint_score <= self.best_checkpoint_score:
             return
 
         self.best_checkpoint_score = checkpoint_score
-        torch.save(self.q_net.state_dict(), config.checkpoint_path)
+        save_checkpoint(self, config.checkpoint_path)
