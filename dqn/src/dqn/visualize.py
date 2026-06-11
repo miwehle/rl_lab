@@ -155,7 +155,7 @@ def show_animation(
 
         if score_text is not None:
             score = scores[frame_index]
-            score_text.set_text(f"Return: {score:.1f}")
+            score_text.set_text(f"Return: {score:.0f}")
             artists.append(score_text)
 
         return artists
