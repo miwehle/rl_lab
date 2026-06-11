@@ -199,37 +199,15 @@ class Trainer:
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
     def _optimize_model(self, config: TrainingConfig) -> None:
-        transitions = self.memory.sample(config.batch_size)
-        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-        # detailed explanation). This converts batch-array of Transitions
-        # to Transition of batch-arrays.
-        batch = Transition(*zip(*transitions))
-
-        # Mask states that are not terminal
-        non_final_mask = torch.tensor(
-            tuple(state is not None for state in batch.next_state),
-            device=self.device,
-            dtype=torch.bool,
-        )
-        non_final_states = [state for state in batch.next_state if state is not None]
-
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        batch = self._sample_replay_batch(config.batch_size)
 
         # Select Q-values for the actions that were actually taken
-        q_values = self.q_net(state_batch).gather(1, action_batch)
+        q_values = self.q_net(torch.cat(batch.state)).gather(1, torch.cat(batch.action))
 
-        # Final states keep value 0
-        next_q_values = torch.zeros(config.batch_size, device=self.device)
-        if non_final_states:
-            non_final_next_states = torch.cat(non_final_states)
-            with torch.no_grad():
-                # Estimate next-state values with the older target network
-                next_q_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
+        next_q_values = self._next_q_values(batch.next_state, config.batch_size)
 
         # DQN Big 5: TD targets
-        td_targets = (next_q_values * config.gamma) + reward_batch
+        td_targets = (next_q_values * config.gamma) + torch.cat(batch.reward)
 
         # Huber loss on the TD error (td_target - q_values)
         criterion = nn.SmoothL1Loss()
@@ -241,6 +219,38 @@ class Trainer:
         torch.nn.utils.clip_grad_value_(self.q_net.parameters(), 100)
         # Update q_net weights to move q_values toward Bellman targets
         self.optimizer.step()
+
+    def _sample_replay_batch(self, batch_size: int) -> Transition:
+        transitions = self.memory.sample(batch_size)
+        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+        # detailed explanation). This converts batch-array of Transitions
+        # to Transition of batch-arrays.
+        return Transition(*zip(*transitions))
+
+    def _next_q_values(
+        self,
+        next_states: tuple[torch.Tensor | None, ...],
+        batch_size: int,
+    ) -> torch.Tensor:
+        # Final states keep value 0
+        next_q_values = torch.zeros(batch_size, device=self.device)
+
+        # Mask states that are not terminal
+        non_final_mask = torch.tensor(
+            tuple(state is not None for state in next_states),
+            device=self.device,
+            dtype=torch.bool,
+        )
+        non_final_states = [state for state in next_states if state is not None]
+
+        if non_final_states:
+            with torch.no_grad():
+                # Estimate next-state values with the older target network
+                next_q_values[non_final_mask] = self.target_net(
+                    torch.cat(non_final_states)
+                ).max(1).values
+
+        return next_q_values
 
     def _soft_target_update(self, tau: float) -> None:
         target = self.target_net.state_dict()
