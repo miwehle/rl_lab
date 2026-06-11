@@ -43,17 +43,18 @@ class EpisodePlotter:
         ax_returns.set_ylabel(self.y_label)
         ax_returns.plot(returns)
 
-        if len(returns) >= 100:
+        rolling_window = 50
+        if len(returns) >= rolling_window:
             returns_t = torch.tensor(returns, dtype=torch.float)
-            means = returns_t.unfold(0, 100, 1).mean(1).view(-1)
-            mean_episodes = range(99, 99 + len(means))
+            means = returns_t.unfold(0, rolling_window, 1).mean(1).view(-1)
+            mean_episodes = range(rolling_window - 1, rolling_window - 1 + len(means))
             ax_returns.plot(mean_episodes, means.numpy())
 
         for label, episode in self.episode_marks.items():
             ax_returns.axvline(episode, color="tab:red", linestyle=":", label=label)
 
         if self.episode_marks:
-            ax_returns.legend(loc="best")
+            ax_returns.legend(loc="lower right")
 
         if epsilons is not None:
             self.epsilons = list(epsilons)
