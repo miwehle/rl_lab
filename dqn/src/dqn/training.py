@@ -218,7 +218,7 @@ class Trainer:
         loss.backward()
         # Clip gradients in-place
         torch.nn.utils.clip_grad_value_(self.q_net.parameters(), 100)
-        # Update q_net weights to move q_values toward TD targets
+        # Update q_net weights to move q_values toward td_targets
         self.optimizer.step()
 
     def _sample_replay_batch(self, batch_size: int) -> Transition:
