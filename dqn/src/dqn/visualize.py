@@ -15,6 +15,7 @@ class EpisodePlotter:
     def __init__(self, y_label: str = "Return") -> None:
         self.y_label = y_label
         self.episode_marks: dict[str, int] = {}
+        self.epsilons: list[float] | None = None
         self.is_ipython = "inline" in matplotlib.get_backend()
         self.display: Any = None
 
@@ -53,6 +54,13 @@ class EpisodePlotter:
 
         if self.episode_marks:
             ax_returns.legend(loc="best")
+
+        if epsilons is not None:
+            self.epsilons = list(epsilons)
+        elif self.epsilons is not None and len(self.epsilons) != len(returns):
+            self.epsilons = None
+
+        epsilons = self.epsilons
 
         if epsilons is not None:
             ax_epsilon = ax_returns.twinx()
