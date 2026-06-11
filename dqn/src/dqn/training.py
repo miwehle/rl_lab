@@ -210,7 +210,7 @@ class Trainer:
         # DQN Big 5: TD targets
         td_targets = (next_q_values * config.gamma) + torch.cat(batch.reward)
 
-        # Huber loss on the TD error (td_target - q_values)
+        # Huber loss on the TD error (td_targets - q_values)
         criterion = nn.SmoothL1Loss()
         loss = criterion(q_values, td_targets.unsqueeze(1))
 
