@@ -53,11 +53,12 @@ class EpisodePlotter:
             ax_returns.plot(mean_episodes, means.numpy())
 
         for label, episodes in self.episode_marks.items():
+            color = "gray" if label == "Checkpoint" else "tab:red"
             for index, episode in enumerate(episodes):
                 legend_label = label if index == 0 else "_nolegend_"
                 ax_returns.axvline(
                     episode,
-                    color="tab:red",
+                    color=color,
                     linestyle=":",
                     label=legend_label,
                 )
