@@ -97,10 +97,12 @@ def _rng_state(trainer: Trainer) -> dict[str, Any]:
 
 def _load_rng_state(trainer: Trainer, state: dict[str, Any]) -> None:
     random.setstate(state["python"])
-    torch.set_rng_state(state["torch"])
+    torch.set_rng_state(_rng_byte_tensor(state["torch"]))
 
     if state["torch_cuda"] is not None and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(state["torch_cuda"])
+        torch.cuda.set_rng_state_all(
+            [_rng_byte_tensor(cuda_state) for cuda_state in state["torch_cuda"]],
+        )
 
     _load_numpy_rng_state(trainer.env, state["env"])
     _load_numpy_rng_state(trainer.env.action_space, state["action_space"])
@@ -121,3 +123,9 @@ def _load_numpy_rng_state(obj, state: dict[str, Any] | None) -> None:
     rng = getattr(obj, "np_random", None)
     if rng is not None and hasattr(rng, "bit_generator"):
         rng.bit_generator.state = state
+
+
+def _rng_byte_tensor(state: Any) -> torch.Tensor:
+    if isinstance(state, torch.Tensor):
+        return state.detach().to(device="cpu", dtype=torch.uint8)
+    return torch.tensor(state, dtype=torch.uint8)

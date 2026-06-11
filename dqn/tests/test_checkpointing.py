@@ -71,3 +71,31 @@ def test_checkpoint_restores_trainer_state() -> None:
     finally:
         checkpoint_path.unlink(missing_ok=True)
         restored_env.close()
+
+
+def test_checkpoint_loads_list_encoded_torch_rng_state() -> None:
+    checkpoint_path = Path("dqn/tests/list_rng_checkpoint.pt")
+    checkpoint_path.unlink(missing_ok=True)
+    env = gym.make("CartPole-v1")
+    trainer = TunedTrainer(env, seed=42)
+
+    try:
+        save_checkpoint(trainer, checkpoint_path)
+        expected_torch_random = torch.rand(3)
+
+        checkpoint = torch.load(checkpoint_path, weights_only=False)
+        checkpoint["rng"]["torch"] = checkpoint["rng"]["torch"].tolist()
+        torch.save(checkpoint, checkpoint_path)
+    finally:
+        env.close()
+
+    restored_env = gym.make("CartPole-v1")
+    restored_trainer = TunedTrainer(restored_env, seed=100)
+
+    try:
+        load_checkpoint(restored_trainer, checkpoint_path)
+
+        torch.testing.assert_close(torch.rand(3), expected_torch_random)
+    finally:
+        checkpoint_path.unlink(missing_ok=True)
+        restored_env.close()
