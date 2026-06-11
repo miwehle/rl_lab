@@ -56,6 +56,9 @@ class TunedTrainer(Trainer):
         config: TunedTrainingConfig,
         plotter=None,
     ) -> None:
+        if plotter is not None and self.steps_done >= config.learning_starts:
+            plotter.mark_episode(len(episode_returns) - 1, "Learning starts")
+
         super()._after_episode(episode_returns, episode_lengths, config, plotter)
 
         self.checkpoint_returns.append(episode_returns[-1])

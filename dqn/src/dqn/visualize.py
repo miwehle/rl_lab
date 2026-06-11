@@ -14,6 +14,7 @@ from dqn.model import DQN
 class EpisodePlotter:
     def __init__(self, y_label: str = "Return") -> None:
         self.y_label = y_label
+        self.episode_marks: dict[str, int] = {}
         self.is_ipython = "inline" in matplotlib.get_backend()
         self.display: Any = None
 
@@ -23,6 +24,9 @@ class EpisodePlotter:
             self.display = display
 
         plt.ion()
+
+    def mark_episode(self, episode: int, label: str) -> None:
+        self.episode_marks.setdefault(label, episode)
 
     def plot_returns(
         self,
@@ -43,6 +47,12 @@ class EpisodePlotter:
             means = returns_t.unfold(0, 100, 1).mean(1).view(-1)
             mean_episodes = range(99, 99 + len(means))
             ax_returns.plot(mean_episodes, means.numpy())
+
+        for label, episode in self.episode_marks.items():
+            ax_returns.axvline(episode, color="tab:red", linestyle=":", label=label)
+
+        if self.episode_marks:
+            ax_returns.legend(loc="best")
 
         if epsilons is not None:
             ax_epsilon = ax_returns.twinx()
