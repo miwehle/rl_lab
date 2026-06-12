@@ -129,11 +129,7 @@ class Trainer:
 
         # Observations come from Gymnasium; states are their tensor form used by DQN
         def observation_as_tensor(observation) -> torch.Tensor:
-            return torch.tensor(
-                observation,
-                dtype=torch.float32,
-                device=self.device,
-            ).unsqueeze(0)
+            return torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
         def reward_as_tensor(reward) -> torch.Tensor:
             return torch.tensor([reward], device=self.device)
@@ -155,7 +151,7 @@ class Trainer:
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
 
-                # Store the transition for later replay (in _optimize_model)
+                # Store the transition for replay in _optimize_model
                 next_state = None if terminated else observation_as_tensor(observation)
                 self.memory.push(state, action, next_state, reward_as_tensor(reward))
 
