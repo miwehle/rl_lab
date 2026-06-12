@@ -122,7 +122,10 @@ class Trainer:
         self.memory = ReplayMemory(replay_memory_capacity)
 
     def train(self, config: TrainingConfig, plotter=None) -> TrainingResult: # NOSONAR
-        """Train for the configured episodes, continuing existing trainer state."""
+        """Train q_net for the configured episodes.
+
+        (Calling again resumes from the current trainer state.)
+        """
 
         def as_tensors(reward, observation) -> tuple[torch.Tensor, torch.Tensor]:
             reward_tensor = torch.tensor([reward], device=self.device)
@@ -147,13 +150,15 @@ class Trainer:
 
             for t in count():
                 action = self._select_action(state, config)
+                # Interact with the environment
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 episode_return += float(reward)
 
+                # Store the transition for later replay (in _optimize_model)
                 reward_tensor, observation_tensor = as_tensors(reward, observation)
                 next_state = None if terminated else observation_tensor
-
                 self.memory.push(state, action, next_state, reward_tensor)
+
                 state = next_state
 
                 if self._should_optimize(config):
@@ -164,9 +169,7 @@ class Trainer:
                 if done:
                     episode_returns.append(episode_return)
                     episode_lengths.append(t + 1)
-
                     self._after_episode(episode_returns, episode_lengths, config, plotter)
-
                     break
 
         return TrainingResult(self.q_net, episode_returns, episode_lengths)
@@ -208,6 +211,7 @@ class Trainer:
         return torch.tensor([[action]], device=self.device, dtype=torch.long)
 
     def _optimize_model(self, config: TrainingConfig) -> None:
+        """Optimize q_net using replay, i.e. train it with transitions from memory."""
         batch = self._sample_replay_batch(config.batch_size)
 
         # Select Q-values for the actions that were actually taken
