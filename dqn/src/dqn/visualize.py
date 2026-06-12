@@ -18,6 +18,7 @@ class EpisodePlotter:
         self.epsilons: list[float] | None = None
         self.is_ipython = "inline" in matplotlib.get_backend()
         self.display: Any = None
+        self.display_handle: Any = None
 
         if self.is_ipython:
             from IPython import display
@@ -82,9 +83,11 @@ class EpisodePlotter:
         plt.pause(0.001)
 
         if self.display is not None:
-            self.display.display(plt.gcf())
-            if not show_result:
-                self.display.clear_output(wait=True)
+            figure = plt.gcf()
+            if self.display_handle is None:
+                self.display_handle = self.display.display(figure, display_id=True)
+            else:
+                self.display_handle.update(figure)
 
 
 def record_episode(
