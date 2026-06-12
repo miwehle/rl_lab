@@ -127,7 +127,7 @@ class Trainer:
         (Calling again resumes from the current trainer state.)
         """
 
-        # Observations come from Gymnasium; states are their tensor form used by DQN
+        # Observations are arrays from Gymnasium; states are their tensor form used in training
         def observation_as_tensor(observation) -> torch.Tensor:
             return torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
