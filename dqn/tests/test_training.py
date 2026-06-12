@@ -121,17 +121,17 @@ def test_training_logs_episode_metrics(tmp_path) -> None:
     assert "+" not in rows[0]["timestamp"]
     assert rows[0]["episode"] == "1"
     assert rows[0]["steps_done"] == "25"
-    assert rows[0]["mean_return"] == "10.0"
-    assert rows[0]["best_mean_return"] == "10.0"
+    assert rows[0]["mean_return"] == "10,0"
+    assert rows[0]["best_mean_return"] == "10,0"
 
     timestamp = datetime.strptime(rows[1]["timestamp"], "%Y-%m-%d %H:%M:%S")
     assert timestamp.microsecond == 0
     assert "+" not in rows[1]["timestamp"]
     assert rows[1]["episode"] == "3"
     assert rows[1]["steps_done"] == "80"
-    assert rows[1]["mean_return"] == "23.3"
-    assert rows[1]["best_mean_return"] == "23.3"
-    assert rows[1]["epsilon"] == f"{trainer._exploration_rate(config):.3f}"
+    assert rows[1]["mean_return"] == "23,3"
+    assert rows[1]["best_mean_return"] == "23,3"
+    assert rows[1]["epsilon"] == f"{trainer._exploration_rate(config):.3f}".replace(".", ",")
 
 
 # 23 s

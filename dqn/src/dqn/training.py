@@ -232,9 +232,9 @@ class Trainer:
                     ),
                     "episode": len(episode_returns),
                     "steps_done": self.steps_done,
-                    "mean_return": f"{mean_return:.1f}",
-                    "best_mean_return": f"{self.best_mean_return:.1f}",
-                    "epsilon": f"{self._exploration_rate(config):.3f}",
+                    "mean_return": f"{mean_return:.1f}".replace(".", ","),
+                    "best_mean_return": f"{self.best_mean_return:.1f}".replace(".", ","),
+                    "epsilon": f"{self._exploration_rate(config):.3f}".replace(".", ","),
                 }
             )
 
