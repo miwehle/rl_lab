@@ -106,8 +106,8 @@ class Trainer:
             set_seeds(env, seed)
 
         n_actions = env.action_space.n
-        state, _ = env.reset(seed=seed)
-        n_observations = len(state)
+        observation, _ = env.reset(seed=seed)
+        n_observations = len(observation)
 
         # DQN Big 5 members: Q-network and target network
         self.q_net = model_factory(n_observations, n_actions).to(self.device)
@@ -127,15 +127,15 @@ class Trainer:
         (Calling again resumes from the current trainer state.)
         """
 
-        def as_tensors(reward, observation) -> tuple[torch.Tensor, torch.Tensor]:
-            reward_tensor = torch.tensor([reward], device=self.device)
-            observation_tensor = torch.tensor(
+        def observation_as_tensor(observation) -> torch.Tensor:
+            return torch.tensor(
                 observation,
                 dtype=torch.float32,
                 device=self.device,
             ).unsqueeze(0)
 
-            return reward_tensor, observation_tensor
+        def reward_as_tensor(reward) -> torch.Tensor:
+            return torch.tensor([reward], device=self.device)
 
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = config.learning_rate
@@ -144,8 +144,8 @@ class Trainer:
         episode_lengths: list[int] = []
 
         for _ in range(config.num_episodes):
-            state, _ = self.env.reset()
-            state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+            observation, _ = self.env.reset()
+            state = observation_as_tensor(observation)
             episode_return = 0.0
 
             for t in count():
@@ -155,9 +155,8 @@ class Trainer:
                 episode_return += float(reward)
 
                 # Store the transition for later replay (in _optimize_model)
-                reward_tensor, observation_tensor = as_tensors(reward, observation)
-                next_state = None if terminated else observation_tensor
-                self.memory.push(state, action, next_state, reward_tensor)
+                next_state = None if terminated else observation_as_tensor(observation)
+                self.memory.push(state, action, next_state, reward_as_tensor(reward))
 
                 state = next_state
 
