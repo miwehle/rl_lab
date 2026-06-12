@@ -86,6 +86,7 @@ keeping the baseline trainer simple. Its current responsibilities are:
 ```text
 wait for learning_starts before optimizing
 optimize only every optimize_every steps
+write optional CSV episode metrics
 save the best checkpoint at the end of an episode
 ```
 
