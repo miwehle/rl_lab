@@ -17,11 +17,15 @@ References:
 
 from collections.abc import Callable
 from collections import deque, namedtuple
+import csv
 from dataclasses import dataclass
+from datetime import datetime
 from itertools import count
 import math
+from pathlib import Path
 import random
 
+from dateutil import tz
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -57,6 +61,7 @@ class TrainingConfig:
     tau: float = 0.005
     learning_rate: float = 3e-4
     num_episodes: int = 50
+    log_path: str | Path | None = None
 
     def __post_init__(self) -> None:
         """Validate config."""
@@ -100,6 +105,7 @@ class Trainer:
         self.env = env
         self.steps_done = 0
         self.epsilons: list[float] = []
+        self.best_mean_return = float("-inf")
         self.device = resolve_device(device)
 
         if seed is not None:
@@ -187,6 +193,50 @@ class Trainer:
             self.epsilons.append(self._exploration_rate(config))
             epsilons = self.epsilons[-len(episode_returns):]
             plotter.plot_returns(episode_returns, epsilons=epsilons)
+
+        if config.log_path is not None:
+            self._log_episode(episode_returns, config)
+
+    def _log_episode(
+        self,
+        episode_returns: list[float],
+        config: TrainingConfig,
+    ) -> None:
+        window_returns = episode_returns[-50:]
+        mean_return = sum(window_returns) / len(window_returns)
+        self.best_mean_return = max(self.best_mean_return, mean_return)
+
+        log_path = Path(config.log_path)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        write_header = not log_path.exists() or log_path.stat().st_size == 0
+
+        with log_path.open("a", encoding="utf-8", newline="") as log_file:
+            writer = csv.DictWriter(
+                log_file,
+                delimiter=";",
+                fieldnames=[
+                    "timestamp",
+                    "episode",
+                    "steps_done",
+                    "mean_return",
+                    "best_mean_return",
+                    "epsilon",
+                ],
+            )
+            if write_header:
+                writer.writeheader()
+            writer.writerow(
+                {
+                    "timestamp": datetime.now(tz.gettz("Europe/Berlin")).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    "episode": len(episode_returns),
+                    "steps_done": self.steps_done,
+                    "mean_return": f"{mean_return:.1f}",
+                    "best_mean_return": f"{self.best_mean_return:.1f}",
+                    "epsilon": f"{self._exploration_rate(config):.3f}",
+                }
+            )
 
     def _exploration_rate(self, config: TrainingConfig, step: int | None = None) -> float:
         step = self.steps_done if step is None else step

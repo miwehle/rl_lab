@@ -1,3 +1,5 @@
+import csv
+from datetime import datetime
 import time
 
 import gymnasium as gym
@@ -82,6 +84,54 @@ def test_training_can_continue_with_another_config() -> None:
     assert trainer.memory is not None
     assert len(trainer.memory) == trainer.steps_done
     assert trainer.optimizer.param_groups[0]["lr"] == pytest.approx(1e-4)
+
+
+def test_training_logs_episode_metrics(tmp_path) -> None:
+    env = gym.make("CartPole-v1")
+    log_path = tmp_path / "training_log.csv"
+
+    try:
+        trainer = Trainer(env, seed=42)
+        config = TrainingConfig(log_path=log_path)
+
+        trainer.steps_done = 25
+        trainer._after_episode([10.0], [10], config)
+
+        trainer.steps_done = 80
+        trainer._after_episode([10.0, 20.0, 40.0], [10, 12, 14], config)
+    finally:
+        env.close()
+
+    with log_path.open(encoding="utf-8", newline="") as log_file:
+        reader = csv.DictReader(log_file, delimiter=";")
+        rows = list(reader)
+
+    assert reader.fieldnames == [
+        "timestamp",
+        "episode",
+        "steps_done",
+        "mean_return",
+        "best_mean_return",
+        "epsilon",
+    ]
+    assert len(rows) == 2
+
+    timestamp = datetime.strptime(rows[0]["timestamp"], "%Y-%m-%d %H:%M:%S")
+    assert timestamp.microsecond == 0
+    assert "+" not in rows[0]["timestamp"]
+    assert rows[0]["episode"] == "1"
+    assert rows[0]["steps_done"] == "25"
+    assert rows[0]["mean_return"] == "10.0"
+    assert rows[0]["best_mean_return"] == "10.0"
+
+    timestamp = datetime.strptime(rows[1]["timestamp"], "%Y-%m-%d %H:%M:%S")
+    assert timestamp.microsecond == 0
+    assert "+" not in rows[1]["timestamp"]
+    assert rows[1]["episode"] == "3"
+    assert rows[1]["steps_done"] == "80"
+    assert rows[1]["mean_return"] == "23.3"
+    assert rows[1]["best_mean_return"] == "23.3"
+    assert rows[1]["epsilon"] == f"{trainer._exploration_rate(config):.3f}"
 
 
 # 23 s
