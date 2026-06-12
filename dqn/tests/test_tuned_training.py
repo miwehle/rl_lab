@@ -84,6 +84,7 @@ def test_tuned_training_logs_episode_metrics(tmp_path) -> None:
         "timestamp",
         "episode",
         "steps_done",
+        "return",
         "mean_return",
         "best_mean_return",
         "epsilon",
@@ -95,6 +96,7 @@ def test_tuned_training_logs_episode_metrics(tmp_path) -> None:
     assert "+" not in rows[0]["timestamp"]
     assert rows[0]["episode"] == "1"
     assert rows[0]["steps_done"] == "25"
+    assert rows[0]["return"] == "10,0"
     assert rows[0]["mean_return"] == "10,0"
     assert rows[0]["best_mean_return"] == "10,0"
 
@@ -103,6 +105,7 @@ def test_tuned_training_logs_episode_metrics(tmp_path) -> None:
     assert "+" not in rows[1]["timestamp"]
     assert rows[1]["episode"] == "3"
     assert rows[1]["steps_done"] == "80"
+    assert rows[1]["return"] == "40,0"
     assert rows[1]["mean_return"] == "23,3"
     assert rows[1]["best_mean_return"] == "23,3"
     assert rows[1]["epsilon"] == f"{trainer._exploration_rate(config):.3f}".replace(".", ",")
