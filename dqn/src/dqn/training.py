@@ -124,7 +124,7 @@ class Trainer:
     def train(self, config: TrainingConfig, plotter=None) -> TrainingResult: # NOSONAR
         """Train q_net for the configured episodes.
 
-        (Calling again resumes from the current trainer state.)
+        (Calling train again resumes from the current trainer state.)
         """
 
         # Observations are arrays from Gymnasium; states are their tensor form used in training
