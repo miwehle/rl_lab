@@ -3,9 +3,16 @@
 This project is based on:  [PyTorch DQN tutorial](https://docs.pytorch.org/tutorials/intermediate/reinforcement_q_learning.html)
 
 
-## Local Setup
+## Initial Setup
 
-### VS Code Testing Panel
+```powershell
+cd rl_lab
+python -m venv dqn\.venv
+dqn\.venv\Scripts\python.exe -m pip install --upgrade pip
+dqn\.venv\Scripts\python.exe -m pip install -r dqn\requirements.txt
+```
+
+## VS Code Testing Panel
 
 Open this repository in VS Code. The workspace is configured to use:
 
@@ -15,7 +22,13 @@ dqn\.venv\Scripts\python.exe
 
 Tests can be run from the VS Code Testing panel.
 
-### Terminal Scripts (Optional)
+## Notebooks
+
+Use `dqn/notebooks/RL_DQN.ipynb` for normal work.
+
+(A tutorial-style notebook is archived at `dqn/notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb` for historical reference. The code in `dqn` originated from this notebook.)
+
+## Terminal Scripts (Optional)
 
 ```powershell
 cd rl_lab
@@ -23,16 +36,3 @@ dqn\.venv\Scripts\Activate.ps1
 $env:PYTHONPATH = "dqn\src"
 python -m dqn.scripts.train_cartpole
 ```
-
-### Fresh Clone (Initial Setup)
-
-```powershell
-cd rl_lab
-python -m venv dqn\.venv
-dqn\.venv\Scripts\python.exe -m pip install --upgrade pip
-dqn\.venv\Scripts\python.exe -m pip install -r dqn\requirements.txt
-```
-
-## Notebooks
-
-Use `dqn/notebooks/RL_DQN.ipynb` for normal work. The longer tutorial-style notebook is archived at `dqn/notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb` as historical reference.
