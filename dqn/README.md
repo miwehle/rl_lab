@@ -37,9 +37,11 @@ $env:PYTHONPATH = "dqn\src"
 python -m dqn.scripts.train_cartpole
 ```
 
-## Gymnasium
+## Gymnasium Environments
 
-### CartPole Observation
+### CartPole
+
+#### Observation
 
 `CartPole-v1` returns an observation as a flat NumPy array with shape `(4,)`.
 
@@ -47,7 +49,17 @@ Array structure:
 
 `[cart_position, cart_velocity, pole_angle, pole_angular_velocity]`
 
-### LunarLander Observation
+#### Actions
+
+`CartPole-v1` has `Discrete(2)` actions:
+
+`0 = push cart left`
+
+`1 = push cart right`
+
+### LunarLander
+
+#### Observation
 
 `LunarLander-v3` returns an observation as a flat NumPy array with shape `(8,)`.
 
@@ -57,15 +69,7 @@ Array structure:
 
 `left_leg_contact` and `right_leg_contact` are contact flags, usually `0.0` or `1.0`.
 
-### CartPole Actions
-
-`CartPole-v1` has `Discrete(2)` actions:
-
-`0 = push cart left`
-
-`1 = push cart right`
-
-### LunarLander Actions
+#### Actions
 
 `LunarLander-v3` has `Discrete(4)` actions:
 
