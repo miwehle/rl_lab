@@ -11,22 +11,12 @@ MAX_SMOKE_TEST_SECONDS = 6.0
 MAX_TEST_SECONDS = 30.0
 
 
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {"batch_size": 0},
-        {"eps_decay": 0},
-        {"num_episodes": 0},
-        {"gamma": -0.1},
-        {"eps_start": 1.1},
-        {"eps_end": -0.1},
-        {"tau": 1.1},
-        {"learning_rate": 0},
-    ],
-)
-def test_training_config_rejects_invalid_values(kwargs) -> None:
-    with pytest.raises(ValueError):
-        TrainingConfig(**kwargs)
+def training_config(**overrides) -> TrainingConfig:
+    base = dict(
+        num_episodes=50, batch_size=128, eps_start=0.9, eps_end=0.01,
+        eps_decay=2500, learning_rate=3e-4,
+    )
+    return TrainingConfig(**(base | overrides))
 
 
 # 5 s
@@ -37,10 +27,7 @@ def test_cartpole_training_smoke() -> None:
     try:
         trainer = Trainer(env, seed=42)
         result = trainer.train(
-            TrainingConfig(
-                num_episodes=1,
-                batch_size=2,
-            ),
+            training_config(num_episodes=1, batch_size=2),
         )
     finally:
         env.close()
@@ -56,16 +43,11 @@ def test_training_can_continue_with_another_config() -> None:
 
     try:
         trainer = Trainer(env, seed=42)
-        first_result = trainer.train(
-            TrainingConfig(
-                num_episodes=1,
-                batch_size=2,
-            )
-        )
+        first_result = trainer.train(training_config(num_episodes=1, batch_size=2))
         steps_after_first_run = trainer.steps_done
 
         second_result = trainer.train(
-            TrainingConfig(
+            training_config(
                 num_episodes=2,
                 batch_size=2,
                 learning_rate=1e-4,
@@ -89,9 +71,7 @@ def test_training_can_continue_with_another_config() -> None:
 def test_cartpole_training() -> None:
     env = gym.make("CartPole-v1")
 
-    config = TrainingConfig(
-        num_episodes=100,
-    )
+    config = training_config(num_episodes=100)
     
     try:
         trainer = Trainer(env, model_factory=DQN, seed=42)

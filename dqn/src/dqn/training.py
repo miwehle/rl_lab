@@ -47,16 +47,16 @@ class ReplayMemory:
         return len(self.memory)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class TrainingConfig:
-    batch_size: int = 128
+    num_episodes: int
+    batch_size: int
+    eps_start: float
+    eps_end: float
+    eps_decay: int
+    learning_rate: float
     gamma: float = 0.99
-    eps_start: float = 0.9
-    eps_end: float = 0.01
-    eps_decay: int = 2500
     tau: float = 0.005
-    learning_rate: float = 3e-4
-    num_episodes: int = 50
 
     def __post_init__(self) -> None:
         """Validate config."""
@@ -115,7 +115,8 @@ class Trainer:
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = optim.AdamW(
             self.q_net.parameters(),
-            lr=TrainingConfig().learning_rate,
+            # train() applies TrainingConfig.learning_rate before the first step.
+            lr=0.0,
             weight_decay=0.01,
             amsgrad=True,
         )

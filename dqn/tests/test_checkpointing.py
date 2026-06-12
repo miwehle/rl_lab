@@ -6,7 +6,8 @@ import pytest
 import torch
 
 from dqn.checkpointing import load_checkpoint, save_checkpoint
-from dqn.tuned_training import TunedTrainer, TunedTrainingConfig
+from dqn.training import TrainingConfig
+from dqn.tuned_training import TunedTrainer, TuningConfig
 from helpers import model_hash
 
 
@@ -14,15 +15,23 @@ def test_checkpoint_restores_trainer_state() -> None:
     checkpoint_path = Path("dqn/tests/checkpoint.pt")
     checkpoint_path.unlink(missing_ok=True)
     env = gym.make("CartPole-v1")
-    trainer = TunedTrainer(env, seed=42)
+    trainer = TunedTrainer(
+        env,
+        seed=42,
+        tuning_config=TuningConfig(
+            learning_starts=0,
+            optimize_every=1,
+        ),
+    )
 
     try:
         trainer.train(
-            TunedTrainingConfig(
+            TrainingConfig(
                 num_episodes=1,
                 batch_size=2,
-                learning_starts=0,
-                optimize_every=1,
+                eps_start=0.9,
+                eps_end=0.01,
+                eps_decay=2500,
                 learning_rate=1e-4,
             ),
         )

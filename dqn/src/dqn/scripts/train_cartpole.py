@@ -7,7 +7,14 @@ from dqn.training import Trainer, TrainingConfig
 
 def main() -> None:
     env = gym.make("CartPole-v1")
-    config = TrainingConfig()
+    config = TrainingConfig(
+        num_episodes=50,
+        batch_size=128,
+        eps_start=0.9,
+        eps_end=0.01,
+        eps_decay=2500,
+        learning_rate=3e-4,
+    )
     trainer = Trainer(env)
     result = trainer.train(config)
     env.close()

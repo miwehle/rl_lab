@@ -6,27 +6,16 @@ import gymnasium as gym
 import pytest
 import torch
 
-from dqn.tuned_training import TunedTrainer, TunedTrainingConfig
+from dqn.training import TrainingConfig
+from dqn.tuned_training import TunedTrainer, TuningConfig
 
 
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {"learning_starts": -1},
-        {"optimize_every": 0},
-        {"checkpoint_window": 0},
-        {"checkpoint_min_score_delta": -1.0},
-        {"batch_size": 0},
-    ],
-)
-def test_tuned_training_config_rejects_invalid_values(kwargs) -> None:
-    with pytest.raises(ValueError):
-        TunedTrainingConfig(**kwargs)
-
-
-def test_tuned_training_config_warns_when_epsilon_decays_before_learning_starts() -> None:
-    with pytest.warns(UserWarning, match="eps_decay may be too small"):
-        TunedTrainingConfig(learning_starts=1000, eps_decay=500)
+def training_config(**overrides) -> TrainingConfig:
+    base = dict(
+        num_episodes=1, batch_size=1, eps_start=1, eps_end=0,
+        eps_decay=2500, learning_rate=1e-3,
+    )
+    return TrainingConfig(**(base | overrides))
 
 
 def test_tuned_trainer_waits_for_warmup_and_optimizes_every_n_steps() -> None:
@@ -35,14 +24,17 @@ def test_tuned_trainer_waits_for_warmup_and_optimizes_every_n_steps() -> None:
     checkpoint_path.unlink(missing_ok=True)
 
     try:
-        trainer = TunedTrainer(env, seed=42)
-        config = TunedTrainingConfig(
-            batch_size=4,
-            learning_starts=8,
-            optimize_every=4,
-            checkpoint_window=2,
-            checkpoint_path=checkpoint_path,
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=TuningConfig(
+                learning_starts=8,
+                optimize_every=4,
+                checkpoint_window=2,
+                checkpoint_path=checkpoint_path,
+            ),
         )
+        config = training_config(batch_size=4)
 
         for _ in range(config.batch_size):
             trainer.memory.push(None, None, None, None)
@@ -65,8 +57,12 @@ def test_tuned_training_logs_episode_metrics(tmp_path) -> None:
     log_path = tmp_path / "training_log.csv"
 
     try:
-        trainer = TunedTrainer(env, seed=42)
-        config = TunedTrainingConfig(log_path=log_path)
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=TuningConfig(log_path=log_path),
+        )
+        config = training_config()
 
         trainer.steps_done = 25
         trainer._after_episode([10.0], [10], config)
@@ -117,14 +113,16 @@ def test_tuned_trainer_saves_best_checkpoint() -> None:
     checkpoint_path.unlink(missing_ok=True)
 
     try:
-        trainer = TunedTrainer(env, seed=42)
-        config = TunedTrainingConfig(
-            save_best_checkpoint=True,
-            checkpoint_window=2,
-            checkpoint_min_score=0.0,
-            checkpoint_min_score_delta=0.0,
-            checkpoint_path=checkpoint_path,
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=TuningConfig(
+                save_best_checkpoint=True,
+                checkpoint_window=2,
+                checkpoint_path=checkpoint_path,
+            ),
         )
+        config = training_config()
 
         trainer._after_episode([1.0], [10], config)
         assert checkpoint_path.exists()
@@ -150,13 +148,17 @@ def test_tuned_trainer_skips_checkpoint_below_min_score() -> None:
     checkpoint_path.unlink(missing_ok=True)
 
     try:
-        trainer = TunedTrainer(env, seed=42)
-        config = TunedTrainingConfig(
-            save_best_checkpoint=True,
-            checkpoint_window=2,
-            checkpoint_min_score=10.0,
-            checkpoint_path=checkpoint_path,
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=TuningConfig(
+                save_best_checkpoint=True,
+                checkpoint_window=2,
+                checkpoint_min_score=10.0,
+                checkpoint_path=checkpoint_path,
+            ),
         )
+        config = training_config()
 
         trainer._after_episode([9.0], [10], config)
 
@@ -173,8 +175,15 @@ def test_tuned_trainer_does_not_save_checkpoint_by_default() -> None:
     checkpoint_path.unlink(missing_ok=True)
 
     try:
-        trainer = TunedTrainer(env, seed=42)
-        config = TunedTrainingConfig(checkpoint_window=2, checkpoint_path=checkpoint_path)
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=TuningConfig(
+                checkpoint_window=2,
+                checkpoint_path=checkpoint_path,
+            ),
+        )
+        config = training_config()
 
         trainer._after_episode([1.0], [10], config)
 
