@@ -12,6 +12,10 @@ from dqn.training import TrainingConfig
 from dqn.tuned_training import TuningConfig
 
 
+def replay_memory_capacity(trial: Any) -> int:
+    return 10_000
+
+
 def training_config(trial: Any, num_episodes: int) -> TrainingConfig:
     return TrainingConfig(
         num_episodes=num_episodes,
@@ -23,10 +27,6 @@ def training_config(trial: Any, num_episodes: int) -> TrainingConfig:
         gamma=trial.suggest_float("gamma", 0.97, 0.999),
         tau=trial.suggest_float("tau", 0.001, 0.02, log=True),
     )
-
-
-def replay_memory_capacity(trial: Any) -> int:
-    return 10_000
 
 
 def tuning_config(
