@@ -13,19 +13,19 @@ from dqn.tuned_training import TuningConfig
 
 
 def replay_memory_capacity(trial: Any) -> int:
-    return 10_000
+    return 50_000
 
 
 def training_config(trial: Any, num_episodes: int) -> TrainingConfig:
     return TrainingConfig(
         num_episodes=num_episodes,
-        batch_size=trial.suggest_categorical("batch_size", [128, 256, 512]),
-        eps_start=0.9,
+        batch_size=128,
+        gamma=0.99,
+        eps_start=trial.suggest_float("eps_start", 0.5, 1.0),  # current: 1.0
         eps_end=0.01,
-        eps_decay=trial.suggest_int("eps_decay", 10_000, 100_000, log=True),
-        learning_rate=trial.suggest_float("learning_rate", 1e-5, 3e-3, log=True),
-        gamma=trial.suggest_float("gamma", 0.97, 0.999),
-        tau=trial.suggest_float("tau", 0.001, 0.02, log=True),
+        eps_decay=trial.suggest_int("eps_decay", 10_000, 50_000, log=True),  # current: 20_000
+        tau=0.005,
+        learning_rate=3e-4,
     )
 
 
@@ -40,9 +40,9 @@ def tuning_config(
         log_path = trial_dir / "episodes.csv"
 
     return TuningConfig(
-        learning_starts=trial.suggest_int("learning_starts", 1_000, 20_000, log=True),
-        optimize_every=trial.suggest_categorical("optimize_every", [1, 2, 4, 8]),
-        double_dqn=trial.suggest_categorical("double_dqn", [True, False]),
+        learning_starts=5_000,
+        optimize_every=4,
+        double_dqn=False,
         save_best_checkpoint=False,
         log_path=log_path,
     )

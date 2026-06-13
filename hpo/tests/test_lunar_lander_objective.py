@@ -107,13 +107,13 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
     }
     assert envs[0].closed
     assert calls[0].seed == 103
-    assert calls[0].replay_memory_capacity == 10_000
+    assert calls[0].replay_memory_capacity == 50_000
     assert calls[0].training_config.num_episodes == 12
-    assert calls[0].training_config.learning_rate == pytest.approx(1e-5)
+    assert calls[0].training_config.learning_rate == pytest.approx(3e-4)
     assert calls[0].training_config.batch_size == 128
-    assert calls[0].tuning_config.learning_starts == 1_000
-    assert calls[0].tuning_config.optimize_every == 1
-    assert calls[0].tuning_config.double_dqn is True
+    assert calls[0].tuning_config.learning_starts == 5_000
+    assert calls[0].tuning_config.optimize_every == 4
+    assert calls[0].tuning_config.double_dqn is False
     assert calls[0].tuning_config.save_best_checkpoint is False
     assert calls[0].tuning_config.log_path == output_dir / "trial_0003" / "episodes.csv"
     assert calls[0].after_episode_callback is None
