@@ -64,6 +64,7 @@ class TunedTrainer(Trainer):
         next_states: tuple[torch.Tensor | None, ...],
         batch_size: int,
     ) -> torch.Tensor:
+        """Use standard DQN targets by default, or Double DQN when configured."""
         if not self.tuning_config.double_dqn:
             return super()._next_q_values(next_states, batch_size)
 
