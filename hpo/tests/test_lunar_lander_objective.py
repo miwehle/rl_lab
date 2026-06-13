@@ -83,7 +83,6 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
         score_window=2,
         seed=100,
         output_dir=output_dir,
-        save_best_checkpoint=True,
         env_factory=env_factory,
         trainer_factory=FakeTrainer,
     )
@@ -100,5 +99,5 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
     assert calls[0].tuning_config.learning_starts == 1_000
     assert calls[0].tuning_config.optimize_every == 1
     assert calls[0].tuning_config.double_dqn is True
-    assert calls[0].tuning_config.save_best_checkpoint is True
+    assert calls[0].tuning_config.save_best_checkpoint is False
     assert calls[0].tuning_config.log_path == output_dir / "trial_0003" / "episodes.csv"

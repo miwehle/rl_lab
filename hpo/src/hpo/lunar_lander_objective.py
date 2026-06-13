@@ -29,7 +29,6 @@ def create_lunar_lander_objective(
     output_dir: str | Path | None = None,
     env_id: str = "LunarLander-v3",
     device=None,
-    save_best_checkpoint: bool = False,
     env_factory: Callable[[str], Any] = gym.make,
     trainer_factory: type[TunedTrainer] = TunedTrainer,
 ) -> Callable[[Any], float]:
@@ -47,8 +46,6 @@ def create_lunar_lander_objective(
         tuning_config = _tuning_config_from_trial(
             trial,
             output_dir=base_output_dir,
-            score_window=score_window,
-            save_best_checkpoint=save_best_checkpoint,
         )
 
         env = env_factory(env_id)
@@ -85,23 +82,16 @@ def _tuning_config_from_trial(
     trial: Any,
     *,
     output_dir: Path | None,
-    score_window: int,
-    save_best_checkpoint: bool,
 ) -> TuningConfig:
-    checkpoint_path = "best_checkpoint.pt"
     log_path = None
     if output_dir is not None:
         trial_dir = output_dir / f"trial_{trial.number:04d}"
-        checkpoint_path = trial_dir / "best_checkpoint.pt"
         log_path = trial_dir / "episodes.csv"
 
     return TuningConfig(
         learning_starts=trial.suggest_int("learning_starts", 1_000, 20_000, log=True),
         optimize_every=trial.suggest_categorical("optimize_every", [1, 2, 4, 8]),
         double_dqn=trial.suggest_categorical("double_dqn", [True, False]),
-        save_best_checkpoint=save_best_checkpoint,
-        checkpoint_window=score_window,
-        checkpoint_path=checkpoint_path,
+        save_best_checkpoint=False,
         log_path=log_path,
     )
-
