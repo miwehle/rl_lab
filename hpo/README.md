@@ -23,6 +23,23 @@ Recommended Colab runtime:
 L4 GPU
 ```
 
+## Objective
+
+The Optuna objective is created in code and then passed to a study:
+
+```python
+from hpo.lunar_lander_objective import create_lunar_lander_objective
+
+objective = create_lunar_lander_objective(
+    num_episodes=500,
+    output_dir=HPO_OUTPUT_DIR,
+    device=device,
+)
+
+study = optuna.create_study(direction="maximize")
+study.optimize(objective, n_trials=100)
+```
+
 ## Local Tests
 
 Run from the repository root:
@@ -30,4 +47,3 @@ Run from the repository root:
 ```powershell
 dqn\.venv\Scripts\python.exe -m pytest hpo\tests
 ```
-
