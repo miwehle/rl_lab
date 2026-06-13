@@ -1,6 +1,6 @@
 """Optuna objective for tuning DQN on LunarLander."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -8,17 +8,7 @@ import gymnasium as gym
 
 from dqn.tuned_training import TunedTrainer
 from hpo import lunar_lander_search_space as search_space
-
-
-def mean_last(values: Sequence[float], window: int) -> float:
-    """Return the mean over the last window values."""
-    if window < 1:
-        raise ValueError("window must be >= 1")
-    if not values:
-        raise ValueError("values must not be empty")
-
-    tail = values[-window:]
-    return sum(tail) / len(tail)
+from hpo.scoring import best_window_mean
 
 
 def create_lunar_lander_objective(
@@ -62,6 +52,10 @@ def create_lunar_lander_objective(
         finally:
             env.close()
 
-        return mean_last(result.episode_returns, score_window)
+        score = best_window_mean(result.episode_returns, score_window)
+        trial.set_user_attr("best_window_mean", score.mean)
+        trial.set_user_attr("best_window_start_episode", score.start_episode)
+        trial.set_user_attr("best_window_end_episode", score.end_episode)
+        return score.mean
 
     return objective

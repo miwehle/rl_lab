@@ -4,11 +4,14 @@ from pathlib import Path
 import pytest
 
 from dqn.training import TrainingResult
-from hpo.lunar_lander_objective import create_lunar_lander_objective, mean_last
+from hpo.lunar_lander_objective import create_lunar_lander_objective
 
 
 class FakeTrial:
     number = 3
+
+    def __init__(self) -> None:
+        self.user_attrs = {}
 
     def suggest_categorical(self, name, choices):
         return choices[0]
@@ -18,6 +21,9 @@ class FakeTrial:
 
     def suggest_int(self, name, low, high, *, log=False):
         return low
+
+    def set_user_attr(self, name, value) -> None:
+        self.user_attrs[name] = value
 
 
 class FakeEnv:
@@ -36,15 +42,6 @@ class TrainerCall:
     replay_memory_capacity: int
     tuning_config: object
     training_config: object | None = None
-
-
-def test_mean_last_uses_tail_window() -> None:
-    assert mean_last([1.0, 2.0, 5.0], 2) == pytest.approx(3.5)
-
-
-def test_mean_last_rejects_empty_values() -> None:
-    with pytest.raises(ValueError, match="values must not be empty"):
-        mean_last([], 5)
 
 
 def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
@@ -99,6 +96,11 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
     score = objective(trial)
 
     assert score == pytest.approx(25.0)
+    assert trial.user_attrs == {
+        "best_window_mean": pytest.approx(25.0),
+        "best_window_start_episode": 2,
+        "best_window_end_episode": 3,
+    }
     assert envs[0].closed
     assert calls[0].seed == 103
     assert calls[0].replay_memory_capacity == 10_000
