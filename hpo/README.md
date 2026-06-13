@@ -32,11 +32,17 @@ from hpo.lunar_lander.objective import create_objective
 
 objective = create_objective(
     num_episodes=500,
-    output_dir=HPO_OUTPUT_DIR,
+    output_dir=HPO_RUN_DIR,
     device=device,
 )
 
-study = optuna.create_study(direction="maximize")
+study_db_path = HPO_STUDY_DIR / "lunar_lander_dqn.db"
+study = optuna.create_study(
+    study_name="lunar_lander_dqn",
+    direction="maximize",
+    storage=f"sqlite:///{study_db_path}",
+    load_if_exists=True,
+)
 study.optimize(objective, n_trials=100)
 ```
 
