@@ -52,6 +52,7 @@ class TunedTrainer(Trainer):
         self.checkpoint_returns: list[float] = []
 
     def _should_optimize(self, config: TrainingConfig) -> bool:
+        """Wait for replay warmup and optimize only every configured step."""
         tuning_config = self.tuning_config
         return (
             len(self.memory) >= config.batch_size
@@ -94,6 +95,7 @@ class TunedTrainer(Trainer):
         config: TrainingConfig,
         plotter=None,
     ) -> None:
+        """Add tuned episode bookkeeping: learning marker, logging, checkpoints."""
         tuning_config = self.tuning_config
         if plotter is not None and self.steps_done >= tuning_config.learning_starts:
             plotter.mark_episode(len(episode_returns) - 1, "Learning starts")
