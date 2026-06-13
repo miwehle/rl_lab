@@ -10,23 +10,14 @@ from hpo.lunar_lander_objective import create_lunar_lander_objective, mean_last
 class FakeTrial:
     number = 3
 
-    def __init__(self) -> None:
-        self.suggestions = {}
-
     def suggest_categorical(self, name, choices):
-        value = choices[0]
-        self.suggestions[name] = value
-        return value
+        return choices[0]
 
     def suggest_float(self, name, low, high, *, log=False):
-        value = low
-        self.suggestions[name] = value
-        return value
+        return low
 
     def suggest_int(self, name, low, high, *, log=False):
-        value = low
-        self.suggestions[name] = value
-        return value
+        return low
 
 
 class FakeEnv:
