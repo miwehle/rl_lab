@@ -12,8 +12,15 @@ from dqn.model import DQN
 
 
 class EpisodePlotter:
-    def __init__(self, y_label: str = "Return") -> None:
+    def __init__(
+        self,
+        y_label: str = "Return",
+        max_episodes: int | None = None,
+        update_every: int = 1,
+    ) -> None:
         self.y_label = y_label
+        self.max_episodes = max_episodes
+        self.update_every = update_every
         self.episode_marks: dict[str, list[int]] = {}
         self.epsilons: list[float] | None = None
         self.is_ipython = "inline" in matplotlib.get_backend()
@@ -37,6 +44,9 @@ class EpisodePlotter:
         show_result: bool = False,
         epsilons: list[float] | None = None,
     ) -> None:
+        if not show_result and len(returns) % self.update_every != 0:
+            return
+
         plt.figure(1)
         plt.clf()
         ax_returns = plt.gca()
@@ -44,6 +54,8 @@ class EpisodePlotter:
         ax_returns.set_xlabel("Episode")
         ax_returns.set_ylabel(self.y_label)
         ax_returns.plot(returns)
+        if self.max_episodes is not None:
+            ax_returns.set_xlim(0, self.max_episodes)
 
         rolling_window = 50
         if len(returns) >= rolling_window:
