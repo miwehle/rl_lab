@@ -11,6 +11,19 @@ from dqn.tuned_training import TunedTrainer, TuningConfig
 from helpers import model_hash
 
 
+def tuning_config(**overrides) -> TuningConfig:
+    base = dict(
+        learning_starts=1000,
+        optimize_every=4,
+        double_dqn=False,
+        save_best_checkpoint=False,
+        checkpoint_window=50,
+        checkpoint_min_score=0.0,
+        checkpoint_min_score_delta=0.0,
+    )
+    return TuningConfig(**(base | overrides))
+
+
 def test_checkpoint_restores_trainer_state() -> None:
     checkpoint_path = Path("dqn/tests/checkpoint.pt")
     checkpoint_path.unlink(missing_ok=True)
@@ -18,7 +31,7 @@ def test_checkpoint_restores_trainer_state() -> None:
     trainer = TunedTrainer(
         env,
         seed=42,
-        tuning_config=TuningConfig(
+        tuning_config=tuning_config(
             learning_starts=0,
             optimize_every=1,
         ),
@@ -55,7 +68,11 @@ def test_checkpoint_restores_trainer_state() -> None:
         env.close()
 
     restored_env = gym.make("CartPole-v1")
-    restored_trainer = TunedTrainer(restored_env, seed=100)
+    restored_trainer = TunedTrainer(
+        restored_env,
+        seed=100,
+        tuning_config=tuning_config(),
+    )
 
     try:
         load_checkpoint(restored_trainer, checkpoint_path)
@@ -86,7 +103,7 @@ def test_checkpoint_loads_list_encoded_torch_rng_state() -> None:
     checkpoint_path = Path("dqn/tests/list_rng_checkpoint.pt")
     checkpoint_path.unlink(missing_ok=True)
     env = gym.make("CartPole-v1")
-    trainer = TunedTrainer(env, seed=42)
+    trainer = TunedTrainer(env, seed=42, tuning_config=tuning_config())
 
     try:
         save_checkpoint(trainer, checkpoint_path)
@@ -99,7 +116,11 @@ def test_checkpoint_loads_list_encoded_torch_rng_state() -> None:
         env.close()
 
     restored_env = gym.make("CartPole-v1")
-    restored_trainer = TunedTrainer(restored_env, seed=100)
+    restored_trainer = TunedTrainer(
+        restored_env,
+        seed=100,
+        tuning_config=tuning_config(),
+    )
 
     try:
         load_checkpoint(restored_trainer, checkpoint_path)

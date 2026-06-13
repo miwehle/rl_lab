@@ -44,5 +44,7 @@ def tuning_config(
         optimize_every=4,
         double_dqn=False,
         save_best_checkpoint=False,
+        checkpoint_min_score=0.0,
+        checkpoint_min_score_delta=0.0,
         log_path=log_path,
     )

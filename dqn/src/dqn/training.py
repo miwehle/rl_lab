@@ -50,11 +50,11 @@ class ReplayMemory:
 @dataclass(kw_only=True)
 class TrainingConfig:
     num_episodes: int
-    batch_size: int
-    eps_start: float
-    eps_end: float
-    eps_decay: int
-    learning_rate: float
+    batch_size: int = 128  # or 64
+    eps_start: float = 1.0
+    eps_end: float  # often 0.01 to 0.1
+    eps_decay: int  # about total_training_steps / 4
+    learning_rate: float = 1e-4
     gamma: float = 0.99
     tau: float = 0.005
 

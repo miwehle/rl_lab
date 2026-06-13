@@ -18,13 +18,13 @@ AfterEpisodeCallback = Callable[[Sequence[float]], None]
 
 @dataclass(kw_only=True)
 class TuningConfig:
-    learning_starts: int = 1000
-    optimize_every: int = 4
+    learning_starts: int  # often 500 to 5000
+    optimize_every: int  # often 1 to 4
     double_dqn: bool = False
     save_best_checkpoint: bool = False
     checkpoint_window: int = 50
-    checkpoint_min_score: float = 0.0
-    checkpoint_min_score_delta: float = 0.0
+    checkpoint_min_score: float
+    checkpoint_min_score_delta: float
     checkpoint_path: str | Path = "best_checkpoint.pt"
     log_path: str | Path | None = None
 
@@ -46,12 +46,12 @@ class TunedTrainer(Trainer):
     def __init__(
         self,
         *args,
-        tuning_config: TuningConfig | None = None,
+        tuning_config: TuningConfig,
         after_episode_callback: AfterEpisodeCallback | None = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.tuning_config = tuning_config or TuningConfig()
+        self.tuning_config = tuning_config
         self.after_episode_callback = after_episode_callback
         self.best_mean_return = float("-inf")
         self.best_checkpoint_score = float("-inf")

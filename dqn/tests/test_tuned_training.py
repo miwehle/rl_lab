@@ -19,6 +19,19 @@ def training_config(**overrides) -> TrainingConfig:
     return TrainingConfig(**(base | overrides))
 
 
+def tuning_config(**overrides) -> TuningConfig:
+    base = dict(
+        learning_starts=1000,
+        optimize_every=4,
+        double_dqn=False,
+        save_best_checkpoint=False,
+        checkpoint_window=50,
+        checkpoint_min_score=0.0,
+        checkpoint_min_score_delta=0.0,
+    )
+    return TuningConfig(**(base | overrides))
+
+
 class FixedQNet(nn.Module):
     def __init__(self, q_values: list[float]) -> None:
         super().__init__()
@@ -37,7 +50,7 @@ def test_tuned_trainer_waits_for_warmup_and_optimizes_every_n_steps() -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
-            tuning_config=TuningConfig(
+            tuning_config=tuning_config(
                 learning_starts=8,
                 optimize_every=4,
                 checkpoint_window=2,
@@ -69,7 +82,7 @@ def test_tuned_trainer_uses_double_dqn_next_q_values() -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
-            tuning_config=TuningConfig(double_dqn=True),
+            tuning_config=tuning_config(double_dqn=True),
         )
         trainer.q_net = FixedQNet([1.0, 3.0]).to(trainer.device)
         trainer.target_net = FixedQNet([10.0, 2.0]).to(trainer.device)
@@ -94,7 +107,7 @@ def test_tuned_trainer_uses_simple_dqn_next_q_values_by_default() -> None:
     env = gym.make("CartPole-v1")
 
     try:
-        trainer = TunedTrainer(env, seed=42)
+        trainer = TunedTrainer(env, seed=42, tuning_config=tuning_config())
         trainer.q_net = FixedQNet([1.0, 3.0]).to(trainer.device)
         trainer.target_net = FixedQNet([10.0, 2.0]).to(trainer.device)
 
@@ -122,7 +135,7 @@ def test_tuned_training_logs_episode_metrics(tmp_path) -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
-            tuning_config=TuningConfig(log_path=log_path),
+            tuning_config=tuning_config(log_path=log_path),
         )
         config = training_config()
 
@@ -178,7 +191,7 @@ def test_tuned_trainer_saves_best_checkpoint() -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
-            tuning_config=TuningConfig(
+            tuning_config=tuning_config(
                 save_best_checkpoint=True,
                 checkpoint_window=2,
                 checkpoint_path=checkpoint_path,
@@ -213,7 +226,7 @@ def test_tuned_trainer_skips_checkpoint_below_min_score() -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
-            tuning_config=TuningConfig(
+            tuning_config=tuning_config(
                 save_best_checkpoint=True,
                 checkpoint_window=2,
                 checkpoint_min_score=10.0,
@@ -240,7 +253,7 @@ def test_tuned_trainer_does_not_save_checkpoint_by_default() -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
-            tuning_config=TuningConfig(
+            tuning_config=tuning_config(
                 checkpoint_window=2,
                 checkpoint_path=checkpoint_path,
             ),
@@ -265,6 +278,7 @@ def test_tuned_trainer_calls_after_episode_callback() -> None:
         trainer = TunedTrainer(
             env,
             seed=42,
+            tuning_config=tuning_config(),
             after_episode_callback=callback_returns.append,
         )
         config = training_config()
@@ -284,7 +298,12 @@ def test_tuned_trainer_propagates_after_episode_callback_exceptions() -> None:
         raise RuntimeError("stop trial")
 
     try:
-        trainer = TunedTrainer(env, seed=42, after_episode_callback=fail)
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=tuning_config(),
+            after_episode_callback=fail,
+        )
         config = training_config()
 
         with pytest.raises(RuntimeError, match="stop trial"):
