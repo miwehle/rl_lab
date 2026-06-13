@@ -28,12 +28,17 @@ L4 GPU
 The Optuna objective is created in code and then passed to a study:
 
 ```python
+from hpo.evaluation.pruning import PruningConfig
 from hpo.lunar_lander.objective import create_objective
+
+pruning_config = None
+# pruning_config = PruningConfig(start_episode=250, min_score=100.0)
 
 objective = create_objective(
     num_episodes=500,
     output_dir=HPO_RUN_DIR,
     device=device,
+    pruning_config=pruning_config,
 )
 
 study_db_path = HPO_STUDY_DIR / "lunar_lander_dqn.db"

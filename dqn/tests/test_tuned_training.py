@@ -255,3 +255,39 @@ def test_tuned_trainer_does_not_save_checkpoint_by_default() -> None:
     finally:
         checkpoint_path.unlink(missing_ok=True)
         env.close()
+
+
+def test_tuned_trainer_calls_after_episode_callback() -> None:
+    env = gym.make("CartPole-v1")
+    callback_returns = []
+
+    try:
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            after_episode_callback=callback_returns.append,
+        )
+        config = training_config()
+
+        trainer.steps_done = 12
+        trainer._after_episode([10.0, 20.0], [8, 9], config)
+    finally:
+        env.close()
+
+    assert callback_returns == [(10.0, 20.0)]
+
+
+def test_tuned_trainer_propagates_after_episode_callback_exceptions() -> None:
+    env = gym.make("CartPole-v1")
+
+    def fail(_episode_returns) -> None:
+        raise RuntimeError("stop trial")
+
+    try:
+        trainer = TunedTrainer(env, seed=42, after_episode_callback=fail)
+        config = training_config()
+
+        with pytest.raises(RuntimeError, match="stop trial"):
+            trainer._after_episode([10.0], [8], config)
+    finally:
+        env.close()

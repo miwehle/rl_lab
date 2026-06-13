@@ -7,6 +7,7 @@ from typing import Any
 import gymnasium as gym
 
 from dqn.tuned_training import TunedTrainer
+from hpo.evaluation.pruning import PruningConfig, create_pruning_callback
 from hpo.evaluation.scoring import best_window_mean
 from hpo.lunar_lander import search_space
 
@@ -19,6 +20,7 @@ def create_objective(
     output_dir: str | Path | None = None,
     env_id: str = "LunarLander-v3",
     device=None,
+    pruning_config: PruningConfig | None = None,
     env_factory: Callable[[str], Any] = gym.make,
     trainer_factory: type[TunedTrainer] = TunedTrainer,
 ) -> Callable[[Any], float]:
@@ -38,6 +40,11 @@ def create_objective(
             trial,
             output_dir=base_output_dir,
         )
+        after_episode_callback = create_pruning_callback(
+            trial,
+            pruning_config,
+            score_window=score_window,
+        )
 
         env = env_factory(env_id)
         try:
@@ -47,6 +54,7 @@ def create_objective(
                 device=device,
                 replay_memory_capacity=replay_memory_capacity,
                 tuning_config=tuning_config,
+                after_episode_callback=after_episode_callback,
             )
             result = trainer.train(training_config)
         finally:

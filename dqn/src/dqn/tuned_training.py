@@ -1,5 +1,6 @@
 """Tuned DQN trainer with a few practical training improvements."""
 
+from collections.abc import Callable, Sequence
 import csv
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,6 +11,9 @@ import torch
 
 from dqn.checkpointing import save_checkpoint
 from dqn.training import Trainer, TrainingConfig
+
+
+AfterEpisodeCallback = Callable[[Sequence[float]], None]
 
 
 @dataclass(kw_only=True)
@@ -43,10 +47,12 @@ class TunedTrainer(Trainer):
         self,
         *args,
         tuning_config: TuningConfig | None = None,
+        after_episode_callback: AfterEpisodeCallback | None = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.tuning_config = tuning_config or TuningConfig()
+        self.after_episode_callback = after_episode_callback
         self.best_mean_return = float("-inf")
         self.best_checkpoint_score = float("-inf")
         self.checkpoint_returns: list[float] = []
@@ -107,24 +113,28 @@ class TunedTrainer(Trainer):
 
         self.checkpoint_returns.append(episode_returns[-1])
 
-        if not tuning_config.save_best_checkpoint:
-            return
+        if tuning_config.save_best_checkpoint:
+            checkpoint_returns = self.checkpoint_returns[
+                -tuning_config.checkpoint_window :
+            ]
+            checkpoint_score = sum(checkpoint_returns) / len(checkpoint_returns)
 
-        checkpoint_returns = self.checkpoint_returns[-tuning_config.checkpoint_window :]
-        checkpoint_score = sum(checkpoint_returns) / len(checkpoint_returns)
+            if (
+                checkpoint_score >= tuning_config.checkpoint_min_score
+                and checkpoint_score
+                >= self.best_checkpoint_score + tuning_config.checkpoint_min_score_delta
+            ):
+                self.best_checkpoint_score = checkpoint_score
+                save_checkpoint(self, tuning_config.checkpoint_path)
+                if plotter is not None:
+                    plotter.mark_episode(
+                        len(episode_returns) - 1,
+                        "Checkpoint",
+                        repeat=True,
+                    )
 
-        if checkpoint_score < tuning_config.checkpoint_min_score:
-            return
-        if (
-            checkpoint_score
-            < self.best_checkpoint_score + tuning_config.checkpoint_min_score_delta
-        ):
-            return
-
-        self.best_checkpoint_score = checkpoint_score
-        save_checkpoint(self, tuning_config.checkpoint_path)
-        if plotter is not None:
-            plotter.mark_episode(len(episode_returns) - 1, "Checkpoint", repeat=True)
+        if self.after_episode_callback is not None:
+            self.after_episode_callback(tuple(episode_returns))
 
     def _log_episode(
         self,

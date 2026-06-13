@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from dqn.training import TrainingResult
+from hpo.evaluation.pruning import PruningConfig
 from hpo.lunar_lander.objective import create_objective
 
 
@@ -41,6 +42,7 @@ class TrainerCall:
     device: object
     replay_memory_capacity: int
     tuning_config: object
+    after_episode_callback: object
     training_config: object | None = None
 
 
@@ -64,6 +66,7 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
             device,
             replay_memory_capacity,
             tuning_config,
+            after_episode_callback,
         ) -> None:
             calls.append(
                 TrainerCall(
@@ -72,6 +75,7 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
                     device,
                     replay_memory_capacity,
                     tuning_config,
+                    after_episode_callback,
                 )
             )
 
@@ -112,3 +116,40 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
     assert calls[0].tuning_config.double_dqn is True
     assert calls[0].tuning_config.save_best_checkpoint is False
     assert calls[0].tuning_config.log_path == output_dir / "trial_0003" / "episodes.csv"
+    assert calls[0].after_episode_callback is None
+
+
+def test_lunar_lander_objective_passes_pruning_callback_to_trainer() -> None:
+    calls = []
+
+    class FakeTrainer:
+        def __init__(
+            self,
+            _env,
+            *,
+            seed,
+            device,
+            replay_memory_capacity,
+            tuning_config,
+            after_episode_callback,
+        ) -> None:
+            calls.append(after_episode_callback)
+
+        def train(self, _training_config):
+            return TrainingResult(
+                q_net=None,
+                episode_returns=[10.0, 20.0, 30.0],
+                episode_lengths=[1, 1, 1],
+            )
+
+    objective = create_objective(
+        num_episodes=12,
+        score_window=2,
+        pruning_config=PruningConfig(),
+        env_factory=lambda _env_id: FakeEnv(),
+        trainer_factory=FakeTrainer,
+    )
+
+    objective(FakeTrial())
+
+    assert calls[0] is not None
