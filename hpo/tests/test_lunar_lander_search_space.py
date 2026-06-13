@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from hpo import lunar_lander_search_space as search_space
+from hpo.lunar_lander import search_space
 
 
 class FakeTrial:

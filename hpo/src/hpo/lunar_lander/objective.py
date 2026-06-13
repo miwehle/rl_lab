@@ -7,11 +7,11 @@ from typing import Any
 import gymnasium as gym
 
 from dqn.tuned_training import TunedTrainer
-from hpo import lunar_lander_search_space as search_space
-from hpo.scoring import best_window_mean
+from hpo.evaluation.scoring import best_window_mean
+from hpo.lunar_lander import search_space
 
 
-def create_lunar_lander_objective(
+def create_objective(
     *,
     num_episodes: int,
     score_window: int = 50,

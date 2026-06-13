@@ -1,6 +1,6 @@
 import pytest
 
-from hpo.scoring import best_window_mean
+from hpo.evaluation.scoring import best_window_mean
 
 
 def test_best_window_mean_uses_best_rolling_window() -> None:
@@ -22,4 +22,3 @@ def test_best_window_mean_uses_available_values_when_window_is_larger() -> None:
 def test_best_window_mean_rejects_empty_values() -> None:
     with pytest.raises(ValueError, match="values must not be empty"):
         best_window_mean([], 5)
-

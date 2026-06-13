@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dqn.training import TrainingResult
-from hpo.lunar_lander_objective import create_lunar_lander_objective
+from hpo.lunar_lander.objective import create_objective
 
 
 class FakeTrial:
@@ -83,7 +83,7 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
                 episode_lengths=[1, 1, 1],
             )
 
-    objective = create_lunar_lander_objective(
+    objective = create_objective(
         num_episodes=12,
         score_window=2,
         seed=100,

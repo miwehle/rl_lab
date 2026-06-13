@@ -28,9 +28,9 @@ L4 GPU
 The Optuna objective is created in code and then passed to a study:
 
 ```python
-from hpo.lunar_lander_objective import create_lunar_lander_objective
+from hpo.lunar_lander.objective import create_objective
 
-objective = create_lunar_lander_objective(
+objective = create_objective(
     num_episodes=500,
     output_dir=HPO_OUTPUT_DIR,
     device=device,

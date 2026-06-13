@@ -35,4 +35,3 @@ def best_window_mean(values: Sequence[float], window: int) -> WindowScore:
             )
 
     return best_score
-
