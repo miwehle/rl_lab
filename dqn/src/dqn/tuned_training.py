@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from dateutil import tz
+import torch
 
 from dqn.checkpointing import save_checkpoint
 from dqn.training import Trainer, TrainingConfig
@@ -35,6 +36,8 @@ class TuningConfig:
 
 
 class TunedTrainer(Trainer):
+    """DQN trainer with practical tuning features, including Double DQN targets."""
+
     def __init__(
         self,
         *args,
@@ -54,6 +57,30 @@ class TunedTrainer(Trainer):
             and self.steps_done >= tuning_config.learning_starts
             and self.steps_done % tuning_config.optimize_every == 0
         )
+
+    def _next_q_values(
+        self,
+        next_states: tuple[torch.Tensor | None, ...],
+        batch_size: int,
+    ) -> torch.Tensor:
+        next_q_values = torch.zeros(batch_size, device=self.device)
+        non_final_mask = torch.tensor(
+            tuple(state is not None for state in next_states),
+            device=self.device,
+            dtype=torch.bool,
+        )
+        non_final_states = [state for state in next_states if state is not None]
+
+        if non_final_states:
+            with torch.no_grad():
+                states = torch.cat(non_final_states)
+                next_actions = self.q_net(states).max(1).indices.unsqueeze(1)
+                next_q_values[non_final_mask] = self.target_net(states).gather(
+                    1,
+                    next_actions,
+                ).squeeze(1)
+
+        return next_q_values
 
     def _after_episode(
         self,
