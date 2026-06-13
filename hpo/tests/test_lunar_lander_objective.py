@@ -42,6 +42,7 @@ class TrainerCall:
     env: FakeEnv
     seed: int | None
     device: object
+    replay_memory_capacity: int
     tuning_config: object
     training_config: object | None = None
 
@@ -67,8 +68,24 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
         return env
 
     class FakeTrainer:
-        def __init__(self, env, *, seed, device, tuning_config) -> None:
-            calls.append(TrainerCall(env, seed, device, tuning_config))
+        def __init__(
+            self,
+            env,
+            *,
+            seed,
+            device,
+            replay_memory_capacity,
+            tuning_config,
+        ) -> None:
+            calls.append(
+                TrainerCall(
+                    env,
+                    seed,
+                    device,
+                    replay_memory_capacity,
+                    tuning_config,
+                )
+            )
 
         def train(self, training_config):
             calls[-1].training_config = training_config
@@ -93,6 +110,7 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
     assert score == pytest.approx(25.0)
     assert envs[0].closed
     assert calls[0].seed == 103
+    assert calls[0].replay_memory_capacity == 10_000
     assert calls[0].training_config.num_episodes == 12
     assert calls[0].training_config.learning_rate == pytest.approx(1e-5)
     assert calls[0].training_config.batch_size == 128

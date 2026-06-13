@@ -1,4 +1,9 @@
-"""Optuna objective for tuning DQN on LunarLander."""
+"""Optuna objective for tuning DQN on LunarLander.
+
+The ``*_from_trial`` functions define the hyperparameter search space. Values
+created with ``trial.suggest_*`` are optimized by Optuna; plain constants are
+deliberately fixed for all trials.
+"""
 
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -42,6 +47,7 @@ def create_lunar_lander_objective(
 
     def objective(trial: Any) -> float:
         training_config = _training_config_from_trial(trial, num_episodes)
+        replay_memory_capacity = _replay_memory_capacity_from_trial(trial)
         trial_seed = None if seed is None else seed + trial.number
         tuning_config = _tuning_config_from_trial(
             trial,
@@ -54,6 +60,7 @@ def create_lunar_lander_objective(
                 env,
                 seed=trial_seed,
                 device=device,
+                replay_memory_capacity=replay_memory_capacity,
                 tuning_config=tuning_config,
             )
             result = trainer.train(training_config)
@@ -76,6 +83,10 @@ def _training_config_from_trial(trial: Any, num_episodes: int) -> TrainingConfig
         gamma=trial.suggest_float("gamma", 0.97, 0.999),
         tau=trial.suggest_float("tau", 0.001, 0.02, log=True),
     )
+
+
+def _replay_memory_capacity_from_trial(trial: Any) -> int:
+    return 10_000
 
 
 def _tuning_config_from_trial(
