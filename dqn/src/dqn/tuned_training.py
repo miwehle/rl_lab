@@ -16,6 +16,7 @@ from dqn.training import Trainer, TrainingConfig
 class TuningConfig:
     learning_starts: int = 1000
     optimize_every: int = 4
+    double_dqn: bool = False
     save_best_checkpoint: bool = False
     checkpoint_window: int = 50
     checkpoint_min_score: float = 0.0
@@ -36,7 +37,7 @@ class TuningConfig:
 
 
 class TunedTrainer(Trainer):
-    """DQN trainer with practical tuning features, including Double DQN targets."""
+    """DQN trainer with practical tuning features and optional Double DQN targets."""
 
     def __init__(
         self,
@@ -63,6 +64,9 @@ class TunedTrainer(Trainer):
         next_states: tuple[torch.Tensor | None, ...],
         batch_size: int,
     ) -> torch.Tensor:
+        if not self.tuning_config.double_dqn:
+            return super()._next_q_values(next_states, batch_size)
+
         next_q_values = torch.zeros(batch_size, device=self.device)
         non_final_mask = torch.tensor(
             tuple(state is not None for state in next_states),

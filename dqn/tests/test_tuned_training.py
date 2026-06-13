@@ -66,7 +66,11 @@ def test_tuned_trainer_uses_double_dqn_next_q_values() -> None:
     env = gym.make("CartPole-v1")
 
     try:
-        trainer = TunedTrainer(env, seed=42)
+        trainer = TunedTrainer(
+            env,
+            seed=42,
+            tuning_config=TuningConfig(double_dqn=True),
+        )
         trainer.q_net = FixedQNet([1.0, 3.0]).to(trainer.device)
         trainer.target_net = FixedQNet([10.0, 2.0]).to(trainer.device)
 
@@ -83,6 +87,30 @@ def test_tuned_trainer_uses_double_dqn_next_q_values() -> None:
     torch.testing.assert_close(
         next_q_values,
         torch.tensor([2.0, 0.0, 2.0], device=trainer.device),
+    )
+
+
+def test_tuned_trainer_uses_simple_dqn_next_q_values_by_default() -> None:
+    env = gym.make("CartPole-v1")
+
+    try:
+        trainer = TunedTrainer(env, seed=42)
+        trainer.q_net = FixedQNet([1.0, 3.0]).to(trainer.device)
+        trainer.target_net = FixedQNet([10.0, 2.0]).to(trainer.device)
+
+        next_states = (
+            torch.zeros(1, 4, device=trainer.device),
+            None,
+            torch.ones(1, 4, device=trainer.device),
+        )
+
+        next_q_values = trainer._next_q_values(next_states, batch_size=3)
+    finally:
+        env.close()
+
+    torch.testing.assert_close(
+        next_q_values,
+        torch.tensor([10.0, 0.0, 10.0], device=trainer.device),
     )
 
 
