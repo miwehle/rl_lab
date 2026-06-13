@@ -53,7 +53,7 @@ class EpisodePlotter:
         ax_returns.set_title("Result" if show_result else "Training...")
         ax_returns.set_xlabel("Episode")
         ax_returns.set_ylabel(self.y_label)
-        ax_returns.plot(returns)
+        ax_returns.plot(returns, color="lightgray")
         if self.max_episodes is not None:
             ax_returns.set_xlim(0, self.max_episodes)
 
@@ -94,7 +94,9 @@ class EpisodePlotter:
         plt.pause(0.001)
 
         if self.display is not None:
-            self.display.display(plt.gcf())
+            figure = plt.gcf()
+            self.display.display(figure)
+            plt.close(figure)
             if not show_result:
                 self.display.clear_output(wait=True)
 
