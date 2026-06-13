@@ -18,13 +18,6 @@ class EpisodePlotter:
         self.epsilons: list[float] | None = None
         self.is_ipython = "inline" in matplotlib.get_backend()
         self.display: Any = None
-        self.figure: Any = None
-        self.ax_returns: Any = None
-        self.ax_epsilon: Any = None
-        self.returns_line: Any = None
-        self.mean_line: Any = None
-        self.epsilon_line: Any = None
-        self.mark_artists: list[Any] = []
 
         if self.is_ipython:
             from IPython import display
@@ -44,41 +37,31 @@ class EpisodePlotter:
         show_result: bool = False,
         epsilons: list[float] | None = None,
     ) -> None:
-        self._ensure_plot()
-        ax_returns = self.ax_returns
+        plt.figure(1)
+        plt.clf()
+        ax_returns = plt.gca()
         ax_returns.set_title("Result" if show_result else "Training...")
-        episodes = list(range(len(returns)))
-        self.returns_line.set_data(episodes, returns)
+        ax_returns.set_xlabel("Episode")
+        ax_returns.set_ylabel(self.y_label)
+        ax_returns.plot(returns)
 
         rolling_window = 50
         if len(returns) >= rolling_window:
             returns_t = torch.tensor(returns, dtype=torch.float)
             means = returns_t.unfold(0, rolling_window, 1).mean(1).view(-1)
-            mean_episodes = list(range(rolling_window - 1, rolling_window - 1 + len(means)))
-            self.mean_line.set_data(mean_episodes, means.numpy())
-            self.mean_line.set_visible(True)
-        else:
-            self.mean_line.set_data([], [])
-            self.mean_line.set_visible(False)
+            mean_episodes = range(rolling_window - 1, rolling_window - 1 + len(means))
+            ax_returns.plot(mean_episodes, means.numpy())
 
-        legend = ax_returns.get_legend()
-        if legend is not None:
-            legend.remove()
-
-        for artist in self.mark_artists:
-            artist.remove()
-        self.mark_artists.clear()
         for label, episodes in self.episode_marks.items():
             color = "gray" if label == "Checkpoint" else "tab:red"
             for index, episode in enumerate(episodes):
                 legend_label = label if index == 0 else "_nolegend_"
-                artist = ax_returns.axvline(
+                ax_returns.axvline(
                     episode,
                     color=color,
                     linestyle=":",
                     label=legend_label,
                 )
-                self.mark_artists.append(artist)
 
         if self.episode_marks:
             ax_returns.legend(loc="lower right")
@@ -91,45 +74,17 @@ class EpisodePlotter:
         epsilons = self.epsilons
 
         if epsilons is not None:
-            self.ax_epsilon.set_visible(True)
-            self.epsilon_line.set_data(list(range(len(epsilons))), epsilons)
-            self.epsilon_line.set_visible(True)
-        else:
-            self.epsilon_line.set_data([], [])
-            self.epsilon_line.set_visible(False)
-            self.ax_epsilon.set_visible(False)
-
-        ax_returns.relim()
-        ax_returns.autoscale_view()
-        self.figure.canvas.draw_idle()
+            ax_epsilon = ax_returns.twinx()
+            ax_epsilon.set_ylabel("Epsilon")
+            ax_epsilon.set_ylim(0, 1)
+            ax_epsilon.plot(epsilons, color="tab:green", linestyle="--")
 
         plt.pause(0.001)
 
         if self.display is not None:
-            self.display.display(self.figure)
+            self.display.display(plt.gcf())
             if not show_result:
                 self.display.clear_output(wait=True)
-
-    def _ensure_plot(self) -> None:
-        if self.figure is not None:
-            return
-
-        self.figure, self.ax_returns = plt.subplots()
-        self.ax_returns.set_xlabel("Episode")
-        self.ax_returns.set_ylabel(self.y_label)
-        (self.returns_line,) = self.ax_returns.plot([], [])
-        (self.mean_line,) = self.ax_returns.plot([], [])
-
-        self.ax_epsilon = self.ax_returns.twinx()
-        self.ax_epsilon.set_ylabel("Epsilon")
-        self.ax_epsilon.set_ylim(0, 1)
-        (self.epsilon_line,) = self.ax_epsilon.plot(
-            [],
-            [],
-            color="tab:green",
-            linestyle="--",
-        )
-        self.ax_epsilon.set_visible(False)
 
 
 def record_episode(
