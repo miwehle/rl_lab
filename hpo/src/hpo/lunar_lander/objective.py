@@ -43,6 +43,7 @@ def create_objective(
         after_episode_callback = create_pruning_callback(
             trial,
             pruning_config,
+            num_episodes=num_episodes,
             score_window=score_window,
         )
 
