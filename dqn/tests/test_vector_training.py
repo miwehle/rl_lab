@@ -65,6 +65,25 @@ def test_vector_training_smoke() -> None:
     assert len(trainer.memory) > 0
 
 
+def test_vector_training_accepts_plotter() -> None:
+    env = vector_env(num_envs=2)
+    plot_calls = []
+
+    class Plotter:
+        def plot_returns(self, returns, show_result=False, epsilons=None) -> None:
+            plot_calls.append((list(returns), show_result, epsilons))
+
+    try:
+        trainer = VectorTrainer(env, seed=42)
+        trainer.train(vector_training_config(num_episodes=2), plotter=Plotter())
+    finally:
+        env.close()
+
+    assert plot_calls
+    assert len(plot_calls[-1][0]) == 2
+    assert plot_calls[-1][2] is not None
+
+
 def test_vector_trainer_optimizes_for_each_crossed_interval() -> None:
     env = vector_env(num_envs=4)
     calls = []

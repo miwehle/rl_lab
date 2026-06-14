@@ -115,6 +115,7 @@ class VectorTrainer:
     ) -> None:
         self.env = env
         self.steps_done = 0
+        self.epsilons: list[float] = []
         self.device = resolve_device(device)
         self.rng = np.random.default_rng(seed)
 
@@ -142,7 +143,7 @@ class VectorTrainer:
             seed=seed,
         )
 
-    def train(self, config: VectorTrainingConfig) -> TrainingResult:
+    def train(self, config: VectorTrainingConfig, plotter=None) -> TrainingResult:
         """Train q_net with batched experience from a vector environment."""
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = config.learning_rate
@@ -181,6 +182,7 @@ class VectorTrainer:
             running_lengths[stepped] += 1
 
             done = (terminated | truncated) & stepped
+            episode_count_before_step = len(episode_returns)
             for env_index in np.flatnonzero(done):
                 if len(episode_returns) >= config.num_episodes:
                     break
@@ -188,6 +190,14 @@ class VectorTrainer:
                 episode_lengths.append(int(running_lengths[env_index]))
                 running_returns[env_index] = 0.0
                 running_lengths[env_index] = 0
+
+            if plotter is not None and len(episode_returns) > episode_count_before_step:
+                new_episode_count = len(episode_returns) - episode_count_before_step
+                self.epsilons.extend(
+                    [self._exploration_rate(config)] * new_episode_count,
+                )
+                epsilons = self.epsilons[-len(episode_returns) :]
+                plotter.plot_returns(episode_returns, epsilons=epsilons)
 
             self._optimize_due(config, previous_steps)
             observations = next_observations
