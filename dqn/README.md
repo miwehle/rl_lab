@@ -37,6 +37,43 @@ $env:PYTHONPATH = "dqn\src"
 python -m dqn.scripts.train_cartpole
 ```
 
+## Vectorized Training
+
+For small models on a large GPU, a single environment often cannot feed the GPU
+fast enough. Use a Gymnasium vector environment to collect many transitions per
+step and train on larger replay batches:
+
+```python
+import gymnasium as gym
+from gymnasium.vector import SyncVectorEnv
+
+from dqn.vector_training import VectorTrainer, VectorTrainingConfig
+
+
+def make_lander():
+    return gym.make("LunarLander-v3")
+
+
+env = SyncVectorEnv([make_lander for _ in range(32)])
+
+try:
+    trainer = VectorTrainer(env, seed=42, replay_memory_capacity=200_000)
+    result = trainer.train(
+        VectorTrainingConfig(
+            num_episodes=1_000,
+            batch_size=1_024,
+            eps_start=1.0,
+            eps_end=0.05,
+            eps_decay=50_000,
+            learning_rate=3e-4,
+            learning_starts=5_000,
+            optimize_every=4,
+        )
+    )
+finally:
+    env.close()
+```
+
 ## Gymnasium Environments
 
 ### CartPole
