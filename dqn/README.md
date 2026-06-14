@@ -59,6 +59,8 @@ Array structure:
 
 ### LunarLander
 
+[Gym doc](https://gymnasium.farama.org/environments/box2d/lunar_lander/?utm_source=chatgpt.com)
+
 #### Observation
 
 `LunarLander-v3` returns an observation as a flat NumPy array with shape `(8,)`.
