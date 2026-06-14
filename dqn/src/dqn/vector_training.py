@@ -105,11 +105,13 @@ class VectorReplayMemory:
 class VectorTrainer:
     """DQN trainer that batches many environments to feed small models faster.
 
-    In LunarLander measurements this trainer was about 3x faster than the
-    single-environment Trainer/TunedTrainer path while reaching similar returns.
-    The trick is simple: collect transitions from many environments at once,
-    store them in array batches, and run larger action/training batches so the
-    GPU spends more time computing and less time handling tiny operations.
+    In LunarLander measurements this trainer was about 3x faster on L4 GPU than
+    the single-environment Trainer/TunedTrainer while reaching similar returns.
+    The trick is simple: collect transitions from many environments at once, store
+    them in array batches, and run larger action/training batches so the GPU spends
+    more time computing and less time handling tiny operations.
+
+    The name "VectorTrainer" follows the Gymnasium VectorEnv terminology.
     """
 
     def __init__(
