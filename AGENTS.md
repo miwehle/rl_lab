@@ -13,6 +13,13 @@ dqn\.venv\Scripts\python.exe -m pytest dqn\tests
 Before changing workspace files, confirm that the user agrees with the direction
 and size of the change. When unsure, ask first.
 
+NCY means "no change yet": do not edit workspace files. Understand it as a chat
+shortcut for discussing and drafting the approach first; code changes may follow
+only after the user agrees.
+
+GO means "go ahead": the user wants the discussed change implemented. Proceed
+with the agreed direction and scope, and keep the implementation focused.
+
 Keep modules easy to read and low in mental load.
 Ask before adding complexity whose value is unclear.
 Favor simplicity for flexibility and design for change: understandability is a
