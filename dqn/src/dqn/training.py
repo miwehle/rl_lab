@@ -160,7 +160,7 @@ class Trainer:
 
                 if self._should_optimize(config):
                     self._optimize_model(config)
-                self._soft_target_update(config.tau)
+                    self._soft_target_update(config.tau)
 
                 done = terminated or truncated
                 if done:
