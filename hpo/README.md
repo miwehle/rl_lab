@@ -33,8 +33,10 @@ from hpo.lunar_lander.objective import create_objective
 
 pruning_config = None
 # pruning_config = PruningConfig(start_episode=250, min_score=100.0)
+search_space = SearchSpace()
 
 objective = create_objective(
+    search_space=search_space,
     num_episodes=500,
     output_dir=HPO_RUN_DIR,
     device=device,

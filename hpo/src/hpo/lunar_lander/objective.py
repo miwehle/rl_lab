@@ -2,18 +2,31 @@
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import gymnasium as gym
 
+from dqn.training import TrainingConfig
 from dqn.tuned_training import TunedTrainer
+from dqn.tuned_training import TuningConfig
 from hpo.evaluation.pruning import PruningConfig, create_pruning_callback
 from hpo.evaluation.scoring import best_window_mean
-from hpo.lunar_lander import search_space
+
+
+class SearchSpace(Protocol):
+    def training_config(self, trial: Any, num_episodes: int) -> TrainingConfig:
+        ...
+
+    def replay_memory_capacity(self, trial: Any) -> int:
+        ...
+
+    def tuning_config(self, trial: Any, *, output_dir: Path | None) -> TuningConfig:
+        ...
 
 
 def create_objective(
     *,
+    search_space: SearchSpace,
     num_episodes: int,
     score_window: int = 50,
     seed: int | None = 42,
