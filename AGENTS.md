@@ -30,6 +30,10 @@ KISS and YAGNI are high values. Do not add code because it might help later.
 Before adding code, check: is it required now, is there a simpler existing
 pattern, and will it stay easy to understand tomorrow?
 
+For design sketches and diagrams, start with the smallest useful representation.
+Show only the core idea first; add detail only when the user asks for it or when
+the current task clearly requires it.
+
 Use abstractions only when they reduce current complexity or match an existing
 pattern. Treat speculative generalization, optional modes/branches, config
 flags, future-proofing, and indirection as complexity costs and mental load.
