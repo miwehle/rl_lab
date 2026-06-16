@@ -79,7 +79,7 @@ HPO-Parameter zentral setzen:
 ```python
 NUM_EPISODES = 600
 SCORE_WINDOW = 100
-NUM_ENVS = 32
+NUM_ENVS = 16
 SEED = 42
 ```
 
