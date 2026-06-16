@@ -1,13 +1,11 @@
 from dataclasses import dataclass
-from pathlib import Path
 
 import pytest
+import torch
 
-from dqn.training import TrainingConfig
 from dqn.training import TrainingResult
-from dqn.tuned_training import TuningConfig
-from hpo.evaluation.pruning import PruningConfig
-from hpo.lunar_lander.objective import create_objective
+from dqn.vector_training import VectorTrainingConfig
+from hpo.lunar_lander.objective import create_objective, evaluate_greedy_policy
 
 
 class FakeTrial:
@@ -41,36 +39,22 @@ class FakeSearchSpace:
     def __init__(self) -> None:
         self.calls = []
 
-    def training_config(self, trial, num_episodes: int) -> TrainingConfig:
+    def training_config(self, trial, num_episodes: int) -> VectorTrainingConfig:
         self.calls.append(("training_config", trial, num_episodes))
-        return TrainingConfig(
+        return VectorTrainingConfig(
             num_episodes=num_episodes,
             batch_size=64,
             eps_start=0.7,
             eps_end=0.02,
             eps_decay=1234,
             learning_rate=5e-4,
+            learning_starts=77,
+            optimize_every=3,
         )
 
     def replay_memory_capacity(self, trial) -> int:
         self.calls.append(("replay_memory_capacity", trial))
         return 12_345
-
-    def tuning_config(self, trial, *, output_dir: Path | None) -> TuningConfig:
-        self.calls.append(("tuning_config", trial, output_dir))
-        log_path = None
-        if output_dir is not None:
-            log_path = output_dir / f"fake_trial_{trial.number}.csv"
-
-        return TuningConfig(
-            learning_starts=77,
-            optimize_every=3,
-            double_dqn=True,
-            save_best_checkpoint=False,
-            checkpoint_min_score=0.0,
-            checkpoint_min_score_delta=0.0,
-            log_path=log_path,
-        )
 
 
 @dataclass
@@ -79,19 +63,18 @@ class TrainerCall:
     seed: int | None
     device: object
     replay_memory_capacity: int
-    tuning_config: object
-    after_episode_callback: object
     training_config: object | None = None
 
 
-def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
+def test_lunar_lander_objective_trains_vector_trial_and_returns_score() -> None:
     calls = []
     envs = []
-    output_dir = Path("hpo-output")
+    eval_calls = []
     search_space = FakeSearchSpace()
 
-    def env_factory(env_id):
+    def vector_env_factory(env_id, num_envs):
         assert env_id == "LunarLander-v3"
+        assert num_envs == 16
         env = FakeEnv()
         envs.append(env)
         return env
@@ -104,36 +87,37 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
             seed,
             device,
             replay_memory_capacity,
-            tuning_config,
-            after_episode_callback,
         ) -> None:
+            self.device = "trainer-device"
             calls.append(
                 TrainerCall(
                     env,
                     seed,
                     device,
                     replay_memory_capacity,
-                    tuning_config,
-                    after_episode_callback,
                 )
             )
 
         def train(self, training_config):
             calls[-1].training_config = training_config
             return TrainingResult(
-                q_net=None,
-                episode_returns=[10.0, 20.0, 30.0],
-                episode_lengths=[1, 1, 1],
+                q_net="fake-q-net",
+                episode_returns=[10.0, 50.0, 40.0, 20.0],
+                episode_lengths=[1, 1, 1, 1],
             )
+
+    def eval_score_fn(**kwargs):
+        eval_calls.append(kwargs)
+        return 123.0
 
     objective = create_objective(
         search_space=search_space,
         num_episodes=12,
         score_window=2,
         seed=100,
-        output_dir=output_dir,
-        env_factory=env_factory,
+        vector_env_factory=vector_env_factory,
         trainer_factory=FakeTrainer,
+        eval_score_fn=eval_score_fn,
     )
 
     trial = FakeTrial()
@@ -142,60 +126,105 @@ def test_lunar_lander_objective_trains_trial_and_returns_score() -> None:
     assert search_space.calls == [
         ("training_config", trial, 12),
         ("replay_memory_capacity", trial),
-        ("tuning_config", trial, output_dir),
     ]
-    assert score == pytest.approx(25.0)
-    assert trial.user_attrs == {
-        "best_window_mean": pytest.approx(25.0),
-        "best_window_start_episode": 2,
-        "best_window_end_episode": 3,
-    }
+    assert score == pytest.approx(37.5)
+    assert trial.user_attrs["best_window_score"] == pytest.approx(45.0)
+    assert trial.user_attrs["best_window_start_episode"] == 2
+    assert trial.user_attrs["best_window_end_episode"] == 3
+    assert trial.user_attrs["final_window_score"] == pytest.approx(30.0)
+    assert trial.user_attrs["objective_score"] == pytest.approx(37.5)
+    assert trial.user_attrs["eval_score"] == pytest.approx(123.0)
+    assert trial.user_attrs["wall_time_seconds"] >= 0.0
     assert envs[0].closed
     assert calls[0].seed == 103
     assert calls[0].replay_memory_capacity == 12_345
     assert calls[0].training_config.num_episodes == 12
     assert calls[0].training_config.learning_rate == pytest.approx(5e-4)
-    assert calls[0].training_config.batch_size == 64
-    assert calls[0].tuning_config.learning_starts == 77
-    assert calls[0].tuning_config.optimize_every == 3
-    assert calls[0].tuning_config.double_dqn is True
-    assert calls[0].tuning_config.save_best_checkpoint is False
-    assert calls[0].tuning_config.log_path == output_dir / "fake_trial_3.csv"
-    assert calls[0].after_episode_callback is None
+    assert calls[0].training_config.learning_starts == 77
+    assert calls[0].training_config.optimize_every == 3
+    assert eval_calls[0]["q_net"] == "fake-q-net"
+    assert eval_calls[0]["device"] == "trainer-device"
+    assert eval_calls[0]["env_id"] == "LunarLander-v3"
+    assert callable(eval_calls[0]["env_factory"])
+    assert eval_calls[0]["episodes"] == 3
+    assert eval_calls[0]["max_steps"] == 2_000
+    assert eval_calls[0]["seed"] == 103
 
 
-def test_lunar_lander_objective_passes_pruning_callback_to_trainer() -> None:
-    calls = []
+def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn() -> None:
+    eval_calls = []
 
     class FakeTrainer:
-        def __init__(
-            self,
-            _env,
-            *,
-            seed,
-            device,
-            replay_memory_capacity,
-            tuning_config,
-            after_episode_callback,
-        ) -> None:
-            calls.append(after_episode_callback)
+        device = "trainer-device"
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
 
         def train(self, _training_config):
             return TrainingResult(
-                q_net=None,
-                episode_returns=[10.0, 20.0, 30.0],
-                episode_lengths=[1, 1, 1],
+                q_net="fake-q-net",
+                episode_returns=[1.0],
+                episode_lengths=[1],
             )
 
     objective = create_objective(
         search_space=FakeSearchSpace(),
-        num_episodes=12,
-        score_window=2,
-        pruning_config=PruningConfig(),
-        env_factory=lambda _env_id: FakeEnv(),
+        num_episodes=1,
+        score_window=1,
+        seed=None,
+        eval_episodes=7,
+        eval_max_steps=99,
+        vector_env_factory=lambda _env_id, _num_envs: FakeEnv(),
         trainer_factory=FakeTrainer,
+        eval_score_fn=lambda **kwargs: eval_calls.append(kwargs) or 5.0,
     )
 
     objective(FakeTrial())
 
-    assert calls[0] is not None
+    assert eval_calls[0]["episodes"] == 7
+    assert eval_calls[0]["max_steps"] == 99
+    assert eval_calls[0]["seed"] is None
+
+
+def test_evaluate_greedy_policy_returns_mean_episode_return() -> None:
+    class FakeQNet:
+        def eval(self) -> None:
+            pass
+
+        def __call__(self, _state):
+            return torch.tensor([[0.0, 1.0]])
+
+    class FakeEvalEnv:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def reset(self, *, seed=None):
+            assert seed in {10, 11, 12}
+            return [0.0], {}
+
+        def step(self, action):
+            assert action == 1
+            return [0.0], 2.0, True, False, {}
+
+        def close(self) -> None:
+            self.closed = True
+
+    envs = []
+
+    def env_factory(env_id):
+        assert env_id == "LunarLander-v3"
+        env = FakeEvalEnv()
+        envs.append(env)
+        return env
+
+    score = evaluate_greedy_policy(
+        q_net=FakeQNet(),
+        device=torch.device("cpu"),
+        env_id="LunarLander-v3",
+        env_factory=env_factory,
+        episodes=3,
+        seed=10,
+    )
+
+    assert score == pytest.approx(2.0)
+    assert all(env.closed for env in envs)

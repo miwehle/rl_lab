@@ -4,6 +4,39 @@ from collections.abc import Callable
 from typing import Any
 
 
+def plot_lander_progress(study: Any) -> Any:
+    """Plot greedy eval score over cumulative training time."""
+    import matplotlib.pyplot as plt
+
+    elapsed_minutes = []
+    eval_scores = []
+    cumulative_seconds = 0.0
+
+    trials = sorted(study.trials, key=lambda trial: trial.number)
+    for trial in trials:
+        if _trial_state_name(trial) != "COMPLETE":
+            continue
+        if "wall_time_seconds" not in trial.user_attrs:
+            continue
+        if "eval_score" not in trial.user_attrs:
+            continue
+
+        cumulative_seconds += float(trial.user_attrs["wall_time_seconds"])
+        elapsed_minutes.append(cumulative_seconds / 60)
+        eval_scores.append(float(trial.user_attrs["eval_score"]))
+
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+    ax.plot(elapsed_minutes, eval_scores, marker="o", label="Greedy eval score")
+    ax.axhline(200, color="gray", linestyle="--", label="200")
+    ax.axhline(250, color="red", linestyle="--", label="250")
+    ax.set_title("LunarLander progress")
+    ax.set_xlabel("Cumulative L4 training time (min)")
+    ax.set_ylabel("Greedy eval score")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
 def finished_trial_count(study: Any) -> int:
     """Return the number of complete or pruned trials in a study."""
     return _trial_count(study, "COMPLETE") + _trial_count(study, "PRUNED")
