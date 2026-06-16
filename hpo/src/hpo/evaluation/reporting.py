@@ -12,8 +12,7 @@ def plot_lander_progress(study: Any) -> Any:
     eval_scores = []
     cumulative_seconds = 0.0
 
-    trials = sorted(study.trials, key=lambda trial: trial.number)
-    for trial in trials:
+    for trial in _progress_trials(study):
         if _trial_state_name(trial) != "COMPLETE":
             continue
         if "wall_time_seconds" not in trial.user_attrs:
@@ -35,6 +34,36 @@ def plot_lander_progress(study: Any) -> Any:
     ax.legend()
     fig.tight_layout()
     return fig
+
+
+def show_lander_live_progress(
+    study: Any,
+    *,
+    target_trials: int,
+    lander_studies: Any,
+    clear_output_fn: Callable[..., None] | None = None,
+    display_fn: Callable[[Any], None] | None = None,
+    plot_history: Callable[[Any], Any] | None = None,
+) -> None:
+    """Display live Lander History and current Optuna History."""
+    if clear_output_fn is None or display_fn is None:
+        from IPython.display import clear_output, display
+
+        clear_output_fn = clear_output if clear_output_fn is None else clear_output_fn
+        display_fn = display if display_fn is None else display_fn
+
+    if plot_history is None:
+        from optuna.visualization import plot_optimization_history
+
+        plot_history = plot_optimization_history
+
+    clear_output_fn(wait=True)
+    print(f"Target trials: {target_trials}")
+    print(f"Finished trials: {finished_trial_count(study)}")
+    print("LH: Lander History")
+    display_fn(plot_lander_progress(lander_studies))
+    print("OH: Optuna History")
+    display_fn(plot_history(study))
 
 
 def finished_trial_count(study: Any) -> int:
@@ -100,6 +129,16 @@ def show_study_progress(
 
 def _trial_count(study: Any, state_name: str) -> int:
     return sum(1 for trial in study.trials if _trial_state_name(trial) == state_name)
+
+
+def _progress_trials(studies: Any) -> list[Any]:
+    if hasattr(studies, "trials"):
+        studies = [studies]
+
+    trials = []
+    for study in studies:
+        trials.extend(sorted(study.trials, key=lambda trial: trial.number))
+    return trials
 
 
 def _trial_state_name(trial: Any) -> str:
