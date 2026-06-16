@@ -65,13 +65,25 @@ Aufgaben:
 Weitere Funktionen:
 
 ```python
-select_robust_best(...)
+select_robust_best(
+    *,
+    study,
+    search_space_factory,
+    num_episodes,
+    score_window,
+    device,
+    num_envs=16,
+    base_seed=42,
+    top_n=3,
+    extra_seeds=(1001, 1002),
+)
 neighbors(value, choices)
 ```
 
 `select_robust_best(...)` implementiert die robuste Top-3/Seed-Prüfung aus dem
-HLD. `neighbors(...)` liefert einen Wert plus direkte Nachbarn aus einer
-geordneten Menge.
+HLD: Top-Kandidaten erneut mit Zusatz-Seeds trainieren, mitteln, beste
+HP-Kombination zurückgeben. `neighbors(...)` liefert einen Wert plus direkte
+Nachbarn aus einer geordneten Menge.
 
 `run_study(...)` kapselt Optuna-Details, damit das Notebook nur Studien steuert.
 
@@ -161,3 +173,28 @@ display(plot_lander_progress(study))
 - Keine generische Objective für mehrere Trainer.
 - Keine SearchSpace-Abstraktion außerhalb des Notebooks, solange die Suchräume
   noch in Bewegung sind.
+
+## Umsetzungsphasen
+
+### Phase 1: Package-Kern
+
+- `create_objective(...)` direkt auf `VectorTrainer` umbauen.
+- Scoring gemäß HLD umsetzen.
+- Greedy Eval mit `eval_episodes=3`.
+- Trial-Attribute für Score, Eval-Score und Wall-Clock-Zeit speichern.
+- Objective-Tests anpassen.
+
+Das HPO-Notebook darf in dieser Phase temporär nicht laufen.
+
+### Phase 2: Orchestrierung und Reporting
+
+- `run_study(...)`, `select_robust_best(...)`, `neighbors(...)` implementieren.
+- `plot_lander_progress(study)` implementieren.
+- Tests für Study-Helfer und Reporting ergänzen.
+
+### Phase 3: Notebook
+
+- HPO-Notebook auf `VectorTrainer`-only umbauen.
+- `SearchSpace1` bis `SearchSpace4` eintragen.
+- Studienfolge mit `run_study(...)` starten.
+- Nach jeder Studie `plot_lander_progress(study)` anzeigen.
