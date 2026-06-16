@@ -54,7 +54,7 @@ def make_lander():
     return gym.make("LunarLander-v3")
 
 
-env = SyncVectorEnv([make_lander for _ in range(32)])
+env = SyncVectorEnv([make_lander for _ in range(16)])
 
 try:
     trainer = VectorTrainer(env, seed=42, replay_memory_capacity=200_000)
