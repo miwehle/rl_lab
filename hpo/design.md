@@ -165,23 +165,24 @@ Notation:
 
 Der Score eines Trials werde in `objective` so definiert:
 
-> objective_score = (best_mean_score + final_mean_score) / 2
+> objective_score = (best_window_score + final_window_score) / 2
 
 Ausführlicher als Python-Snippet:
 
 ```python
-best_mean_score = best_window_mean(result.episode_returns, score_window).mean
+best_window = best_window_mean(result.episode_returns, score_window)
+best_window_score = best_window.mean
 final_returns = result.episode_returns[-score_window:]
-final_mean_score = sum(final_returns) / len(final_returns)
-objective_score = (best_mean_score + final_mean_score) / 2
+final_window_score = sum(final_returns) / len(final_returns)
+objective_score = (best_window_score + final_window_score) / 2
 
-trial.set_user_attr("best_window_mean", best_mean_score)
-trial.set_user_attr("final_window_mean", final_mean_score)
+trial.set_user_attr("best_window_score", best_window_score)
+trial.set_user_attr("final_window_score", final_window_score)
 trial.set_user_attr("objective_score", objective_score)
 return objective_score
 ```
 
-Das score_window darf nicht zu klein sein. Ein Training dauert 600 Episoden. Es sei (für best_window_mean und final_window_mean):
+Das score_window darf nicht zu klein sein. Ein Training dauert 600 Episoden. Es sei (für best_window_score und final_window_score):
 
 > score_window = 100
 

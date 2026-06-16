@@ -22,13 +22,14 @@ Aufgaben:
 - Trial-Score berechnen:
 
 ```python
-best_mean_score = best_window_mean(result.episode_returns, score_window).mean
+best_window = best_window_mean(result.episode_returns, score_window)
+best_window_score = best_window.mean
 final_returns = result.episode_returns[-score_window:]
-final_mean_score = sum(final_returns) / len(final_returns)
-objective_score = (best_mean_score + final_mean_score) / 2
+final_window_score = sum(final_returns) / len(final_returns)
+objective_score = (best_window_score + final_window_score) / 2
 ```
 
-- `best_mean_score`, `final_mean_score`, `objective_score` und
+- `best_window_score`, `final_window_score`, `objective_score` und
   `best_window_*` als Trial-Attribute speichern.
 - `objective_score` zurückgeben.
 
@@ -96,12 +97,12 @@ plot_lander_progress(study)
 ```
 
 Inhalt:
-- x-Achse: kumulierte Wall-Clock-Zeit auf L4.
+- x-Achse: kumulierte Trainingszeit auf L4.
 - y-Achse: Greedy-Eval-Score (`epsilon=0`).
 - horizontale Marken bei `200` und `250`.
 
 Die Objective speichert dafür pro Trial:
-- `wall_time_seconds`
+- `wall_time_seconds` (nur Training, ohne Greedy Eval)
 - `eval_score`
 
 ## Notebook
@@ -181,7 +182,7 @@ display(plot_lander_progress(study))
 - `create_objective(...)` direkt auf `VectorTrainer` umbauen.
 - Scoring gemäß HLD umsetzen.
 - Greedy Eval mit `eval_episodes=3`.
-- Trial-Attribute für Score, Eval-Score und Wall-Clock-Zeit speichern.
+- Trial-Attribute für Score, Eval-Score und Trainingszeit speichern.
 - Objective-Tests anpassen.
 
 Das HPO-Notebook darf in dieser Phase temporär nicht laufen.
