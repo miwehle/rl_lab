@@ -168,6 +168,15 @@ Nach jeder Studie zeigt das Notebook zusätzlich:
 display(plot_lander_progress(study))
 ```
 
+### Plotting
+
+Während HP4 läuft, zeigt das Notebook immer genau zwei Diagramme:
+- `LH`: Lander History über alle bisherigen Studien plus aktuelle Studie.
+- `OH`: Optuna History der aktuellen Studie.
+
+Die Ausgabe wird nach jedem Trial aktualisiert. Frühere Live-Ausgaben werden
+gelöscht; am Ende bleibt der letzte Stand sichtbar.
+
 ## Nicht Ziel
 
 - Kein Pruning.
@@ -199,3 +208,10 @@ Das HPO-Notebook darf in dieser Phase temporär nicht laufen.
 - `SearchSpace1` bis `SearchSpace4` eintragen.
 - Studienfolge mit `run_study(...)` starten.
 - Nach jeder Studie `plot_lander_progress(study)` anzeigen.
+
+### Phase 4: Live-Plotting
+
+- Notebook-Ausgabe während HP4 auf genau zwei Diagramme umstellen.
+- `LH`: kumulierte Lander History über fertige Studien und aktuelle Study.
+- `OH`: Optuna History der aktuellen Study.
+- Beide Diagramme nach jedem Trial aktualisieren.
