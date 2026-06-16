@@ -165,16 +165,18 @@ Notation:
 
 Der Score eines Trials werde in `objective` so definiert:
 
-> objective_score = (best_window_mean + final_window_mean) / 2
+> objective_score = (best_mean_score + final_mean_score) / 2
+
+Ausführlicher als Python-Snippet:
 
 ```python
-best_score = best_window_mean(result.episode_returns, score_window)
+best_mean_score = best_window_mean(result.episode_returns, score_window).mean
 final_returns = result.episode_returns[-score_window:]
-final_window_mean = sum(final_returns) / len(final_returns)
-objective_score = (best_score.mean + final_window_mean) / 2
+final_mean_score = sum(final_returns) / len(final_returns)
+objective_score = (best_mean_score + final_mean_score) / 2
 
-trial.set_user_attr("best_window_mean", best_score.mean)
-trial.set_user_attr("final_window_mean", final_window_mean)
+trial.set_user_attr("best_window_mean", best_mean_score)
+trial.set_user_attr("final_window_mean", final_mean_score)
 trial.set_user_attr("objective_score", objective_score)
 return objective_score
 ```
