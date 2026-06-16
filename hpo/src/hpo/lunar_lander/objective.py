@@ -102,6 +102,8 @@ def create_objective(
         trial.set_user_attr("objective_score", objective_score)
         trial.set_user_attr("eval_score", eval_score)
         trial.set_user_attr("wall_time_seconds", wall_time_seconds)
+        trial.set_user_attr("episode_returns", result.episode_returns)
+        trial.set_user_attr("episode_epsilons", result.episode_epsilons)
         return objective_score
 
     return objective

@@ -4,7 +4,12 @@ import numpy as np
 import torch
 
 from dqn.training import TrainingResult
-from dqn.vector_training import VectorReplayMemory, VectorTrainer, VectorTrainingConfig
+from dqn.vector_training import (
+    VectorReplayMemory,
+    VectorTrainer,
+    VectorTrainingConfig,
+    VectorTrainingResult,
+)
 
 
 def vector_env(num_envs: int):
@@ -58,9 +63,12 @@ def test_vector_training_smoke() -> None:
         env.close()
 
     assert isinstance(result, TrainingResult)
+    assert isinstance(result, VectorTrainingResult)
     assert len(result.episode_returns) == 4
     assert len(result.episode_lengths) == 4
+    assert len(result.episode_epsilons) == 4
     assert all(length > 0 for length in result.episode_lengths)
+    assert all(0.05 <= epsilon <= 1.0 for epsilon in result.episode_epsilons)
     assert trainer.device.type in {"cpu", "cuda", "mps"}
     assert len(trainer.memory) > 0
 

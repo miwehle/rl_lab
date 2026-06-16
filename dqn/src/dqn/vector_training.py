@@ -30,6 +30,11 @@ class VectorTrainingConfig(TrainingConfig):
 
 
 @dataclass
+class VectorTrainingResult(TrainingResult):
+    episode_epsilons: list[float]
+
+
+@dataclass
 class VectorReplayBatch:
     states: torch.Tensor
     actions: torch.Tensor
@@ -152,7 +157,7 @@ class VectorTrainer:
             seed=seed,
         )
 
-    def train(self, config: VectorTrainingConfig, plotter=None) -> TrainingResult:
+    def train(self, config: VectorTrainingConfig, plotter=None) -> VectorTrainingResult:
         """Train q_net with batched experience from a vector environment."""
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = config.learning_rate
@@ -163,6 +168,7 @@ class VectorTrainer:
         running_lengths = np.zeros(self.num_envs, dtype=np.int64)
         episode_returns: list[float] = []
         episode_lengths: list[int] = []
+        episode_epsilons: list[float] = []
 
         while len(episode_returns) < config.num_episodes:
             states = observations
@@ -200,19 +206,24 @@ class VectorTrainer:
                 running_returns[env_index] = 0.0
                 running_lengths[env_index] = 0
 
-            if plotter is not None and len(episode_returns) > episode_count_before_step:
+            if len(episode_returns) > episode_count_before_step:
                 new_episode_count = len(episode_returns) - episode_count_before_step
-                self.epsilons.extend(
-                    [self._exploration_rate(config)] * new_episode_count,
-                )
-                epsilons = self.epsilons[-len(episode_returns) :]
-                plotter.plot_returns(episode_returns, epsilons=epsilons)
+                new_epsilons = [self._exploration_rate(config)] * new_episode_count
+                episode_epsilons.extend(new_epsilons)
+                self.epsilons.extend(new_epsilons)
+                if plotter is not None:
+                    plotter.plot_returns(episode_returns, epsilons=episode_epsilons)
 
             self._optimize_due(config, previous_steps)
             observations = next_observations
             awaiting_reset = done
 
-        return TrainingResult(self.q_net, episode_returns, episode_lengths)
+        return VectorTrainingResult(
+            self.q_net,
+            episode_returns,
+            episode_lengths,
+            episode_epsilons,
+        )
 
     def _select_actions(
         self,

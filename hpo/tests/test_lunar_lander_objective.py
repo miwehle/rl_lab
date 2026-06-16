@@ -3,8 +3,7 @@ from dataclasses import dataclass
 import pytest
 import torch
 
-from dqn.training import TrainingResult
-from dqn.vector_training import VectorTrainingConfig
+from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
 from hpo.lunar_lander.objective import create_objective, evaluate_greedy_policy
 
 
@@ -100,10 +99,11 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score() -> None:
 
         def train(self, training_config):
             calls[-1].training_config = training_config
-            return TrainingResult(
+            return VectorTrainingResult(
                 q_net="fake-q-net",
                 episode_returns=[10.0, 50.0, 40.0, 20.0],
                 episode_lengths=[1, 1, 1, 1],
+                episode_epsilons=[0.7, 0.6, 0.5, 0.4],
             )
 
     def eval_score_fn(**kwargs):
@@ -135,6 +135,8 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score() -> None:
     assert trial.user_attrs["objective_score"] == pytest.approx(37.5)
     assert trial.user_attrs["eval_score"] == pytest.approx(123.0)
     assert trial.user_attrs["wall_time_seconds"] >= 0.0
+    assert trial.user_attrs["episode_returns"] == [10.0, 50.0, 40.0, 20.0]
+    assert trial.user_attrs["episode_epsilons"] == [0.7, 0.6, 0.5, 0.4]
     assert envs[0].closed
     assert calls[0].seed == 103
     assert calls[0].replay_memory_capacity == 12_345
@@ -161,10 +163,11 @@ def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn() -> None:
             pass
 
         def train(self, _training_config):
-            return TrainingResult(
+            return VectorTrainingResult(
                 q_net="fake-q-net",
                 episode_returns=[1.0],
                 episode_lengths=[1],
+                episode_epsilons=[0.1],
             )
 
     objective = create_objective(
