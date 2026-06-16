@@ -96,7 +96,7 @@ epsilon = Explorationsrate
 
 #### Hyperparameter
 
-Das sind alle Hyperparameter im Subprojekt dqn:
+Das sind die HPO-relevanten Hyperparameter für den VectorTrainer:
 - learning_rate
 - batch_size
 - eps_end
@@ -106,7 +106,10 @@ Das sind alle Hyperparameter im Subprojekt dqn:
 - learning_starts
 - optimize_every
 - replay_memory_capacity
-- double_dqn
+
+Nicht in der VectorTrainer-HPO:
+- num_episodes ist das Trial-Budget, kein HP.
+- double_dqn gibt es nur beim TunedTrainer.
 
 ### Ansatz
 
@@ -123,18 +126,35 @@ Dann:
 
 ### Definition der Studien
 
-1. Update-Ökonomie
-   learning_rate + batch_size + optimize_every + learning_starts
+Die Studien laufen mit dem VectorTrainer auf Colab Pro / L4.
 
-2. Exploration
-   eps_decay + eps_end
+Bei 3 min pro Trial ergeben 120 Trials ca. 6 h GPU-Zeit:
 
-3. Replay-Kapazität nur kurz prüfen
-   replay_memory_capacity
+| Studie | Ziel | Trials |
+|---|---|---:|
+| S1 Update-Ökonomie | Lernrate, Batch-Größe und Update-Frequenz grob einstellen | 40 |
+| S2 Exploration | Epsilon-Kurve einstellen | 40 |
+| S3 Replay-Kapazität | Prüfen, ob der Replay-Speicher groß genug ist | 20 |
+| S4 Gemeinsame Feinsuche | Wichtigste Gewinner zusammen eng nachoptimieren | 20 |
 
-4. Kleine gemeinsame Feinsuche
-   enge Bereiche um die Gewinner
+#### Suchräume
 
-5. Top-Kandidaten mit mehreren Seeds bestätigen
+Legende:
+- `==...==`: Wert wird in dieser Studie von Optuna gewählt.
+- Ohne Markierung: Wert bleibt fest oder wird aus einer vorherigen Studie übernommen.
 
-#### Suchraum von Studie 1
+| HP | S1 Update-Ökonomie | S2 Exploration | S3 Replay-Kapazität | S4 Gemeinsame Feinsuche |
+|---|---|---|---|---|
+| learning_rate | ==float(1e-4, 1e-3, log=True)== | bester Wert aus S1 | bester Wert aus S1 | ==float(best / 2, best * 2, log=True)== |
+| batch_size | =={512, 1024, 2048}== | bester Wert aus S1 | bester Wert aus S1 | ==beste Größe aus S1 plus direkte Nachbarn aus {512, 1024, 2048}== |
+| eps_end | 0.05 | ==float(0.01, 0.10)== | bester Wert aus S2 | ==enger Bereich um besten Wert aus S2, z. B. float(max(0.01, best - 0.02), min(0.10, best + 0.02))== |
+| eps_decay | 50_000 | ==int(20_000, 150_000, log=True)== | bester Wert aus S2 | ==int(best / 2, best * 2, log=True)== |
+| gamma | 0.99 | 0.99 | 0.99 | 0.99 |
+| tau | 0.005 | 0.005 | 0.005 | 0.005 |
+| learning_starts | =={2_500, 5_000, 10_000, 20_000}== | bester Wert aus S1 | bester Wert aus S1 | ==bester Wert aus S1 plus direkte Nachbarn aus {2_500, 5_000, 10_000, 20_000}== |
+| optimize_every | =={2, 4, 8}== | bester Wert aus S1 | bester Wert aus S1 | ==bester Wert aus S1 plus direkte Nachbarn aus {2, 4, 8}== |
+| replay_memory_capacity | 200_000 | 200_000 | =={50_000, 100_000, 200_000, 500_000}== | bester Wert aus S3 |
+
+Nach den vier Studien werden die besten 3 bis 5 Konfigurationen mit mehreren
+Seeds bestätigt. Diese Bestätigung ist keine weitere HPO-Studie, sondern eine
+Robustheitsprüfung gegen RL-Zufall.
