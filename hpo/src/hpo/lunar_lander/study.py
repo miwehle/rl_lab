@@ -87,9 +87,14 @@ def select_robust_best(
 
     best_params = None
     best_mean = float("-inf")
+    best_eval_mean = None
 
     for trial in candidates:
         scores = [float(trial.value)]
+        eval_scores = []
+        if "eval_score" in getattr(trial, "user_attrs", {}):
+            eval_scores.append(float(trial.user_attrs["eval_score"]))
+
         for seed_offset in extra_seeds:
             objective = create_objective(
                 search_space=search_space_factory(),
@@ -99,14 +104,26 @@ def select_robust_best(
                 device=device,
                 num_envs=num_envs,
             )
-            scores.append(objective(_FixedParamTrial(trial.params)))
+            fixed_trial = _FixedParamTrial(trial.params)
+            scores.append(objective(fixed_trial))
+            if "eval_score" in fixed_trial.user_attrs:
+                eval_scores.append(float(fixed_trial.user_attrs["eval_score"]))
 
         mean_score = sum(scores) / len(scores)
         if mean_score > best_mean:
             best_mean = mean_score
             best_params = dict(trial.params)
+            best_eval_mean = (
+                sum(eval_scores) / len(eval_scores)
+                if eval_scores else None
+            )
 
-    return best_params or {}
+    selected_params = best_params or {}
+    _set_study_user_attr(study, "robust_best_params", selected_params)
+    _set_study_user_attr(study, "robust_best_objective_score", best_mean)
+    if best_eval_mean is not None:
+        _set_study_user_attr(study, "robust_best_eval_score", best_eval_mean)
+    return selected_params
 
 
 def _top_complete_trials(study: Any, top_n: int) -> list[Any]:
@@ -122,6 +139,14 @@ def _create_study(**kwargs) -> Any:
     import optuna
 
     return optuna.create_study(**kwargs)
+
+
+def _set_study_user_attr(study: Any, name: str, value: Any) -> None:
+    if hasattr(study, "set_user_attr"):
+        study.set_user_attr(name, value)
+    else:
+        study.user_attrs = getattr(study, "user_attrs", {})
+        study.user_attrs[name] = value
 
 
 def _trial_state_name(trial: Any) -> str:

@@ -5,31 +5,29 @@ from typing import Any
 
 
 def plot_lander_progress(study: Any) -> Any:
-    """Plot greedy eval score over cumulative training time."""
+    """Plot one Lander History point per study."""
     import matplotlib.pyplot as plt
 
-    elapsed_minutes = []
+    mean_training_minutes = []
     eval_scores = []
-    cumulative_seconds = 0.0
+    labels = []
 
-    for trial in _progress_trials(study):
-        if _trial_state_name(trial) != "COMPLETE":
+    for index, current_study in enumerate(_study_list(study)):
+        point = _study_progress_point(current_study)
+        if point is None:
             continue
-        if "wall_time_seconds" not in trial.user_attrs:
-            continue
-        if "eval_score" not in trial.user_attrs:
-            continue
-
-        cumulative_seconds += float(trial.user_attrs["wall_time_seconds"])
-        elapsed_minutes.append(cumulative_seconds / 60)
-        eval_scores.append(float(trial.user_attrs["eval_score"]))
+        mean_training_minutes.append(point["mean_wall_time_seconds"] / 60)
+        eval_scores.append(point["eval_score"])
+        labels.append(_study_label(current_study, index))
 
     fig, ax = plt.subplots(figsize=(10, 4.5))
-    ax.plot(elapsed_minutes, eval_scores, marker="o", label="Greedy eval score")
+    ax.plot(mean_training_minutes, eval_scores, marker="o", label="Greedy eval score")
+    for x, y, label in zip(mean_training_minutes, eval_scores, labels, strict=True):
+        ax.annotate(label, (x, y), xytext=(5, 5), textcoords="offset points")
     ax.axhline(200, color="gray", linestyle="--", label="200")
     ax.axhline(250, color="red", linestyle="--", label="250")
-    ax.set_title("LunarLander progress")
-    ax.set_xlabel("Cumulative L4 training time (min)")
+    ax.set_title("Lander History")
+    ax.set_xlabel("Mean L4 training time per Lander (min)")
     ax.set_ylabel("Greedy eval score")
     ax.legend()
     fig.tight_layout()
@@ -131,14 +129,52 @@ def _trial_count(study: Any, state_name: str) -> int:
     return sum(1 for trial in study.trials if _trial_state_name(trial) == state_name)
 
 
-def _progress_trials(studies: Any) -> list[Any]:
+def _study_list(studies: Any) -> list[Any]:
     if hasattr(studies, "trials"):
-        studies = [studies]
+        return [studies]
+    return list(studies)
 
-    trials = []
-    for study in studies:
-        trials.extend(sorted(study.trials, key=lambda trial: trial.number))
-    return trials
+
+def _study_progress_point(study: Any) -> dict[str, float] | None:
+    trials = [
+        trial for trial in sorted(study.trials, key=lambda trial: trial.number)
+        if _trial_state_name(trial) == "COMPLETE"
+        and "wall_time_seconds" in trial.user_attrs
+    ]
+    if not trials:
+        return None
+
+    eval_score = _robust_eval_score(study)
+    if eval_score is None:
+        eval_trials = [
+            trial for trial in trials
+            if trial.value is not None and "eval_score" in trial.user_attrs
+        ]
+        if not eval_trials:
+            return None
+        best_trial = max(eval_trials, key=lambda trial: trial.value)
+        eval_score = float(best_trial.user_attrs["eval_score"])
+
+    return {
+        "mean_wall_time_seconds": sum(
+            float(trial.user_attrs["wall_time_seconds"]) for trial in trials
+        ) / len(trials),
+        "eval_score": eval_score,
+    }
+
+
+def _robust_eval_score(study: Any) -> float | None:
+    user_attrs = getattr(study, "user_attrs", {})
+    if "robust_best_eval_score" not in user_attrs:
+        return None
+    return float(user_attrs["robust_best_eval_score"])
+
+
+def _study_label(study: Any, index: int) -> str:
+    name = getattr(study, "study_name", "")
+    if name.startswith("s") and "_" in name:
+        return name.split("_", 1)[0].upper()
+    return name or f"S{index}"
 
 
 def _trial_state_name(trial: Any) -> str:

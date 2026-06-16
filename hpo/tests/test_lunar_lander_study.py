@@ -17,12 +17,17 @@ class FakeTrial:
     number: int
     value: float
     params: dict
+    user_attrs: dict = field(default_factory=dict)
     state: FakeState = field(default_factory=lambda: FakeState("COMPLETE"))
 
 
 @dataclass
 class FakeStudy:
     trials: list[FakeTrial]
+    user_attrs: dict = field(default_factory=dict)
+
+    def set_user_attr(self, name, value) -> None:
+        self.user_attrs[name] = value
 
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
@@ -98,6 +103,7 @@ def test_select_robust_best_rechecks_top_candidates(monkeypatch) -> None:
 
     def fake_create_objective(**_kwargs):
         def objective(trial):
+            trial.set_user_attr("eval_score", float(trial.params["x"] * 10))
             return float(trial.params["x"] * 100)
 
         return objective
@@ -115,6 +121,9 @@ def test_select_robust_best_rechecks_top_candidates(monkeypatch) -> None:
     )
 
     assert params == {"x": 2}
+    assert study.user_attrs["robust_best_params"] == {"x": 2}
+    assert study.user_attrs["robust_best_objective_score"] == pytest.approx(490 / 3)
+    assert study.user_attrs["robust_best_eval_score"] == 20.0
 
 
 def test_select_robust_best_rejects_empty_study() -> None:
