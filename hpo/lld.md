@@ -129,6 +129,7 @@ SEED = 42
 Je Studie eine eigene Klasse im Notebook:
 
 ```python
+SearchSpace0
 SearchSpace1
 SearchSpace2
 SearchSpace3
@@ -136,6 +137,7 @@ SearchSpace4
 ```
 
 Die Klassen bilden die Matrix aus `design.md` ab.
+`SearchSpace0` setzt feste Baseline-HP und nutzt keine `trial.suggest_*`-Aufrufe.
 
 Abhängigkeiten:
 - `SearchSpace2(best_s1)`
@@ -147,6 +149,8 @@ Abhängigkeiten:
 Das Notebook ruft nacheinander auf:
 
 ```python
+study0 = run_study("s0_baseline", SearchSpace0(), 1, ...)
+
 study1 = run_study("s1_update_economy", SearchSpace1(), 40, ...)
 best_s1 = select_robust_best(study1)
 
@@ -162,17 +166,13 @@ study4 = run_study("s4_joint_finetune", SearchSpace4(best_s1, best_s2, best_s3),
 `select_robust_best(...)` führt die Robustheitsprüfung gemäß HLD aus und gibt
 die beste HP-Kombination zurück.
 
-Nach jeder Studie zeigt das Notebook zusätzlich:
+### Studie 0 und Diagramme
 
-```python
-display(plot_lander_progress(study))
-```
-
-### Plotting
-
-Während HP4 läuft, zeigt das Notebook immer genau zwei Diagramme:
-- `LH`: Lander History über alle bisherigen Studien plus aktuelle Studie.
-- `OH`: Optuna History der aktuellen Studie.
+- `SearchSpace0`: feste Baseline-HP, keine `trial.suggest_*`-Aufrufe, `n_trials=1`.
+- `LH`: Study-History mit einem Punkt pro Studie (`S0` bis `S4`).
+- `LH`-x: mittlere Trainingszeit pro Trial der Studie; Robustheitsprüfungen zählen nicht mit.
+- `LH`-y: `eval_score` des besten/robusten Studienergebnisses.
+- `OH`: Optuna History der aktuell laufenden Studie, ein Punkt pro Trial.
 
 Die Ausgabe wird nach jedem Trial aktualisiert. Frühere Live-Ausgaben werden
 gelöscht; am Ende bleibt der letzte Stand sichtbar.
@@ -211,7 +211,8 @@ Das HPO-Notebook darf in dieser Phase temporär nicht laufen.
 
 ### Phase 4: Live-Plotting
 
+- `SearchSpace0` und `study0` vor S1 ergänzen.
 - Notebook-Ausgabe während HP4 auf genau zwei Diagramme umstellen.
-- `LH`: kumulierte Lander History über fertige Studien und aktuelle Study.
+- `LH`: Study-History (`S0 -> S1 -> S2 -> S3 -> S4`).
 - `OH`: Optuna History der aktuellen Study.
 - Beide Diagramme nach jedem Trial aktualisieren.
