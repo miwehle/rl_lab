@@ -177,42 +177,28 @@ die beste HP-Kombination zurück.
 Die Ausgabe wird nach jedem Trial aktualisiert. Frühere Live-Ausgaben werden
 gelöscht; am Ende bleibt der letzte Stand sichtbar.
 
+## Persistenz
+
+Die Optuna-SQLite-DB ist die primäre Datenquelle.
+
+Pro Trial werden am Ende des Trainings zusätzlich gespeichert:
+- `episode_returns`
+- `episode_epsilons`
+
+Daraus muss später ein Trainingsdiagramm wie im DQN-Notebook berechenbar sein:
+Returns pro Episode, geglättete Return-Kurve und Epsilon-Kurve. Die geglättete
+Kurve wird nicht gespeichert, sondern aus den Rohdaten berechnet.
+
+Es gibt keine DB-Writes pro Episode. Die Zeitreihen werden im RAM gesammelt und
+einmal am Ende des Trials geschrieben.
+
+In Colab liegt die aktive SQLite-DB während des Trainings lokal im
+Colab-Dateisystem. Nach jeder Studie wird sie nach Google Drive kopiert. Beim
+Neustart wird eine vorhandene Drive-DB zurück nach lokal kopiert.
+
 ## Nicht Ziel
 
 - Kein Pruning.
 - Keine generische Objective für mehrere Trainer.
 - Keine SearchSpace-Abstraktion außerhalb des Notebooks, solange die Suchräume
   noch in Bewegung sind.
-
-## Umsetzungsphasen
-
-### Phase 1: Package-Kern
-
-- `create_objective(...)` direkt auf `VectorTrainer` umbauen.
-- Scoring gemäß HLD umsetzen.
-- Greedy Eval mit `eval_episodes=3`.
-- Trial-Attribute für Score, Eval-Score und Trainingszeit speichern.
-- Objective-Tests anpassen.
-
-Das HPO-Notebook darf in dieser Phase temporär nicht laufen.
-
-### Phase 2: Orchestrierung und Reporting
-
-- `run_study(...)`, `select_robust_best(...)`, `neighbors(...)` implementieren.
-- `plot_lander_progress(study)` implementieren.
-- Tests für Study-Helfer und Reporting ergänzen.
-
-### Phase 3: Notebook
-
-- HPO-Notebook auf `VectorTrainer`-only umbauen.
-- `SearchSpace1` bis `SearchSpace4` eintragen.
-- Studienfolge mit `run_study(...)` starten.
-- Nach jeder Studie `plot_lander_progress(study)` anzeigen.
-
-### Phase 4: Live-Plotting
-
-- `SearchSpace0` und `study0` vor S1 ergänzen.
-- Notebook-Ausgabe während HP4 auf genau zwei Diagramme umstellen.
-- `LH`: Study-History (`S0 -> S1 -> S2 -> S3 -> S4`).
-- `OH`: Optuna History der aktuellen Study.
-- Beide Diagramme nach jedem Trial aktualisieren.
