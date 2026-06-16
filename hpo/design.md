@@ -128,14 +128,15 @@ Dann:
 
 Die Studien laufen mit dem VectorTrainer auf Colab Pro / L4.
 
-Bei 3 min pro Trial ergeben 120 Trials ca. 6 h GPU-Zeit:
+Bei 3 min pro Trial ergeben 120 HPO-Trials ca. 6 h GPU-Zeit,
+plus Robustheitsprüfungen:
 
 | Studie | Ziel | Trials |
 |---|---|---:|
 | S1 Update-Ökonomie | Lernrate, Batch-Größe und Update-Frequenz grob einstellen | 40 |
 | S2 Exploration | Epsilon-Kurve einstellen | 40 |
-| S3 Replay-Kapazität | Prüfen, ob der Replay-Speicher groß genug ist | 20 |
-| S4 Gemeinsame Feinsuche | Wichtigste Gewinner zusammen eng nachoptimieren | 20 |
+| S3 Replay-Kapazität | Prüfen, ob der Replay-Speicher groß genug ist | 10 |
+| S4 Gemeinsame Feinsuche | Wichtigste Gewinner zusammen eng nachoptimieren | 30 |
 
 #### Suchräume in den Studien
 
@@ -167,10 +168,15 @@ Der Score eines Trials werde in `objective` so definiert:
 > objective_score = (best_window_mean + final_window_mean) / 2
 
 ```python
-final_window_mean = sum(result.episode_returns[-score_window:]) / min(
-    score_window,
-    len(result.episode_returns),
-)
+best_score = best_window_mean(result.episode_returns, score_window)
+final_returns = result.episode_returns[-score_window:]
+final_window_mean = sum(final_returns) / len(final_returns)
+objective_score = (best_score.mean + final_window_mean) / 2
+
+trial.set_user_attr("best_window_mean", best_score.mean)
+trial.set_user_attr("final_window_mean", final_window_mean)
+trial.set_user_attr("objective_score", objective_score)
+return objective_score
 ```
 
 Das score_window darf nicht zu klein sein. Ein Training dauert 600 Episoden. Es sei (für best_window_mean und final_window_mean):
