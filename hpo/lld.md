@@ -14,7 +14,7 @@ Das HPO-Notebook startet die Studienfolge für LunarLander mit dem
 `create_objective(...)` wird auf den `VectorTrainer` ausgerichtet.
 
 Aufgaben:
-- Vector-Environment erzeugen, z. B. `SyncVectorEnv` mit `num_envs=32`.
+- Vector-Environment erzeugen, z. B. `SyncVectorEnv` mit `num_envs=16`.
 - `search_space.training_config(trial, num_episodes)` liefert eine
   `VectorTrainingConfig`.
 - `search_space.replay_memory_capacity(trial)` liefert die Replay-Kapazität.
@@ -49,7 +49,7 @@ run_study(
     output_dir,
     study_dir,
     device,
-    num_envs=32,
+    num_envs=16,
     seed=42,
 )
 ```
@@ -62,7 +62,35 @@ Aufgaben:
   - Fortschritt anzeigen.
 - `study` zurückgeben.
 
-Die Funktion kapselt Optuna-Details, damit das Notebook nur Studien steuert.
+Weitere Funktionen:
+
+```python
+select_robust_best(...)
+neighbors(value, choices)
+```
+
+`select_robust_best(...)` implementiert die robuste Top-3/Seed-Prüfung aus dem
+HLD. `neighbors(...)` liefert einen Wert plus direkte Nachbarn aus einer
+geordneten Menge.
+
+`run_study(...)` kapselt Optuna-Details, damit das Notebook nur Studien steuert.
+
+### `hpo.evaluation.reporting`
+
+Neues Diagramm:
+
+```python
+plot_lander_progress(study)
+```
+
+Inhalt:
+- x-Achse: kumulierte Wall-Clock-Zeit auf L4.
+- y-Achse: Greedy-Eval-Score (`epsilon=0`).
+- horizontale Marken bei `200` und `250`.
+
+Die Objective speichert dafür pro Trial:
+- `wall_time_seconds`
+- `eval_score`
 
 ## Notebook
 
@@ -72,7 +100,7 @@ Das Notebook bleibt die Steuerzentrale.
 
 Importe anpassen:
 - `VectorTrainingConfig` statt `TrainingConfig`/`TuningConfig`.
-- `run_study` aus `hpo.lunar_lander.study`.
+- `run_study`, `select_robust_best`, `neighbors` aus `hpo.lunar_lander.study`.
 
 HPO-Parameter zentral setzen:
 
@@ -101,12 +129,6 @@ Abhängigkeiten:
 - `SearchSpace3(best_s1, best_s2)`
 - `SearchSpace4(best_s1, best_s2, best_s3)`
 
-Für die Feinsuche gibt es eine kleine Notebook-Hilfsfunktion:
-
-```python
-neighbors(value, choices)
-```
-
 ### Studienfolge
 
 Das Notebook ruft nacheinander auf:
@@ -124,8 +146,14 @@ best_s3 = select_robust_best(study3)
 study4 = run_study("s4_joint_finetune", SearchSpace4(best_s1, best_s2, best_s3), 30, ...)
 ```
 
-`select_robust_best(...)` kann zunächst schlicht `study.best_params` verwenden.
-Die robustere Top-3/Seed-Prüfung wird danach ergänzt.
+`select_robust_best(...)` führt die Robustheitsprüfung gemäß HLD aus und gibt
+die beste HP-Kombination zurück.
+
+Nach jeder Studie zeigt das Notebook zusätzlich:
+
+```python
+display(plot_lander_progress(study))
+```
 
 ## Nicht Ziel
 
