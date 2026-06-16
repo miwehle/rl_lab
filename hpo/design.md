@@ -140,17 +140,17 @@ plus Robustheitsprüfungen:
 
 #### Suchräume in den Studien
 
-| HP | S1 Update-Ökonomie | S2 Exploration | S3 Replay-Kapazität | S4 Gemeinsame Feinsuche |
-|---|---|---|---|---|
-| learning_rate | *float(1e-4, 1e-3, log=True)* | best(S1) | best(S1) | *float(best / 2, best * 2, log=True)* |
-| batch_size | *categorical([256, 512, 1024])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [256, 512, 1024]))* |
-| eps_end | 0.05 | *float(0.01, 0.10)* | best(S2) | *float(max(0.01, best - 0.02), min(0.10, best + 0.02))* |
-| eps_decay | 25_000 | *int(10_000, 60_000, log=True)* | best(S2) | *int(best / 2, best * 2, log=True)* |
-| gamma | 0.99 | 0.99 | 0.99 | 0.99 |
-| tau | 0.005 | 0.005 | 0.005 | 0.005 |
-| learning_starts | *categorical([2_500, 5_000, 10_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2_500, 5_000, 10_000]))* |
-| optimize_every | *categorical([2, 4, 8])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2, 4, 8]))* |
-| replay_memory_capacity | 100_000 | 100_000 | *categorical([50_000, 100_000, 200_000])* | best(S3) |
+| HP | S0 Baseline | S1 Update-Ökonomie | S2 Exploration | S3 Replay-Kapazität | S4 Gemeinsame Feinsuche |
+|---|---|---|---|---|---|
+| learning_rate | 3e-4 | *float(1e-4, 1e-3, log=True)* | best(S1) | best(S1) | *float(best / 2, best * 2, log=True)* |
+| batch_size | 512 | *categorical([256, 512, 1024])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [256, 512, 1024]))* |
+| eps_end | 0.05 | 0.05 | *float(0.01, 0.10)* | best(S2) | *float(max(0.01, best - 0.02), min(0.10, best + 0.02))* |
+| eps_decay | 25_000 | 25_000 | *int(10_000, 60_000, log=True)* | best(S2) | *int(best / 2, best * 2, log=True)* |
+| gamma | 0.99 | 0.99 | 0.99 | 0.99 | 0.99 |
+| tau | 0.005 | 0.005 | 0.005 | 0.005 | 0.005 |
+| learning_starts | 5_000 | *categorical([2_500, 5_000, 10_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2_500, 5_000, 10_000]))* |
+| optimize_every | 4 | *categorical([2, 4, 8])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2, 4, 8]))* |
+| replay_memory_capacity | 100_000 | 100_000 | 100_000 | *categorical([50_000, 100_000, 200_000])* | best(S3) |
 
 Notation:
 - *kursiv*: Wert wird in dieser Studie von Optuna gewählt.
