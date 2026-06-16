@@ -180,6 +180,9 @@ gelöscht; am Ende bleibt der letzte Stand sichtbar.
 ## Persistenz
 
 Die Optuna-SQLite-DB ist die primäre Datenquelle.
+In Colab liegt die aktive SQLite-DB während des Trainings lokal im
+Colab-Dateisystem. Nach jeder Studie wird sie nach Google Drive kopiert. Beim
+Neustart wird eine vorhandene Drive-DB zurück nach lokal kopiert.
 
 ### Custom Attributes
 
@@ -208,14 +211,8 @@ Nutzung:
   Return-Kurve und Epsilon-Kurve. Die geglättete Kurve wird nicht gespeichert,
   sondern aus den Rohdaten berechnet.
 
-### Schreibstrategie
-
-Es gibt keine DB-Writes pro Episode. Die Zeitreihen werden im RAM gesammelt und
-einmal am Ende des Trials geschrieben.
-
-In Colab liegt die aktive SQLite-DB während des Trainings lokal im
-Colab-Dateisystem. Nach jeder Studie wird sie nach Google Drive kopiert. Beim
-Neustart wird eine vorhandene Drive-DB zurück nach lokal kopiert.
+Buffering:
+- Es gibt keine DB-Writes pro Episode. Die Zeitreihen werden im RAM gesammelt und einmal am Ende des Trials geschrieben.
 
 ## Nicht Ziel
 
