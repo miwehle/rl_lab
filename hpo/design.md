@@ -116,7 +116,7 @@ Nicht in der VectorTrainer-HPO:
 #### Studien
 
 Studie 0: Baseline festlegen  
-Kein echter HPO-Lauf, eher Referenz:
+Das ist kein echter HPO-Lauf, eher Referenz.
 
 Dann:
 > Mehrere Studien mit je ca. 20 bis 40 Trials
@@ -151,15 +151,43 @@ Bei 3 min pro Trial ergeben 120 Trials ca. 6 h GPU-Zeit:
 | optimize_every | *categorical([2, 4, 8])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2, 4, 8]))* |
 | replay_memory_capacity | 200_000 | 200_000 | *categorical([50_000, 100_000, 200_000, 500_000])* | best(S3) |
 
-Legende:
-- *Kursiv*: Wert wird in dieser Studie von Optuna gewählt.
-- Ohne Markierung: Wert bleibt fest oder wird aus einer vorherigen Studie übernommen.
+Notation:
+- *kursiv*: Wert wird in dieser Studie von Optuna gewählt.
+- ohne Markierung: Wert bleibt fest oder wird aus einer vorherigen Studie übernommen.
 - float, int, categorical stehen für `trial.suggest_float`, `trial.suggest_int`, `trial.suggest_categorical`.
 - best(Sx): bester Wert aus Studie x.
-- neighbors(s, M): s plus direkte Nachbarn in Menge M.
+- neighbors(b, M): b plus direkte Nachbarn in Menge M.
 
-#### Robustheitsprüfung
+#### Robustheit
 
-Nach den vier Studien werden die besten 3 bis 5 Konfigurationen mit mehreren
+##### Scoring und Fenstergröße
+
+Der Score eines Trials werde in `objective` so definiert:
+
+> objective_score = (best_window_mean + final_window_mean) / 2
+
+```python
+final_window_mean = sum(result.episode_returns[-score_window:]) / min(
+    score_window,
+    len(result.episode_returns),
+)
+```
+
+Das score_window darf nicht zu klein sein. Ein Training dauert 600 Episoden. Es sei (für best_window_mean und final_window_mean):
+
+> score_window = 100
+
+
+##### Bestätigung der besten HP-Kombination vor Studienübergang
+
+Trainingsergebnisse im RL weisen zufällige Schwankungen auf. Die scheinbar beste HP-Kombination kann mit anderem Seed deutlich schlechter abschneiden.
+
+Daher werden die 3 besten HP-Kombinationen vor Studienübergang mit je 2 anderen Seeds erneut geprüft.
+Als beste HP-Kombination gilt am Ende die mit dem besten Mittelwert.
+
+
+##### Abschlussprüfung
+
+Nach den vier Studien werden die besten 3 HP-Kombinationen mit mehreren
 Seeds bestätigt. Diese Bestätigung ist keine weitere HPO-Studie, sondern eine
-Robustheitsprüfung gegen RL-Zufall.
+abschließende Robustheitsprüfung gegen RL-Zufall.
