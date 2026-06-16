@@ -181,13 +181,34 @@ gelöscht; am Ende bleibt der letzte Stand sichtbar.
 
 Die Optuna-SQLite-DB ist die primäre Datenquelle.
 
-Pro Trial werden am Ende des Trainings zusätzlich gespeichert:
-- `episode_returns`
-- `episode_epsilons`
+### Custom Attributes
 
-Daraus muss später ein Trainingsdiagramm wie im DQN-Notebook berechenbar sein:
-Returns pro Episode, geglättete Return-Kurve und Epsilon-Kurve. Die geglättete
-Kurve wird nicht gespeichert, sondern aus den Rohdaten berechnet.
+Trial-User-Attrs:
+- `best_window_score`: bester geglätteter Trainingsscore.
+- `best_window_start_episode`, `best_window_end_episode`: Lage des besten
+  Fensters.
+- `final_window_score`: geglätteter Score am Trainingsende.
+- `objective_score`: Optuna-Zielwert gemäß HLD.
+- `eval_score`: Greedy-Eval-Score nach dem Training.
+- `wall_time_seconds`: reine Trainingszeit, ohne Greedy Eval.
+- `episode_returns`: Return je Episode.
+- `episode_epsilons`: Epsilon je Episode.
+
+Study-User-Attrs:
+- `robust_best_params`: robust beste HP-Kombination der Studie.
+- `robust_best_objective_score`: robuster Objective-Score dieser Kombination.
+- `robust_best_eval_score`: robuster Greedy-Eval-Score dieser Kombination.
+
+Nutzung:
+- `objective_score` steuert die Optuna-Optimierung.
+- `best_window_*` und `final_window_score` erklären den Trial-Score.
+- `eval_score`, `wall_time_seconds` und robuste Study-Attrs speisen `LH`.
+- `episode_returns` und `episode_epsilons` rekonstruieren später das
+  Trainingsdiagramm aus dem DQN-Notebook: Returns pro Episode, geglättete
+  Return-Kurve und Epsilon-Kurve. Die geglättete Kurve wird nicht gespeichert,
+  sondern aus den Rohdaten berechnet.
+
+### Schreibstrategie
 
 Es gibt keine DB-Writes pro Episode. Die Zeitreihen werden im RAM gesammelt und
 einmal am Ende des Trials geschrieben.
