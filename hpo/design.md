@@ -137,25 +137,28 @@ Bei 3 min pro Trial ergeben 120 Trials ca. 6 h GPU-Zeit:
 | S3 Replay-Kapazität | Prüfen, ob der Replay-Speicher groß genug ist | 20 |
 | S4 Gemeinsame Feinsuche | Wichtigste Gewinner zusammen eng nachoptimieren | 20 |
 
-#### Suchräume
-
-Legende:
-- ==Farbliche Markierung==: Wert wird in dieser Studie von Optuna gewählt.
-- Ohne Markierung: Wert bleibt fest oder wird aus einer vorherigen Studie übernommen.
-- best(Sx): bester Wert aus Studie x.
-- neighbors(best(Sx), M): best(Sx) plus direkte Nachbarn in Menge M.
+#### Suchräume in den Studien
 
 | HP | S1 Update-Ökonomie | S2 Exploration | S3 Replay-Kapazität | S4 Gemeinsame Feinsuche |
 |---|---|---|---|---|
-| learning_rate | ==float(1e-4, 1e-3, log=True)== | best(S1) | best(S1) | ==float(best / 2, best * 2, log=True)== |
-| batch_size | =={512, 1024, 2048}== | best(S1) | best(S1) | ==neighbors(best(S1),<br>{512, 1024, 2048})== |
-| eps_end | 0.05 | ==float(0.01, 0.10)== | best(S2) | ==float(max(0.01, best - 0.02), min(0.10, best + 0.02))== |
-| eps_decay | 50_000 | ==int(20_000, 150_000, log=True)== | best(S2) | ==int(best / 2, best * 2, log=True)== |
+| learning_rate | *float(1e-4, 1e-3, log=True)* | best(S1) | best(S1) | *float(best / 2, best * 2, log=True)* |
+| batch_size | *categorical([512, 1024, 2048])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [512, 1024, 2048]))* |
+| eps_end | 0.05 | *float(0.01, 0.10)* | best(S2) | *float(max(0.01, best - 0.02), min(0.10, best + 0.02))* |
+| eps_decay | 50_000 | *int(20_000, 150_000, log=True)* | best(S2) | *int(best / 2, best * 2, log=True)* |
 | gamma | 0.99 | 0.99 | 0.99 | 0.99 |
 | tau | 0.005 | 0.005 | 0.005 | 0.005 |
-| learning_starts | =={2_500, 5_000, 10_000, 20_000}== | best(S1) | best(S1) | ==neighbors(best(S1),<br>{2_500, 5_000, 10_000, 20_000})== |
-| optimize_every | =={2, 4, 8}== | best(S1) | best(S1) | ==neighbors(best(S1),<br>{2, 4, 8})== |
-| replay_memory_capacity | 200_000 | 200_000 | =={50_000, 100_000, 200_000, 500_000}== | best(S3) |
+| learning_starts | *categorical([2_500, 5_000, 10_000, 20_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2_500, 5_000, 10_000, 20_000]))* |
+| optimize_every | *categorical([2, 4, 8])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2, 4, 8]))* |
+| replay_memory_capacity | 200_000 | 200_000 | *categorical([50_000, 100_000, 200_000, 500_000])* | best(S3) |
+
+Legende:
+- *Kursiv*: Wert wird in dieser Studie von Optuna gewählt.
+- Ohne Markierung: Wert bleibt fest oder wird aus einer vorherigen Studie übernommen.
+- float, int, categorical stehen für `trial.suggest_float`, `trial.suggest_int`, `trial.suggest_categorical`.
+- best(Sx): bester Wert aus Studie x.
+- neighbors(s, M): s plus direkte Nachbarn in Menge M.
+
+#### Robustheitsprüfung
 
 Nach den vier Studien werden die besten 3 bis 5 Konfigurationen mit mehreren
 Seeds bestätigt. Diese Bestätigung ist keine weitere HPO-Studie, sondern eine
