@@ -136,6 +136,7 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
     assert trial.user_attrs["final_window_score"] == pytest.approx(30.0)
     assert trial.user_attrs["objective_score"] == pytest.approx(37.5)
     assert trial.user_attrs["eval_score"] == pytest.approx(123.0)
+    assert trial.user_attrs["trial_seed"] == 103
     assert trial.user_attrs["wall_time_seconds"] >= 0.0
     assert trial.user_attrs["training_curve"] == {
         "episode_returns": [10.0, 50.0, 40.0, 20.0],

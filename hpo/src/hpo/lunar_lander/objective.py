@@ -96,6 +96,7 @@ def create_objective(
         save("final_window_score", final_window_score)
         save("objective_score", objective_score)
         save("eval_score", eval_score)
+        save("trial_seed", trial_seed)
         save("wall_time_seconds", wall_time_seconds)
         save("training_curve", {
             "episode_returns": result.episode_returns,
