@@ -80,12 +80,13 @@ def show_study_progress(
         return
 
     best_trial = study.best_trial
+    best_window = best_trial.user_attrs["best_window"]
     print(f"Best mean return: {best_trial.value:.1f}")
     print(
         "Best episode window:",
-        best_trial.user_attrs["best_window_start_episode"],
+        best_window["start_episode"],
         "-",
-        best_trial.user_attrs["best_window_end_episode"],
+        best_window["end_episode"],
     )
     print("Best params:")
     _display(best_trial.params)

@@ -29,8 +29,8 @@ final_window_score = sum(final_returns) / len(final_returns)
 objective_score = (best_window_score + final_window_score) / 2
 ```
 
-- `best_window_score`, `final_window_score`, `objective_score` und
-  `best_window_*` als Trial-Attribute speichern.
+- `best_window`, `final_window_score` und `objective_score` als
+  Trial-Attribute speichern.
 - `objective_score` zurückgeben.
 
 Kein Pruning im VectorTrainer-HPO-Pfad.
@@ -187,15 +187,12 @@ Neustart wird eine vorhandene Drive-DB zurück nach lokal kopiert.
 ### Custom Attributes
 
 Trial-User-Attrs:
-- `best_window_score`: bester geglätteter Trainingsscore.
-- `best_window_start_episode`, `best_window_end_episode`: Lage des besten
-  Fensters.
+- `best_window`: bester geglätteter Trainingsscore plus Lage des Fensters.
 - `final_window_score`: geglätteter Score am Trainingsende.
 - `objective_score`: Optuna-Zielwert gemäß HLD.
 - `eval_score`: Greedy-Eval-Score nach dem Training.
 - `wall_time_seconds`: reine Trainingszeit, ohne Greedy Eval.
-- `episode_returns`: Return je Episode.
-- `episode_epsilons`: Epsilon je Episode.
+- `training_curve`: Returns und Epsilons je Episode.
 
 Study-User-Attrs:
 - `robust_best_params`: robust beste HP-Kombination der Studie.
@@ -204,12 +201,12 @@ Study-User-Attrs:
 
 Nutzung:
 - `objective_score` steuert die Optuna-Optimierung.
-- `best_window_*` und `final_window_score` erklären den Trial-Score.
+- `best_window` und `final_window_score` erklären den Trial-Score.
 - `eval_score`, `wall_time_seconds` und robuste Study-Attrs speisen `LH`.
-- `episode_returns` und `episode_epsilons` rekonstruieren später das
-  Trainingsdiagramm aus dem DQN-Notebook: Returns pro Episode, geglättete
-  Return-Kurve und Epsilon-Kurve. Die geglättete Kurve wird nicht gespeichert,
-  sondern aus den Rohdaten berechnet.
+- `training_curve` rekonstruiert später das Trainingsdiagramm aus dem
+  DQN-Notebook: Returns pro Episode, geglättete Return-Kurve und Epsilon-Kurve.
+  Die geglättete Kurve wird nicht gespeichert, sondern aus den Rohdaten
+  berechnet.
 
 Buffering:
 - Es gibt keine DB-Writes pro Episode. Die Zeitreihen werden im RAM gesammelt und einmal am Ende des Trials geschrieben.

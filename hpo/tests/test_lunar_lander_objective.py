@@ -130,15 +130,19 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
         ("replay_memory_capacity", trial),
     ]
     assert score == pytest.approx(37.5)
-    assert trial.user_attrs["best_window_score"] == pytest.approx(45.0)
-    assert trial.user_attrs["best_window_start_episode"] == 2
-    assert trial.user_attrs["best_window_end_episode"] == 3
+    assert trial.user_attrs["best_window"] == {
+        "score": pytest.approx(45.0),
+        "start_episode": 2,
+        "end_episode": 3,
+    }
     assert trial.user_attrs["final_window_score"] == pytest.approx(30.0)
     assert trial.user_attrs["objective_score"] == pytest.approx(37.5)
     assert trial.user_attrs["eval_score"] == pytest.approx(123.0)
     assert trial.user_attrs["wall_time_seconds"] >= 0.0
-    assert trial.user_attrs["episode_returns"] == [10.0, 50.0, 40.0, 20.0]
-    assert trial.user_attrs["episode_epsilons"] == [0.7, 0.6, 0.5, 0.4]
+    assert trial.user_attrs["training_curve"] == {
+        "episode_returns": [10.0, 50.0, 40.0, 20.0],
+        "episode_epsilons": [0.7, 0.6, 0.5, 0.4],
+    }
     assert envs[0].closed
     assert calls[0].seed == 103
     assert calls[0].replay_memory_capacity == 12_345

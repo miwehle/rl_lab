@@ -71,6 +71,7 @@ def create_objective(
         final_returns = result.episode_returns[-score_window:]
         final_window_score = sum(final_returns) / len(final_returns)
         objective_score = (best_window.mean + final_window_score) / 2
+
         eval_score = evaluate_greedy_policy(
             q_net=result.q_net,
             device=trainer.device,
@@ -80,15 +81,20 @@ def create_objective(
             seed=trial_seed,
         )
 
-        trial.set_user_attr("best_window_score", best_window.mean)
-        trial.set_user_attr("best_window_start_episode", best_window.start_episode)
-        trial.set_user_attr("best_window_end_episode", best_window.end_episode)
+        trial.set_user_attr("best_window", {
+            "score": best_window.mean,
+            "start_episode": best_window.start_episode,
+            "end_episode": best_window.end_episode,
+        })
         trial.set_user_attr("final_window_score", final_window_score)
         trial.set_user_attr("objective_score", objective_score)
         trial.set_user_attr("eval_score", eval_score)
         trial.set_user_attr("wall_time_seconds", wall_time_seconds)
-        trial.set_user_attr("episode_returns", result.episode_returns)
-        trial.set_user_attr("episode_epsilons", result.episode_epsilons)
+        trial.set_user_attr("training_curve", {
+            "episode_returns": result.episode_returns,
+            "episode_epsilons": result.episode_epsilons,
+        })
+
         return objective_score
 
     return objective
