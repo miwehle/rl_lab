@@ -129,8 +129,8 @@ def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatc
     monkeypatch.setattr(reporting, "_display", displayed.append)
     monkeypatch.setattr(
         reporting,
-        "_plot_optimization_history",
-        lambda current_study: ("oh", current_study),
+        "_optimization_history_figure",
+        lambda current_study, target_trials: ("oh", current_study, target_trials),
     )
 
     show_lander_live_progress(
@@ -142,4 +142,4 @@ def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatc
     assert clear_calls == [{"wait": True}]
     assert len(displayed) == 2
     assert displayed[0].axes[0].get_ylabel() == "Greedy eval score"
-    assert displayed[1] == ("oh", study)
+    assert displayed[1] == ("oh", study, 40)

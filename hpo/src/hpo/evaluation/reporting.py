@@ -46,7 +46,7 @@ def show_lander_live_progress(
     print("LH: Lander History")
     _display(plot_lander_progress(lander_studies))
     print("OH: Optuna History")
-    _display(_plot_optimization_history(study))
+    _display(_optimization_history_figure(study, target_trials))
 
 
 def finished_trial_count(study: Any) -> int:
@@ -90,10 +90,7 @@ def show_study_progress(
     print("Best params:")
     _display(best_trial.params)
 
-    fig = _plot_optimization_history(study)
-    fig.update_layout(width=1000, height=450, margin=dict(r=180))
-    fig.update_xaxes(range=[0, target_trials])
-    _display(fig)
+    _display(_optimization_history_figure(study, target_trials))
 
 
 def _clear_output(*args, **kwargs) -> None:
@@ -112,6 +109,13 @@ def _plot_optimization_history(study: Any) -> Any:
     from optuna.visualization import plot_optimization_history
 
     return plot_optimization_history(study)
+
+
+def _optimization_history_figure(study: Any, target_trials: int) -> Any:
+    fig = _plot_optimization_history(study)
+    fig.update_layout(width=850, height=430, margin=dict(l=55, r=170, t=70, b=55))
+    fig.update_xaxes(range=[0, target_trials])
+    return fig
 
 
 def _trial_count(study: Any, state_name: str) -> int:
