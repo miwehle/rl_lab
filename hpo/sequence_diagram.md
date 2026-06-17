@@ -6,7 +6,6 @@ sequenceDiagram
     actor user
     participant notebook as HPO notebook
     participant study_module as study.py
-    participant study as study : optuna.study.Study
     participant objective as objective.py
     participant vector_training as vector_training.py
 
@@ -14,6 +13,8 @@ sequenceDiagram
     notebook->>study_module: run_study(...)
     study_module->>objective: create_objective(...)
     objective-->>study_module: objective
+    create participant study as study : optuna.study.Study
+    study_module->>study: create_study(...)
 
     loop until n_trials is reached
         study_module->>study: optimize(objective, n_trials=1)
