@@ -10,6 +10,7 @@ import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.evaluation.scoring import best_window_mean
+from hpo.lunar_lander.logging import log_call
 
 
 class SearchSpace(Protocol):
@@ -101,6 +102,7 @@ def create_objective(
     return objective
 
 
+@log_call
 def evaluate_greedy_policy(
     *,
     q_net: Any,
