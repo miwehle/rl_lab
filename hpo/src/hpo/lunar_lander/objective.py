@@ -1,5 +1,6 @@
 """Optuna objective for tuning VectorTrainer DQN on LunarLander."""
 
+import logging
 from collections.abc import Callable
 from time import perf_counter
 from typing import Any, Protocol
@@ -11,6 +12,9 @@ import torch
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.evaluation.scoring import best_window_mean
 from hpo.lunar_lander.logging import log_call
+
+
+logger = logging.getLogger(__name__)
 
 
 class SearchSpace(Protocol):
@@ -48,6 +52,7 @@ def create_objective(
     if eval_max_steps < 1:
         raise ValueError("eval_max_steps must be >= 1")
 
+    @log_call
     def objective(trial: Any) -> float:
         training_config = search_space.training_config(trial, num_episodes)
         replay_memory_capacity = search_space.replay_memory_capacity(trial)
