@@ -8,7 +8,6 @@ sequenceDiagram
     participant study as study.py
     participant objective as objective.py
     participant vector_training as vector_training.py
-    participant trainer as trainer : VectorTrainer
 
     user->>notebook: run_lander_study(...)
     notebook->>study: run_study(...)
@@ -18,7 +17,8 @@ sequenceDiagram
     loop until n_trials is reached
         study->>objective: objective(trial)
         objective->>vector_training: VectorTrainer(env, ...)
-        vector_training-->>objective: trainer
+        create participant trainer as trainer : VectorTrainer
+        vector_training->>trainer: create trainer
         objective->>trainer: train(training_config)
         trainer-->>objective: VectorTrainingResult
         objective->>objective: evaluate_greedy_policy(...)
