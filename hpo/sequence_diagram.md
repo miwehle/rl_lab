@@ -5,16 +5,18 @@
 sequenceDiagram
     actor user
     participant notebook as HPO notebook
-    participant study as study.py
+    participant study_module as study.py
+    participant study as study : optuna.study.Study
     participant objective as objective.py
     participant vector_training as vector_training.py
 
     user->>notebook: run_lander_study(...)
-    notebook->>study: run_study(...)
-    study->>objective: create_objective(...)
-    objective-->>study: objective
+    notebook->>study_module: run_study(...)
+    study_module->>objective: create_objective(...)
+    objective-->>study_module: objective
 
     loop until n_trials is reached
+        study_module->>study: optimize(objective, n_trials=1)
         study->>objective: objective(trial)
         objective->>vector_training: VectorTrainer(env, ...)
         create participant trainer as trainer : VectorTrainer
@@ -23,11 +25,9 @@ sequenceDiagram
         trainer-->>objective: VectorTrainingResult
         objective->>objective: evaluate_greedy_policy(...)
         objective-->>study: objective_score
-        study->>notebook: progress_fn(study, target_trials=n_trials)
-        notebook->>notebook: show_progress(...)
+        study-->>study_module: trial completed
     end
 
-    study-->>notebook: study
-    notebook->>notebook: show_progress(...)
+    study_module-->>notebook: study
     notebook-->>user: study
 ```
