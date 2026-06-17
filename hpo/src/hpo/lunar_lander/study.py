@@ -1,17 +1,22 @@
 """Study orchestration helpers for LunarLander HPO."""
 
+import logging
 from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 from typing import Any
 
 from hpo.evaluation.reporting import finished_trial_count, show_study_progress
+from hpo.lunar_lander.logging import log_call
 from hpo.lunar_lander.objective import create_objective
 
+
+logger = logging.getLogger(__name__)
 
 SearchSpaceFactory = Callable[[], Any]
 ProgressFn = Callable[..., None]
 
 
+@log_call
 def run_study(
     *,
     study_name: str,
@@ -48,6 +53,7 @@ def run_study(
     )
 
     while finished_trial_count(study) < n_trials:
+        logger.info("study.optimize")
         study.optimize(objective, n_trials=1)
         if progress_fn is not None:
             progress_fn(study, target_trials=n_trials)
@@ -138,6 +144,7 @@ def _top_complete_trials(study: Any, top_n: int) -> list[Any]:
     return trials[:top_n]
 
 
+@log_call
 def _create_study(**kwargs) -> Any:
     import optuna
 
