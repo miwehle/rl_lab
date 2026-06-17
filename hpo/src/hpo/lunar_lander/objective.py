@@ -81,16 +81,17 @@ def create_objective(
             seed=trial_seed,
         )
 
-        trial.set_user_attr("best_window", {
-            "score": best_window.mean,
-            "start_episode": best_window.start_episode,
-            "end_episode": best_window.end_episode,
-        })
-        trial.set_user_attr("final_window_score", final_window_score)
-        trial.set_user_attr("objective_score", objective_score)
-        trial.set_user_attr("eval_score", eval_score)
-        trial.set_user_attr("wall_time_seconds", wall_time_seconds)
-        trial.set_user_attr("training_curve", {
+        def save(key, value):
+            trial.set_user_attr(key, value)
+
+        save("best_window_score", best_window.mean)
+        save("best_window_start_episode", best_window.start_episode)
+        save("best_window_end_episode", best_window.end_episode)
+        save("final_window_score", final_window_score)
+        save("objective_score", objective_score)
+        save("eval_score", eval_score)
+        save("wall_time_seconds", wall_time_seconds)
+        save("training_curve", {
             "episode_returns": result.episode_returns,
             "episode_epsilons": result.episode_epsilons,
         })

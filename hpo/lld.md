@@ -29,8 +29,8 @@ final_window_score = sum(final_returns) / len(final_returns)
 objective_score = (best_window_score + final_window_score) / 2
 ```
 
-- `best_window`, `final_window_score` und `objective_score` als
-  Trial-Attribute speichern.
+- `best_window_score`, `final_window_score`, `objective_score` und
+  `best_window_*` als Trial-Attribute speichern.
 - `objective_score` zurückgeben.
 
 Kein Pruning im VectorTrainer-HPO-Pfad.
@@ -187,7 +187,9 @@ Neustart wird eine vorhandene Drive-DB zurück nach lokal kopiert.
 ### Custom Attributes
 
 Trial-User-Attrs:
-- `best_window`: bester geglätteter Trainingsscore plus Lage des Fensters.
+- `best_window_score`: bester geglätteter Trainingsscore.
+- `best_window_start_episode`, `best_window_end_episode`: Lage des besten
+  Fensters.
 - `final_window_score`: geglätteter Score am Trainingsende.
 - `objective_score`: Optuna-Zielwert gemäß HLD.
 - `eval_score`: Greedy-Eval-Score nach dem Training.
@@ -201,7 +203,7 @@ Study-User-Attrs:
 
 Nutzung:
 - `objective_score` steuert die Optuna-Optimierung.
-- `best_window` und `final_window_score` erklären den Trial-Score.
+- `best_window_*` und `final_window_score` erklären den Trial-Score.
 - `eval_score`, `wall_time_seconds` und robuste Study-Attrs speisen `LH`.
 - `training_curve` rekonstruiert später das Trainingsdiagramm aus dem
   DQN-Notebook: Returns pro Episode, geglättete Return-Kurve und Epsilon-Kurve.
