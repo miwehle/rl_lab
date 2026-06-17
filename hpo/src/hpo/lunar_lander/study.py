@@ -89,7 +89,7 @@ def select_robust_best(
     best_mean = float("-inf")
     best_eval_mean = None
 
-    for trial in candidates:
+    def score_candidate(trial: Any) -> tuple[dict[str, Any], float, float | None]:
         scores = [float(trial.value)]
         eval_scores = []
         if "eval_score" in getattr(trial, "user_attrs", {}):
@@ -110,13 +110,18 @@ def select_robust_best(
                 eval_scores.append(float(fixed_trial.user_attrs["eval_score"]))
 
         mean_score = sum(scores) / len(scores)
+        mean_eval_score = (
+            sum(eval_scores) / len(eval_scores)
+            if eval_scores else None
+        )
+        return dict(trial.params), mean_score, mean_eval_score
+
+    for trial in candidates:
+        params, mean_score, mean_eval_score = score_candidate(trial)
         if mean_score > best_mean:
             best_mean = mean_score
-            best_params = dict(trial.params)
-            best_eval_mean = (
-                sum(eval_scores) / len(eval_scores)
-                if eval_scores else None
-            )
+            best_params = params
+            best_eval_mean = mean_eval_score
 
     selected_params = best_params or {}
     _set_study_user_attr(study, "robust_best_params", selected_params)
