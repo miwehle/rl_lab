@@ -20,9 +20,7 @@ class SearchSpace(Protocol):
         ...
 
 
-VectorEnvFactory = Callable[[str, int], Any]
 EnvFactory = Callable[[str], Any]
-EvalScoreFn = Callable[..., float]
 
 
 def create_objective(
@@ -36,10 +34,6 @@ def create_objective(
     num_envs: int = 16,
     eval_episodes: int = 3,
     eval_max_steps: int = 2_000,
-    env_factory: EnvFactory = gym.make,
-    vector_env_factory: VectorEnvFactory | None = None,
-    trainer_factory: type[VectorTrainer] = VectorTrainer,
-    eval_score_fn: EvalScoreFn | None = None,
 ) -> Callable[[Any], float]:
     """Create an Optuna objective that trains one vectorized LunarLander DQN."""
     if num_episodes < 1:
@@ -53,22 +47,14 @@ def create_objective(
     if eval_max_steps < 1:
         raise ValueError("eval_max_steps must be >= 1")
 
-    if vector_env_factory is None:
-        def make_vector_env(env_id: str, num_envs: int) -> Any:
-            return _make_vector_env(env_id, num_envs, env_factory)
-    else:
-        make_vector_env = vector_env_factory
-
-    evaluate = eval_score_fn or evaluate_greedy_policy
-
     def objective(trial: Any) -> float:
         training_config = search_space.training_config(trial, num_episodes)
         replay_memory_capacity = search_space.replay_memory_capacity(trial)
         trial_seed = None if seed is None else seed + trial.number
 
-        env = make_vector_env(env_id, num_envs)
+        env = _make_vector_env(env_id, num_envs)
         try:
-            trainer = trainer_factory(
+            trainer = VectorTrainer(
                 env,
                 seed=trial_seed,
                 device=device,
@@ -85,11 +71,10 @@ def create_objective(
         final_returns = result.episode_returns[-score_window:]
         final_window_score = sum(final_returns) / len(final_returns)
         objective_score = (best_window.mean + final_window_score) / 2
-        eval_score = evaluate(
+        eval_score = evaluate_greedy_policy(
             q_net=result.q_net,
             device=trainer.device,
             env_id=env_id,
-            env_factory=env_factory,
             episodes=eval_episodes,
             max_steps=eval_max_steps,
             seed=trial_seed,
@@ -154,6 +139,5 @@ def evaluate_greedy_policy(
 def _make_vector_env(
     env_id: str,
     num_envs: int,
-    env_factory: EnvFactory,
 ) -> SyncVectorEnv:
-    return SyncVectorEnv([lambda: env_factory(env_id) for _ in range(num_envs)])
+    return SyncVectorEnv([lambda: gym.make(env_id) for _ in range(num_envs)])

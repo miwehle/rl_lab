@@ -4,7 +4,8 @@ import pytest
 import torch
 
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
-from hpo.lunar_lander.objective import create_objective, evaluate_greedy_policy
+from hpo.lunar_lander import objective as objective_module
+from hpo.lunar_lander.objective import evaluate_greedy_policy
 
 
 class FakeTrial:
@@ -65,7 +66,7 @@ class TrainerCall:
     training_config: object | None = None
 
 
-def test_lunar_lander_objective_trains_vector_trial_and_returns_score() -> None:
+def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatch) -> None:
     calls = []
     envs = []
     eval_calls = []
@@ -110,14 +111,15 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score() -> None:
         eval_calls.append(kwargs)
         return 123.0
 
-    objective = create_objective(
+    monkeypatch.setattr(objective_module, "_make_vector_env", vector_env_factory)
+    monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
+    monkeypatch.setattr(objective_module, "evaluate_greedy_policy", eval_score_fn)
+
+    objective = objective_module.create_objective(
         search_space=search_space,
         num_episodes=12,
         score_window=2,
         seed=100,
-        vector_env_factory=vector_env_factory,
-        trainer_factory=FakeTrainer,
-        eval_score_fn=eval_score_fn,
     )
 
     trial = FakeTrial()
@@ -147,13 +149,12 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score() -> None:
     assert eval_calls[0]["q_net"] == "fake-q-net"
     assert eval_calls[0]["device"] == "trainer-device"
     assert eval_calls[0]["env_id"] == "LunarLander-v3"
-    assert callable(eval_calls[0]["env_factory"])
     assert eval_calls[0]["episodes"] == 3
     assert eval_calls[0]["max_steps"] == 2_000
     assert eval_calls[0]["seed"] == 103
 
 
-def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn() -> None:
+def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn(monkeypatch) -> None:
     eval_calls = []
 
     class FakeTrainer:
@@ -170,16 +171,25 @@ def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn() -> None:
                 episode_epsilons=[0.1],
             )
 
-    objective = create_objective(
+    monkeypatch.setattr(
+        objective_module,
+        "_make_vector_env",
+        lambda _env_id, _num_envs: FakeEnv(),
+    )
+    monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
+    monkeypatch.setattr(
+        objective_module,
+        "evaluate_greedy_policy",
+        lambda **kwargs: eval_calls.append(kwargs) or 5.0,
+    )
+
+    objective = objective_module.create_objective(
         search_space=FakeSearchSpace(),
         num_episodes=1,
         score_window=1,
         seed=None,
         eval_episodes=7,
         eval_max_steps=99,
-        vector_env_factory=lambda _env_id, _num_envs: FakeEnv(),
-        trainer_factory=FakeTrainer,
-        eval_score_fn=lambda **kwargs: eval_calls.append(kwargs) or 5.0,
     )
 
     objective(FakeTrial())
