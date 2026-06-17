@@ -125,38 +125,24 @@ def _study_list(studies: Any) -> list[Any]:
 
 
 def _study_progress_point(study: Any) -> dict[str, float] | None:
+    eval_score = getattr(study, "user_attrs", {}).get("robust_best_eval_score")
+    if eval_score is None:
+        return None
+
     trials = [
-        trial for trial in sorted(study.trials, key=lambda trial: trial.number)
+        trial for trial in study.trials
         if _trial_state_name(trial) == "COMPLETE"
         and "wall_time_seconds" in trial.user_attrs
     ]
     if not trials:
         return None
 
-    eval_score = _robust_eval_score(study)
-    if eval_score is None:
-        eval_trials = [
-            trial for trial in trials
-            if trial.value is not None and "eval_score" in trial.user_attrs
-        ]
-        if not eval_trials:
-            return None
-        best_trial = max(eval_trials, key=lambda trial: trial.value)
-        eval_score = float(best_trial.user_attrs["eval_score"])
-
     return {
         "mean_wall_time_seconds": sum(
             float(trial.user_attrs["wall_time_seconds"]) for trial in trials
         ) / len(trials),
-        "eval_score": eval_score,
+        "eval_score": float(eval_score),
     }
-
-
-def _robust_eval_score(study: Any) -> float | None:
-    user_attrs = getattr(study, "user_attrs", {})
-    if "robust_best_eval_score" not in user_attrs:
-        return None
-    return float(user_attrs["robust_best_eval_score"])
 
 
 def _study_label(study: Any, index: int) -> str:

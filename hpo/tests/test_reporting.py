@@ -24,7 +24,7 @@ class FakeStudy:
     user_attrs: dict = field(default_factory=dict)
 
 
-def test_plot_lander_progress_uses_mean_training_time_and_best_eval_score() -> None:
+def test_plot_lander_progress_uses_mean_training_time_and_robust_eval_score() -> None:
     study = FakeStudy(
         trials=[
             FakeTrial(
@@ -44,13 +44,14 @@ def test_plot_lander_progress_uses_mean_training_time_and_best_eval_score() -> N
             ),
         ],
         study_name="s1_update_economy",
+        user_attrs={"robust_best_eval_score": 215},
     )
 
     fig = plot_lander_progress(study)
     ax = fig.axes[0]
 
     assert list(ax.lines[0].get_xdata()) == [6.55]
-    assert list(ax.lines[0].get_ydata()) == [180.0]
+    assert list(ax.lines[0].get_ydata()) == [215.0]
     assert ax.get_xlabel() == "Mean L4 training time per Lander (min)"
     assert ax.get_ylabel() == "Greedy eval score"
     assert [line.get_ydata()[0] for line in ax.lines[1:]] == [200, 250]
@@ -67,6 +68,7 @@ def test_plot_lander_progress_uses_one_point_per_study() -> None:
                 ),
             ],
             study_name="s0_baseline",
+            user_attrs={"robust_best_eval_score": 180},
         ),
         FakeStudy(
             trials=[
@@ -77,6 +79,7 @@ def test_plot_lander_progress_uses_one_point_per_study() -> None:
                 ),
             ],
             study_name="s1_update_economy",
+            user_attrs={"robust_best_eval_score": 210},
         ),
     ]
 
@@ -87,7 +90,7 @@ def test_plot_lander_progress_uses_one_point_per_study() -> None:
     assert list(ax.lines[0].get_ydata()) == [180.0, 210.0]
 
 
-def test_plot_lander_progress_prefers_robust_eval_score() -> None:
+def test_plot_lander_progress_skips_studies_without_robust_eval_score() -> None:
     study = FakeStudy(
         trials=[
             FakeTrial(
@@ -95,14 +98,14 @@ def test_plot_lander_progress_prefers_robust_eval_score() -> None:
                 value=1,
                 user_attrs={"wall_time_seconds": 60, "eval_score": 180},
             ),
-        ],
-        user_attrs={"robust_best_eval_score": 215},
+        ]
     )
 
     fig = plot_lander_progress(study)
     ax = fig.axes[0]
 
-    assert list(ax.lines[0].get_ydata()) == [215.0]
+    assert list(ax.lines[0].get_xdata()) == []
+    assert list(ax.lines[0].get_ydata()) == []
 
 
 def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatch) -> None:
@@ -113,7 +116,8 @@ def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatc
                 value=1,
                 user_attrs={"wall_time_seconds": 60, "eval_score": 180},
             ),
-        ]
+        ],
+        user_attrs={"robust_best_eval_score": 180},
     )
     displayed = []
     clear_calls = []
