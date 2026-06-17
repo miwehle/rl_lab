@@ -80,7 +80,6 @@ def test_run_study_optimizes_until_target_trial_count(monkeypatch) -> None:
         n_trials=2,
         num_episodes=3,
         score_window=1,
-        output_dir=test_dir / "runs",
         study_dir=test_dir / "studies",
         device="cpu",
         progress_fn=lambda *args, **kwargs: progress_calls.append((args, kwargs)),

@@ -19,7 +19,6 @@ def run_study(
     n_trials: int,
     num_episodes: int,
     score_window: int,
-    output_dir: str | Path,
     study_dir: str | Path,
     device,
     num_envs: int = 16,
@@ -30,7 +29,6 @@ def run_study(
     if n_trials < 1:
         raise ValueError("n_trials must be >= 1")
 
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
     study_path = Path(study_dir)
     study_path.mkdir(parents=True, exist_ok=True)
 

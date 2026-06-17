@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from hpo.evaluation import reporting
 from hpo.evaluation.reporting import plot_lander_progress, show_lander_live_progress
 
 
@@ -104,7 +105,7 @@ def test_plot_lander_progress_prefers_robust_eval_score() -> None:
     assert list(ax.lines[0].get_ydata()) == [215.0]
 
 
-def test_show_lander_live_progress_displays_lander_and_optuna_history() -> None:
+def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatch) -> None:
     study = FakeStudy(
         trials=[
             FakeTrial(
@@ -116,14 +117,22 @@ def test_show_lander_live_progress_displays_lander_and_optuna_history() -> None:
     )
     displayed = []
     clear_calls = []
+    monkeypatch.setattr(
+        reporting,
+        "_clear_output",
+        lambda **kwargs: clear_calls.append(kwargs),
+    )
+    monkeypatch.setattr(reporting, "_display", displayed.append)
+    monkeypatch.setattr(
+        reporting,
+        "_plot_optimization_history",
+        lambda current_study: ("oh", current_study),
+    )
 
     show_lander_live_progress(
         study,
         target_trials=40,
         lander_studies=[study],
-        clear_output_fn=lambda **kwargs: clear_calls.append(kwargs),
-        display_fn=displayed.append,
-        plot_history=lambda current_study: ("oh", current_study),
     )
 
     assert clear_calls == [{"wait": True}]

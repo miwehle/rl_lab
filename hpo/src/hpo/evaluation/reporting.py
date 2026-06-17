@@ -1,6 +1,5 @@
 """Notebook reporting helpers for HPO studies."""
 
-from collections.abc import Callable
 from typing import Any
 
 
@@ -39,29 +38,15 @@ def show_lander_live_progress(
     *,
     target_trials: int,
     lander_studies: Any,
-    clear_output_fn: Callable[..., None] | None = None,
-    display_fn: Callable[[Any], None] | None = None,
-    plot_history: Callable[[Any], Any] | None = None,
 ) -> None:
     """Display live Lander History and current Optuna History."""
-    if clear_output_fn is None or display_fn is None:
-        from IPython.display import clear_output, display
-
-        clear_output_fn = clear_output if clear_output_fn is None else clear_output_fn
-        display_fn = display if display_fn is None else display_fn
-
-    if plot_history is None:
-        from optuna.visualization import plot_optimization_history
-
-        plot_history = plot_optimization_history
-
-    clear_output_fn(wait=True)
+    _clear_output(wait=True)
     print(f"Target trials: {target_trials}")
     print(f"Finished trials: {finished_trial_count(study)}")
     print("LH: Lander History")
-    display_fn(plot_lander_progress(lander_studies))
+    _display(plot_lander_progress(lander_studies))
     print("OH: Optuna History")
-    display_fn(plot_history(study))
+    _display(_plot_optimization_history(study))
 
 
 def finished_trial_count(study: Any) -> int:
@@ -73,18 +58,9 @@ def show_study_progress(
     study: Any,
     *,
     target_trials: int,
-    clear_output_fn: Callable[..., None] | None = None,
-    display_fn: Callable[[Any], None] | None = None,
-    plot_history: Callable[[Any], Any] | None = None,
 ) -> None:
     """Display current optimization progress in a notebook."""
-    if clear_output_fn is None or display_fn is None:
-        from IPython.display import clear_output, display
-
-        clear_output_fn = clear_output if clear_output_fn is None else clear_output_fn
-        display_fn = display if display_fn is None else display_fn
-
-    clear_output_fn(wait=True)
+    _clear_output(wait=True)
 
     complete_trials = _trial_count(study, "COMPLETE")
     pruned_trials = _trial_count(study, "PRUNED")
@@ -112,17 +88,30 @@ def show_study_progress(
         best_trial.user_attrs["best_window_end_episode"],
     )
     print("Best params:")
-    display_fn(best_trial.params)
+    _display(best_trial.params)
 
-    if plot_history is None:
-        from optuna.visualization import plot_optimization_history
-
-        plot_history = plot_optimization_history
-
-    fig = plot_history(study)
+    fig = _plot_optimization_history(study)
     fig.update_layout(width=1000, height=450, margin=dict(r=180))
     fig.update_xaxes(range=[0, target_trials])
-    display_fn(fig)
+    _display(fig)
+
+
+def _clear_output(*args, **kwargs) -> None:
+    from IPython.display import clear_output
+
+    clear_output(*args, **kwargs)
+
+
+def _display(value: Any) -> None:
+    from IPython.display import display
+
+    display(value)
+
+
+def _plot_optimization_history(study: Any) -> Any:
+    from optuna.visualization import plot_optimization_history
+
+    return plot_optimization_history(study)
 
 
 def _trial_count(study: Any, state_name: str) -> int:
