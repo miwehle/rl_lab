@@ -11,7 +11,7 @@ from gymnasium.vector import SyncVectorEnv
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
-from hpo.evaluation.scoring import ScoringConfig, training_effort
+from hpo.evaluation.scoring import ScoringConfig, quality_effort_score, training_effort
 from hpo.lunar_lander.logging import log_call
 
 
@@ -42,12 +42,10 @@ class TrialConfig:
 
 
 def create_objective(
-    *,
-    search_space: SearchSpace,
+    *, search_space: SearchSpace,
     trial_cfg: TrialConfig = TrialConfig(),
     scoring_cfg: ScoringConfig = ScoringConfig(),
-    env_id: str = "LunarLander-v3",
-    eval_max_steps: int = 2_000,
+    env_id: str = "LunarLander-v3", eval_max_steps: int = 2_000,
 ) -> Callable[[Any], float]:
     """Create an Optuna objective that trains one vectorized LunarLander DQN."""
     if eval_max_steps < 1:
@@ -94,13 +92,7 @@ def create_objective(
                 alpha=scoring_cfg.alpha,
             )
         )
-        quality = (gym_score - scoring_cfg.quality_min) / (
-            scoring_cfg.quality_target - scoring_cfg.quality_min
-        )
-        objective_score = (
-            scoring_cfg.quality_weight * quality
-            - (1 - scoring_cfg.quality_weight) * (effort - 1)
-        )
+        objective_score = quality_effort_score(gym_score, effort, scoring_cfg)
 
         def save(key, value):
             trial.set_user_attr(key, value)
@@ -124,14 +116,9 @@ def create_objective(
 
 @log_call
 def evaluate_greedy_policy(
-    *,
-    q_net: Any,
-    device,
-    env_id: str,
-    env_factory: EnvFactory = gym.make,
-    episodes: int = 20,
-    max_steps: int = 2_000,
-    seed: int | None = None,
+    *, q_net: Any, device, env_id: str,
+    env_factory: EnvFactory = gym.make, episodes: int = 20,
+    max_steps: int = 2_000, seed: int | None = None,
 ) -> float:
     """Return mean greedy episode return for a trained Q-network."""
     episode_returns = []
@@ -165,8 +152,5 @@ def evaluate_greedy_policy(
     return sum(episode_returns) / len(episode_returns)
 
 
-def _make_vector_env(
-    env_id: str,
-    num_envs: int,
-) -> SyncVectorEnv:
+def _make_vector_env(env_id: str, num_envs: int) -> SyncVectorEnv:
     return SyncVectorEnv([lambda: gym.make(env_id) for _ in range(num_envs)])

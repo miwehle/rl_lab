@@ -34,11 +34,8 @@ class ScoringConfig:
 
 
 def training_effort(
-    *,
-    env_steps: int,
-    processed_samples: int,
-    baseline_env_steps: float,
-    baseline_processed_samples: float,
+    *, env_steps: int, processed_samples: int,
+    baseline_env_steps: float, baseline_processed_samples: float,
     alpha: float = 0.5,
 ) -> float:
     """Return training effort relative to a baseline."""
@@ -49,4 +46,14 @@ def training_effort(
     return (
         alpha * env_steps / baseline_env_steps
         + (1 - alpha) * processed_samples / baseline_processed_samples
+    )
+
+
+def quality_effort_score(
+    gym_score: float, training_effort: float, cfg: ScoringConfig
+) -> float:
+    """Combine normalized Gym quality and training effort."""
+    quality = (gym_score - cfg.quality_min) / (cfg.quality_target - cfg.quality_min)
+    return cfg.quality_weight * quality - (1 - cfg.quality_weight) * (
+        training_effort - 1
     )
