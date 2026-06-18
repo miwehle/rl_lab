@@ -32,6 +32,8 @@ class VectorTrainingConfig(TrainingConfig):
 @dataclass
 class VectorTrainingResult(TrainingResult):
     episode_epsilons: list[float]
+    env_steps: int
+    optimizer_updates: int
 
 
 @dataclass
@@ -129,6 +131,7 @@ class VectorTrainer:
     ) -> None:
         self.env = env
         self.steps_done = 0
+        self.optimizer_updates = 0
         self.epsilons: list[float] = []
         self.device = resolve_device(device)
         self.rng = np.random.default_rng(seed)
@@ -223,6 +226,8 @@ class VectorTrainer:
             episode_returns,
             episode_lengths,
             episode_epsilons,
+            self.steps_done,
+            self.optimizer_updates,
         )
 
     def _select_actions(
@@ -293,6 +298,7 @@ class VectorTrainer:
         loss.backward()
         torch.nn.utils.clip_grad_value_(self.q_net.parameters(), 100)
         self.optimizer.step()
+        self.optimizer_updates += 1
 
     def _soft_target_update(self, tau: float) -> None:
         with torch.no_grad():

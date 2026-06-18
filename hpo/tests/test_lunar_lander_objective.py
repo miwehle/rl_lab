@@ -105,20 +105,23 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
                 episode_returns=[10.0, 50.0, 40.0, 20.0],
                 episode_lengths=[1, 1, 1, 1],
                 episode_epsilons=[0.7, 0.6, 0.5, 0.4],
+                env_steps=80,
+                optimizer_updates=2,
             )
 
-    def eval_score_fn(**kwargs):
+    def gym_score_fn(**kwargs):
         eval_calls.append(kwargs)
         return 123.0
 
     monkeypatch.setattr(objective_module, "_make_vector_env", vector_env_factory)
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
-    monkeypatch.setattr(objective_module, "evaluate_greedy_policy", eval_score_fn)
+    monkeypatch.setattr(objective_module, "evaluate_greedy_policy", gym_score_fn)
 
     objective = objective_module.create_objective(
         search_space=search_space,
         num_episodes=12,
-        score_window=2,
+        baseline_env_steps=100,
+        baseline_processed_samples=100,
         seed=100,
     )
 
@@ -129,13 +132,13 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
         ("training_config", trial, 12),
         ("replay_memory_capacity", trial),
     ]
-    assert score == pytest.approx(37.5)
-    assert trial.user_attrs["best_window_score"] == pytest.approx(45.0)
-    assert trial.user_attrs["best_window_start_episode"] == 2
-    assert trial.user_attrs["best_window_end_episode"] == 3
-    assert trial.user_attrs["final_window_score"] == pytest.approx(30.0)
-    assert trial.user_attrs["objective_score"] == pytest.approx(37.5)
-    assert trial.user_attrs["eval_score"] == pytest.approx(123.0)
+    assert score == pytest.approx(-1.39)
+    assert trial.user_attrs["gym_score"] == pytest.approx(123.0)
+    assert trial.user_attrs["env_steps"] == 80
+    assert trial.user_attrs["optimizer_updates"] == 2
+    assert trial.user_attrs["processed_samples"] == 128
+    assert trial.user_attrs["training_effort"] == pytest.approx(1.04)
+    assert "objective_score" not in trial.user_attrs
     assert trial.user_attrs["trial_seed"] == 103
     assert trial.user_attrs["wall_time_seconds"] >= 0.0
     assert trial.user_attrs["training_curve"] == {
@@ -152,12 +155,14 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
     assert eval_calls[0]["q_net"] == "fake-q-net"
     assert eval_calls[0]["device"] == "trainer-device"
     assert eval_calls[0]["env_id"] == "LunarLander-v3"
-    assert eval_calls[0]["episodes"] == 3
+    assert eval_calls[0]["episodes"] == 20
     assert eval_calls[0]["max_steps"] == 2_000
-    assert eval_calls[0]["seed"] == 103
+    assert eval_calls[0]["seed"] == 10_000
 
 
-def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn(monkeypatch) -> None:
+def test_lunar_lander_objective_passes_eval_settings_to_gym_score_fn(
+    monkeypatch,
+) -> None:
     eval_calls = []
 
     class FakeTrainer:
@@ -172,6 +177,8 @@ def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn(monkeypatc
                 episode_returns=[1.0],
                 episode_lengths=[1],
                 episode_epsilons=[0.1],
+                env_steps=1,
+                optimizer_updates=1,
             )
 
     monkeypatch.setattr(
@@ -189,17 +196,19 @@ def test_lunar_lander_objective_passes_eval_settings_to_eval_score_fn(monkeypatc
     objective = objective_module.create_objective(
         search_space=FakeSearchSpace(),
         num_episodes=1,
-        score_window=1,
         seed=None,
         eval_episodes=7,
+        eval_seed=50,
         eval_max_steps=99,
     )
 
-    objective(FakeTrial())
+    trial = FakeTrial()
+    objective(trial)
 
     assert eval_calls[0]["episodes"] == 7
     assert eval_calls[0]["max_steps"] == 99
-    assert eval_calls[0]["seed"] is None
+    assert eval_calls[0]["seed"] == 50
+    assert trial.user_attrs["training_effort"] == 1.0
 
 
 def test_evaluate_greedy_policy_returns_mean_episode_return() -> None:

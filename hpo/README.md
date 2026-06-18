@@ -25,32 +25,21 @@ L4 GPU
 
 ## Objective
 
-The Optuna objective is created in code and then passed to a study:
+The objective maximizes greedy Gym quality while penalizing training effort.
+Use `run_study(...)` from the notebook; it persists the scoring configuration
+and the S0 effort baseline in Optuna's SQLite storage.
 
 ```python
-from hpo.evaluation.pruning import PruningConfig
-from hpo.lunar_lander.objective import create_objective
-
-pruning_config = None
-# pruning_config = PruningConfig(start_episode=250, min_score=100.0)
-search_space = SearchSpace()
-
-objective = create_objective(
-    search_space=search_space,
-    num_episodes=500,
-    output_dir=HPO_RUN_DIR,
+study = run_study(
+    study_name="s1_qe_update_economy",
+    search_space=SearchSpace1(),
+    n_trials=40,
+    num_episodes=600,
+    baseline_env_steps=study0.user_attrs["baseline_env_steps"],
+    baseline_processed_samples=study0.user_attrs["baseline_processed_samples"],
+    study_dir=HPO_STUDY_DIR,
     device=device,
-    pruning_config=pruning_config,
 )
-
-study_db_path = HPO_STUDY_DIR / "lunar_lander_dqn.db"
-study = optuna.create_study(
-    study_name="lunar_lander_dqn",
-    direction="maximize",
-    storage=f"sqlite:///{study_db_path}",
-    load_if_exists=True,
-)
-study.optimize(objective, n_trials=100)
 ```
 
 ## Local Tests

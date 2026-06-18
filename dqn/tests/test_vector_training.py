@@ -67,6 +67,8 @@ def test_vector_training_smoke() -> None:
     assert len(result.episode_returns) == 4
     assert len(result.episode_lengths) == 4
     assert len(result.episode_epsilons) == 4
+    assert result.env_steps > 0
+    assert result.optimizer_updates > 0
     assert all(length > 0 for length in result.episode_lengths)
     assert all(0.05 <= epsilon <= 1.0 for epsilon in result.episode_epsilons)
     assert trainer.device.type in {"cpu", "cuda", "mps"}
@@ -118,3 +120,4 @@ def test_vector_trainer_optimizes_for_each_crossed_interval() -> None:
         env.close()
 
     assert len(calls) == 4
+    assert trainer.optimizer_updates == 0

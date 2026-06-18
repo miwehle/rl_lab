@@ -7,27 +7,27 @@ def plot_lander_progress(study: Any) -> Any:
     """Plot one Lander History point per study."""
     import matplotlib.pyplot as plt
 
-    mean_training_minutes = []
-    eval_scores = []
+    training_efforts = []
+    gym_scores = []
     labels = []
 
     for index, current_study in enumerate(_study_list(study)):
         point = _study_progress_point(current_study)
         if point is None:
             continue
-        mean_training_minutes.append(point["mean_wall_time_seconds"] / 60)
-        eval_scores.append(point["eval_score"])
+        training_efforts.append(point["training_effort"])
+        gym_scores.append(point["gym_score"])
         labels.append(_study_label(current_study, index))
 
     fig, ax = plt.subplots(figsize=(10, 4.5))
-    ax.plot(mean_training_minutes, eval_scores, marker="o", label="Greedy eval score")
-    for x, y, label in zip(mean_training_minutes, eval_scores, labels, strict=True):
+    ax.plot(training_efforts, gym_scores, marker="o", label="Greedy Gym score")
+    for x, y, label in zip(training_efforts, gym_scores, labels, strict=True):
         ax.annotate(label, (x, y), xytext=(5, 5), textcoords="offset points")
     ax.axhline(200, color="gray", linestyle="--", label="200")
     ax.axhline(250, color="red", linestyle="--", label="250")
     ax.set_title("Lander History")
-    ax.set_xlabel("Mean L4 training time per Lander (min)")
-    ax.set_ylabel("Greedy eval score")
+    ax.set_xlabel("Training effort relative to S0")
+    ax.set_ylabel("Greedy Gym score")
     ax.legend()
     fig.tight_layout()
     return fig
@@ -89,13 +89,9 @@ def show_study_progress(
         return
 
     best_trial = study.best_trial
-    print(f"Best mean return: {best_trial.value:.1f}")
-    print(
-        "Best episode window:",
-        best_trial.user_attrs["best_window_start_episode"],
-        "-",
-        best_trial.user_attrs["best_window_end_episode"],
-    )
+    print(f"Best objective score: {best_trial.value:.3f}")
+    print(f"Gym score: {best_trial.user_attrs['gym_score']:.1f}")
+    print(f"Training effort: {best_trial.user_attrs['training_effort']:.3f}")
     print("Best params:")
     _display(best_trial.params)
 
@@ -138,23 +134,15 @@ def _study_list(studies: Any) -> list[Any]:
 
 
 def _study_progress_point(study: Any) -> dict[str, float] | None:
-    eval_score = getattr(study, "user_attrs", {}).get("robust_best_eval_score")
-    if eval_score is None:
-        return None
-
-    trials = [
-        trial for trial in study.trials
-        if _trial_state_name(trial) == "COMPLETE"
-        and "wall_time_seconds" in trial.user_attrs
-    ]
-    if not trials:
+    user_attrs = getattr(study, "user_attrs", {})
+    gym_score = user_attrs.get("robust_best_gym_score")
+    training_effort = user_attrs.get("robust_best_training_effort")
+    if gym_score is None or training_effort is None:
         return None
 
     return {
-        "mean_wall_time_seconds": sum(
-            float(trial.user_attrs["wall_time_seconds"]) for trial in trials
-        ) / len(trials),
-        "eval_score": float(eval_score),
+        "training_effort": float(training_effort),
+        "gym_score": float(gym_score),
     }
 
 

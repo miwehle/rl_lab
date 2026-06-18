@@ -19,18 +19,23 @@ Aufgaben:
   `VectorTrainingConfig`.
 - `search_space.replay_memory_capacity(trial)` liefert die Replay-Kapazität.
 - `VectorTrainer(...).train(training_config)` ausführen.
-- Trial-Score berechnen:
+- Greedy Gym-Score mit 20 festen Eval-Seeds berechnen.
+- Hardwareunabhängigen Trainingsaufwand relativ zu S0 berechnen:
 
 ```python
-best_window = best_window_mean(result.episode_returns, score_window)
-best_window_score = best_window.mean
-final_returns = result.episode_returns[-score_window:]
-final_window_score = sum(final_returns) / len(final_returns)
-objective_score = (best_window_score + final_window_score) / 2
+processed_samples = result.optimizer_updates * training_config.batch_size
+effort = training_effort(
+    env_steps=result.env_steps,
+    processed_samples=processed_samples,
+    baseline_env_steps=baseline_env_steps,
+    baseline_processed_samples=baseline_processed_samples,
+    alpha=alpha,
+)
+quality = (gym_score - quality_min) / (quality_target - quality_min)
+objective_score = quality_weight * quality - (1 - quality_weight) * (effort - 1)
 ```
 
-- `best_window_score`, `final_window_score`, `objective_score` und
-  `best_window_*` als Trial-Attribute speichern.
+- Rohwerte und Aufwand als Trial-Attribute speichern.
 - `objective_score` zurückgeben.
 
 Kein Pruning im VectorTrainer-HPO-Pfad.
@@ -46,8 +51,6 @@ run_study(
     search_space,
     n_trials,
     num_episodes,
-    score_window,
-    output_dir,
     study_dir,
     device,
     num_envs=16,
@@ -71,7 +74,6 @@ select_robust_best(
     study,
     search_space_factory,
     num_episodes,
-    score_window,
     device,
     num_envs=16,
     base_seed=42,
@@ -97,13 +99,13 @@ plot_lander_progress(study)
 ```
 
 Inhalt:
-- x-Achse: kumulierte Trainingszeit auf L4.
-- y-Achse: Greedy-Eval-Score (`epsilon=0`).
+- x-Achse: Trainingsaufwand relativ zu S0.
+- y-Achse: Greedy-Gym-Score (`epsilon=0`).
 - horizontale Marken bei `200` und `250`.
 
 Die Objective speichert dafür pro Trial:
-- `wall_time_seconds` (nur Training, ohne Greedy Eval)
-- `eval_score`
+- `training_effort`
+- `gym_score`
 
 ## Notebook
 
@@ -170,8 +172,8 @@ die beste HP-Kombination zurück.
 
 - `SearchSpace0`: feste Baseline-HP, keine `trial.suggest_*`-Aufrufe, `n_trials=1`.
 - `LH`: Study-History mit einem Punkt pro Studie (`S0` bis `S4`).
-- `LH`-x: mittlere Trainingszeit pro Trial der Studie; Robustheitsprüfungen zählen nicht mit.
-- `LH`-y: `eval_score` des besten/robusten Studienergebnisses.
+- `LH`-x: robuster Trainingsaufwand des gewählten Studienergebnisses.
+- `LH`-y: robuster Greedy-Gym-Score desselben Ergebnisses.
 - `OH`: Optuna History der aktuell laufenden Studie, ein Punkt pro Trial.
 
 Die Ausgabe wird nach jedem Trial aktualisiert. Frühere Live-Ausgaben werden
@@ -187,24 +189,23 @@ Neustart wird eine vorhandene Drive-DB zurück nach lokal kopiert.
 ### Custom Attributes
 
 Trial-User-Attrs:
-- `best_window_score`: bester geglätteter Trainingsscore.
-- `best_window_start_episode`, `best_window_end_episode`: Lage des besten
-  Fensters.
-- `final_window_score`: geglätteter Score am Trainingsende.
-- `objective_score`: Optuna-Zielwert gemäß HLD.
-- `eval_score`: Greedy-Eval-Score nach dem Training.
+- `gym_score`: Greedy-Gym-Score nach dem Training.
+- `env_steps`, `optimizer_updates`, `processed_samples`: Aufwandsrohwerte.
+- `training_effort`: relativ zu S0 normalisierter Trainingsaufwand.
 - `wall_time_seconds`: reine Trainingszeit, ohne Greedy Eval.
 - `training_curve`: Returns und Epsilons je Episode.
 
 Study-User-Attrs:
+- Scoring-Konfiguration und feste Eval-Seeds.
+- `baseline_env_steps`, `baseline_processed_samples`.
 - `robust_best_params`: robust beste HP-Kombination der Studie.
 - `robust_best_objective_score`: robuster Objective-Score dieser Kombination.
-- `robust_best_eval_score`: robuster Greedy-Eval-Score dieser Kombination.
+- `robust_best_gym_score`: robuster Greedy-Gym-Score dieser Kombination.
+- `robust_best_training_effort`: robuster Aufwand dieser Kombination.
 
 Nutzung:
-- `objective_score` steuert die Optuna-Optimierung.
-- `best_window_*` und `final_window_score` erklären den Trial-Score.
-- `eval_score`, `wall_time_seconds` und robuste Study-Attrs speisen `LH`.
+- `trial.value` steuert die Optuna-Optimierung.
+- robuste Study-Attrs speisen `LH`.
 - `training_curve` rekonstruiert später das Trainingsdiagramm aus dem
   DQN-Notebook: Returns pro Episode, geglättete Return-Kurve und Epsilon-Kurve.
   Die geglättete Kurve wird nicht gespeichert, sondern aus den Rohdaten

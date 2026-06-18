@@ -10,7 +10,7 @@ from gymnasium.vector import SyncVectorEnv
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
-from hpo.evaluation.scoring import best_window_mean
+from hpo.evaluation.scoring import training_effort
 from hpo.lunar_lander.logging import log_call
 
 
@@ -32,25 +32,37 @@ def create_objective(
     *,
     search_space: SearchSpace,
     num_episodes: int,
-    score_window: int = 100,
+    baseline_env_steps: float | None = None,
+    baseline_processed_samples: float | None = None,
+    alpha: float = 0.5,
+    quality_weight: float = 0.9,
+    quality_min: float = 200.0,
+    quality_target: float = 250.0,
     seed: int | None = 42,
     env_id: str = "LunarLander-v3",
     device=None,
     num_envs: int = 16,
-    eval_episodes: int = 3,
+    eval_episodes: int = 20,
+    eval_seed: int | None = 10_000,
     eval_max_steps: int = 2_000,
 ) -> Callable[[Any], float]:
     """Create an Optuna objective that trains one vectorized LunarLander DQN."""
     if num_episodes < 1:
         raise ValueError("num_episodes must be >= 1")
-    if score_window < 1:
-        raise ValueError("score_window must be >= 1")
     if num_envs < 1:
         raise ValueError("num_envs must be >= 1")
     if eval_episodes < 1:
         raise ValueError("eval_episodes must be >= 1")
     if eval_max_steps < 1:
         raise ValueError("eval_max_steps must be >= 1")
+    if not 0 <= alpha <= 1:
+        raise ValueError("alpha must be between 0 and 1")
+    if not 0 <= quality_weight <= 1:
+        raise ValueError("quality_weight must be between 0 and 1")
+    if quality_target <= quality_min:
+        raise ValueError("quality_target must be greater than quality_min")
+    if (baseline_env_steps is None) != (baseline_processed_samples is None):
+        raise ValueError("baseline effort values must both be set or both be None")
 
     @log_call
     def objective(trial: Any) -> float:
@@ -73,29 +85,40 @@ def create_objective(
         finally:
             env.close()
 
-        best_window = best_window_mean(result.episode_returns, score_window)
-        final_returns = result.episode_returns[-score_window:]
-        final_window_score = sum(final_returns) / len(final_returns)
-        objective_score = (best_window.mean + final_window_score) / 2
-
-        eval_score = evaluate_greedy_policy(
+        gym_score = evaluate_greedy_policy(
             q_net=result.q_net,
             device=trainer.device,
             env_id=env_id,
             episodes=eval_episodes,
             max_steps=eval_max_steps,
-            seed=trial_seed,
+            seed=eval_seed,
+        )
+        processed_samples = result.optimizer_updates * training_config.batch_size
+        effort = (
+            1.0
+            if baseline_env_steps is None
+            else training_effort(
+                env_steps=result.env_steps,
+                processed_samples=processed_samples,
+                baseline_env_steps=baseline_env_steps,
+                baseline_processed_samples=baseline_processed_samples,
+                alpha=alpha,
+            )
+        )
+        quality = (gym_score - quality_min) / (quality_target - quality_min)
+        objective_score = (
+            quality_weight * quality
+            - (1 - quality_weight) * (effort - 1)
         )
 
         def save(key, value):
             trial.set_user_attr(key, value)
 
-        save("best_window_score", best_window.mean)
-        save("best_window_start_episode", best_window.start_episode)
-        save("best_window_end_episode", best_window.end_episode)
-        save("final_window_score", final_window_score)
-        save("objective_score", objective_score)
-        save("eval_score", eval_score)
+        save("gym_score", gym_score)
+        save("env_steps", result.env_steps)
+        save("optimizer_updates", result.optimizer_updates)
+        save("processed_samples", processed_samples)
+        save("training_effort", effort)
         save("trial_seed", trial_seed)
         save("wall_time_seconds", wall_time_seconds)
         save("training_curve", {
@@ -115,7 +138,7 @@ def evaluate_greedy_policy(
     device,
     env_id: str,
     env_factory: EnvFactory = gym.make,
-    episodes: int = 3,
+    episodes: int = 20,
     max_steps: int = 2_000,
     seed: int | None = None,
 ) -> float:

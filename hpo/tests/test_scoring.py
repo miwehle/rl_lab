@@ -1,24 +1,30 @@
 import pytest
 
-from hpo.evaluation.scoring import best_window_mean
+from hpo.evaluation.scoring import training_effort
 
 
-def test_best_window_mean_uses_best_rolling_window() -> None:
-    score = best_window_mean([1.0, 8.0, 6.0, 2.0], 2)
-
-    assert score.mean == pytest.approx(7.0)
-    assert score.start_episode == 2
-    assert score.end_episode == 3
-
-
-def test_best_window_mean_uses_available_values_when_window_is_larger() -> None:
-    score = best_window_mean([1.0, 3.0], 5)
-
-    assert score.mean == pytest.approx(2.0)
-    assert score.start_episode == 1
-    assert score.end_episode == 2
+def test_training_effort_combines_relative_env_and_learning_work() -> None:
+    assert training_effort(
+        env_steps=80,
+        processed_samples=120,
+        baseline_env_steps=100,
+        baseline_processed_samples=100,
+    ) == pytest.approx(1.0)
 
 
-def test_best_window_mean_rejects_empty_values() -> None:
-    with pytest.raises(ValueError, match="values must not be empty"):
-        best_window_mean([], 5)
+def test_training_effort_validates_baseline_and_alpha() -> None:
+    with pytest.raises(ValueError, match="baseline"):
+        training_effort(
+            env_steps=1,
+            processed_samples=1,
+            baseline_env_steps=0,
+            baseline_processed_samples=1,
+        )
+    with pytest.raises(ValueError, match="alpha"):
+        training_effort(
+            env_steps=1,
+            processed_samples=1,
+            baseline_env_steps=1,
+            baseline_processed_samples=1,
+            alpha=2,
+        )

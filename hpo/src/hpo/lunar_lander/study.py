@@ -23,9 +23,16 @@ def run_study(
     search_space: Any,
     n_trials: int,
     num_episodes: int,
-    score_window: int,
     study_dir: str | Path,
     device,
+    baseline_env_steps: float | None = None,
+    baseline_processed_samples: float | None = None,
+    alpha: float = 0.5,
+    quality_weight: float = 0.9,
+    quality_min: float = 200.0,
+    quality_target: float = 250.0,
+    eval_episodes: int = 20,
+    eval_seed: int = 10_000,
     num_envs: int = 16,
     seed: int | None = 42,
     progress_fn: ProgressFn | None = show_study_progress,
@@ -40,7 +47,14 @@ def run_study(
     objective = create_objective(
         search_space=search_space,
         num_episodes=num_episodes,
-        score_window=score_window,
+        baseline_env_steps=baseline_env_steps,
+        baseline_processed_samples=baseline_processed_samples,
+        alpha=alpha,
+        quality_weight=quality_weight,
+        quality_min=quality_min,
+        quality_target=quality_target,
+        eval_episodes=eval_episodes,
+        eval_seed=eval_seed,
         seed=seed,
         device=device,
         num_envs=num_envs,
@@ -51,6 +65,18 @@ def run_study(
         storage=f"sqlite:///{study_path / f'{study_name}.db'}",
         load_if_exists=True,
     )
+    scoring_attrs = {
+        "alpha": alpha,
+        "quality_weight": quality_weight,
+        "quality_min": quality_min,
+        "quality_target": quality_target,
+        "eval_episodes": eval_episodes,
+        "eval_seeds": list(range(eval_seed, eval_seed + eval_episodes)),
+    }
+    if baseline_env_steps is not None:
+        scoring_attrs["baseline_env_steps"] = baseline_env_steps
+        scoring_attrs["baseline_processed_samples"] = baseline_processed_samples
+    _set_or_check_study_attrs(study, scoring_attrs)
 
     while finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
@@ -58,6 +84,29 @@ def run_study(
         if progress_fn is not None:
             progress_fn(study, target_trials=n_trials)
 
+    if baseline_env_steps is None:
+        _set_study_user_attr(
+            study,
+            "baseline_env_steps",
+            _mean_trial_attr(study, "env_steps"),
+        )
+        _set_study_user_attr(
+            study,
+            "baseline_processed_samples",
+            _mean_trial_attr(study, "processed_samples"),
+        )
+        _set_study_user_attr(study, "robust_best_params", {})
+        _set_study_user_attr(
+            study,
+            "robust_best_objective_score",
+            _mean_trial_value(study),
+        )
+        _set_study_user_attr(
+            study,
+            "robust_best_gym_score",
+            _mean_trial_attr(study, "gym_score"),
+        )
+        _set_study_user_attr(study, "robust_best_training_effort", 1.0)
     return study
 
 
@@ -74,7 +123,6 @@ def select_robust_best(
     study: Any,
     search_space_factory: SearchSpaceFactory,
     num_episodes: int,
-    score_window: int,
     device,
     num_envs: int = 16,
     base_seed: int = 42,
@@ -91,47 +139,58 @@ def select_robust_best(
 
     best_params = None
     best_mean = float("-inf")
-    best_eval_mean = None
+    best_gym_mean = None
+    best_effort_mean = None
 
-    def score_candidate(trial: Any) -> tuple[dict[str, Any], float, float | None]:
+    def score_candidate(trial: Any) -> tuple[dict[str, Any], float, float, float]:
         scores = [float(trial.value)]
-        eval_scores = []
-        if "eval_score" in getattr(trial, "user_attrs", {}):
-            eval_scores.append(float(trial.user_attrs["eval_score"]))
+        gym_scores = [float(trial.user_attrs["gym_score"])]
+        efforts = [float(trial.user_attrs["training_effort"])]
 
         for seed_offset in extra_seeds:
             objective = create_objective(
                 search_space=search_space_factory(),
                 num_episodes=num_episodes,
-                score_window=score_window,
+                baseline_env_steps=study.user_attrs["baseline_env_steps"],
+                baseline_processed_samples=study.user_attrs[
+                    "baseline_processed_samples"
+                ],
+                alpha=study.user_attrs["alpha"],
+                quality_weight=study.user_attrs["quality_weight"],
+                quality_min=study.user_attrs["quality_min"],
+                quality_target=study.user_attrs["quality_target"],
+                eval_episodes=study.user_attrs["eval_episodes"],
+                eval_seed=study.user_attrs["eval_seeds"][0],
                 seed=base_seed + seed_offset,
                 device=device,
                 num_envs=num_envs,
             )
             fixed_trial = _FixedParamTrial(trial.params)
             scores.append(objective(fixed_trial))
-            if "eval_score" in fixed_trial.user_attrs:
-                eval_scores.append(float(fixed_trial.user_attrs["eval_score"]))
+            gym_scores.append(float(fixed_trial.user_attrs["gym_score"]))
+            efforts.append(float(fixed_trial.user_attrs["training_effort"]))
 
         mean_score = sum(scores) / len(scores)
-        mean_eval_score = (
-            sum(eval_scores) / len(eval_scores)
-            if eval_scores else None
+        return (
+            dict(trial.params),
+            mean_score,
+            sum(gym_scores) / len(gym_scores),
+            sum(efforts) / len(efforts),
         )
-        return dict(trial.params), mean_score, mean_eval_score
 
     for trial in candidates:
-        params, mean_score, mean_eval_score = score_candidate(trial)
+        params, mean_score, mean_gym_score, mean_effort = score_candidate(trial)
         if mean_score > best_mean:
             best_mean = mean_score
             best_params = params
-            best_eval_mean = mean_eval_score
+            best_gym_mean = mean_gym_score
+            best_effort_mean = mean_effort
 
     selected_params = best_params or {}
     _set_study_user_attr(study, "robust_best_params", selected_params)
     _set_study_user_attr(study, "robust_best_objective_score", best_mean)
-    if best_eval_mean is not None:
-        _set_study_user_attr(study, "robust_best_eval_score", best_eval_mean)
+    _set_study_user_attr(study, "robust_best_gym_score", best_gym_mean)
+    _set_study_user_attr(study, "robust_best_training_effort", best_effort_mean)
     return selected_params
 
 
@@ -157,6 +216,35 @@ def _set_study_user_attr(study: Any, name: str, value: Any) -> None:
     else:
         study.user_attrs = getattr(study, "user_attrs", {})
         study.user_attrs[name] = value
+
+
+def _set_or_check_study_attrs(study: Any, attrs: dict[str, Any]) -> None:
+    for name, value in attrs.items():
+        if name in study.user_attrs and study.user_attrs[name] != value:
+            raise ValueError(f"study {name} does not match current configuration")
+        _set_study_user_attr(study, name, value)
+
+
+def _mean_trial_attr(study: Any, name: str) -> float:
+    values = [
+        float(trial.user_attrs[name])
+        for trial in study.trials
+        if _trial_state_name(trial) == "COMPLETE" and name in trial.user_attrs
+    ]
+    if not values:
+        raise ValueError(f"study has no complete trials with {name}")
+    return sum(values) / len(values)
+
+
+def _mean_trial_value(study: Any) -> float:
+    values = [
+        float(trial.value)
+        for trial in study.trials
+        if _trial_state_name(trial) == "COMPLETE" and trial.value is not None
+    ]
+    if not values:
+        raise ValueError("study has no complete trial values")
+    return sum(values) / len(values)
 
 
 def _trial_state_name(trial: Any) -> str:

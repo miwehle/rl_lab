@@ -1,37 +1,20 @@
 """Scoring helpers for HPO trial results."""
 
-from collections.abc import Sequence
-from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
-class WindowScore:
-    mean: float
-    start_episode: int
-    end_episode: int
-
-
-def best_window_mean(values: Sequence[float], window: int) -> WindowScore:
-    """Return the best rolling mean and its 1-based episode range."""
-    if window < 1:
-        raise ValueError("window must be >= 1")
-    if not values:
-        raise ValueError("values must not be empty")
-
-    best_score = WindowScore(
-        mean=sum(values[:window]) / min(window, len(values)),
-        start_episode=1,
-        end_episode=min(window, len(values)),
+def training_effort(
+    *,
+    env_steps: int,
+    processed_samples: int,
+    baseline_env_steps: float,
+    baseline_processed_samples: float,
+    alpha: float = 0.5,
+) -> float:
+    """Return training effort relative to a baseline."""
+    if baseline_env_steps <= 0 or baseline_processed_samples <= 0:
+        raise ValueError("baseline effort values must be > 0")
+    if not 0 <= alpha <= 1:
+        raise ValueError("alpha must be between 0 and 1")
+    return (
+        alpha * env_steps / baseline_env_steps
+        + (1 - alpha) * processed_samples / baseline_processed_samples
     )
-
-    for start_index in range(1, max(len(values) - window + 1, 1)):
-        end_index = start_index + window
-        mean = sum(values[start_index:end_index]) / window
-        if mean > best_score.mean:
-            best_score = WindowScore(
-                mean=mean,
-                start_episode=start_index + 1,
-                end_episode=end_index,
-            )
-
-    return best_score
