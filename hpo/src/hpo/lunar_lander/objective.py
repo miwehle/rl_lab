@@ -72,7 +72,7 @@ def create_objective(
         finally:
             env.close()
 
-        gym_score = evaluate_greedy_policy(
+        gym_score = evaluate_greedy_q_net(
             q_net=result.q_net,
             device=trainer.device,
             env_id=env_id,
@@ -115,7 +115,7 @@ def create_objective(
 
 
 @log_call
-def evaluate_greedy_policy(
+def evaluate_greedy_q_net(
     *, q_net: Any, device, env_id: str,
     env_factory: EnvFactory = gym.make, episodes: int = 20,
     max_steps: int = 2_000, seed: int | None = None,
@@ -138,6 +138,7 @@ def evaluate_greedy_policy(
                     device=device,
                 ).unsqueeze(0)
                 with torch.no_grad():
+                    # greedy action: choose the highest Q-value without exploration
                     action = q_net(state).argmax(dim=1).item()
 
                 observation, reward, terminated, truncated, _ = env.step(action)

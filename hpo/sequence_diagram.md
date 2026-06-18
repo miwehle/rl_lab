@@ -24,7 +24,7 @@ sequenceDiagram
         vector_training->>trainer: create trainer
         objective->>trainer: train(training_config)
         trainer-->>objective: VectorTrainingResult
-        objective->>objective: evaluate_greedy_policy(...)
+        objective->>objective: evaluate_greedy_q_net(...)
         objective-->>study: objective_score
         study-->>study_module: trial completed
     end

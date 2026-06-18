@@ -6,7 +6,7 @@ import torch
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander import objective as objective_module
-from hpo.lunar_lander.objective import TrialConfig, evaluate_greedy_policy
+from hpo.lunar_lander.objective import TrialConfig, evaluate_greedy_q_net
 
 
 class FakeTrial:
@@ -116,7 +116,7 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
 
     monkeypatch.setattr(objective_module, "_make_vector_env", vector_env_factory)
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
-    monkeypatch.setattr(objective_module, "evaluate_greedy_policy", gym_score_fn)
+    monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", gym_score_fn)
 
     objective = objective_module.create_objective(
         search_space=search_space,
@@ -191,7 +191,7 @@ def test_lunar_lander_objective_passes_eval_settings_to_gym_score_fn(
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
     monkeypatch.setattr(
         objective_module,
-        "evaluate_greedy_policy",
+        "evaluate_greedy_q_net",
         lambda **kwargs: eval_calls.append(kwargs) or 5.0,
     )
 
@@ -211,7 +211,7 @@ def test_lunar_lander_objective_passes_eval_settings_to_gym_score_fn(
     assert trial.user_attrs["training_effort"] == 1.0
 
 
-def test_evaluate_greedy_policy_returns_mean_episode_return() -> None:
+def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:
     class FakeQNet:
         def eval(self) -> None:
             pass
@@ -242,7 +242,7 @@ def test_evaluate_greedy_policy_returns_mean_episode_return() -> None:
         envs.append(env)
         return env
 
-    score = evaluate_greedy_policy(
+    score = evaluate_greedy_q_net(
         q_net=FakeQNet(),
         device=torch.device("cpu"),
         env_id="LunarLander-v3",
