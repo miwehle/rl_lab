@@ -92,10 +92,22 @@ Einstellschrauben:
 - S0 persistiert die Referenzwerte; S1 bis S4 verwenden sie.
 - Die robuste Auswahl vergleicht weiterhin `trial.value`, nun also `o`.
 
-Pro Trial werden `gym_score`, die beiden Zähler, `processed_samples`,
-`training_effort`, `objective_score` und `wall_time_seconds` gespeichert.
+### Persistenz für spätere Analysen
+
+- Trial-Attribute speichern laufabhängige Messwerte: `gym_score`, `env_steps`,
+  `optimizer_updates`, `processed_samples`, `training_effort` und
+  `wall_time_seconds`.
+- `trial.value` speichert den Optuna-Score `o`; ein zusätzliches
+  `objective_score`-Attribut entfällt.
+- Study-Attribute speichern die gemeinsame Scoring-Konfiguration: `alpha`,
+  `quality_weight`, `quality_min`, `quality_target`, `eval_episodes` und
+  `eval_seeds`.
+- S0 speichert zusätzlich `baseline_env_steps` und
+  `baseline_processed_samples`.
+
 Die Trainingskurve bleibt diagnostisch erhalten; Window-Scores bestimmen den
-Gewinner nicht mehr.
+Gewinner nicht mehr. Andere Gewichtungen, Pareto-Diagramme und alternative
+Scoreformeln lassen sich später ohne erneutes Training berechnen.
 
 ### Warum Quality-Effort Score?
 
