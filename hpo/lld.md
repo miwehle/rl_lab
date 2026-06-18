@@ -50,11 +50,9 @@ run_study(
     study_name,
     search_space,
     n_trials,
-    num_episodes,
     study_dir,
-    device,
-    num_envs=16,
-    seed=42,
+    trial_cfg,
+    scoring_cfg,
 )
 ```
 
@@ -73,9 +71,8 @@ select_robust_best(
     *,
     study,
     search_space_factory,
-    num_episodes,
-    device,
-    num_envs=16,
+    trial_cfg,
+    scoring_cfg,
     base_seed=42,
     top_n=3,
     extra_seeds=(1001, 1002),

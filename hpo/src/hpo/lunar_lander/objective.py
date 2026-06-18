@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Protocol
 
@@ -10,7 +11,7 @@ from gymnasium.vector import SyncVectorEnv
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
-from hpo.evaluation.scoring import training_effort
+from hpo.evaluation.scoring import ScoringConfig, training_effort
 from hpo.lunar_lander.logging import log_call
 
 
@@ -28,54 +29,42 @@ class SearchSpace(Protocol):
 EnvFactory = Callable[[str], Any]
 
 
+@dataclass(frozen=True, kw_only=True)
+class TrialConfig:
+    num_episodes: int = 600
+    num_envs: int = 16
+    seed: int | None = 42
+    device: Any = None
+
+    def __post_init__(self) -> None:
+        if self.num_episodes < 1 or self.num_envs < 1:
+            raise ValueError("num_episodes and num_envs must be >= 1")
+
+
 def create_objective(
     *,
     search_space: SearchSpace,
-    num_episodes: int,
-    baseline_env_steps: float | None = None,
-    baseline_processed_samples: float | None = None,
-    alpha: float = 0.5,
-    quality_weight: float = 0.9,
-    quality_min: float = 200.0,
-    quality_target: float = 250.0,
-    seed: int | None = 42,
+    trial_cfg: TrialConfig = TrialConfig(),
+    scoring_cfg: ScoringConfig = ScoringConfig(),
     env_id: str = "LunarLander-v3",
-    device=None,
-    num_envs: int = 16,
-    eval_episodes: int = 20,
-    eval_seed: int | None = 10_000,
     eval_max_steps: int = 2_000,
 ) -> Callable[[Any], float]:
     """Create an Optuna objective that trains one vectorized LunarLander DQN."""
-    if num_episodes < 1:
-        raise ValueError("num_episodes must be >= 1")
-    if num_envs < 1:
-        raise ValueError("num_envs must be >= 1")
-    if eval_episodes < 1:
-        raise ValueError("eval_episodes must be >= 1")
     if eval_max_steps < 1:
         raise ValueError("eval_max_steps must be >= 1")
-    if not 0 <= alpha <= 1:
-        raise ValueError("alpha must be between 0 and 1")
-    if not 0 <= quality_weight <= 1:
-        raise ValueError("quality_weight must be between 0 and 1")
-    if quality_target <= quality_min:
-        raise ValueError("quality_target must be greater than quality_min")
-    if (baseline_env_steps is None) != (baseline_processed_samples is None):
-        raise ValueError("baseline effort values must both be set or both be None")
 
     @log_call
     def objective(trial: Any) -> float:
-        training_config = search_space.training_config(trial, num_episodes)
+        training_config = search_space.training_config(trial, trial_cfg.num_episodes)
         replay_memory_capacity = search_space.replay_memory_capacity(trial)
-        trial_seed = None if seed is None else seed + trial.number
+        trial_seed = None if trial_cfg.seed is None else trial_cfg.seed + trial.number
 
-        env = _make_vector_env(env_id, num_envs)
+        env = _make_vector_env(env_id, trial_cfg.num_envs)
         try:
             trainer = VectorTrainer(
                 env,
                 seed=trial_seed,
-                device=device,
+                device=trial_cfg.device,
                 replay_memory_capacity=replay_memory_capacity,
             )
 
@@ -89,26 +78,28 @@ def create_objective(
             q_net=result.q_net,
             device=trainer.device,
             env_id=env_id,
-            episodes=eval_episodes,
+            episodes=scoring_cfg.eval_episodes,
             max_steps=eval_max_steps,
-            seed=eval_seed,
+            seed=scoring_cfg.eval_seed,
         )
         processed_samples = result.optimizer_updates * training_config.batch_size
         effort = (
             1.0
-            if baseline_env_steps is None
+            if scoring_cfg.baseline_env_steps is None
             else training_effort(
                 env_steps=result.env_steps,
                 processed_samples=processed_samples,
-                baseline_env_steps=baseline_env_steps,
-                baseline_processed_samples=baseline_processed_samples,
-                alpha=alpha,
+                baseline_env_steps=scoring_cfg.baseline_env_steps,
+                baseline_processed_samples=scoring_cfg.baseline_processed_samples,
+                alpha=scoring_cfg.alpha,
             )
         )
-        quality = (gym_score - quality_min) / (quality_target - quality_min)
+        quality = (gym_score - scoring_cfg.quality_min) / (
+            scoring_cfg.quality_target - scoring_cfg.quality_min
+        )
         objective_score = (
-            quality_weight * quality
-            - (1 - quality_weight) * (effort - 1)
+            scoring_cfg.quality_weight * quality
+            - (1 - scoring_cfg.quality_weight) * (effort - 1)
         )
 
         def save(key, value):

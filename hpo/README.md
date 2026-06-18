@@ -34,11 +34,9 @@ study = run_study(
     study_name="s1_qe_update_economy",
     search_space=SearchSpace1(),
     n_trials=40,
-    num_episodes=600,
-    baseline_env_steps=study0.user_attrs["baseline_env_steps"],
-    baseline_processed_samples=study0.user_attrs["baseline_processed_samples"],
+    trial_cfg=trial_cfg,
+    scoring_cfg=scoring_cfg,
     study_dir=HPO_STUDY_DIR,
-    device=device,
 )
 ```
 

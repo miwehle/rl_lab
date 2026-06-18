@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
+from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander import study as study_module
+from hpo.lunar_lander.objective import TrialConfig
 from hpo.lunar_lander.study import neighbors, run_study, select_robust_best
 
 
@@ -85,9 +87,8 @@ def test_run_study_optimizes_until_target_trial_count(monkeypatch) -> None:
         study_name="fake_study",
         search_space=object(),
         n_trials=2,
-        num_episodes=3,
         study_dir=test_dir / "studies",
-        device="cpu",
+        trial_cfg=TrialConfig(num_episodes=3, device="cpu"),
         progress_fn=lambda *args, **kwargs: progress_calls.append((args, kwargs)),
     )
 
@@ -143,8 +144,11 @@ def test_select_robust_best_rechecks_top_candidates(monkeypatch) -> None:
     params = select_robust_best(
         study=study,
         search_space_factory=lambda: object(),
-        num_episodes=3,
-        device="cpu",
+        trial_cfg=TrialConfig(num_episodes=3, device="cpu"),
+        scoring_cfg=ScoringConfig(
+            baseline_env_steps=10,
+            baseline_processed_samples=20,
+        ),
         top_n=2,
         extra_seeds=(1, 2),
     )
@@ -161,6 +165,9 @@ def test_select_robust_best_rejects_empty_study() -> None:
         select_robust_best(
             study=FakeStudy(trials=[]),
             search_space_factory=lambda: object(),
-            num_episodes=3,
-            device="cpu",
+            trial_cfg=TrialConfig(num_episodes=3, device="cpu"),
+            scoring_cfg=ScoringConfig(
+                baseline_env_steps=10,
+                baseline_processed_samples=20,
+            ),
         )

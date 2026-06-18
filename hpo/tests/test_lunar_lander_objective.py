@@ -4,8 +4,9 @@ import pytest
 import torch
 
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
+from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander import objective as objective_module
-from hpo.lunar_lander.objective import evaluate_greedy_policy
+from hpo.lunar_lander.objective import TrialConfig, evaluate_greedy_policy
 
 
 class FakeTrial:
@@ -119,10 +120,11 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
 
     objective = objective_module.create_objective(
         search_space=search_space,
-        num_episodes=12,
-        baseline_env_steps=100,
-        baseline_processed_samples=100,
-        seed=100,
+        trial_cfg=TrialConfig(num_episodes=12, seed=100),
+        scoring_cfg=ScoringConfig(
+            baseline_env_steps=100,
+            baseline_processed_samples=100,
+        ),
     )
 
     trial = FakeTrial()
@@ -195,10 +197,8 @@ def test_lunar_lander_objective_passes_eval_settings_to_gym_score_fn(
 
     objective = objective_module.create_objective(
         search_space=FakeSearchSpace(),
-        num_episodes=1,
-        seed=None,
-        eval_episodes=7,
-        eval_seed=50,
+        trial_cfg=TrialConfig(num_episodes=1, seed=None),
+        scoring_cfg=ScoringConfig(eval_episodes=7, eval_seed=50),
         eval_max_steps=99,
     )
 

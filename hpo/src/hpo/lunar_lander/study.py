@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from hpo.evaluation.reporting import finished_trial_count, show_study_progress
+from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
-from hpo.lunar_lander.objective import create_objective
+from hpo.lunar_lander.objective import TrialConfig, create_objective
 
 
 logger = logging.getLogger(__name__)
@@ -22,19 +23,9 @@ def run_study(
     study_name: str,
     search_space: Any,
     n_trials: int,
-    num_episodes: int,
     study_dir: str | Path,
-    device,
-    baseline_env_steps: float | None = None,
-    baseline_processed_samples: float | None = None,
-    alpha: float = 0.5,
-    quality_weight: float = 0.9,
-    quality_min: float = 200.0,
-    quality_target: float = 250.0,
-    eval_episodes: int = 20,
-    eval_seed: int = 10_000,
-    num_envs: int = 16,
-    seed: int | None = 42,
+    trial_cfg: TrialConfig = TrialConfig(),
+    scoring_cfg: ScoringConfig = ScoringConfig(),
     progress_fn: ProgressFn | None = show_study_progress,
 ) -> Any:
     """Create or load an Optuna study and run it to the target trial count."""
@@ -46,18 +37,8 @@ def run_study(
 
     objective = create_objective(
         search_space=search_space,
-        num_episodes=num_episodes,
-        baseline_env_steps=baseline_env_steps,
-        baseline_processed_samples=baseline_processed_samples,
-        alpha=alpha,
-        quality_weight=quality_weight,
-        quality_min=quality_min,
-        quality_target=quality_target,
-        eval_episodes=eval_episodes,
-        eval_seed=eval_seed,
-        seed=seed,
-        device=device,
-        num_envs=num_envs,
+        trial_cfg=trial_cfg,
+        scoring_cfg=scoring_cfg,
     )
     study = _create_study(
         study_name=study_name,
@@ -65,18 +46,7 @@ def run_study(
         storage=f"sqlite:///{study_path / f'{study_name}.db'}",
         load_if_exists=True,
     )
-    scoring_attrs = {
-        "alpha": alpha,
-        "quality_weight": quality_weight,
-        "quality_min": quality_min,
-        "quality_target": quality_target,
-        "eval_episodes": eval_episodes,
-        "eval_seeds": list(range(eval_seed, eval_seed + eval_episodes)),
-    }
-    if baseline_env_steps is not None:
-        scoring_attrs["baseline_env_steps"] = baseline_env_steps
-        scoring_attrs["baseline_processed_samples"] = baseline_processed_samples
-    _set_or_check_study_attrs(study, scoring_attrs)
+    _set_or_check_study_attrs(study, scoring_cfg.study_attrs())
 
     while finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
@@ -84,29 +54,16 @@ def run_study(
         if progress_fn is not None:
             progress_fn(study, target_trials=n_trials)
 
-    if baseline_env_steps is None:
-        _set_study_user_attr(
-            study,
-            "baseline_env_steps",
-            _mean_trial_attr(study, "env_steps"),
-        )
-        _set_study_user_attr(
-            study,
-            "baseline_processed_samples",
-            _mean_trial_attr(study, "processed_samples"),
-        )
-        _set_study_user_attr(study, "robust_best_params", {})
-        _set_study_user_attr(
-            study,
-            "robust_best_objective_score",
-            _mean_trial_value(study),
-        )
-        _set_study_user_attr(
-            study,
-            "robust_best_gym_score",
-            _mean_trial_attr(study, "gym_score"),
-        )
-        _set_study_user_attr(study, "robust_best_training_effort", 1.0)
+    if scoring_cfg.baseline_env_steps is None:
+        def save(name, value):
+            _set_study_user_attr(study, name, value)
+
+        save("baseline_env_steps", _mean_trial_attr(study, "env_steps"))
+        save("baseline_processed_samples", _mean_trial_attr(study, "processed_samples"))
+        save("robust_best_params", {})
+        save("robust_best_objective_score", _mean_trial_value(study))
+        save("robust_best_gym_score", _mean_trial_attr(study, "gym_score"))
+        save("robust_best_training_effort", 1.0)
     return study
 
 
@@ -122,9 +79,8 @@ def select_robust_best(
     *,
     study: Any,
     search_space_factory: SearchSpaceFactory,
-    num_episodes: int,
-    device,
-    num_envs: int = 16,
+    trial_cfg: TrialConfig,
+    scoring_cfg: ScoringConfig,
     base_seed: int = 42,
     top_n: int = 3,
     extra_seeds: Iterable[int] = (1001, 1002),
@@ -150,20 +106,13 @@ def select_robust_best(
         for seed_offset in extra_seeds:
             objective = create_objective(
                 search_space=search_space_factory(),
-                num_episodes=num_episodes,
-                baseline_env_steps=study.user_attrs["baseline_env_steps"],
-                baseline_processed_samples=study.user_attrs[
-                    "baseline_processed_samples"
-                ],
-                alpha=study.user_attrs["alpha"],
-                quality_weight=study.user_attrs["quality_weight"],
-                quality_min=study.user_attrs["quality_min"],
-                quality_target=study.user_attrs["quality_target"],
-                eval_episodes=study.user_attrs["eval_episodes"],
-                eval_seed=study.user_attrs["eval_seeds"][0],
-                seed=base_seed + seed_offset,
-                device=device,
-                num_envs=num_envs,
+                trial_cfg=TrialConfig(
+                    num_episodes=trial_cfg.num_episodes,
+                    num_envs=trial_cfg.num_envs,
+                    seed=base_seed + seed_offset,
+                    device=trial_cfg.device,
+                ),
+                scoring_cfg=scoring_cfg,
             )
             fixed_trial = _FixedParamTrial(trial.params)
             scores.append(objective(fixed_trial))
