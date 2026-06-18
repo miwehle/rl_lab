@@ -40,11 +40,20 @@ def show_lander_live_progress(
     lander_studies: Any,
 ) -> None:
     """Display live Lander History and current Optuna History."""
+    import matplotlib.pyplot as plt
+
     _clear_output(wait=True)
     print(f"Target trials: {target_trials}")
     print(f"Finished trials: {finished_trial_count(study)}")
     print("LH: Lander History")
-    _display(plot_lander_progress(lander_studies))
+    figure = plot_lander_progress(lander_studies)
+    _display(figure)
+    plt.close(figure)
+    for completed_study in reversed(_study_list(lander_studies)):
+        if "robust_best_params" in completed_study.user_attrs:
+            print("Best hyperparameters:")
+            _display(completed_study.user_attrs["robust_best_params"])
+            break
     print("OH: Optuna History")
     _display(_optimization_history_figure(study, target_trials))
 

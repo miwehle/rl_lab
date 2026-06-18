@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+import matplotlib.pyplot as plt
+
 from hpo.evaluation import reporting
 from hpo.evaluation.reporting import plot_lander_progress, show_lander_live_progress
 
@@ -108,7 +110,9 @@ def test_plot_lander_progress_skips_studies_without_robust_eval_score() -> None:
     assert list(ax.lines[0].get_ydata()) == []
 
 
-def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatch) -> None:
+def test_show_lander_live_progress_displays_params_and_closes_lander_figure(
+    monkeypatch,
+) -> None:
     study = FakeStudy(
         trials=[
             FakeTrial(
@@ -117,7 +121,10 @@ def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatc
                 user_attrs={"wall_time_seconds": 60, "eval_score": 180},
             ),
         ],
-        user_attrs={"robust_best_eval_score": 180},
+        user_attrs={
+            "robust_best_eval_score": 180,
+            "robust_best_params": {"learning_rate": 0.001},
+        },
     )
     displayed = []
     clear_calls = []
@@ -140,6 +147,8 @@ def test_show_lander_live_progress_displays_lander_and_optuna_history(monkeypatc
     )
 
     assert clear_calls == [{"wait": True}]
-    assert len(displayed) == 2
+    assert len(displayed) == 3
     assert displayed[0].axes[0].get_ylabel() == "Greedy eval score"
-    assert displayed[1] == ("oh", study, 40)
+    assert not plt.fignum_exists(displayed[0].number)
+    assert displayed[1] == {"learning_rate": 0.001}
+    assert displayed[2] == ("oh", study, 40)
