@@ -54,6 +54,31 @@ Gymnasium erzeugt daraus zusätzlich den zeitlich wechselnden linearen Wind und 
 - Optuna verwendet den bereits entworfenen **Quality-Effort Score**.
 - Neben dem Gesamtscore sollten die Gym-Scores je Körper gespeichert werden, damit ein guter Durchschnitt keine Schwäche auf einer einzelnen Welt verdeckt.
 
+### Suchräume in den Studien
+
+Series 2A und 2B verwenden dieselben Suchräume. S0 übernimmt die Gewinner-Hyperparameter aus Study Series 1 als neue Baseline; `num_episodes` kommt als zusätzlicher HP hinzu.
+
+| HP | S0 Baseline | S1 Update-Ökonomie | S2 Exploration | S3 Replay-Kapazität | S4 Gemeinsame Feinsuche |
+|---|---|---|---|---|---|
+| learning_rate | 0.001606 | *float(5e-4, 3e-3, log=True)* | best(S1) | best(S1) | *float(best / 2, best * 2, log=True)* |
+| batch_size | 1_024 | *categorical([256, 512, 1_024])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [256, 512, 1_024]))* |
+| eps_end | 0.0197 | 0.0197 | *float(0.01, 0.10)* | best(S2) | *float(max(0.01, best - 0.02), min(0.10, best + 0.02))* |
+| eps_decay | 8_446 | 8_446 | *int(5_000, 100_000, log=True)* | best(S2) | *int(best / 2, best * 2, log=True)* |
+| gamma | 0.99 | 0.99 | 0.99 | 0.99 | 0.99 |
+| tau | 0.005 | 0.005 | 0.005 | 0.005 | 0.005 |
+| learning_starts | 2_500 | *categorical([1_000, 2_500, 5_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [1_000, 2_500, 5_000]))* |
+| optimize_every | 4 | *categorical([2, 4, 8])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2, 4, 8]))* |
+| replay_memory_capacity | 200_000 | 200_000 | 200_000 | *categorical([100_000, 200_000, 400_000])* | best(S3) |
+| num_episodes | 600 | *categorical([500, 1_000, 1_500, 2_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [500, 1_000, 1_500, 2_000]))* |
+
+Notation:
+
+- *kursiv*: Wert wird in dieser Studie von Optuna gewählt.
+- ohne Markierung: Wert bleibt fest oder wird aus einer vorherigen Studie übernommen.
+- `float`, `int` und `categorical` stehen für `trial.suggest_float`, `trial.suggest_int` und `trial.suggest_categorical`.
+- `best(Sx)`: bester Wert aus Studie x.
+- `neighbors(b, M)`: b plus direkte Nachbarn in Menge M.
+
 ### Hauptaufgabe und Vergleich
 
 Die HPO sucht Hyperparameter für einen SolarSystemLander, der auf allen vier Himmelskörpern einen hohen Gym-Score erreicht und dafür möglichst wenig Trainingsaufwand benötigt. Maßgeblich ist der gemeinsame **Quality-Effort Score**.
