@@ -21,7 +21,6 @@ hpo/
     ├── objective.py                      +  gemeinsame Objective
     ├── study.py                          +  gemeinsame Study-Orchestrierung
     ├── evaluation/
-    │   ├── greedy.py                     +  gemeinsame Greedy-Evaluation
     │   └── scoring.py                    =  Quality-Effort Score
     ├── lunar_lander/
     │   ├── environment.py                +
@@ -51,16 +50,14 @@ Eine `WorldConfig` als `@dataclass(frozen=True)` beschreibt Name, Gravitation so
 
 Das Training verwendet eine `SyncVectorEnv` mit einer durch fünf teilbaren Slot-Anzahl, zunächst 20 Slots: vier Slots pro Welt. Dadurch gelangen pro Vector-Step gleich viele Transitions jeder Welt in das gemeinsame Replay Memory. `num_episodes` beendet das Training nach der angegebenen Gesamtzahl abgeschlossener Episoden, nicht je Welt.
 
-### Episodisches Wetter
+### SolarSystemLander-Wrapper
 
-Ein kleiner Wrapper zieht bei jedem `reset()` reproduzierbar `wind_power` und `turbulence_power` aus den Intervallen der Welt und setzt die Werte vor dem Reset der Gymnasium-Umgebung. Mond und Merkur verwenden `enable_wind=False`.
+Ein einzelner Wrapper kapselt episodisches Wetter und Observation-Modus. Er zieht bei jedem `reset()` reproduzierbar `wind_power` und `turbulence_power` aus den Intervallen der Welt und setzt die Werte vor dem Reset der Gymnasium-Umgebung. Mond und Merkur verwenden `enable_wind=False`.
 
 Der Wrapper hat einen eigenen, über den Environment-Seed initialisierten Zufallsgenerator. Autoresets ohne neuen Seed setzen dessen deterministische Zahlenfolge fort. Gleiche Trial- und Eval-Seeds erzeugen damit dieselben Wetterfolgen.
 
-### Observation-Modi
-
 - `8d`: Die originale Gymnasium-Observation wird unverändert weitergegeben.
-- `11d`: Ein `ObservationWrapper` hängt die für die aktuelle Episode gezogenen Werte `gravity`, `wind_power` und `turbulence_power` an.
+- `11d`: Derselbe Wrapper hängt die für die aktuelle Episode gezogenen Werte `gravity`, `wind_power` und `turbulence_power` an.
 
 Die drei zusätzlichen Werte werden auf vergleichbare Größenordnungen normiert:
 
@@ -106,7 +103,7 @@ gym_scores                 # {moon, mercury, mars, earth, venus}
 
 Ein redundantes `objective_score`-Attribut wird weiterhin nicht gespeichert. Die robuste Auswahl vergleicht wie bisher `trial.value`, also den Quality-Effort Score `o`.
 
-Die vorhandene `evaluate_greedy_q_net(...)` wandert nach `hpo.evaluation.greedy` und erhält eine parameterlose `make_env`-Funktion statt einer festen Environment-ID.
+Die vorhandene `evaluate_greedy_q_net(...)` bleibt in der gemeinsamen `hpo.objective` und erhält eine parameterlose `make_env`-Funktion statt einer festen Environment-ID.
 
 Die Objective evaluiert jede Welt mit dem in `design3.md` festgelegten Episoden- und Seed-Satz.
 
@@ -154,8 +151,7 @@ Das vorhandene `HPO_LunarLander.ipynb` wird nur auf die gemeinsamen Imports und 
 
 Gezielte Tests sichern:
 
-- reproduzierbares episodisches Wetter,
-- 8D- und 11D-Observation Space,
+- reproduzierbares episodisches Wetter sowie 8D- und 11D-Observation Space im gemeinsamen Wrapper,
 - gleichmäßige Verteilung der Vector-Slots auf fünf Welten,
 - Mittelung und Speicherung der fünf Welt-Scores,
 - `num_episodes` aus dem Search Space,
