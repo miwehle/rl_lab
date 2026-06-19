@@ -41,14 +41,13 @@ Die gemeinsame Objective kennt keine Planetenparameter. Sie erhält eine konfigu
 class EnvironmentFactory(Protocol):
     def make_training_env(self, num_envs: int): ...
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
-    def study_attrs(self) -> dict[str, Any]: ...
 ```
 
 `lunar_lander.environment` liefert die bisherige einzelne `LunarLander-v3`-Umgebung. `solar_system_lander.environment` liefert die fünf Welten und kapselt Observation-Modus, Wetterverteilungen und Metadaten.
 
 ## SolarSystemLander-Environments
 
-Eine unveränderliche `WorldConfig` beschreibt Name, Gravitation sowie Intervalle für `wind_power` und `turbulence_power`. Die fünf Konfigurationen entsprechen der Tabelle in `design3.md`.
+Eine `WorldConfig` als `@dataclass(frozen=True)` beschreibt Name, Gravitation sowie Intervalle für `wind_power` und `turbulence_power`. Nach dem Erzeugen können ihre Felder nicht versehentlich verändert werden. Die fünf Konfigurationen entsprechen der Tabelle in `design3.md`.
 
 Das Training verwendet eine `SyncVectorEnv` mit einer durch fünf teilbaren Slot-Anzahl, zunächst 20 Slots: vier Slots pro Welt. Dadurch gelangen pro Vector-Step gleich viele Transitions jeder Welt in das gemeinsame Replay Memory. `num_episodes` beendet das Training nach der angegebenen Gesamtzahl abgeschlossener Episoden, nicht je Welt.
 
@@ -83,13 +82,13 @@ Die 11D-Observation enthält die maximalen Wetterstärken der Episode, nicht die
 4. Das finale Q-Netz auf jeder Welt greedy evaluieren.
 5. `g` als gleichgewichteten Mittelwert der fünf Welt-Scores berechnen.
 6. Trainingsaufwand `t` und Quality-Effort Score `o` wie bisher berechnen.
-7. Rohwerte als Trial-Attribute speichern.
+7. Rohwerte entsprechend der bestehenden Quality-Effort-Persistenz speichern.
 
-Gespeichert werden mindestens:
+Die in `design2.md` definierte und bereits implementierte Persistenz bleibt erhalten:
 
 ```text
+trial.value                # o
 gym_score                  # g
-gym_scores                 # {moon, mercury, mars, earth, venus}
 env_steps
 optimizer_updates
 processed_samples
@@ -99,9 +98,17 @@ wall_time_seconds
 training_curve
 ```
 
+Für den SolarSystemLander kommt als Trial-Attribut hinzu:
+
+```text
+gym_scores                 # {moon, mercury, mars, earth, venus}
+```
+
+Ein redundantes `objective_score`-Attribut wird weiterhin nicht gespeichert. Die robuste Auswahl vergleicht wie bisher `trial.value`, also den Quality-Effort Score `o`.
+
 Die vorhandene `evaluate_greedy_q_net(...)` wandert nach `hpo.evaluation.greedy` und erhält eine parameterlose `make_env`-Funktion statt einer festen Environment-ID.
 
-`ScoringConfig.eval_episodes` bleibt das gesamte Eval-Budget. Es muss für den SolarSystemLander durch fünf teilbar sein; bei 20 Episoden werden vier feste Seeds je Welt ausgewertet. So bleibt der Evaluationsaufwand ungefähr auf dem bisherigen Niveau.
+Die Objective evaluiert jede Welt mit dem in `design3.md` festgelegten Episoden- und Seed-Satz.
 
 ## Search Space und `num_episodes`
 
@@ -119,14 +126,14 @@ Die Search-Space-Klassen bleiben wie bisher notebooknah und bilden exakt die Tab
 
 ## Study-Orchestrierung und Speicherung
 
-`hpo.study.run_study(...)` erhält die Environment-Fabrik und einen expliziten SQLite-Pfad. Alle Studies einer Series werden in derselben Datei gespeichert:
+`hpo.study.run_study(...)` erhält die Environment-Fabrik, einen expliziten SQLite-Pfad und optionale aufgabenspezifische Study-Attribute. Alle Studies einer Series werden in derselben Datei gespeichert:
 
 ```text
 solar_system_lander_8d.db
 solar_system_lander_11d.db
 ```
 
-Die Study-Namen unterscheiden weiterhin S0 bis S4. Study-Attribute speichern Scoring-Konfiguration, Observation-Modus und World-Konfigurationen; beim Fortsetzen werden sie wie bisher auf Übereinstimmung geprüft.
+Die bestehende Quality-Effort-Persistenz bleibt unverändert: Study-Attribute speichern Scoring-Konfiguration und Eval-Seeds; S0 speichert zusätzlich `baseline_env_steps` und `baseline_processed_samples`. Für den SolarSystemLander kommen Observation-Modus und World-Konfigurationen hinzu. Beim Fortsetzen werden alle Attribute wie bisher auf Übereinstimmung geprüft.
 
 S0 wird in jeder Series mit den Gewinner-HPs aus Study Series 1 neu ausgeführt. Seine `env_steps` und `processed_samples` bilden die jeweilige Effort-Baseline für S1 bis S4.
 
@@ -141,6 +148,8 @@ OBSERVATION_MODE = "8d"   # Series 2A
 
 Daraus werden Environment-Fabrik und Datenbankpfad abgeleitet. Beide Colab-Runtimes führen dasselbe Notebook mit unterschiedlichem Modus aus. Studienfolge, Seeds, Search Spaces und Analyse bleiben identisch.
 
+Das vorhandene `HPO_LunarLander.ipynb` wird nur auf die gemeinsamen Imports und Schnittstellen angepasst. Inhalt, Ausführung und bisherige Ergebnisse bleiben funktional kompatibel.
+
 ## Tests
 
 Gezielte Tests sichern:
@@ -151,6 +160,7 @@ Gezielte Tests sichern:
 - Mittelung und Speicherung der fünf Welt-Scores,
 - `num_episodes` aus dem Search Space,
 - gemeinsame SQLite-Datei mit getrennten Study-Namen,
-- unveränderte LunarLander-HPO über die gemeinsame Objective.
+- unveränderte LunarLander-HPO über die gemeinsame Objective,
+- weiterhin vollständig ausführbares `HPO_LunarLander.ipynb`.
 
 Nicht Teil dieser Umsetzung sind PER, Teacher-Student-Training, neue DQN-Architekturen oder Reward-Anpassungen.
