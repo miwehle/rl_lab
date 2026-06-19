@@ -35,7 +35,7 @@ hidden_size = [32, 64, 128]
 
 Beide Hidden Layers verwenden dieselbe Größe. Zunächst Landequalität und Modellgröße getrennt darstellen, statt das Quality-Effort Scoring um Modellkomplexität zu erweitern.
 
-**Erwarteter Nutzen:** Ein deutlich kleineres DQN bei möglichst gleicher Landequalität.
+**Beabsichtigter Nutzen:** Ein deutlich kleineres DQN bei möglichst gleicher Landequalität.
 
 **Priorität:** Nach Study Series 2 untersuchen.
 
