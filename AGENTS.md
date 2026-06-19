@@ -32,6 +32,10 @@ pattern. Treat speculative generalization, optional modes, config flags,
 future-proofing, and indirection as complexity costs and mental load.
 Add them only for a concrete current need or when the user explicitly agrees.
 
+### Markdown
+
+Keep each prose paragraph on one source line; use line breaks only for structure.
+
 ### Alignment
 
 Before changing workspace files, confirm alignment with the user on the direction and size of the change.
