@@ -39,6 +39,14 @@ Beide Hidden Layers verwenden dieselbe Größe. Zunächst Landequalität und Mod
 
 **Priorität:** Nach Study Series 2 untersuchen.
 
+## Council of Lander Masters
+
+*"Five Masters Train One Tiny Pilot. 🙂"*
+
+**Idee:** Je einen spezialisierten Teacher pro Himmelskörper trainieren und deren per Softmax vergleichbar gemachte Q-Werte mittels Multi-Teacher Policy Distillation auf einen kleinen SolarSystemLander übertragen.
+
+**Priorität:** Spätere Quest; weniger KISS als gemeinsames Training mit einem Replay Memory.
+
 ## Inside the SolarSystemLander
 
 *"What Does the Tiny Pilot Think? 🙂"*
