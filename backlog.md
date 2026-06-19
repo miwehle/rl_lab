@@ -2,7 +2,7 @@
 
 ## Priorisierung
 
-| Nr. | Item | Voraussetzung | N | W | A | Prio | Cool |
+| Nr. | Item | Voraussetzungen | N | W | A | Prio | Cool |
 |---:|---|---|---:|---:|---:|---:|---:|
 | 3 | The KISS SolarSystemLander – Quest II | 1 | 6? | 7? | 4? | 10,5? | 9? |
 | 5 | Inside the SolarSystemLander | 1 | 7? | 8? | 6? | 9,3? | 10? |
@@ -10,7 +10,7 @@
 | 2 | Austauschbare Replay-Sampling-Strategien | 1 | 7? | 6? | 6? | 7,0? | 7? |
 | 4 | Council of Lander Masters | 1 | 7? | 5? | 9? | 3,9? | 10? |
 
-N = Nutzen, W = Eintrittswahrscheinlichkeit, A = Aufwand.  
+N = Nutzen, W = Eintrittswahrscheinlichkeit des Nutzens, A = Aufwand.  
 Alle Skalen von 0 bis 10. `Prio = N × W / A`. `?` kennzeichnet vorläufige Schätzungen.
 
 ## 1. Study Series 2
