@@ -25,9 +25,10 @@ Damit laufen beide Reihen unabhängig und ohne konkurrierende SQLite-Zugriffe.
 
 ### Training
 
-Jeder Trial trainiert **ein gemeinsames Q-Netz** auf allen vier Himmelskörpern:
+Jeder Trial trainiert **ein gemeinsames Q-Netz** auf allen fünf Himmelskörpern:
 
 - Körper beziehungsweise Umgebungen werden ausgewogen gemischt.
+- `num_episodes` zählt die abgeschlossenen Episoden insgesamt, nicht je Himmelskörper.
 - Alle Erfahrungen gelangen in einen gemeinsamen Replay-Speicher.
 - Die Replay-Memory-Größe bleibt Bestandteil der HPO.
 - Kein sequenzielles Training pro Körper, um Vergessen vorheriger Welten zu vermeiden.
@@ -38,6 +39,7 @@ Jeder Trial trainiert **ein gemeinsames Q-Netz** auf allen vier Himmelskörpern:
 | Körper | `gravity` | beispielhafte `wind_power`-Verteilung | `turbulence_power`-Verteilung |
 |---|---:|---:|---:|
 | Mond | −1.65 | 0 | 0 |
+| Merkur | −3.7 | 0 | 0 |
 | Mars | −3.8 | U(0, 4) | U(0, 1) |
 | Erde | −10 | U(5, 15) | U(0, 2) |
 | Venus | −9 | U(15, 20) | U(0, 2) |
@@ -49,10 +51,11 @@ Gymnasium erzeugt daraus zusätzlich den zeitlich wechselnden linearen Wind und 
 ### Baseline und Bewertung
 
 - Ausgangskonfiguration: Gewinner-Hyperparameter aus Study Series 1.
-- Diese Konfiguration wird für die neue Vier-Körper-Aufgabe erneut trainiert und bewertet.
-- Bewertung ausgewogen über alle vier Körper und definierte Wetter-Seeds.
+- Diese Konfiguration wird für die neue Fünf-Körper-Aufgabe erneut trainiert und bewertet.
+- Bewertung ausgewogen über alle fünf Körper und definierte Wetter-Seeds.
 - Optuna verwendet den bereits entworfenen **Quality-Effort Score**.
-- Neben dem Gesamtscore sollten die Gym-Scores je Körper gespeichert werden, damit ein guter Durchschnitt keine Schwäche auf einer einzelnen Welt verdeckt.
+- Der gemeinsame Gym-Score `g` ist der gleichgewichtete Mittelwert der fünf körperbezogenen Eval-Scores.
+- Die fünf Einzelscores werden zusätzlich gespeichert, damit ein guter Durchschnitt keine Schwäche auf einer einzelnen Welt verdeckt.
 
 ### Suchräume in den Studien
 
@@ -81,7 +84,7 @@ Notation:
 
 ### Hauptaufgabe und Vergleich
 
-Die HPO sucht Hyperparameter für einen SolarSystemLander, der auf allen vier Himmelskörpern einen hohen Gym-Score erreicht und dafür möglichst wenig Trainingsaufwand benötigt. Maßgeblich ist der gemeinsame **Quality-Effort Score**.
+Die HPO sucht Hyperparameter für einen SolarSystemLander, der auf allen fünf Himmelskörpern einen hohen Gym-Score erreicht und dafür möglichst wenig Trainingsaufwand benötigt. Maßgeblich ist der gemeinsame **Quality-Effort Score**.
 
 Series 2A und 2B beantworten zusätzlich:
 
