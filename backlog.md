@@ -8,7 +8,7 @@
 | 5 | Inside the SolarSystemLander | 1 | 7? | 8? | 6? | 9,3? | 10? |
 | 1 | Study Series 2 |  | 10? | 8? | 9? | 8,9? | 10? |
 | 2 | Austauschbare Replay-Sampling-Strategien | 1 | 7? | 6? | 6? | 7,0? | 7? |
-| 4 | Council of Lander Masters |  | 7? | 5? | 9? | 3,9? | 10? |
+| 4 | Council of Lander Masters | 1 | 7? | 5? | 9? | 3,9? | 10? |
 
 N = Nutzen, W = Eintrittswahrscheinlichkeit, A = Aufwand.  
 Alle Skalen von 0 bis 10. `Prio = N × W / A`. `?` kennzeichnet vorläufige Schätzungen.
@@ -61,6 +61,8 @@ Beide Hidden Layers verwenden dieselbe Größe. Zunächst Landequalität und Mod
 **Idee:** Je einen spezialisierten Teacher pro Himmelskörper trainieren und deren per Softmax vergleichbar gemachte Q-Werte mittels Multi-Teacher Policy Distillation auf einen kleinen SolarSystemLander übertragen.
 
 **Nutzen:** Wissen spezialisierter Lander in einem gemeinsamen kleinen Piloten bündeln und dessen Landequalität verbessern.
+
+**Voraussetzung:** Study Series 2 abschließen.
 
 Weniger KISS als gemeinsames Training mit einem Replay Memory.
 
