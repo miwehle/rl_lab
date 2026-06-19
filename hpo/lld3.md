@@ -4,7 +4,7 @@ Dieses LLD beschreibt die Umsetzung von `hpo/design3.md`. Der grundsätzliche Tr
 
 ## Ziel
 
-Series 2A und 2B trainieren mit dem bestehenden `VectorTrainer` jeweils ein gemeinsames Q-Netz für Mond, Mars, Erde und Venus. Beide Reihen verwenden denselben Suchraum und dieselben Seeds; sie unterscheiden sich nur durch die Observation mit 8D beziehungsweise 11D.
+Die Studienreihen (study series) 2A und 2B trainieren mit dem bestehenden `VectorTrainer` jeweils ein gemeinsames Q-Netz für Mond, Mars, Erde und Venus. Beide Reihen verwenden denselben Suchraum und dieselben Seeds; sie unterscheiden sich nur durch die Observation mit 8D beziehungsweise 11D.
 
 ## Python-Package
 
@@ -44,11 +44,11 @@ Die gemeinsame Objective kennt keine konkreten Gymnasium-Environments. Sie verwe
 
 ```python
 class EnvironmentFactory(Protocol):
-    def make_training_env(self, *, num_envs, seed): ...
-    def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
+    def make_training_vector_env(self, *, num_envs, seed) -> VectorEnv: ...
+    def evaluation_env_factories(self) -> dict[str, Callable[[], Any]]: ...
 ```
 
-`make_training_env(...)` liefert das Vector-Environment für das Training. `evaluation_envs()` liefert benannte Fabriken für die Greedy-Evaluation.
+`make_training_vector_env(...)` liefert ein Gymnasium `VectorEnv` mit `num_envs` Teil-Environments für das Training. `evaluation_env_factories()` liefert benannte Fabriken für die Greedy-Evaluation; die Zahl der Evaluationsepisoden bestimmt die Scoring-Konfiguration.
 
 LunarLander liefert ein Eval-Environment:
 
@@ -95,17 +95,19 @@ Die gemeinsame `create_objective(...)` erhält eine Environment-Fabrik und führ
 5. Den gleichgewichteten Mittelwert der Einzelscores bilden.
 6. Den bestehenden Quality-Effort Score berechnen und zurückgeben.
 
-Die Objective speichert neben den bestehenden Messwerten `gym_score` sowie einen Score je benanntem Eval-Environment. Für SolarSystemLander entstehen:
+Die Objective speichert die benannten Einzelscores generisch als Map und ihren Mittelwert separat:
 
 ```text
-gym_score_moon
-gym_score_mars
-gym_score_earth
-gym_score_venus
-gym_score
+gym_scores = {
+    "moon": 240.0,
+    "mars": 215.0,
+    "earth": 195.0,
+    "venus": 170.0,
+}
+gym_score = 205.0
 ```
 
-`gym_score` ist das arithmetische Mittel der vier Einzelscores und geht in den Quality-Effort Score ein.
+Für LunarLander enthält `gym_scores` entsprechend nur den Eintrag `lunar_lander`. Die Objective kennt die fachliche Bedeutung der Namen nicht. `gym_score` ist das arithmetische Mittel aller Werte aus `gym_scores` und geht in den Quality-Effort Score ein.
 
 ### `hpo.evaluation.greedy`
 
@@ -174,7 +176,7 @@ Beide L4-Runtimes führen dasselbe Notebook mit unterschiedlichem `OBSERVATION_M
 
 Jede Reihe verwendet genau eine eigene SQLite-Datenbank. Baseline und HPO sind getrennte Optuna-Studies innerhalb dieser Datenbank. Dadurch teilen sie ihre Datenbasis, ohne dass 2A und 2B konkurrierend auf dieselbe Datei schreiben.
 
-Die Study-Attribute speichern zusätzlich den Observation-Modus und die verwendeten Himmelskörper. Die bisherigen Scoring-, Baseline- und Robustheitsattribute bleiben erhalten.
+Die Trial-Attribute speichern `gym_scores` als benannte Map und `gym_score` als gemeinsamen Mittelwert. Die Study-Attribute speichern zusätzlich den Observation-Modus und die verwendeten Himmelskörper. Die bisherigen Scoring-, Baseline- und Robustheitsattribute bleiben erhalten.
 
 ## Tests
 
@@ -183,7 +185,7 @@ Die Study-Attribute speichern zusätzlich den Observation-Modus und die verwende
 - Wetterwerte liegen in den definierten Intervallen und sind mit gleichem Seed reproduzierbar.
 - 8D- und 11D-Observations haben die erwartete Form und die Zusatzwerte sind normalisiert.
 - Das Vector-Environment verteilt seine Slots gleichmäßig auf vier Körper.
-- Die Evaluation speichert vier Einzelscores und bildet daraus den korrekten Gesamtscore.
+- Die Objective speichert beliebig benannte Einzelscores als `gym_scores` und bildet daraus den korrekten `gym_score`.
 - Series 2A und 2B verwenden unterschiedliche SQLite-Dateien.
 
 ## Vor dem Studienstart festzulegen
