@@ -1,6 +1,6 @@
 # SolarSystemLander HPO – Low-Level Design
 
-Dieses LLD beschreibt die kompakte Umsetzung von `hpo/design3.md`. Series 2A und 2B verwenden dieselbe Implementierung; nur der Observation-Modus und die SQLite-Datei unterscheiden sich.
+Dieses LLD beschreibt die Implementierung von `hpo/design3.md`. Series 2A und 2B verwenden dieselbe Implementierung; nur der Observation-Modus und die SQLite-Datei unterscheiden sich.
 
 ## Leitlinien
 
@@ -56,7 +56,7 @@ Das Training verwendet eine `SyncVectorEnv` mit einer durch fünf teilbaren Slot
 
 Ein kleiner Wrapper zieht bei jedem `reset()` reproduzierbar `wind_power` und `turbulence_power` aus den Intervallen der Welt und setzt die Werte vor dem Reset der Gymnasium-Umgebung. Mond und Merkur verwenden `enable_wind=False`.
 
-Der Wrapper besitzt einen eigenen, über den Environment-Seed initialisierten Zufallsgenerator. Autoresets ohne neuen Seed setzen dessen deterministische Zahlenfolge fort. Gleiche Trial- und Eval-Seeds erzeugen damit dieselben Wetterfolgen.
+Der Wrapper hat einen eigenen, über den Environment-Seed initialisierten Zufallsgenerator. Autoresets ohne neuen Seed setzen dessen deterministische Zahlenfolge fort. Gleiche Trial- und Eval-Seeds erzeugen damit dieselben Wetterfolgen.
 
 ### Observation-Modi
 
