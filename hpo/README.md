@@ -2,9 +2,7 @@
 
 Hyperparameter optimization for the `dqn` project.
 
-This project is the Optuna/Colab layer around `dqn`. The DQN package remains the
-training library; HPO owns study setup, trial configuration, scoring, and Colab
-workflow.
+This project is the Optuna/Colab layer around `dqn`. The DQN package remains the training library; HPO owns study setup, trial configuration, scoring, and Colab workflow.
 
 ## Initial Setup
 
@@ -15,7 +13,7 @@ dqn\.venv\Scripts\python.exe -m pip install -r hpo\requirements.txt
 
 ## Notebook
 
-Use `hpo/notebooks/HPO_LunarLander.ipynb` to run optimization on Colab.
+Use `hpo/notebooks/HPO_LunarLander.ipynb` for LunarLander and `hpo/notebooks/HPO_SolarSystemLander.ipynb` for Study Series 2A/2B.
 
 Recommended Colab runtime:
 
@@ -25,18 +23,17 @@ L4 GPU
 
 ## Objective
 
-The objective maximizes greedy Gym quality while penalizing training effort.
-Use `run_study(...)` from the notebook; it persists the scoring configuration
-and the S0 effort baseline in Optuna's SQLite storage.
+The objective maximizes greedy Gym quality while penalizing training effort. Use `run_study(...)` from the notebook; it persists the scoring configuration and the S0 effort baseline in Optuna's SQLite storage.
 
 ```python
 study = run_study(
     study_name="s1_qe_update_economy",
     search_space=SearchSpace1(),
     n_trials=40,
+    storage_path=study_db,
+    environment_factory=environment_factory,
     trial_cfg=trial_cfg,
     scoring_cfg=scoring_cfg,
-    study_dir=HPO_STUDY_DIR,
 )
 ```
 

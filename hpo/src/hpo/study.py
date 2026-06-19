@@ -1,4 +1,4 @@
-"""Study orchestration helpers for LunarLander HPO."""
+"""Shared Optuna study orchestration for HPO tasks."""
 
 import logging
 from collections.abc import Callable, Iterable, Sequence
@@ -8,7 +8,7 @@ from typing import Any
 from hpo.evaluation.reporting import finished_trial_count, show_study_progress
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
-from hpo.lunar_lander.objective import TrialConfig, create_objective
+from hpo.objective import EnvironmentFactory, TrialConfig, create_objective
 
 
 logger = logging.getLogger(__name__)
@@ -23,30 +23,36 @@ def run_study(
     study_name: str,
     search_space: Any,
     n_trials: int,
-    study_dir: str | Path,
+    storage_path: str | Path,
+    environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig = TrialConfig(),
     scoring_cfg: ScoringConfig = ScoringConfig(),
+    study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = show_study_progress,
 ) -> Any:
     """Create or load an Optuna study and run it to the target trial count."""
     if n_trials < 1:
         raise ValueError("n_trials must be >= 1")
 
-    study_path = Path(study_dir)
-    study_path.mkdir(parents=True, exist_ok=True)
+    storage_path = Path(storage_path)
+    storage_path.parent.mkdir(parents=True, exist_ok=True)
 
     objective = create_objective(
         search_space=search_space,
+        environment_factory=environment_factory,
         trial_cfg=trial_cfg,
         scoring_cfg=scoring_cfg,
     )
     study = _create_study(
         study_name=study_name,
         direction="maximize",
-        storage=f"sqlite:///{study_path / f'{study_name}.db'}",
+        storage=f"sqlite:///{storage_path}",
         load_if_exists=True,
     )
-    _set_or_check_study_attrs(study, scoring_cfg.study_attrs())
+    _set_or_check_study_attrs(
+        study,
+        scoring_cfg.study_attrs() | (study_attrs or {}),
+    )
 
     while finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
@@ -79,6 +85,7 @@ def select_robust_best(
     *,
     study: Any,
     search_space_factory: SearchSpaceFactory,
+    environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig,
     scoring_cfg: ScoringConfig,
     base_seed: int = 42,
@@ -106,8 +113,8 @@ def select_robust_best(
         for seed_offset in extra_seeds:
             objective = create_objective(
                 search_space=search_space_factory(),
+                environment_factory=environment_factory,
                 trial_cfg=TrialConfig(
-                    num_episodes=trial_cfg.num_episodes,
                     num_envs=trial_cfg.num_envs,
                     seed=base_seed + seed_offset,
                     device=trial_cfg.device,

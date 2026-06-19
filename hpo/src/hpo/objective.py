@@ -1,4 +1,4 @@
-"""Optuna objective for tuning VectorTrainer DQN on LunarLander."""
+"""Shared Optuna objective for VectorTrainer DQN tasks."""
 
 import logging
 from collections.abc import Callable
@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Protocol
 
-import gymnasium as gym
-from gymnasium.vector import SyncVectorEnv
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
@@ -19,45 +17,46 @@ logger = logging.getLogger(__name__)
 
 
 class SearchSpace(Protocol):
-    def training_config(self, trial: Any, num_episodes: int) -> VectorTrainingConfig:
-        ...
+    def training_config(self, trial: Any) -> VectorTrainingConfig: ...
 
-    def replay_memory_capacity(self, trial: Any) -> int:
-        ...
+    def replay_memory_capacity(self, trial: Any) -> int: ...
 
 
-EnvFactory = Callable[[str], Any]
+class EnvironmentFactory(Protocol):
+    def make_training_env(self, num_envs: int) -> Any: ...
+
+    def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
 
 
 @dataclass(frozen=True, kw_only=True)
 class TrialConfig:
-    num_episodes: int = 600
     num_envs: int = 16
     seed: int | None = 42
     device: Any = None
 
     def __post_init__(self) -> None:
-        if self.num_episodes < 1 or self.num_envs < 1:
-            raise ValueError("num_episodes and num_envs must be >= 1")
+        if self.num_envs < 1:
+            raise ValueError("num_envs must be >= 1")
 
 
 def create_objective(
     *, search_space: SearchSpace,
+    environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig = TrialConfig(),
     scoring_cfg: ScoringConfig = ScoringConfig(),
-    env_id: str = "LunarLander-v3", eval_max_steps: int = 2_000,
+    eval_max_steps: int = 2_000,
 ) -> Callable[[Any], float]:
-    """Create an Optuna objective that trains one vectorized LunarLander DQN."""
+    """Create an Optuna objective for one vectorized DQN trial."""
     if eval_max_steps < 1:
         raise ValueError("eval_max_steps must be >= 1")
 
     @log_call
     def objective(trial: Any) -> float:
-        training_config = search_space.training_config(trial, trial_cfg.num_episodes)
+        training_config = search_space.training_config(trial)
         replay_memory_capacity = search_space.replay_memory_capacity(trial)
         trial_seed = None if trial_cfg.seed is None else trial_cfg.seed + trial.number
 
-        env = _make_vector_env(env_id, trial_cfg.num_envs)
+        env = environment_factory.make_training_env(trial_cfg.num_envs)
         try:
             trainer = VectorTrainer(
                 env,
@@ -72,14 +71,18 @@ def create_objective(
         finally:
             env.close()
 
-        gym_score = evaluate_greedy_q_net(
-            q_net=result.q_net,
-            device=trainer.device,
-            env_id=env_id,
-            episodes=scoring_cfg.eval_episodes,
-            max_steps=eval_max_steps,
-            seed=scoring_cfg.eval_seed,
-        )
+        gym_scores = {
+            name: evaluate_greedy_q_net(
+                q_net=result.q_net,
+                device=trainer.device,
+                make_env=make_env,
+                episodes=scoring_cfg.eval_episodes,
+                max_steps=eval_max_steps,
+                seed=scoring_cfg.eval_seed,
+            )
+            for name, make_env in environment_factory.evaluation_envs().items()
+        }
+        gym_score = sum(gym_scores.values()) / len(gym_scores)
         processed_samples = result.optimizer_updates * training_config.batch_size
         effort = (
             1.0
@@ -98,6 +101,8 @@ def create_objective(
             trial.set_user_attr(key, value)
 
         save("gym_score", gym_score)
+        if len(gym_scores) > 1:
+            save("gym_scores", gym_scores)
         save("env_steps", result.env_steps)
         save("optimizer_updates", result.optimizer_updates)
         save("processed_samples", processed_samples)
@@ -116,16 +121,16 @@ def create_objective(
 
 @log_call
 def evaluate_greedy_q_net(
-    *, q_net: Any, device, env_id: str,
-    env_factory: EnvFactory = gym.make, episodes: int = 20,
-    max_steps: int = 2_000, seed: int | None = None,
+    *, q_net: Any, device, make_env: Callable[[], Any],
+    episodes: int = 20, max_steps: int = 2_000,
+    seed: int | None = None,
 ) -> float:
     """Return mean greedy episode return for a trained Q-network."""
     episode_returns = []
     q_net.eval()
 
     for episode in range(episodes):
-        env = env_factory(env_id)
+        env = make_env()
         try:
             episode_seed = None if seed is None else seed + episode
             observation, _ = env.reset(seed=episode_seed)
@@ -138,7 +143,7 @@ def evaluate_greedy_q_net(
                     device=device,
                 ).unsqueeze(0)
                 with torch.no_grad():
-                    # greedy action: choose the highest Q-value without exploration
+                    # Greedy action: choose the highest Q-value without exploration.
                     action = q_net(state).argmax(dim=1).item()
 
                 observation, reward, terminated, truncated, _ = env.step(action)
@@ -151,7 +156,3 @@ def evaluate_greedy_q_net(
         episode_returns.append(episode_return)
 
     return sum(episode_returns) / len(episode_returns)
-
-
-def _make_vector_env(env_id: str, num_envs: int) -> SyncVectorEnv:
-    return SyncVectorEnv([lambda: gym.make(env_id) for _ in range(num_envs)])

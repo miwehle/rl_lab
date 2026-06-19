@@ -2,7 +2,7 @@
 
 ### Ziel
 
-Ein gemeinsames DQN-Modell soll auf Mond, Mars, Erde und Venus möglichst gut landen können – trotz unterschiedlicher Gravitation und wechselnder Wetterbedingungen. Die HPO sucht dafür Hyperparameter, die hohe Landequalität mit möglichst geringem Trainingsaufwand verbinden.
+Ein gemeinsames DQN-Modell soll auf Mond, Merkur, Mars, Erde und Venus möglichst gut landen können – trotz unterschiedlicher Gravitation und wechselnder Wetterbedingungen. Die HPO sucht dafür Hyperparameter, die hohe Landequalität mit möglichst geringem Trainingsaufwand verbinden.
 
 ### Zwei parallele Studienreihen
 
@@ -56,6 +56,7 @@ Gymnasium erzeugt daraus zusätzlich den zeitlich wechselnden linearen Wind und 
 - Optuna verwendet den bereits entworfenen **Quality-Effort Score**.
 - Series 2A und 2B konfigurieren `quality_weight = 0.7`; Trainingsaufwand erhält damit mehr Gewicht als in Study Series 1.
 - Der gemeinsame Gym-Score `g` ist der gleichgewichtete Mittelwert der fünf körperbezogenen Eval-Scores.
+- Pro Trial werden zehn Greedy-Eval-Episoden je Himmelskörper mit festen Seeds ausgeführt, insgesamt 50 Episoden.
 - Die fünf Einzelscores werden zusätzlich gespeichert, damit ein guter Durchschnitt keine Schwäche auf einer einzelnen Welt verdeckt.
 
 ### Definition der Studien

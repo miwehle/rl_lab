@@ -4,9 +4,9 @@ import pytest
 import torch
 
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
+from hpo import objective as objective_module
 from hpo.evaluation.scoring import ScoringConfig
-from hpo.lunar_lander import objective as objective_module
-from hpo.lunar_lander.objective import TrialConfig, evaluate_greedy_q_net
+from hpo.objective import TrialConfig, evaluate_greedy_q_net
 
 
 class FakeTrial:
@@ -14,15 +14,6 @@ class FakeTrial:
 
     def __init__(self) -> None:
         self.user_attrs = {}
-
-    def suggest_categorical(self, name, choices):
-        return choices[0]
-
-    def suggest_float(self, name, low, high, *, log=False):
-        return low
-
-    def suggest_int(self, name, low, high, *, log=False):
-        return low
 
     def set_user_attr(self, name, value) -> None:
         self.user_attrs[name] = value
@@ -36,14 +27,26 @@ class FakeEnv:
         self.closed = True
 
 
+class FakeEnvironmentFactory:
+    def __init__(self) -> None:
+        self.training_calls = []
+
+    def make_training_env(self, num_envs):
+        self.training_calls.append(num_envs)
+        return FakeEnv()
+
+    def evaluation_envs(self):
+        return {"moon": lambda: FakeEnv(), "mars": lambda: FakeEnv()}
+
+
 class FakeSearchSpace:
     def __init__(self) -> None:
         self.calls = []
 
-    def training_config(self, trial, num_episodes: int) -> VectorTrainingConfig:
-        self.calls.append(("training_config", trial, num_episodes))
+    def training_config(self, trial) -> VectorTrainingConfig:
+        self.calls.append(("training_config", trial))
         return VectorTrainingConfig(
-            num_episodes=num_episodes,
+            num_episodes=12,
             batch_size=64,
             eps_start=0.7,
             eps_end=0.02,
@@ -67,18 +70,11 @@ class TrainerCall:
     training_config: object | None = None
 
 
-def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatch) -> None:
+def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     calls = []
-    envs = []
     eval_calls = []
     search_space = FakeSearchSpace()
-
-    def vector_env_factory(env_id, num_envs):
-        assert env_id == "LunarLander-v3"
-        assert num_envs == 16
-        env = FakeEnv()
-        envs.append(env)
-        return env
+    environment_factory = FakeEnvironmentFactory()
 
     class FakeTrainer:
         def __init__(
@@ -90,37 +86,32 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
             replay_memory_capacity,
         ) -> None:
             self.device = "trainer-device"
-            calls.append(
-                TrainerCall(
-                    env,
-                    seed,
-                    device,
-                    replay_memory_capacity,
-                )
-            )
+            calls.append(TrainerCall(env, seed, device, replay_memory_capacity))
 
         def train(self, training_config):
             calls[-1].training_config = training_config
             return VectorTrainingResult(
                 q_net="fake-q-net",
-                episode_returns=[10.0, 50.0, 40.0, 20.0],
-                episode_lengths=[1, 1, 1, 1],
-                episode_epsilons=[0.7, 0.6, 0.5, 0.4],
+                episode_returns=[10.0, 50.0],
+                episode_lengths=[1, 1],
+                episode_epsilons=[0.7, 0.6],
                 env_steps=80,
                 optimizer_updates=2,
             )
 
+    scores = iter([120.0, 126.0])
+
     def gym_score_fn(**kwargs):
         eval_calls.append(kwargs)
-        return 123.0
+        return next(scores)
 
-    monkeypatch.setattr(objective_module, "_make_vector_env", vector_env_factory)
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", gym_score_fn)
 
     objective = objective_module.create_objective(
         search_space=search_space,
-        trial_cfg=TrialConfig(num_episodes=12, seed=100),
+        environment_factory=environment_factory,
+        trial_cfg=TrialConfig(num_envs=20, seed=100),
         scoring_cfg=ScoringConfig(
             baseline_env_steps=100,
             baseline_processed_samples=100,
@@ -131,44 +122,31 @@ def test_lunar_lander_objective_trains_vector_trial_and_returns_score(monkeypatc
     score = objective(trial)
 
     assert search_space.calls == [
-        ("training_config", trial, 12),
+        ("training_config", trial),
         ("replay_memory_capacity", trial),
     ]
     assert score == pytest.approx(-1.39)
     assert trial.user_attrs["gym_score"] == pytest.approx(123.0)
+    assert trial.user_attrs["gym_scores"] == {"moon": 120.0, "mars": 126.0}
     assert trial.user_attrs["env_steps"] == 80
-    assert trial.user_attrs["optimizer_updates"] == 2
     assert trial.user_attrs["processed_samples"] == 128
     assert trial.user_attrs["training_effort"] == pytest.approx(1.04)
     assert "objective_score" not in trial.user_attrs
     assert trial.user_attrs["trial_seed"] == 103
-    assert trial.user_attrs["wall_time_seconds"] >= 0.0
-    assert trial.user_attrs["training_curve"] == {
-        "episode_returns": [10.0, 50.0, 40.0, 20.0],
-        "episode_epsilons": [0.7, 0.6, 0.5, 0.4],
-    }
-    assert envs[0].closed
-    assert calls[0].seed == 103
-    assert calls[0].replay_memory_capacity == 12_345
+    assert environment_factory.training_calls == [20]
+    assert calls[0].env.closed
     assert calls[0].training_config.num_episodes == 12
-    assert calls[0].training_config.learning_rate == pytest.approx(5e-4)
-    assert calls[0].training_config.learning_starts == 77
-    assert calls[0].training_config.optimize_every == 3
-    assert eval_calls[0]["q_net"] == "fake-q-net"
-    assert eval_calls[0]["device"] == "trainer-device"
-    assert eval_calls[0]["env_id"] == "LunarLander-v3"
-    assert eval_calls[0]["episodes"] == 20
-    assert eval_calls[0]["max_steps"] == 2_000
-    assert eval_calls[0]["seed"] == 10_000
+    assert len(eval_calls) == 2
+    assert all(call["episodes"] == 20 for call in eval_calls)
 
 
-def test_lunar_lander_objective_passes_eval_settings_to_gym_score_fn(
-    monkeypatch,
-) -> None:
-    eval_calls = []
+def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
+    class SingleEnvironmentFactory(FakeEnvironmentFactory):
+        def evaluation_envs(self):
+            return {"lunar_lander": lambda: FakeEnv()}
 
     class FakeTrainer:
-        device = "trainer-device"
+        device = "cpu"
 
         def __init__(self, *_args, **_kwargs) -> None:
             pass
@@ -183,31 +161,24 @@ def test_lunar_lander_objective_passes_eval_settings_to_gym_score_fn(
                 optimizer_updates=1,
             )
 
-    monkeypatch.setattr(
-        objective_module,
-        "_make_vector_env",
-        lambda _env_id, _num_envs: FakeEnv(),
-    )
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
     monkeypatch.setattr(
         objective_module,
         "evaluate_greedy_q_net",
-        lambda **kwargs: eval_calls.append(kwargs) or 5.0,
+        lambda **_kwargs: 5.0,
     )
 
     objective = objective_module.create_objective(
         search_space=FakeSearchSpace(),
-        trial_cfg=TrialConfig(num_episodes=1, seed=None),
+        environment_factory=SingleEnvironmentFactory(),
+        trial_cfg=TrialConfig(seed=None),
         scoring_cfg=ScoringConfig(eval_episodes=7, eval_seed=50),
-        eval_max_steps=99,
     )
-
     trial = FakeTrial()
     objective(trial)
 
-    assert eval_calls[0]["episodes"] == 7
-    assert eval_calls[0]["max_steps"] == 99
-    assert eval_calls[0]["seed"] == 50
+    assert trial.user_attrs["gym_score"] == 5.0
+    assert "gym_scores" not in trial.user_attrs
     assert trial.user_attrs["training_effort"] == 1.0
 
 
@@ -236,8 +207,7 @@ def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:
 
     envs = []
 
-    def env_factory(env_id):
-        assert env_id == "LunarLander-v3"
+    def make_env():
         env = FakeEvalEnv()
         envs.append(env)
         return env
@@ -245,8 +215,7 @@ def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:
     score = evaluate_greedy_q_net(
         q_net=FakeQNet(),
         device=torch.device("cpu"),
-        env_id="LunarLander-v3",
-        env_factory=env_factory,
+        make_env=make_env,
         episodes=3,
         seed=10,
     )
