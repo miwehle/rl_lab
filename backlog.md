@@ -4,16 +4,16 @@
 
 | Nr. | Item | Voraussetzung | N | W | A | Prio | Cool |
 |---:|---|---|---:|---:|---:|---:|---:|
-| 2 | The KISS SolarSystemLander – Quest II | 0 | 6? | 7? | 4? | 10,5? | 9? |
-| 4 | Inside the SolarSystemLander | 0 | 7? | 8? | 6? | 9,3? | 10? |
-| 0 | Study Series 2 |  | 10? | 8? | 9? | 8,9? | 10? |
-| 1 | Austauschbare Replay-Sampling-Strategien | 0 | 7? | 6? | 6? | 7,0? | 7? |
-| 3 | Council of Lander Masters |  | 7? | 5? | 9? | 3,9? | 10? |
+| 3 | The KISS SolarSystemLander – Quest II | 1 | 6? | 7? | 4? | 10,5? | 9? |
+| 5 | Inside the SolarSystemLander | 1 | 7? | 8? | 6? | 9,3? | 10? |
+| 1 | Study Series 2 |  | 10? | 8? | 9? | 8,9? | 10? |
+| 2 | Austauschbare Replay-Sampling-Strategien | 1 | 7? | 6? | 6? | 7,0? | 7? |
+| 4 | Council of Lander Masters |  | 7? | 5? | 9? | 3,9? | 10? |
 
 N = Nutzen, W = Eintrittswahrscheinlichkeit, A = Aufwand.  
 Alle Skalen von 0 bis 10. `Prio = N × W / A`. `?` kennzeichnet vorläufige Schätzungen.
 
-## 0. Study Series 2
+## 1. Study Series 2
 
 **Ziel:** Hyperparameter für einen SolarSystemLander finden, der auf Mond, Merkur, Mars, Erde und Venus möglichst gut und mit möglichst wenig Trainingsaufwand landet.
 
@@ -21,7 +21,7 @@ Series 2A trainiert mit der klassischen 8D-Observation, Series 2B zusätzlich mi
 
 **Nutzen:** Ein gemeinsamer, wirtschaftlich trainierter Lander für fünf Himmelskörper und ein direkter Vergleich von Blindflug und Wetterdienst.
 
-## 1. Austauschbare Replay-Sampling-Strategien
+## 2. Austauschbare Replay-Sampling-Strategien
 
 **Idee:** Das uniforme Sampling des `VectorTrainer` durch eine austauschbare Sampling-Strategie kapseln.
 
@@ -38,7 +38,7 @@ Mögliche Strategien:
 
 **Voraussetzung:** Study Series 2 mit uniformem Replay abschließen.
 
-## 2. The KISS SolarSystemLander – Quest II
+## 3. The KISS SolarSystemLander – Quest II
 
 *"How Small Can a Five-World Pilot Be? 🙂"*
 
@@ -54,7 +54,7 @@ Beide Hidden Layers verwenden dieselbe Größe. Zunächst Landequalität und Mod
 
 **Voraussetzung:** Study Series 2 abschließen.
 
-## 3. Council of Lander Masters
+## 4. Council of Lander Masters
 
 *"Five Masters Train One Tiny Pilot. 🙂"*
 
@@ -64,7 +64,7 @@ Beide Hidden Layers verwenden dieselbe Größe. Zunächst Landequalität und Mod
 
 Weniger KISS als gemeinsames Training mit einem Replay Memory.
 
-## 4. Inside the SolarSystemLander
+## 5. Inside the SolarSystemLander
 
 *"What Does the Tiny Pilot Think? 🙂"*
 
