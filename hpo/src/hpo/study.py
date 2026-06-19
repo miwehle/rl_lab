@@ -13,7 +13,6 @@ from hpo.objective import EnvironmentFactory, TrialConfig, create_objective
 
 logger = logging.getLogger(__name__)
 
-SearchSpaceFactory = Callable[[], Any]
 ProgressFn = Callable[..., None]
 
 
@@ -84,7 +83,7 @@ def neighbors(value: Any, choices: Sequence[Any]) -> list[Any]:
 def select_robust_best(
     *,
     study: Any,
-    search_space_factory: SearchSpaceFactory,
+    search_space: Any,
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig,
     scoring_cfg: ScoringConfig,
@@ -112,7 +111,7 @@ def select_robust_best(
 
         for seed_offset in extra_seeds:
             objective = create_objective(
-                search_space=search_space_factory(),
+                search_space=search_space,
                 environment_factory=environment_factory,
                 trial_cfg=TrialConfig(
                     num_envs=trial_cfg.num_envs,

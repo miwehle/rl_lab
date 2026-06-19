@@ -124,7 +124,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
 
     params = select_robust_best(
         study=study,
-        search_space_factory=lambda: object(),
+        search_space=object(),
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(device="cpu"),
         scoring_cfg=ScoringConfig(
@@ -145,7 +145,7 @@ def test_select_robust_best_rejects_empty_study() -> None:
     with pytest.raises(ValueError, match="no complete trials"):
         select_robust_best(
             study=FakeStudy(trials=[]),
-            search_space_factory=lambda: object(),
+            search_space=object(),
             environment_factory=FakeEnvironmentFactory(),
             trial_cfg=TrialConfig(),
             scoring_cfg=ScoringConfig(
