@@ -2,10 +2,15 @@
 
 import logging
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from hpo.evaluation.reporting import finished_trial_count, show_study_progress
+from hpo.evaluation.reporting import (
+    finished_trial_count,
+    show_lander_live_progress,
+    show_study_progress,
+)
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
 from hpo.objective import EnvironmentFactory, TrialConfig, create_objective
@@ -14,6 +19,63 @@ from hpo.objective import EnvironmentFactory, TrialConfig, create_objective
 logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[..., None]
+StoragePathFn = Callable[[str], str | Path]
+
+
+@dataclass
+class LanderStudyRunner:
+    """Run a sequence of Lander studies with shared infrastructure."""
+
+    storage_path: StoragePathFn
+    environment_factory: EnvironmentFactory
+    trial_cfg: TrialConfig
+    study_attrs: dict[str, Any] = field(default_factory=dict)
+    extra_seeds: tuple[int, ...] = (1001, 1002)
+    studies: list[Any] = field(default_factory=list, init=False)
+
+    def run(
+        self,
+        study_name: str,
+        search_space: Any,
+        n_trials: int,
+        scoring_cfg: ScoringConfig,
+        *,
+        robust: bool = True,
+    ) -> tuple[Any, dict[str, Any]]:
+        def show_progress(study, *, target_trials):
+            show_lander_live_progress(
+                study,
+                target_trials=target_trials,
+                lander_studies=[*self.studies, study],
+            )
+
+        study = run_study(
+            study_name=study_name,
+            search_space=search_space,
+            n_trials=n_trials,
+            storage_path=self.storage_path(study_name),
+            environment_factory=self.environment_factory,
+            trial_cfg=self.trial_cfg,
+            scoring_cfg=scoring_cfg,
+            study_attrs=self.study_attrs,
+            progress_fn=show_progress,
+        )
+        best_params = (
+            select_robust_best(
+                study=study,
+                search_space=search_space,
+                environment_factory=self.environment_factory,
+                trial_cfg=self.trial_cfg,
+                scoring_cfg=scoring_cfg,
+                base_seed=self.trial_cfg.seed,
+                extra_seeds=self.extra_seeds,
+            )
+            if robust
+            else study.user_attrs["robust_best_params"]
+        )
+        show_progress(study, target_trials=n_trials)
+        self.studies.append(study)
+        return study, best_params
 
 
 @log_call

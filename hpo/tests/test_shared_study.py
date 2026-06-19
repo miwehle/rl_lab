@@ -6,7 +6,7 @@ import pytest
 from hpo import study as study_module
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.objective import TrialConfig
-from hpo.study import neighbors, run_study, select_robust_best
+from hpo.study import LanderStudyRunner, neighbors, run_study, select_robust_best
 
 
 @dataclass
@@ -35,6 +35,67 @@ class FakeStudy:
 class FakeEnvironmentFactory:
     pass
 
+
+def test_lander_study_runner_reuses_context_and_previous_studies(
+    monkeypatch,
+) -> None:
+    studies = [
+        FakeStudy([], {"robust_best_params": {}}),
+        FakeStudy([], {"robust_best_params": {"x": 2}}),
+    ]
+    run_calls = []
+    robust_calls = []
+    progress_calls = []
+
+    monkeypatch.setattr(
+        study_module,
+        "run_study",
+        lambda **kwargs: run_calls.append(kwargs) or studies[len(run_calls) - 1],
+    )
+    monkeypatch.setattr(
+        study_module,
+        "select_robust_best",
+        lambda **kwargs: robust_calls.append(kwargs) or {"x": 2},
+    )
+    monkeypatch.setattr(
+        study_module,
+        "show_lander_live_progress",
+        lambda *args, **kwargs: progress_calls.append((args, kwargs)),
+    )
+
+    environment_factory = FakeEnvironmentFactory()
+    trial_cfg = TrialConfig(device="cpu")
+    runner = LanderStudyRunner(
+        storage_path=lambda name: Path("runs") / f"{name}.db",
+        environment_factory=environment_factory,
+        trial_cfg=trial_cfg,
+        study_attrs={"mode": "8d"},
+        extra_seeds=(1,),
+    )
+
+    baseline, baseline_params = runner.run(
+        "s0",
+        search_space="baseline-space",
+        n_trials=3,
+        scoring_cfg=ScoringConfig(),
+        robust=False,
+    )
+    optimized, best_params = runner.run(
+        "s1",
+        search_space="search-space",
+        n_trials=4,
+        scoring_cfg=ScoringConfig(),
+    )
+
+    assert baseline_params == {}
+    assert best_params == {"x": 2}
+    assert runner.studies == [baseline, optimized]
+    assert run_calls[1]["storage_path"] == Path("runs/s1.db")
+    assert run_calls[1]["environment_factory"] is environment_factory
+    assert run_calls[1]["study_attrs"] == {"mode": "8d"}
+    assert robust_calls[0]["search_space"] == "search-space"
+    assert robust_calls[0]["extra_seeds"] == (1,)
+    assert progress_calls[-1][1]["lander_studies"] == [baseline, optimized]
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
     assert neighbors(10_000, [2_500, 5_000, 10_000, 20_000]) == [
