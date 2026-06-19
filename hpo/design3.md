@@ -54,10 +54,26 @@ Gymnasium erzeugt daraus zusätzlich den zeitlich wechselnden linearen Wind und 
 - Diese Konfiguration wird für die neue Fünf-Körper-Aufgabe erneut trainiert und bewertet.
 - Bewertung ausgewogen über alle fünf Körper und definierte Wetter-Seeds.
 - Optuna verwendet den bereits entworfenen **Quality-Effort Score**.
+- Series 2A und 2B konfigurieren `quality_weight = 0.7`; Trainingsaufwand erhält damit mehr Gewicht als in Study Series 1.
 - Der gemeinsame Gym-Score `g` ist der gleichgewichtete Mittelwert der fünf körperbezogenen Eval-Scores.
 - Die fünf Einzelscores werden zusätzlich gespeichert, damit ein guter Durchschnitt keine Schwäche auf einer einzelnen Welt verdeckt.
 
-### Suchräume in den Studien
+### Definition der Studien
+
+Die Trial-Zahlen gelten jeweils für Series 2A und Series 2B:
+
+| Studie | Ziel | Trials |
+|---|---|---:|
+| S1 Update-Ökonomie | Lernrate, Batch-Größe, Update-Frequenz und Trainingsbudget grob einstellen | 40 |
+| S2 Exploration | Epsilon-Kurve einstellen | 25 |
+| S3 Replay-Kapazität | Prüfen, ob der Replay-Speicher groß genug ist | 10 |
+| S4 Gemeinsame Feinsuche | Wichtigste Gewinner zusammen eng nachoptimieren | 25 |
+
+S0 ist die neue Baseline und gehört nicht zu den 100 HPO-Trials.
+
+Nach jeder Studie werden die drei besten Kandidaten mit je einem zusätzlichen Trainings-Seed neu trainiert. Der beste mittlere Quality-Effort Score aus ursprünglichem Trial und Nachprüfung bestimmt die Gewinner-HPs. Für S1 bis S4 entstehen damit insgesamt 12 zusätzliche Trainingsläufe.
+
+#### Suchräume in den Studien
 
 Series 2A und 2B verwenden dieselben Suchräume. S0 übernimmt die Gewinner-Hyperparameter aus Study Series 1 als neue Baseline; `num_episodes` kommt als zusätzlicher HP hinzu.
 
@@ -72,7 +88,7 @@ Series 2A und 2B verwenden dieselben Suchräume. S0 übernimmt die Gewinner-Hype
 | learning_starts | 2_500 | *categorical([1_000, 2_500, 5_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [1_000, 2_500, 5_000]))* |
 | optimize_every | 4 | *categorical([2, 4, 8])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [2, 4, 8]))* |
 | replay_memory_capacity | 200_000 | 200_000 | 200_000 | *categorical([100_000, 200_000, 400_000])* | best(S3) |
-| num_episodes | 600 | *categorical([500, 1_000, 1_500, 2_000])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [500, 1_000, 1_500, 2_000]))* |
+| num_episodes | 600 | *categorical([500, 1_000, 1_500])* | best(S1) | best(S1) | *categorical(neighbors(best(S1), [500, 1_000, 1_500]))* |
 
 Notation:
 
