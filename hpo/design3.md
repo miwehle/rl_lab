@@ -1,4 +1,4 @@
-## Entwurf: HPO Study Series 2A und 2B – XLander
+## Entwurf: HPO Study Series 2A und 2B – SolarSystemLander
 
 ### Ziel
 
@@ -18,8 +18,8 @@ Beide Reihen verwenden ansonsten denselben Aufbau, Suchraum und dieselben Seeds.
 - L4 #1 führt Series 2A aus.
 - L4 #2 führt Series 2B aus.
 - Jede Reihe erhält eine eigene SQLite-Datenbank:
-  - `xlander_8d.db`
-  - `xlander_11d.db`
+  - `solar_system_lander_8d.db`
+  - `solar_system_lander_11d.db`
 
 Damit laufen beide Reihen unabhängig und ohne konkurrierende SQLite-Zugriffe.
 
@@ -56,10 +56,10 @@ Gymnasium erzeugt daraus zusätzlich den zeitlich wechselnden linearen Wind und 
 
 ### Hauptaufgabe und Vergleich
 
-Die HPO sucht Hyperparameter für einen XLander, der auf allen vier Himmelskörpern einen hohen Gym-Score erreicht und dafür möglichst wenig Trainingsaufwand benötigt. Maßgeblich ist der gemeinsame **Quality-Effort Score**.
+Die HPO sucht Hyperparameter für einen SolarSystemLander, der auf allen vier Himmelskörpern einen hohen Gym-Score erreicht und dafür möglichst wenig Trainingsaufwand benötigt. Maßgeblich ist der gemeinsame **Quality-Effort Score**.
 
 Series 2A und 2B beantworten zusätzlich:
 
-> Wie stark profitiert der XLander davon, Gravitation und Wetterparameter ausdrücklich zu kennen?
+> Wie stark profitiert der SolarSystemLander davon, Gravitation und Wetterparameter ausdrücklich zu kennen?
 
-Series 2A ist der robuste **Blindflug-XLander**, Series 2B der professionelle **Wetterdienst-XLander**. 🙂
+Series 2A ist der robuste **SolarSystemLander im Blindflug**, Series 2B der professionelle **SolarSystemLander mit Wetterdienst**. 🙂
