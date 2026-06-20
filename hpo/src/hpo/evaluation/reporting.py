@@ -1,6 +1,19 @@
 """Notebook reporting helpers for HPO studies."""
 
+from dataclasses import dataclass
 from typing import Any
+
+
+@dataclass
+class _Dashboard:
+    container: Any
+    lander_history: Any
+    optimization_history: Any
+    podium: Any
+
+
+_dashboard: _Dashboard | None = None
+_dashboard_series: Any = None
 
 
 def plot_lander_progress(study: Any) -> Any:
@@ -21,7 +34,7 @@ def plot_lander_progress(study: Any) -> Any:
         qe_scores.append(point["qe_score"])
         labels.append(_study_label(current_study, index))
 
-    fig, gym_ax = plt.subplots(figsize=(11, 4.3))
+    fig, gym_ax = plt.subplots(figsize=(11, 2.7))
     qe_ax = gym_ax.twinx()
     gym_line, = gym_ax.plot(
         training_efforts,
@@ -57,11 +70,11 @@ def plot_lander_progress(study: Any) -> Any:
     qe_ax.set_ylabel("QE score")
     gym_ax.legend(
         handles=[gym_line, qe_line, gym_200, gym_250],
-        loc="upper left",
-        bbox_to_anchor=(1.08, 1.0),
-        borderaxespad=0,
+        loc="lower left",
+        ncol=4,
+        fontsize="small",
     )
-    fig.subplots_adjust(left=0.07, right=0.78, top=0.84, bottom=0.16)
+    fig.subplots_adjust(left=0.07, right=0.93, top=0.82, bottom=0.22)
     return fig
 
 
@@ -71,20 +84,20 @@ def show_lander_live_progress(
     target_trials: int,
     lander_studies: Any,
 ) -> None:
-    """Display live Lander History and current Optuna History."""
+    """Update the fixed dashboard during Optuna optimization."""
     import matplotlib.pyplot as plt
 
-    _clear_output(wait=True)
+    dashboard = _get_dashboard(lander_studies)
     figure = plot_lander_progress(lander_studies)
-    _display(figure)
+    _show_in(dashboard.lander_history, figure)
     plt.close(figure)
-    for completed_study in reversed(_study_list(lander_studies)):
-        if "robust_best_params" in completed_study.user_attrs:
-            print("Best hyperparameters:")
-            _display(completed_study.user_attrs["robust_best_params"])
-            break
-    print(f"Study: {_study_title(study)}")
-    _display(_optimization_history_figure(study, target_trials))
+    history = _optimization_history_figure(study, target_trials)
+    _show_in(
+        dashboard.optimization_history,
+        history,
+        heading=f"Study: {_study_title(study)}",
+    )
+    _clear_panel(dashboard.podium)
 
 
 def plot_robustness_progress(
@@ -102,7 +115,7 @@ def plot_robustness_progress(
     ]
     score_range = max(candidate_scores) - min(candidate_scores)
     baseline = min(candidate_scores) - max(0.1, 0.1 * score_range)
-    fig, ax = plt.subplots(figsize=(11, 3.2))
+    fig, ax = plt.subplots(figsize=(5.3, 2.8))
     bars = ax.bar(
         [f"Candidate {index}" for index in range(1, len(candidate_scores) + 1)],
         [score - baseline for score in candidate_scores],
@@ -116,7 +129,7 @@ def plot_robustness_progress(
     )
     ax.set_title("Robustness Candidates")
     ax.set_ylabel("Mean QE score")
-    fig.subplots_adjust(left=0.07, right=0.78, top=0.82, bottom=0.18)
+    fig.subplots_adjust(left=0.16, right=0.96, top=0.82, bottom=0.22)
     return fig
 
 
@@ -130,22 +143,26 @@ def show_robustness_progress(
     seed_count: int,
     candidate_scores: list[float],
 ) -> None:
-    """Display study history and robustness candidate progress."""
+    """Update the fixed dashboard during robustness evaluation."""
     import matplotlib.pyplot as plt
 
-    _clear_output(wait=True)
+    dashboard = _get_dashboard(lander_studies)
     history = plot_lander_progress(lander_studies)
-    _display(history)
+    _show_in(dashboard.lander_history, history)
     plt.close(history)
-    print(f"Study: {_study_title(study)}")
-    print("Phase: Robustness evaluation")
-    print(
-        f"Candidate {candidate_index}/{candidate_count} · "
-        f"Seed {seed_index}/{seed_count}"
-    )
+    _clear_panel(dashboard.optimization_history)
     candidates = plot_robustness_progress(candidate_scores, candidate_index)
-    _display(candidates)
+    _show_in(
+        dashboard.podium,
+        candidates,
+        heading=(
+            f"Study: {_study_title(study)} | Robustness evaluation | "
+            f"Candidate {candidate_index}/{candidate_count} | "
+            f"Seed {seed_index}/{seed_count}"
+        ),
+    )
     plt.close(candidates)
+
 
 def finished_trial_count(study: Any) -> int:
     """Return the number of complete or pruned trials in a study."""
@@ -201,6 +218,55 @@ def _display(value: Any) -> None:
     display(value)
 
 
+def _get_dashboard(lander_studies: Any) -> _Dashboard:
+    global _dashboard, _dashboard_series
+
+    studies = _study_list(lander_studies)
+    series = studies[0] if studies else lander_studies
+    if _dashboard is None or series is not _dashboard_series:
+        _clear_output(wait=True)
+        _dashboard = _create_dashboard()
+        _dashboard_series = series
+        _display(_dashboard.container)
+    return _dashboard
+
+
+def _create_dashboard() -> _Dashboard:
+    import ipywidgets as widgets
+
+    lander_history = widgets.Output(
+        layout=widgets.Layout(width="1100px", height="270px", overflow="hidden"),
+    )
+    optimization_history = widgets.Output(
+        layout=widgets.Layout(width="545px", height="350px", overflow="hidden"),
+    )
+    podium = widgets.Output(
+        layout=widgets.Layout(width="545px", height="350px", overflow="hidden"),
+    )
+    bottom = widgets.HBox(
+        [optimization_history, podium],
+        layout=widgets.Layout(width="1100px", justify_content="space-between"),
+    )
+    container = widgets.VBox(
+        [lander_history, bottom],
+        layout=widgets.Layout(width="1100px"),
+    )
+    return _Dashboard(container, lander_history, optimization_history, podium)
+
+
+def _show_in(panel: Any, value: Any, *, heading: str | None = None) -> None:
+    with panel:
+        _clear_output(wait=True)
+        if heading is not None:
+            print(heading)
+        _display(value)
+
+
+def _clear_panel(panel: Any) -> None:
+    with panel:
+        _clear_output(wait=False)
+
+
 def _plot_optimization_history(study: Any) -> Any:
     from optuna.visualization import plot_optimization_history
 
@@ -252,10 +318,10 @@ def _optimization_history_figure(study: Any, target_trials: int) -> Any:
     fig.add_hline(y=200, line_color="gray", line_dash="dash")
     fig.add_hline(y=250, line_color="gray", line_dash="dot")
     fig.update_layout(
-        width=1100,
-        height=430,
-        margin=dict(l=70, r=250, t=70, b=55),
-        legend=dict(x=1.08, xanchor="left"),
+        width=535,
+        height=315,
+        margin=dict(l=60, r=65, t=35, b=50),
+        showlegend=False,
         yaxis=dict(title="Gym score"),
         yaxis2=dict(title="QE score", overlaying="y", side="right"),
     )

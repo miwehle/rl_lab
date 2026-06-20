@@ -67,13 +67,10 @@ def test_plot_lander_progress_uses_robust_effort_and_gym_score() -> None:
     assert gym_ax.get_ylabel() == "Gym score"
     assert qe_ax.get_ylabel() == "QE score"
     assert [line.get_ydata()[0] for line in gym_ax.lines[1:]] == [200, 250]
-    assert fig.get_size_inches().tolist() == [11.0, 4.3]
+    assert fig.get_size_inches().tolist() == [11.0, 2.7]
     legend = gym_ax.get_legend()
-    assert legend._loc == 2
-    position = legend.get_bbox_to_anchor().transformed(
-        gym_ax.transAxes.inverted(),
-    ).bounds[:2]
-    assert position == pytest.approx((1.08, 1.0))
+    assert legend._loc == 3
+    assert legend._ncols == 4
 
 
 def test_plot_lander_progress_uses_one_point_per_study() -> None:
@@ -136,34 +133,34 @@ def test_plot_lander_progress_skips_studies_without_robust_result() -> None:
     assert list(ax.lines[0].get_ydata()) == []
 
 
-def test_show_lander_live_progress_displays_params_and_closes_lander_figure(
-    monkeypatch,
-) -> None:
+def test_show_lander_live_progress_updates_fixed_dashboard(monkeypatch) -> None:
     study = FakeStudy(
-        trials=[
-            FakeTrial(
-                number=0,
-                value=1,
-                user_attrs={"wall_time_seconds": 60, "gym_score": 180},
-            ),
-        ],
+        trials=[FakeTrial(
+            number=0,
+            value=1,
+            user_attrs={"wall_time_seconds": 60, "gym_score": 180},
+        )],
         user_attrs={
             "robust_best_gym_score": 180,
             "robust_best_objective_score": -1.0,
             "robust_best_training_effort": 1.0,
-            "robust_best_params": {"learning_rate": 0.001},
         },
     )
-    displayed = []
-    clear_calls = []
-    printed = []
+    dashboard = reporting._Dashboard(
+        container="dashboard",
+        lander_history="lh",
+        optimization_history="oh",
+        podium="podium",
+    )
+    shown = []
+    cleared = []
+    monkeypatch.setattr(reporting, "_get_dashboard", lambda _studies: dashboard)
     monkeypatch.setattr(
         reporting,
-        "_clear_output",
-        lambda **kwargs: clear_calls.append(kwargs),
+        "_show_in",
+        lambda panel, value, **kwargs: shown.append((panel, value, kwargs)),
     )
-    monkeypatch.setattr(reporting, "_display", displayed.append)
-    monkeypatch.setattr("builtins.print", lambda *values: printed.append(" ".join(map(str, values))))
+    monkeypatch.setattr(reporting, "_clear_panel", cleared.append)
     monkeypatch.setattr(
         reporting,
         "_optimization_history_figure",
@@ -176,14 +173,49 @@ def test_show_lander_live_progress_displays_params_and_closes_lander_figure(
         lander_studies=[study],
     )
 
-    assert clear_calls == [{"wait": True}]
-    assert printed == ["Best hyperparameters:", "Study: Unnamed"]
-    assert len(displayed) == 3
-    assert displayed[0].axes[0].get_ylabel() == "Gym score"
-    assert displayed[0].axes[1].get_ylabel() == "QE score"
-    assert not plt.fignum_exists(displayed[0].number)
-    assert displayed[1] == {"learning_rate": 0.001}
-    assert displayed[2] == ("oh", study, 40)
+    assert shown[0][0] == "lh"
+    assert shown[0][1].axes[0].get_ylabel() == "Gym score"
+    assert not plt.fignum_exists(shown[0][1].number)
+    assert shown[1] == (
+        "oh",
+        ("oh", study, 40),
+        {"heading": "Study: Unnamed"},
+    )
+    assert cleared == ["podium"]
+
+
+def test_dashboard_is_reused_within_one_study_series(monkeypatch) -> None:
+    first = FakeStudy(trials=[])
+    second = FakeStudy(trials=[])
+    dashboards = [
+        reporting._Dashboard("dashboard-1", "lh-1", "oh-1", "p-1"),
+        reporting._Dashboard("dashboard-2", "lh-2", "oh-2", "p-2"),
+    ]
+    created = []
+    displayed = []
+    cleared = []
+    monkeypatch.setattr(reporting, "_dashboard", None)
+    monkeypatch.setattr(reporting, "_dashboard_series", None)
+    monkeypatch.setattr(
+        reporting,
+        "_create_dashboard",
+        lambda: created.append(None) or dashboards[len(created) - 1],
+    )
+    monkeypatch.setattr(reporting, "_display", displayed.append)
+    monkeypatch.setattr(
+        reporting,
+        "_clear_output",
+        lambda **kwargs: cleared.append(kwargs),
+    )
+
+    assert reporting._get_dashboard([first]) is dashboards[0]
+    assert reporting._get_dashboard([first, second]) is dashboards[0]
+    assert reporting._get_dashboard([second]) is dashboards[1]
+
+    assert len(created) == 2
+    assert displayed == ["dashboard-1", "dashboard-2"]
+    assert cleared == [{"wait": True}, {"wait": True}]
+
 
 def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
     class FakeTrace:
@@ -248,6 +280,9 @@ def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
     assert figure.data[1].updates["name"] == "Best QE score"
     assert figure.data[1].updates["line_color"] == "red"
     assert "Best QE score" in figure.data[1].updates["hovertemplate"]
+    assert figure.layout["width"] == 535
+    assert figure.layout["height"] == 315
+    assert figure.layout["showlegend"] is False
     assert figure.layout["yaxis"]["title"] == "Gym score"
     assert figure.layout["yaxis2"]["title"] == "QE score"
     assert [line["y"] for line in figure.hlines] == [200, 250]
@@ -274,14 +309,21 @@ def test_plot_robustness_progress_marks_candidate_states() -> None:
 
 def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
     study = FakeStudy(trials=[], study_name="s1_qe_update_economy")
-    displayed = []
-    printed = []
-    monkeypatch.setattr(reporting, "_clear_output", lambda **_kwargs: None)
-    monkeypatch.setattr(reporting, "_display", displayed.append)
-    monkeypatch.setattr(
-        "builtins.print",
-        lambda *values: printed.append(" ".join(map(str, values))),
+    dashboard = reporting._Dashboard(
+        container="dashboard",
+        lander_history="lh",
+        optimization_history="oh",
+        podium="podium",
     )
+    shown = []
+    cleared = []
+    monkeypatch.setattr(reporting, "_get_dashboard", lambda _studies: dashboard)
+    monkeypatch.setattr(
+        reporting,
+        "_show_in",
+        lambda panel, value, **kwargs: shown.append((panel, value, kwargs)),
+    )
+    monkeypatch.setattr(reporting, "_clear_panel", cleared.append)
 
     reporting.show_robustness_progress(
         study,
@@ -293,12 +335,15 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
         candidate_scores=[-1.0, -1.5, -2.0],
     )
 
-    assert printed == [
-        "Study: S1 Update Economy",
-        "Phase: Robustness evaluation",
-        "Candidate 2/3 · Seed 1/1",
-    ]
-    assert len(displayed) == 2
-    assert displayed[0].axes[0].get_title() == "Lander History"
-    assert displayed[1].axes[0].get_title() == "Robustness Candidates"
-    assert all(not plt.fignum_exists(figure.number) for figure in displayed)
+    assert shown[0][0] == "lh"
+    assert shown[0][1].axes[0].get_title() == "Lander History"
+    assert cleared == ["oh"]
+    assert shown[1][0] == "podium"
+    assert shown[1][1].axes[0].get_title() == "Robustness Candidates"
+    assert shown[1][2] == {
+        "heading": (
+            "Study: S1 Update Economy | Robustness evaluation | "
+            "Candidate 2/3 | Seed 1/1"
+        ),
+    }
+    assert all(not plt.fignum_exists(call[1].number) for call in shown)
