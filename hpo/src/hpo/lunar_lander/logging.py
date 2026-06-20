@@ -6,6 +6,12 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 
+class _SourceFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        line = getattr(record, "definition_line", record.lineno)
+        record.source = f"{record.name}:{line}"
+        return True
+
 
 def configure_file_logging(
     study_dir: str | Path,
@@ -21,9 +27,10 @@ def configure_file_logging(
         return
 
     handler = logging.FileHandler(log_path)
+    handler.addFilter(_SourceFilter())
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s: %(message)s",
+            "%(asctime)s %(levelname)-8s %(source)-24s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     )
@@ -34,13 +41,14 @@ def configure_file_logging(
 
 def log_call(func: Callable[..., Any]) -> Callable[..., Any]:
     call_logger = logging.getLogger(func.__module__)
+    log_extra = {"definition_line": func.__code__.co_firstlineno}
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        call_logger.info("start %s", func.__name__)
+        call_logger.info("-> %s", func.__name__, extra=log_extra)
         try:
             return func(*args, **kwargs)
         finally:
-            call_logger.info("finish %s", func.__name__)
+            call_logger.info("<- %s", func.__name__, extra=log_extra)
 
     return wrapper
