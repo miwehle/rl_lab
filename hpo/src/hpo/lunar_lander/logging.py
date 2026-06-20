@@ -2,14 +2,20 @@
 
 import logging
 from collections.abc import Callable
+from contextvars import ContextVar
 from functools import wraps
 from pathlib import Path
 from typing import Any
+
+
+_call_depth: ContextVar[int] = ContextVar("hpo_call_depth", default=0)
+
 
 class _SourceFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         line = getattr(record, "definition_line", record.lineno)
         record.source = f"{record.name}:{line}"
+        record.indent = "   " * _call_depth.get()
         return True
 
 
@@ -30,7 +36,7 @@ def configure_file_logging(
     handler.addFilter(_SourceFilter())
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s %(levelname)-8s %(source)-24s %(message)s",
+            "%(asctime)s %(levelname)-8s %(source)-24s %(indent)s%(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     )
@@ -46,9 +52,11 @@ def log_call(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         call_logger.info("-> %s", func.__name__, extra=log_extra)
+        token = _call_depth.set(_call_depth.get() + 1)
         try:
             return func(*args, **kwargs)
         finally:
+            _call_depth.reset(token)
             call_logger.info("<- %s", func.__name__, extra=log_extra)
 
     return wrapper
