@@ -9,6 +9,7 @@ from typing import Any
 from hpo.evaluation.reporting import (
     finished_trial_count,
     show_lander_live_progress,
+    show_robustness_progress,
     show_study_progress,
 )
 from hpo.evaluation.scoring import ScoringConfig
@@ -51,6 +52,13 @@ class StudyRunner:
                 lander_studies=[*self.studies, study],
             )
 
+        def show_robustness(**kwargs):
+            show_robustness_progress(
+                study,
+                lander_studies=[*self.studies, study],
+                **kwargs,
+            )
+
         study = run_study(
             study_name=study_name,
             search_space=search_space,
@@ -72,6 +80,7 @@ class StudyRunner:
                 scoring_cfg=scoring_cfg,
                 base_seed=self.trial_cfg.seed,
                 extra_seeds=self.extra_seeds,
+                progress_fn=show_robustness,
             )
             if robust
             else study.user_attrs["robust_best_params"]
@@ -162,12 +171,14 @@ def select_robust_best(
     base_seed: int = 42,
     top_n: int = 3,
     extra_seeds: Iterable[int] = (1001, 1002),
+    progress_fn: ProgressFn | None = None,
 ) -> dict[str, Any]:
     """Re-check top candidates with extra seeds and return the best params."""
     if top_n < 1:
         raise ValueError("top_n must be >= 1")
 
     candidates = _top_complete_trials(study, top_n)
+    extra_seeds = tuple(extra_seeds)
     if not candidates:
         raise ValueError("study has no complete trials")
 
@@ -175,13 +186,25 @@ def select_robust_best(
     best_mean = float("-inf")
     best_gym_mean = None
     best_effort_mean = None
+    candidate_scores = [float(trial.value) for trial in candidates]
 
-    def score_candidate(trial: Any) -> tuple[dict[str, Any], float, float, float]:
+    def score_candidate(
+        trial: Any,
+        candidate_index: int,
+    ) -> tuple[dict[str, Any], float, float, float]:
         scores = [float(trial.value)]
         gym_scores = [float(trial.user_attrs["gym_score"])]
         efforts = [float(trial.user_attrs["training_effort"])]
 
-        for seed_offset in extra_seeds:
+        for seed_index, seed_offset in enumerate(extra_seeds, start=1):
+            if progress_fn is not None:
+                progress_fn(
+                    candidate_index=candidate_index,
+                    candidate_count=len(candidates),
+                    seed_index=seed_index,
+                    seed_count=len(extra_seeds),
+                    candidate_scores=candidate_scores,
+                )
             objective = create_objective(
                 search_space=search_space,
                 environment_factory=environment_factory,
@@ -194,6 +217,7 @@ def select_robust_best(
             )
             fixed_trial = _FixedParamTrial(trial.params)
             scores.append(objective(fixed_trial))
+            candidate_scores[candidate_index - 1] = sum(scores) / len(scores)
             gym_scores.append(float(fixed_trial.user_attrs["gym_score"]))
             efforts.append(float(fixed_trial.user_attrs["training_effort"]))
 
@@ -205,8 +229,11 @@ def select_robust_best(
             sum(efforts) / len(efforts),
         )
 
-    for trial in candidates:
-        params, mean_score, mean_gym_score, mean_effort = score_candidate(trial)
+    for candidate_index, trial in enumerate(candidates, start=1):
+        params, mean_score, mean_gym_score, mean_effort = score_candidate(
+            trial,
+            candidate_index,
+        )
         if mean_score > best_mean:
             best_mean = mean_score
             best_params = params

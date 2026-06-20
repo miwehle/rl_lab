@@ -46,6 +46,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     run_calls = []
     robust_calls = []
     progress_calls = []
+    robustness_display_calls = []
     sync_calls = []
 
     monkeypatch.setattr(
@@ -62,6 +63,11 @@ def test_study_runner_reuses_context_and_previous_studies(
         study_module,
         "show_lander_live_progress",
         lambda *args, **kwargs: progress_calls.append((args, kwargs)),
+    )
+    monkeypatch.setattr(
+        study_module,
+        "show_robustness_progress",
+        lambda *args, **kwargs: robustness_display_calls.append((args, kwargs)),
     )
 
     environment_factory = FakeEnvironmentFactory()
@@ -98,6 +104,14 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert run_calls[1]["sync_fn"] is runner.sync_fn
     assert robust_calls[0]["search_space"] == "search-space"
     assert robust_calls[0]["extra_seeds"] == (1,)
+    robust_calls[0]["progress_fn"](
+        candidate_index=1,
+        candidate_count=3,
+        seed_index=1,
+        seed_count=1,
+        candidate_scores=[1.0, 0.5, 0.0],
+    )
+    assert robustness_display_calls[0][1]["candidate_index"] == 1
     assert progress_calls[-1][1]["lander_studies"] == [baseline, optimized]
     assert len(sync_calls) == 1
 
@@ -190,6 +204,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         return objective
 
     monkeypatch.setattr(study_module, "create_objective", fake_create_objective)
+    progress_calls = []
 
     params = select_robust_best(
         study=study,
@@ -202,12 +217,20 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         ),
         top_n=2,
         extra_seeds=(1,),
+        progress_fn=lambda **kwargs: progress_calls.append({
+            **kwargs,
+            "candidate_scores": list(kwargs["candidate_scores"]),
+        }),
     )
 
     assert params == {"x": 2}
     assert study.user_attrs["robust_best_objective_score"] == 145
     assert study.user_attrs["robust_best_gym_score"] == 20
     assert study.user_attrs["robust_best_training_effort"] == 2
+    assert [(call["candidate_index"], call["seed_index"]) for call in progress_calls] == [
+        (1, 1),
+        (2, 1),
+    ]
 
 
 def test_select_robust_best_rejects_empty_study() -> None:

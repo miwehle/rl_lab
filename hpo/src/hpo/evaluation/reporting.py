@@ -87,6 +87,66 @@ def show_lander_live_progress(
     _display(_optimization_history_figure(study, target_trials))
 
 
+def plot_robustness_progress(
+    candidate_scores: list[float],
+    candidate_index: int,
+) -> Any:
+    """Plot running mean QE scores for robustness candidates."""
+    import matplotlib.pyplot as plt
+
+    colors = [
+        "tab:blue" if index < candidate_index else
+        "tab:orange" if index == candidate_index else
+        "lightgray"
+        for index in range(1, len(candidate_scores) + 1)
+    ]
+    score_range = max(candidate_scores) - min(candidate_scores)
+    baseline = min(candidate_scores) - max(0.1, 0.1 * score_range)
+    fig, ax = plt.subplots(figsize=(11, 3.2))
+    bars = ax.bar(
+        [f"Candidate {index}" for index in range(1, len(candidate_scores) + 1)],
+        [score - baseline for score in candidate_scores],
+        bottom=baseline,
+        color=colors,
+    )
+    ax.bar_label(
+        bars,
+        labels=[f"{score:.3f}" for score in candidate_scores],
+        padding=3,
+    )
+    ax.set_title("Robustness Candidates")
+    ax.set_ylabel("Mean QE score")
+    fig.subplots_adjust(left=0.07, right=0.78, top=0.82, bottom=0.18)
+    return fig
+
+
+def show_robustness_progress(
+    study: Any,
+    *,
+    lander_studies: Any,
+    candidate_index: int,
+    candidate_count: int,
+    seed_index: int,
+    seed_count: int,
+    candidate_scores: list[float],
+) -> None:
+    """Display study history and robustness candidate progress."""
+    import matplotlib.pyplot as plt
+
+    _clear_output(wait=True)
+    history = plot_lander_progress(lander_studies)
+    _display(history)
+    plt.close(history)
+    print(f"Study: {_study_title(study)}")
+    print("Phase: Robustness evaluation")
+    print(
+        f"Candidate {candidate_index}/{candidate_count} · "
+        f"Seed {seed_index}/{seed_count}"
+    )
+    candidates = plot_robustness_progress(candidate_scores, candidate_index)
+    _display(candidates)
+    plt.close(candidates)
+
 def finished_trial_count(study: Any) -> int:
     """Return the number of complete or pruned trials in a study."""
     return _trial_count(study, "COMPLETE") + _trial_count(study, "PRUNED")
