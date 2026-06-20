@@ -1,0 +1,51 @@
+@startuml
+
+hide footbox
+
+participant "trainer:VectorTrainer" as trainer
+participant "env:VectorEnv" as env
+participant "memory:VectorReplayMemory" as memory
+participant "q_net:DQN" as q_net
+participant "target_net:DQN" as target_net
+participant "optimizer:AdamW" as optimizer
+
+[-> trainer : train(config)
+activate trainer
+
+trainer -> env : reset()
+activate env
+env --> trainer : observations
+deactivate env
+
+trainer -> env : step(actions)
+activate env
+env --> trainer : observations, rewards, done
+deactivate env
+
+trainer -> memory : push_batch(...)
+activate memory
+deactivate memory
+
+trainer -> memory : sample(batch_size, device)
+activate memory
+memory --> trainer : replay batch
+deactivate memory
+
+trainer -> q_net : q_net(states)
+activate q_net
+q_net --> trainer : Q-values
+deactivate q_net
+
+trainer -> target_net : target_net(next_states)
+activate target_net
+target_net --> trainer : target Q-values
+deactivate target_net
+
+trainer -> optimizer : step()
+activate optimizer
+deactivate optimizer
+
+trainer -->] : VectorTrainingResult
+deactivate trainer
+
+@enduml
