@@ -14,7 +14,8 @@ _call_depth: ContextVar[int] = ContextVar("hpo_call_depth", default=0)
 class _SourceFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         line = getattr(record, "definition_line", record.lineno)
-        record.source = f"{record.name}:{line}"
+        source = f"{record.name}:{line}"
+        record.source = source if len(source) <= 32 else f"…{source[-31:]}"
         depth = _call_depth.get()
         record.indent = " " * (depth if getattr(record, "call_boundary", False) else depth + 2)
         return True
@@ -37,7 +38,7 @@ def configure_file_logging(
     handler.addFilter(_SourceFilter())
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s %(levelname)-8s %(source)-24s %(indent)s%(message)s",
+            "%(asctime)s %(levelname)-8s %(source)-32s %(indent)s%(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     )

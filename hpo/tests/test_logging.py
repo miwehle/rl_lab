@@ -77,3 +77,17 @@ def test_log_call_indents_nested_and_regular_logs(tmp_path) -> None:
     assert lines[2].endswith("    regular log")
     assert lines[3].endswith(" <- inner_function")
     assert lines[4].endswith("<- outer_function")
+
+def test_logging_truncates_long_source_from_the_left(tmp_path) -> None:
+    logger = logging.getLogger("hpo.very.long.package.and.module.name")
+    configure_file_logging(tmp_path)
+
+    logger.info("message")
+    handler = logging.getLogger("hpo").handlers[0]
+    handler.flush()
+
+    line = (tmp_path / "hpo.log").read_text().strip()
+    source = line[29:61]
+    assert len(source) == 32
+    assert source.startswith("…")
+    assert source.rstrip().endswith(str(test_logging_truncates_long_source_from_the_left.__code__.co_firstlineno + 4))
