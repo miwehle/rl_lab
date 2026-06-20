@@ -46,6 +46,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     run_calls = []
     robust_calls = []
     progress_calls = []
+    sync_calls = []
 
     monkeypatch.setattr(
         study_module,
@@ -71,6 +72,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         trial_cfg=trial_cfg,
         study_attrs={"mode": "8d"},
         extra_seeds=(1,),
+        sync_fn=lambda: sync_calls.append(None),
     )
 
     baseline, baseline_params = runner.run(
@@ -93,9 +95,12 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert run_calls[1]["storage_path"] == Path("runs/s1.db")
     assert run_calls[1]["environment_factory"] is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
+    assert run_calls[1]["sync_fn"] is runner.sync_fn
     assert robust_calls[0]["search_space"] == "search-space"
     assert robust_calls[0]["extra_seeds"] == (1,)
     assert progress_calls[-1][1]["lander_studies"] == [baseline, optimized]
+    assert len(sync_calls) == 1
+
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
     assert neighbors(10_000, [2_500, 5_000, 10_000, 20_000]) == [
@@ -139,6 +144,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     monkeypatch.setattr(study_module, "_create_study", fake_create_study)
     monkeypatch.setattr(Path, "mkdir", lambda self, parents=False, exist_ok=False: None)
 
+    sync_calls = []
     study = run_study(
         study_name="s0",
         search_space=object(),
@@ -147,12 +153,14 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
         environment_factory=FakeEnvironmentFactory(),
         study_attrs={"observation_mode": "8d"},
         progress_fn=None,
+        sync_fn=lambda: sync_calls.append(None),
     )
 
     assert "series.db" in created_studies[0]["storage"]
     assert study.user_attrs["observation_mode"] == "8d"
     assert study.user_attrs["baseline_env_steps"] == 10
     assert study.user_attrs["baseline_processed_samples"] == 20
+    assert len(sync_calls) == 3
 
 
 def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:

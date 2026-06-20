@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[..., None]
 StoragePathFn = Callable[[str], str | Path]
+SyncFn = Callable[[], None]
 
 
 @dataclass
@@ -31,6 +32,7 @@ class StudyRunner:
     trial_cfg: TrialConfig
     study_attrs: dict[str, Any] = field(default_factory=dict)
     extra_seeds: tuple[int, ...] = (1001, 1002)
+    sync_fn: SyncFn | None = None
     studies: list[Any] = field(default_factory=list, init=False)
 
     def run(
@@ -59,6 +61,7 @@ class StudyRunner:
             scoring_cfg=scoring_cfg,
             study_attrs=self.study_attrs,
             progress_fn=show_progress,
+            sync_fn=self.sync_fn,
         )
         best_params = (
             select_robust_best(
@@ -73,6 +76,8 @@ class StudyRunner:
             if robust
             else study.user_attrs["robust_best_params"]
         )
+        if robust and self.sync_fn is not None:
+            self.sync_fn()
         show_progress(study, target_trials=n_trials)
         self.studies.append(study)
         return study, best_params
@@ -90,6 +95,7 @@ def run_study(
     scoring_cfg: ScoringConfig = ScoringConfig(),
     study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = show_study_progress,
+    sync_fn: SyncFn | None = None,
 ) -> Any:
     """Create or load an Optuna study and run it to the target trial count."""
     if n_trials < 1:
@@ -118,6 +124,8 @@ def run_study(
     while finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
         study.optimize(objective, n_trials=1)
+        if sync_fn is not None:
+            sync_fn()
         if progress_fn is not None:
             progress_fn(study, target_trials=n_trials)
 
@@ -131,6 +139,8 @@ def run_study(
         save("robust_best_objective_score", _mean_trial_value(study))
         save("robust_best_gym_score", _mean_trial_attr(study, "gym_score"))
         save("robust_best_training_effort", 1.0)
+        if sync_fn is not None:
+            sync_fn()
     return study
 
 

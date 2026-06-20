@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import Any
 
 
-def configure_file_logging(study_dir: str | Path) -> None:
-    log_path = Path(study_dir) / "hpo.log"
+def configure_file_logging(
+    study_dir: str | Path,
+    filename: str = "hpo.log",
+) -> None:
+    log_path = Path(study_dir) / filename
     logger = logging.getLogger("hpo")
     if any(
         isinstance(handler, logging.FileHandler)
