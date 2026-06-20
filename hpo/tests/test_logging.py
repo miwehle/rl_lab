@@ -73,7 +73,7 @@ def test_log_call_indents_nested_and_regular_logs(tmp_path) -> None:
 
     lines = (tmp_path / "hpo.log").read_text().splitlines()
     assert lines[0].endswith("-> outer_function")
-    assert lines[1].endswith("   -> inner_function")
-    assert lines[2].endswith("      regular log")
-    assert lines[3].endswith("   <- inner_function")
+    assert lines[1].endswith(" -> inner_function")
+    assert lines[2].endswith("    regular log")
+    assert lines[3].endswith(" <- inner_function")
     assert lines[4].endswith("<- outer_function")

@@ -15,7 +15,8 @@ class _SourceFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         line = getattr(record, "definition_line", record.lineno)
         record.source = f"{record.name}:{line}"
-        record.indent = "   " * _call_depth.get()
+        depth = _call_depth.get()
+        record.indent = " " * (depth if getattr(record, "call_boundary", False) else depth + 2)
         return True
 
 
@@ -47,7 +48,10 @@ def configure_file_logging(
 
 def log_call(func: Callable[..., Any]) -> Callable[..., Any]:
     call_logger = logging.getLogger(func.__module__)
-    log_extra = {"definition_line": func.__code__.co_firstlineno}
+    log_extra = {
+        "definition_line": func.__code__.co_firstlineno,
+        "call_boundary": True,
+    }
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
