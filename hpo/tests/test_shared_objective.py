@@ -43,8 +43,12 @@ class FakeSearchSpace:
     def __init__(self) -> None:
         self.calls = []
 
-    def training_config(self, trial) -> VectorTrainingConfig:
-        self.calls.append(("training_config", trial))
+    def training_config(
+        self,
+        trial,
+        incumbent_params,
+    ) -> VectorTrainingConfig:
+        self.calls.append(("training_config", trial, incumbent_params))
         return VectorTrainingConfig(
             num_episodes=12,
             batch_size=64,
@@ -56,8 +60,8 @@ class FakeSearchSpace:
             optimize_every=3,
         )
 
-    def replay_memory_capacity(self, trial) -> int:
-        self.calls.append(("replay_memory_capacity", trial))
+    def replay_memory_capacity(self, trial, incumbent_params) -> int:
+        self.calls.append(("replay_memory_capacity", trial, incumbent_params))
         return 12_345
 
 
@@ -110,6 +114,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
 
     objective = objective_module.create_objective(
         search_space=search_space,
+        incumbent_params={"learning_rate": 0.001},
         environment_factory=environment_factory,
         trial_cfg=TrialConfig(num_envs=20, seed=100),
         scoring_cfg=ScoringConfig(
@@ -122,8 +127,8 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     score = objective(trial)
 
     assert search_space.calls == [
-        ("training_config", trial),
-        ("replay_memory_capacity", trial),
+        ("training_config", trial, {"learning_rate": 0.001}),
+        ("replay_memory_capacity", trial, {"learning_rate": 0.001}),
     ]
     assert score == pytest.approx(-1.39)
     assert trial.user_attrs["gym_score"] == pytest.approx(123.0)
@@ -170,6 +175,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
 
     objective = objective_module.create_objective(
         search_space=FakeSearchSpace(),
+        incumbent_params={},
         environment_factory=SingleEnvironmentFactory(),
         trial_cfg=TrialConfig(seed=None),
         scoring_cfg=ScoringConfig(eval_episodes=7, eval_seed=50),

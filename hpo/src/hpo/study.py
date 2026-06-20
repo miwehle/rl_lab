@@ -26,15 +26,20 @@ SyncFn = Callable[[], None]
 
 @dataclass
 class StudyRunner:
-    """Run a sequence of studies with shared infrastructure."""
+    """Run a study series and retain its incumbent and results."""
 
     storage_path: StoragePathFn
     environment_factory: EnvironmentFactory
     trial_cfg: TrialConfig
+    incumbent_params: dict[str, Any]
     study_attrs: dict[str, Any] = field(default_factory=dict)
     extra_seeds: tuple[int, ...] = (1001, 1002)
     sync_fn: SyncFn | None = None
     studies: list[Any] = field(default_factory=list, init=False)
+    incumbent_score: float | None = field(default=None, init=False)
+
+    def __post_init__(self) -> None:
+        self.incumbent_params = dict(self.incumbent_params)
 
     def run(
         self,
@@ -44,8 +49,7 @@ class StudyRunner:
         scoring_cfg: ScoringConfig,
         *,
         robust: bool = True,
-        incumbent_params: dict[str, Any] | None = None,
-    ) -> tuple[Any, dict[str, Any]]:
+    ) -> None:
         def show_progress(study, *, target_trials):
             show_lander_live_progress(
                 study,
@@ -63,6 +67,7 @@ class StudyRunner:
         study = run_study(
             study_name=study_name,
             search_space=search_space,
+            incumbent_params=self.incumbent_params,
             n_trials=n_trials,
             storage_path=self.storage_path(study_name),
             environment_factory=self.environment_factory,
@@ -72,10 +77,11 @@ class StudyRunner:
             progress_fn=show_progress,
             sync_fn=self.sync_fn,
         )
-        best_params = (
+        selected_params = (
             select_robust_best(
                 study=study,
                 search_space=search_space,
+                incumbent_params=self.incumbent_params,
                 environment_factory=self.environment_factory,
                 trial_cfg=self.trial_cfg,
                 scoring_cfg=scoring_cfg,
@@ -84,24 +90,26 @@ class StudyRunner:
                 progress_fn=show_robustness,
             )
             if robust
-            else study.user_attrs["robust_best_params"]
+            else {}
         )
-        if robust and self.studies and incumbent_params is not None:
+        selected_score = study.user_attrs["robust_best_objective_score"]
+        if self.incumbent_score is None or selected_score > self.incumbent_score:
+            self.incumbent_params.update(selected_params)
+            self.incumbent_score = selected_score
+        else:
             incumbent = self.studies[-1]
-            if (
-                incumbent.user_attrs["robust_best_objective_score"]
-                >= study.user_attrs["robust_best_objective_score"]
-            ):
-                best_params = dict(incumbent_params)
-                _set_study_user_attr(study, "robust_best_params", best_params)
-                for name in ("objective_score", "gym_score", "training_effort"):
-                    attr = f"robust_best_{name}"
-                    _set_study_user_attr(study, attr, incumbent.user_attrs[attr])
+            retained = {
+                name: self.incumbent_params[name]
+                for name in selected_params
+            }
+            _set_study_user_attr(study, "robust_best_params", retained)
+            for name in ("objective_score", "gym_score", "training_effort"):
+                attr = f"robust_best_{name}"
+                _set_study_user_attr(study, attr, incumbent.user_attrs[attr])
         if robust and self.sync_fn is not None:
             self.sync_fn()
         show_progress(study, target_trials=n_trials)
         self.studies.append(study)
-        return study, best_params
 
 
 @log_call
@@ -109,6 +117,7 @@ def run_study(
     *,
     study_name: str,
     search_space: Any,
+    incumbent_params: dict[str, Any],
     n_trials: int,
     storage_path: str | Path,
     environment_factory: EnvironmentFactory,
@@ -127,6 +136,7 @@ def run_study(
 
     objective = create_objective(
         search_space=search_space,
+        incumbent_params=incumbent_params,
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
         scoring_cfg=scoring_cfg,
@@ -177,6 +187,7 @@ def select_robust_best(
     *,
     study: Any,
     search_space: Any,
+    incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig,
     scoring_cfg: ScoringConfig,
@@ -219,6 +230,7 @@ def select_robust_best(
                 )
             objective = create_objective(
                 search_space=search_space,
+                incumbent_params=incumbent_params,
                 environment_factory=environment_factory,
                 trial_cfg=TrialConfig(
                     num_envs=trial_cfg.num_envs,

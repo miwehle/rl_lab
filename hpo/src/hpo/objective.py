@@ -17,9 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 class SearchSpace(Protocol):
-    def training_config(self, trial: Any) -> VectorTrainingConfig: ...
+    def training_config(
+        self, trial: Any, incumbent_params: dict[str, Any]
+    ) -> VectorTrainingConfig: ...
 
-    def replay_memory_capacity(self, trial: Any) -> int: ...
+    def replay_memory_capacity(
+        self, trial: Any, incumbent_params: dict[str, Any]
+    ) -> int: ...
 
 
 class EnvironmentFactory(Protocol):
@@ -41,6 +45,7 @@ class TrialConfig:
 
 def create_objective(
     *, search_space: SearchSpace,
+    incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig = TrialConfig(),
     scoring_cfg: ScoringConfig = ScoringConfig(),
@@ -52,8 +57,10 @@ def create_objective(
 
     @log_call
     def objective(trial: Any) -> float:
-        training_config = search_space.training_config(trial)
-        replay_memory_capacity = search_space.replay_memory_capacity(trial)
+        training_config = search_space.training_config(trial, incumbent_params)
+        replay_memory_capacity = search_space.replay_memory_capacity(
+            trial, incumbent_params
+        )
         trial_seed = None if trial_cfg.seed is None else trial_cfg.seed + trial.number
 
         env = environment_factory.make_training_env(trial_cfg.num_envs)

@@ -40,8 +40,14 @@ def test_study_runner_reuses_context_and_previous_studies(
     monkeypatch,
 ) -> None:
     studies = [
-        FakeStudy([], {"robust_best_params": {}}),
-        FakeStudy([], {"robust_best_params": {"x": 2}}),
+        FakeStudy([], {
+            "robust_best_params": {},
+            "robust_best_objective_score": 1.0,
+        }),
+        FakeStudy([], {
+            "robust_best_params": {"x": 2},
+            "robust_best_objective_score": 2.0,
+        }),
     ]
     run_calls = []
     robust_calls = []
@@ -76,28 +82,29 @@ def test_study_runner_reuses_context_and_previous_studies(
         storage_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
+        incumbent_params={"x": 1},
         study_attrs={"mode": "8d"},
         extra_seeds=(1,),
         sync_fn=lambda: sync_calls.append(None),
     )
 
-    baseline, baseline_params = runner.run(
+    runner.run(
         "s0",
         search_space="baseline-space",
         n_trials=3,
         scoring_cfg=ScoringConfig(),
         robust=False,
     )
-    optimized, best_params = runner.run(
+    runner.run(
         "s1",
         search_space="search-space",
         n_trials=4,
         scoring_cfg=ScoringConfig(),
     )
 
-    assert baseline_params == {}
-    assert best_params == {"x": 2}
-    assert runner.studies == [baseline, optimized]
+    assert runner.incumbent_params == {"x": 2}
+    assert runner.incumbent_score == 2.0
+    assert runner.studies == studies
     assert run_calls[1]["storage_path"] == Path("runs/s1.db")
     assert run_calls[1]["environment_factory"] is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
@@ -112,7 +119,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         candidate_scores=[1.0, 0.5, 0.0],
     )
     assert robustness_display_calls[0][1]["candidate_index"] == 1
-    assert progress_calls[-1][1]["lander_studies"] == [baseline, optimized]
+    assert progress_calls[-1][1]["lander_studies"] == studies
     assert len(sync_calls) == 1
 
 
@@ -141,22 +148,24 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         storage_path=lambda _name: Path("runs/study.db"),
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(),
+        incumbent_params={"x": 1},
     )
     runner.studies.append(previous)
+    runner.incumbent_score = 10.0
 
-    study, params = runner.run(
+    runner.run(
         "s2",
         search_space=object(),
         n_trials=1,
         scoring_cfg=ScoringConfig(),
-        incumbent_params={"x": 1},
     )
 
-    assert params == {"x": 1}
-    assert study.user_attrs["robust_best_params"] == {"x": 1}
-    assert study.user_attrs["robust_best_objective_score"] == 10.0
-    assert study.user_attrs["robust_best_gym_score"] == 20.0
-    assert study.user_attrs["robust_best_training_effort"] == 0.8
+    assert runner.incumbent_params == {"x": 1}
+    assert runner.incumbent_score == 10.0
+    assert current.user_attrs["robust_best_params"] == {"x": 1}
+    assert current.user_attrs["robust_best_objective_score"] == 10.0
+    assert current.user_attrs["robust_best_gym_score"] == 20.0
+    assert current.user_attrs["robust_best_training_effort"] == 0.8
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
     assert neighbors(10_000, [2_500, 5_000, 10_000, 20_000]) == [
@@ -204,6 +213,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     study = run_study(
         study_name="s0",
         search_space=object(),
+        incumbent_params={},
         n_trials=2,
         storage_path=Path("runs") / "series.db",
         environment_factory=FakeEnvironmentFactory(),
@@ -251,6 +261,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     params = select_robust_best(
         study=study,
         search_space=object(),
+        incumbent_params={},
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(device="cpu"),
         scoring_cfg=ScoringConfig(
@@ -280,6 +291,7 @@ def test_select_robust_best_rejects_empty_study() -> None:
         select_robust_best(
             study=FakeStudy(trials=[]),
             search_space=object(),
+            incumbent_params={},
             environment_factory=FakeEnvironmentFactory(),
             trial_cfg=TrialConfig(),
             scoring_cfg=ScoringConfig(
