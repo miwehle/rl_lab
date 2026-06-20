@@ -118,7 +118,12 @@ def _plot_optimization_history(study: Any) -> Any:
 
 def _optimization_history_figure(study: Any, target_trials: int) -> Any:
     fig = _plot_optimization_history(study)
-    fig.update_layout(width=850, height=430, margin=dict(l=55, r=170, t=70, b=55))
+    fig.update_layout(
+        width=1275,
+        height=430,
+        margin=dict(l=55, r=250, t=70, b=55),
+        legend=dict(x=1.02, xanchor="left"),
+    )
     fig.update_xaxes(range=[0, target_trials], autorange=False)
     return fig
 
