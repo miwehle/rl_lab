@@ -1,34 +1,33 @@
-## HP4 `run_lander_study` sequence
-
 ```mermaid
 %%{init: {"sequence": {"mirrorActors": false}}}%%
 sequenceDiagram
-    actor user
     participant notebook as HPO notebook
+    participant runner as StudyRunner
     participant study_module as study.py
+    participant study as study : Study
     participant objective as objective.py
-    participant vector_training as vector_training.py
+    participant trial as trial : Trial
+    participant trainer as VectorTrainer
 
-    user->>notebook: run_lander_study(...)
-    notebook->>study_module: run_study(...)
+    notebook->>runner: StudyRunner(...)
+    notebook->>runner: run(name, search_space, ...)
+    runner->>study_module: run_study(...)
     study_module->>objective: create_objective(...)
-    objective-->>study_module: objective
-    create participant study as study : optuna.study.Study
-    study_module->>study: create_study(...)
 
-    loop until n_trials is reached
-        study_module->>study: optimize(objective, n_trials=1)
-        study->>objective: objective(trial)
-        objective->>vector_training: VectorTrainer(env, ...)
-        create participant trainer as trainer : VectorTrainer
-        vector_training->>trainer: create trainer
-        objective->>trainer: train(training_config)
-        trainer-->>objective: VectorTrainingResult
-        objective->>objective: evaluate_greedy_q_net(...)
-        objective-->>study: objective_score
-        study-->>study_module: trial completed
-    end
+    study_module->>study: optimize(objective, n_trials=1)
+    study->>objective: objective(trial)
+    objective->>trainer: VectorTrainer(...)
+    objective->>trainer: train(training_config)
+    trainer-->>objective: training result
+    objective->>objective: evaluate_greedy_q_net(...)
+    objective->>trial: set_user_attr(...)
+    objective-->>study: objective score
 
-    study_module-->>notebook: study
-    notebook-->>user: study
+    runner->>study_module: select_robust_best(...)
+    study_module->>objective: create_objective(...)
+    study_module->>objective: objective(fixed_trial)
+    study_module->>study: set_user_attr("robust_best_*", ...)
+
+    runner-->>notebook: study and selected parameters
+
 ```
