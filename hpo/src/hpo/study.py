@@ -23,8 +23,8 @@ StoragePathFn = Callable[[str], str | Path]
 
 
 @dataclass
-class LanderStudyRunner:
-    """Run a sequence of Lander studies with shared infrastructure."""
+class StudyRunner:
+    """Run a sequence of studies with shared infrastructure."""
 
     storage_path: StoragePathFn
     environment_factory: EnvironmentFactory

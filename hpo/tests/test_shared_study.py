@@ -6,7 +6,7 @@ import pytest
 from hpo import study as study_module
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.objective import TrialConfig
-from hpo.study import LanderStudyRunner, neighbors, run_study, select_robust_best
+from hpo.study import StudyRunner, neighbors, run_study, select_robust_best
 
 
 @dataclass
@@ -36,7 +36,7 @@ class FakeEnvironmentFactory:
     pass
 
 
-def test_lander_study_runner_reuses_context_and_previous_studies(
+def test_study_runner_reuses_context_and_previous_studies(
     monkeypatch,
 ) -> None:
     studies = [
@@ -65,7 +65,7 @@ def test_lander_study_runner_reuses_context_and_previous_studies(
 
     environment_factory = FakeEnvironmentFactory()
     trial_cfg = TrialConfig(device="cpu")
-    runner = LanderStudyRunner(
+    runner = StudyRunner(
         storage_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
