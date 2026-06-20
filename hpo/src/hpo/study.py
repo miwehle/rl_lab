@@ -44,6 +44,7 @@ class StudyRunner:
         scoring_cfg: ScoringConfig,
         *,
         robust: bool = True,
+        incumbent_params: dict[str, Any] | None = None,
     ) -> tuple[Any, dict[str, Any]]:
         def show_progress(study, *, target_trials):
             show_lander_live_progress(
@@ -85,6 +86,17 @@ class StudyRunner:
             if robust
             else study.user_attrs["robust_best_params"]
         )
+        if robust and self.studies and incumbent_params is not None:
+            incumbent = self.studies[-1]
+            if (
+                incumbent.user_attrs["robust_best_objective_score"]
+                >= study.user_attrs["robust_best_objective_score"]
+            ):
+                best_params = dict(incumbent_params)
+                _set_study_user_attr(study, "robust_best_params", best_params)
+                for name in ("objective_score", "gym_score", "training_effort"):
+                    attr = f"robust_best_{name}"
+                    _set_study_user_attr(study, attr, incumbent.user_attrs[attr])
         if robust and self.sync_fn is not None:
             self.sync_fn()
         show_progress(study, target_trials=n_trials)
