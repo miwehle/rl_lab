@@ -151,25 +151,33 @@ def _optimization_history_figure(study: Any, target_trials: int) -> Any:
     import plotly.graph_objects as go
 
     fig = _plot_optimization_history(study)
+    trials = [
+        trial for trial in study.trials
+        if _trial_state_name(trial) == "COMPLETE"
+        and "gym_score" in trial.user_attrs
+    ]
+    hover_params = [
+        "".join(f"<br>{name}: {value}" for name, value in trial.params.items())
+        for trial in trials
+    ]
+
     qe_trace, best_qe_trace = fig.data[:2]
     qe_trace.update(
         name="QE score",
         marker_color="#ff7f0e",
         legendrank=2,
         yaxis="y2",
+        customdata=hover_params,
+        hovertemplate="Trial: %{x}<br>QE score: %{y:.3f}%{customdata}<extra></extra>",
     )
     best_qe_trace.update(
         name="Best QE score",
         line_color="red",
         legendrank=3,
         yaxis="y2",
+        hovertemplate="Trial: %{x}<br>Best QE score: %{y:.3f}<extra></extra>",
     )
 
-    trials = [
-        trial for trial in study.trials
-        if _trial_state_name(trial) == "COMPLETE"
-        and "gym_score" in trial.user_attrs
-    ]
     fig.add_trace(go.Scatter(
         x=[trial.number for trial in trials],
         y=[trial.user_attrs["gym_score"] for trial in trials],
@@ -178,6 +186,8 @@ def _optimization_history_figure(study: Any, target_trials: int) -> Any:
         marker=dict(color="#1f77b4"),
         legendrank=1,
         yaxis="y",
+        customdata=hover_params,
+        hovertemplate="Trial: %{x}<br>Gym score: %{y:.1f}%{customdata}<extra></extra>",
     ))
     fig.add_hline(y=200, line_color="gray", line_dash="dash")
     fig.add_hline(y=250, line_color="gray", line_dash="dot")

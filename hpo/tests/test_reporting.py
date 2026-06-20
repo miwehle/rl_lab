@@ -19,6 +19,7 @@ class FakeTrial:
     number: int
     value: float
     user_attrs: dict
+    params: dict = field(default_factory=dict)
     state: FakeState = field(default_factory=lambda: FakeState("COMPLETE"))
 
 
@@ -221,7 +222,12 @@ def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
     monkeypatch.setitem(sys.modules, "plotly.graph_objects", graph_objects)
     monkeypatch.setattr(reporting, "_plot_optimization_history", lambda _study: figure)
     study = FakeStudy(
-        trials=[FakeTrial(0, -2.0, {"gym_score": 50.0})],
+        trials=[FakeTrial(
+            0,
+            -2.0,
+            {"gym_score": 50.0},
+            {"learning_rate": 0.001, "batch_size": 512},
+        )],
     )
 
     result = reporting._optimization_history_figure(study, 40)
@@ -229,10 +235,19 @@ def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
     assert result is figure
     assert figure.added_traces[0]["name"] == "Gym score"
     assert figure.added_traces[0]["yaxis"] == "y"
+    assert figure.added_traces[0]["customdata"] == [
+        "<br>learning_rate: 0.001<br>batch_size: 512"
+    ]
+    assert "Gym score" in figure.added_traces[0]["hovertemplate"]
     assert figure.data[0].updates["name"] == "QE score"
     assert figure.data[0].updates["yaxis"] == "y2"
+    assert figure.data[0].updates["customdata"] == [
+        "<br>learning_rate: 0.001<br>batch_size: 512"
+    ]
+    assert "QE score" in figure.data[0].updates["hovertemplate"]
     assert figure.data[1].updates["name"] == "Best QE score"
     assert figure.data[1].updates["line_color"] == "red"
+    assert "Best QE score" in figure.data[1].updates["hovertemplate"]
     assert figure.layout["yaxis"]["title"] == "Gym score"
     assert figure.layout["yaxis2"]["title"] == "QE score"
     assert [line["y"] for line in figure.hlines] == [200, 250]
