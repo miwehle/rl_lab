@@ -21,7 +21,7 @@ def plot_lander_progress(study: Any) -> Any:
         qe_scores.append(point["qe_score"])
         labels.append(_study_label(current_study, index))
 
-    fig, gym_ax = plt.subplots(figsize=(10, 4.5))
+    fig, gym_ax = plt.subplots(figsize=(11, 4.3))
     qe_ax = gym_ax.twinx()
     gym_line, = gym_ax.plot(
         training_efforts,
@@ -55,8 +55,13 @@ def plot_lander_progress(study: Any) -> Any:
     gym_ax.set_xlabel("Training effort relative to S0")
     gym_ax.set_ylabel("Gym score")
     qe_ax.set_ylabel("QE score")
-    gym_ax.legend(handles=[gym_line, qe_line, gym_200, gym_250])
-    fig.tight_layout()
+    gym_ax.legend(
+        handles=[gym_line, qe_line, gym_200, gym_250],
+        loc="upper left",
+        bbox_to_anchor=(1.08, 1.0),
+        borderaxespad=0,
+    )
+    fig.subplots_adjust(left=0.07, right=0.78, top=0.84, bottom=0.16)
     return fig
 
 
@@ -70,9 +75,6 @@ def show_lander_live_progress(
     import matplotlib.pyplot as plt
 
     _clear_output(wait=True)
-    print(f"Target trials: {target_trials}")
-    print(f"Finished trials: {finished_trial_count(study)}")
-    print("LH: Lander History")
     figure = plot_lander_progress(lander_studies)
     _display(figure)
     plt.close(figure)
@@ -81,7 +83,7 @@ def show_lander_live_progress(
             print("Best hyperparameters:")
             _display(completed_study.user_attrs["robust_best_params"])
             break
-    print("OH: Optuna History")
+    print(f"Study: {_study_title(study)}")
     _display(_optimization_history_figure(study, target_trials))
 
 
@@ -97,6 +99,8 @@ def show_study_progress(
 ) -> None:
     """Display current optimization progress in a notebook."""
     _clear_output(wait=True)
+
+    print(f"Study: {_study_title(study)}")
 
     complete_trials = _trial_count(study, "COMPLETE")
     pruned_trials = _trial_count(study, "PRUNED")
@@ -178,7 +182,7 @@ def _optimization_history_figure(study: Any, target_trials: int) -> Any:
     fig.add_hline(y=200, line_color="gray", line_dash="dash")
     fig.add_hline(y=250, line_color="gray", line_dash="dot")
     fig.update_layout(
-        width=1275,
+        width=1100,
         height=430,
         margin=dict(l=70, r=250, t=70, b=55),
         legend=dict(x=1.08, xanchor="left"),
@@ -213,6 +217,14 @@ def _study_progress_point(study: Any) -> dict[str, float] | None:
         "qe_score": float(qe_score),
     }
 
+
+def _study_title(study: Any) -> str:
+    parts = getattr(study, "study_name", "").split("_")
+    if not parts or not parts[0]:
+        return "Unnamed"
+    if len(parts) > 1 and parts[1] == "qe":
+        del parts[1]
+    return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
 
 def _study_label(study: Any, index: int) -> str:
     name = getattr(study, "study_name", "")

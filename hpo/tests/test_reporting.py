@@ -3,6 +3,7 @@ import sys
 from types import ModuleType
 
 import matplotlib.pyplot as plt
+import pytest
 
 from hpo.evaluation import reporting
 from hpo.evaluation.reporting import plot_lander_progress, show_lander_live_progress
@@ -65,6 +66,13 @@ def test_plot_lander_progress_uses_robust_effort_and_gym_score() -> None:
     assert gym_ax.get_ylabel() == "Gym score"
     assert qe_ax.get_ylabel() == "QE score"
     assert [line.get_ydata()[0] for line in gym_ax.lines[1:]] == [200, 250]
+    assert fig.get_size_inches().tolist() == [11.0, 4.3]
+    legend = gym_ax.get_legend()
+    assert legend._loc == 2
+    position = legend.get_bbox_to_anchor().transformed(
+        gym_ax.transAxes.inverted(),
+    ).bounds[:2]
+    assert position == pytest.approx((1.08, 1.0))
 
 
 def test_plot_lander_progress_uses_one_point_per_study() -> None:
@@ -147,12 +155,14 @@ def test_show_lander_live_progress_displays_params_and_closes_lander_figure(
     )
     displayed = []
     clear_calls = []
+    printed = []
     monkeypatch.setattr(
         reporting,
         "_clear_output",
         lambda **kwargs: clear_calls.append(kwargs),
     )
     monkeypatch.setattr(reporting, "_display", displayed.append)
+    monkeypatch.setattr("builtins.print", lambda *values: printed.append(" ".join(map(str, values))))
     monkeypatch.setattr(
         reporting,
         "_optimization_history_figure",
@@ -166,6 +176,7 @@ def test_show_lander_live_progress_displays_params_and_closes_lander_figure(
     )
 
     assert clear_calls == [{"wait": True}]
+    assert printed == ["Best hyperparameters:", "Study: Unnamed"]
     assert len(displayed) == 3
     assert displayed[0].axes[0].get_ylabel() == "Gym score"
     assert displayed[0].axes[1].get_ylabel() == "QE score"
