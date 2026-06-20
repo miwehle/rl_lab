@@ -9,7 +9,7 @@ from typing import Any
 
 def configure_file_logging(study_dir: str | Path) -> None:
     log_path = Path(study_dir) / "hpo.log"
-    logger = logging.getLogger()
+    logger = logging.getLogger("hpo")
     if any(
         isinstance(handler, logging.FileHandler)
         and Path(handler.baseFilename) == log_path
@@ -19,10 +19,14 @@ def configure_file_logging(study_dir: str | Path) -> None:
 
     handler = logging.FileHandler(log_path)
     handler.setFormatter(
-        logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+        logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
     )
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+    logger.propagate = False
 
 
 def log_call(func: Callable[..., Any]) -> Callable[..., Any]:
