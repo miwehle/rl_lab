@@ -4,11 +4,12 @@ from typing import Any
 
 
 def plot_lander_progress(study: Any) -> Any:
-    """Plot one Lander History point per study."""
+    """Plot Gym and quality-effort progress with one point per study."""
     import matplotlib.pyplot as plt
 
     training_efforts = []
     gym_scores = []
+    qe_scores = []
     labels = []
 
     for index, current_study in enumerate(_study_list(study)):
@@ -17,18 +18,44 @@ def plot_lander_progress(study: Any) -> Any:
             continue
         training_efforts.append(point["training_effort"])
         gym_scores.append(point["gym_score"])
+        qe_scores.append(point["qe_score"])
         labels.append(_study_label(current_study, index))
 
-    fig, ax = plt.subplots(figsize=(10, 4.5))
-    ax.plot(training_efforts, gym_scores, marker="o", label="Greedy Gym score")
+    fig, gym_ax = plt.subplots(figsize=(10, 4.5))
+    qe_ax = gym_ax.twinx()
+    gym_line, = gym_ax.plot(
+        training_efforts,
+        gym_scores,
+        color="tab:blue",
+        marker="o",
+        label="Gym score",
+    )
+    qe_line, = qe_ax.plot(
+        training_efforts,
+        qe_scores,
+        color="tab:orange",
+        marker="o",
+        label="QE score",
+    )
     for x, y, label in zip(training_efforts, gym_scores, labels, strict=True):
-        ax.annotate(label, (x, y), xytext=(5, 5), textcoords="offset points")
-    ax.axhline(200, color="gray", linestyle="--", label="200")
-    ax.axhline(250, color="red", linestyle="--", label="250")
-    ax.set_title("Lander History")
-    ax.set_xlabel("Training effort relative to S0")
-    ax.set_ylabel("Greedy Gym score")
-    ax.legend()
+        gym_ax.annotate(label, (x, y), xytext=(5, 5), textcoords="offset points")
+    gym_200 = gym_ax.axhline(
+        200,
+        color="gray",
+        linestyle="--",
+        label="Gym 200",
+    )
+    gym_250 = gym_ax.axhline(
+        250,
+        color="gray",
+        linestyle=":",
+        label="Gym 250",
+    )
+    gym_ax.set_title("Lander History")
+    gym_ax.set_xlabel("Training effort relative to S0")
+    gym_ax.set_ylabel("Gym score")
+    qe_ax.set_ylabel("QE score")
+    gym_ax.legend(handles=[gym_line, qe_line, gym_200, gym_250])
     fig.tight_layout()
     return fig
 
@@ -117,12 +144,46 @@ def _plot_optimization_history(study: Any) -> Any:
 
 
 def _optimization_history_figure(study: Any, target_trials: int) -> Any:
+    import plotly.graph_objects as go
+
     fig = _plot_optimization_history(study)
+    qe_trace, best_qe_trace = fig.data[:2]
+    qe_trace.update(
+        name="QE score",
+        marker_color="#ff7f0e",
+        legendrank=2,
+        yaxis="y2",
+    )
+    best_qe_trace.update(
+        name="Best QE score",
+        line_color="red",
+        legendrank=3,
+        yaxis="y2",
+    )
+
+    trials = [
+        trial for trial in study.trials
+        if _trial_state_name(trial) == "COMPLETE"
+        and "gym_score" in trial.user_attrs
+    ]
+    fig.add_trace(go.Scatter(
+        x=[trial.number for trial in trials],
+        y=[trial.user_attrs["gym_score"] for trial in trials],
+        mode="markers",
+        name="Gym score",
+        marker=dict(color="#1f77b4"),
+        legendrank=1,
+        yaxis="y",
+    ))
+    fig.add_hline(y=200, line_color="gray", line_dash="dash")
+    fig.add_hline(y=250, line_color="gray", line_dash="dot")
     fig.update_layout(
         width=1275,
         height=430,
-        margin=dict(l=55, r=250, t=70, b=55),
-        legend=dict(x=1.02, xanchor="left"),
+        margin=dict(l=70, r=250, t=70, b=55),
+        legend=dict(x=1.08, xanchor="left"),
+        yaxis=dict(title="Gym score"),
+        yaxis2=dict(title="QE score", overlaying="y", side="right"),
     )
     fig.update_xaxes(range=[0, target_trials], autorange=False)
     return fig
@@ -141,13 +202,15 @@ def _study_list(studies: Any) -> list[Any]:
 def _study_progress_point(study: Any) -> dict[str, float] | None:
     user_attrs = getattr(study, "user_attrs", {})
     gym_score = user_attrs.get("robust_best_gym_score")
+    qe_score = user_attrs.get("robust_best_objective_score")
     training_effort = user_attrs.get("robust_best_training_effort")
-    if gym_score is None or training_effort is None:
+    if gym_score is None or qe_score is None or training_effort is None:
         return None
 
     return {
         "training_effort": float(training_effort),
         "gym_score": float(gym_score),
+        "qe_score": float(qe_score),
     }
 
 
