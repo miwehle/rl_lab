@@ -160,21 +160,15 @@ def _display(value: Any) -> None:
 
     display(value)
 
-# -----
 
 def _add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 
-    points = []
-    for index, study in enumerate(_study_series_list(studies)):
-        point = _study_series_point(study)
-        if point is not None:
-            points.append((point, _study_series_label(study, index)))
-
-    efforts = [point["training_effort"] for point, _ in points]
-    gym_scores = [point["gym_score"] for point, _ in points]
-    qe_scores = [point["qe_score"] for point, _ in points]
-    labels = [label for _, label in points]
+    points = _study_series_points(studies)
+    efforts = [point["training_effort"] for point in points]
+    gym_scores = [point["gym_score"] for point in points]
+    qe_scores = [point["qe_score"] for point in points]
+    labels = [point["label"] for point in points]
     if efforts:
         effort_margin = max(0.05, 0.05 * (max(efforts) - min(efforts)))
         effort_range = [
@@ -232,32 +226,30 @@ def _add_study_series(figure: Any, studies: Any) -> None:
     figure.update_yaxes(title_text="Gym score", row=1, col=1, secondary_y=False)
     figure.update_yaxes(title_text="QE score", row=1, col=1, secondary_y=True)
 
-def _study_series_list(studies: Any) -> list[Any]:
-    if hasattr(studies, "trials"):
-        return [studies]
-    return list(studies)
+def _study_series_points(studies: Any) -> list[dict[str, Any]]:
+    points = []
+    for index, study in enumerate(studies):
+        user_attrs = getattr(study, "user_attrs", {})
+        gym_score = user_attrs.get("robust_best_gym_score")
+        qe_score = user_attrs.get("robust_best_objective_score")
+        training_effort = user_attrs.get("robust_best_training_effort")
+        if gym_score is None or qe_score is None or training_effort is None:
+            continue
 
-def _study_series_point(study: Any) -> dict[str, float] | None:
-    user_attrs = getattr(study, "user_attrs", {})
-    gym_score = user_attrs.get("robust_best_gym_score")
-    qe_score = user_attrs.get("robust_best_objective_score")
-    training_effort = user_attrs.get("robust_best_training_effort")
-    if gym_score is None or qe_score is None or training_effort is None:
-        return None
+        name = getattr(study, "study_name", "")
+        label = (
+            name.split("_", 1)[0].upper()
+            if name.startswith("s") and "_" in name
+            else name or f"S{index}"
+        )
+        points.append({
+            "training_effort": float(training_effort),
+            "gym_score": float(gym_score),
+            "qe_score": float(qe_score),
+            "label": label,
+        })
+    return points
 
-    return {
-        "training_effort": float(training_effort),
-        "gym_score": float(gym_score),
-        "qe_score": float(qe_score),
-    }
-
-def _study_series_label(study: Any, index: int) -> str:
-    name = getattr(study, "study_name", "")
-    if name.startswith("s") and "_" in name:
-        return name.split("_", 1)[0].upper()
-    return name or f"S{index}"
-
-# -----
 
 def _add_best_hps(
     figure: Any,
@@ -298,7 +290,6 @@ def _add_best_hps(
         col=2,
     )
 
-# -----
 
 def _add_current_study(
     figure: Any,
@@ -309,7 +300,7 @@ def _add_current_study(
 
     trials = [
         trial for trial in study.trials
-        if _current_study_trial_state(trial) == "COMPLETE"
+        if trial.state.name == "COMPLETE"
         and trial.value is not None
         and "gym_score" in trial.user_attrs
     ]
@@ -382,12 +373,6 @@ def _add_current_study(
     figure.update_yaxes(title_text="Gym score", row=2, col=1, secondary_y=False)
     figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
 
-
-def _current_study_trial_state(trial: Any) -> str:
-    state = trial.state
-    return state.name if hasattr(state, "name") else str(state)
-
-# -----
 
 def _add_robustness_evaluation(
     figure: Any,
