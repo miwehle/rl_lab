@@ -128,6 +128,8 @@ def run_study(
     sync_fn: SyncFn | None = None,
 ) -> Any:
     """Create or load an Optuna study and run it to the target trial count."""
+    logger.info("study: %s", study_name)
+
     if n_trials < 1:
         raise ValueError("n_trials must be >= 1")
 
