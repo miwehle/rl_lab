@@ -87,22 +87,9 @@ Nachbarn aus einer geordneten Menge.
 
 `run_study(...)` kapselt Optuna-Details, damit das Notebook nur Studien steuert.
 
-### `hpo.evaluation.reporting`
+### `hpo.evaluation.dashboard`
 
-Neues Diagramm:
-
-```python
-plot_lander_progress(study)
-```
-
-Inhalt:
-- x-Achse: Trainingsaufwand relativ zu S0.
-- y-Achse: Greedy-Gym-Score (`epsilon=0`).
-- horizontale Marken bei `200` und `250`.
-
-Die Objective speichert dafür pro Trial:
-- `training_effort`
-- `gym_score`
+Das Notebook-Dashboard zeigt den Fortschritt der Study Series, die aktuellen besten Hyperparameter, die laufende Studie und deren robuste Kandidatenprüfung.
 
 ## Notebook
 

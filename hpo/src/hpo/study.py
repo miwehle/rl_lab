@@ -6,11 +6,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from hpo.evaluation.reporting import (
-    finished_trial_count,
+from hpo.evaluation.dashboard import (
     show_lander_live_progress,
     show_robustness_progress,
-    show_study_progress,
 )
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
@@ -128,7 +126,7 @@ def run_study(
     trial_cfg: TrialConfig = TrialConfig(),
     scoring_cfg: ScoringConfig = ScoringConfig(),
     study_attrs: dict[str, Any] | None = None,
-    progress_fn: ProgressFn | None = show_study_progress,
+    progress_fn: ProgressFn | None = None,
     sync_fn: SyncFn | None = None,
 ) -> Any:
     """Create or load an Optuna study and run it to the target trial count."""
@@ -160,7 +158,7 @@ def run_study(
     if progress_fn is not None:
         progress_fn(study, target_trials=n_trials)
 
-    while finished_trial_count(study) < n_trials:
+    while _finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
         study.optimize(objective, n_trials=1)
         if sync_fn is not None:
@@ -342,6 +340,13 @@ def _mean_trial_value(study: Any) -> float:
     if not values:
         raise ValueError("study has no complete trial values")
     return sum(values) / len(values)
+
+
+def _finished_trial_count(study: Any) -> int:
+    return sum(
+        _trial_state_name(trial) in {"COMPLETE", "PRUNED"}
+        for trial in study.trials
+    )
 
 
 def _trial_state_name(trial: Any) -> str:

@@ -1,68 +1,11 @@
-"""Notebook reporting helpers for HPO studies."""
+"""Tell the story of an HPO study series in one notebook dashboard.
+
+Study Series shows the overall progress, centered on the Best HPs beside it.
+Study follows the current optimization, and HP Robustness Evaluation confirms
+the best candidates at the end of each study.
+"""
 
 from typing import Any
-
-
-def plot_lander_progress(study: Any) -> Any:
-    """Plot Gym and quality-effort progress with one point per study."""
-    import matplotlib.pyplot as plt
-
-    training_efforts = []
-    gym_scores = []
-    qe_scores = []
-    labels = []
-
-    for index, current_study in enumerate(_study_list(study)):
-        point = _study_progress_point(current_study)
-        if point is None:
-            continue
-        training_efforts.append(point["training_effort"])
-        gym_scores.append(point["gym_score"])
-        qe_scores.append(point["qe_score"])
-        labels.append(_study_label(current_study, index))
-
-    fig, gym_ax = plt.subplots(figsize=(11, 2.7))
-    qe_ax = gym_ax.twinx()
-    gym_line, = gym_ax.plot(
-        training_efforts,
-        gym_scores,
-        color="tab:blue",
-        marker="o",
-        label="Gym score",
-    )
-    qe_line, = qe_ax.plot(
-        training_efforts,
-        qe_scores,
-        color="tab:orange",
-        marker="o",
-        label="QE score",
-    )
-    for x, y, label in zip(training_efforts, gym_scores, labels, strict=True):
-        gym_ax.annotate(label, (x, y), xytext=(5, 5), textcoords="offset points")
-    gym_200 = gym_ax.axhline(
-        200,
-        color="gray",
-        linestyle="--",
-        label="Gym 200",
-    )
-    gym_250 = gym_ax.axhline(
-        250,
-        color="gray",
-        linestyle=":",
-        label="Gym 250",
-    )
-    gym_ax.set_title("Lander History")
-    gym_ax.set_xlabel("Training effort relative to S0")
-    gym_ax.set_ylabel("Gym score")
-    qe_ax.set_ylabel("QE score")
-    gym_ax.legend(
-        handles=[gym_line, qe_line, gym_200, gym_250],
-        loc="lower left",
-        ncol=4,
-        fontsize="small",
-    )
-    fig.subplots_adjust(left=0.07, right=0.93, top=0.82, bottom=0.22)
-    return fig
 
 
 def show_lander_live_progress(
@@ -112,48 +55,6 @@ def show_robustness_progress(
     )
 
 
-def finished_trial_count(study: Any) -> int:
-    """Return the number of complete or pruned trials in a study."""
-    return _trial_count(study, "COMPLETE") + _trial_count(study, "PRUNED")
-
-
-def show_study_progress(
-    study: Any,
-    *,
-    target_trials: int,
-) -> None:
-    """Display current optimization progress in a notebook."""
-    _clear_output(wait=True)
-
-    print(f"Study: {_study_title(study)}")
-
-    complete_trials = _trial_count(study, "COMPLETE")
-    pruned_trials = _trial_count(study, "PRUNED")
-    finished_trials = complete_trials + pruned_trials
-
-    print(f"Target trials: {target_trials}")
-    print(f"Finished trials: {finished_trials}")
-    print(f"Complete trials: {complete_trials}")
-    print(f"Pruned trials: {pruned_trials}")
-    print(
-        "Episodes saved by pruning:",
-        sum(trial.user_attrs.get("episodes_saved_by_pruning", 0) for trial in study.trials),
-    )
-
-    if complete_trials == 0:
-        print("Best mean return: no complete trials yet")
-        return
-
-    best_trial = study.best_trial
-    print(f"Best objective score: {best_trial.value:.3f}")
-    print(f"Gym score: {best_trial.user_attrs['gym_score']:.1f}")
-    print(f"Training effort: {best_trial.user_attrs['training_effort']:.3f}")
-    print("Best params:")
-    _display(best_trial.params)
-
-    _display(_optimization_history_figure(study, target_trials))
-
-
 def _clear_output(*args, **kwargs) -> None:
     from IPython.display import clear_output
 
@@ -178,12 +79,7 @@ def _dashboard_figure(
     seed_count: int | None = None,
     candidate_seed_scores: list[list[float]] | None = None,
 ) -> Any:
-    """Tell the story of an HPO study series in one dashboard.
-
-    Study Series shows the overall progress, centered on the Best HPs beside it.
-    Study follows the current optimization, and HP Robustness Evaluation confirms
-    the best candidates at the end of each study.
-    """
+    """Build the study-series dashboard."""
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
@@ -514,72 +410,6 @@ def _centered_offsets(count: int) -> list[float]:
         return [0.0]
     center = (count - 1) / 2
     return [(index - center) * 0.06 for index in range(count)]
-
-def _plot_optimization_history(study: Any) -> Any:
-    from optuna.visualization import plot_optimization_history
-
-    return plot_optimization_history(study)
-
-
-def _optimization_history_figure(study: Any, target_trials: int) -> Any:
-    import plotly.graph_objects as go
-
-    fig = _plot_optimization_history(study)
-    trials = [
-        trial for trial in study.trials
-        if _trial_state_name(trial) == "COMPLETE"
-        and "gym_score" in trial.user_attrs
-    ]
-    hover_params = [
-        "".join(f"<br>{name}: {value}" for name, value in trial.params.items())
-        for trial in trials
-    ]
-
-    qe_trace, best_qe_trace = fig.data[:2]
-    qe_trace.update(
-        name="QE score",
-        marker_color="#ff7f0e",
-        legendrank=2,
-        yaxis="y2",
-        customdata=hover_params,
-        hovertemplate="Trial: %{x}<br>QE score: %{y:.3f}%{customdata}<extra></extra>",
-    )
-    best_qe_trace.update(
-        name="Best QE score",
-        line_color="red",
-        legendrank=3,
-        yaxis="y2",
-        hovertemplate="Trial: %{x}<br>Best QE score: %{y:.3f}<extra></extra>",
-    )
-
-    fig.add_trace(go.Scatter(
-        x=[trial.number for trial in trials],
-        y=[trial.user_attrs["gym_score"] for trial in trials],
-        mode="markers",
-        name="Gym score",
-        marker=dict(color="#1f77b4"),
-        legendrank=1,
-        yaxis="y",
-        customdata=hover_params,
-        hovertemplate="Trial: %{x}<br>Gym score: %{y:.1f}%{customdata}<extra></extra>",
-    ))
-    fig.add_hline(y=200, line_color="gray", line_dash="dash")
-    fig.add_hline(y=250, line_color="gray", line_dash="dot")
-    fig.update_layout(
-        width=535,
-        height=315,
-        margin=dict(l=60, r=65, t=35, b=50),
-        showlegend=False,
-        yaxis=dict(title="Gym score"),
-        yaxis2=dict(title="QE score", overlaying="y", side="right"),
-    )
-    fig.update_xaxes(range=[0, target_trials], autorange=False)
-    return fig
-
-
-def _trial_count(study: Any, state_name: str) -> int:
-    return sum(1 for trial in study.trials if _trial_state_name(trial) == state_name)
-
 
 def _study_list(studies: Any) -> list[Any]:
     if hasattr(studies, "trials"):
