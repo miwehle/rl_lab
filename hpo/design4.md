@@ -17,7 +17,7 @@
 
 Die Diagramme unter **„3. Performance by world“** im Analyse-Notebook `Analyze_SolarSystemLander.ipynb` zeigen, dass ==Venus für beide Lander besonders schwierig== war. Venus hat zugleich von allen Welten den stärksten Wind. Das ist ein starkes Indiz dafür, dass der extreme Wind ein wesentlicher Faktor ist und beim Training vermieden oder zumindest reduziert werden sollte. Die bisherigen Daten erlauben jedoch keine saubere Trennung von Wind und Turbulenz.
 
-Für Series 3 werden deshalb pro Evaluations-Episode Welt, Windstärke, Turbulenzstärke und Return gespeichert. Damit lässt sich anschließend untersuchen, welcher Wetterfaktor die Landungen verhindert.
+Eine spätere Diagnose kann pro Evaluations-Episode Welt, Windstärke, Turbulenzstärke und Return speichern, um die Wetterfaktoren getrennt zu untersuchen.
 
 ### Architektur-Befund
 
