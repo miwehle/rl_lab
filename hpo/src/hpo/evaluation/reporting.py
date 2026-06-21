@@ -482,11 +482,10 @@ def _add_podium(
         col=2,
     )
     figure.update_xaxes(
+        title_text="Candidate",
         tickmode="array",
         tickvals=list(range(1, len(means) + 1)),
-        ticktext=[
-            f"Candidate {index}" for index in range(1, len(means) + 1)
-        ],
+        ticktext=list(range(1, len(means) + 1)),
         range=[0.5, len(means) + 0.5],
         row=2,
         col=2,

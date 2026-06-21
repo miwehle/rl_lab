@@ -330,6 +330,8 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     ]
     assert list(mean_trace.y) == pytest.approx([-1.0, -1.45, -2.0])
     assert mean_trace.marker.symbol == "diamond"
+    assert figure.layout.xaxis3.title.text == "Candidate"
+    assert list(figure.layout.xaxis3.ticktext) == [1, 2, 3]
     assert any(
         annotation.text == "Waiting for optimization"
         for annotation in figure.layout.annotations
