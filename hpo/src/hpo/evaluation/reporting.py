@@ -188,7 +188,7 @@ def _dashboard_figure(
             [{"secondary_y": True}, {"type": "domain"}],
             [{"secondary_y": True}, {}],
         ],
-        row_heights=[0.42, 0.58],
+        row_heights=[0.5, 0.5],
         vertical_spacing=0.14,
         horizontal_spacing=0.12,
         subplot_titles=(
@@ -229,7 +229,7 @@ def _dashboard_figure(
         )
 
     figure.update_layout(
-        width=1100,
+        width=1200,
         height=650,
         margin=dict(l=70, r=70, t=55, b=55),
         legend=dict(
@@ -264,7 +264,7 @@ def _add_incumbent_table(
             cells=dict(
                 values=[
                     names,
-                    [_format_hp_value(incumbent_params[name]) for name in names],
+                    [str(incumbent_params[name]) for name in names],
                 ],
                 align=["left", "right"],
                 fill_color="white",
@@ -274,16 +274,6 @@ def _add_incumbent_table(
         row=1,
         col=2,
     )
-
-
-def _format_hp_value(value: Any) -> str:
-    if isinstance(value, float):
-        return f"{value:.6g}"
-    if isinstance(value, int):
-        return f"{value:_}"
-    return str(value)
-
-
 def _add_lander_history(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 

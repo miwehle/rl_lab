@@ -202,7 +202,7 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
     )
 
-    assert figure.layout.width == 1100
+    assert figure.layout.width == 1200
     assert figure.layout.height == 650
     assert [annotation.text for annotation in figure.layout.annotations[:4]] == [
         "Study Series",
