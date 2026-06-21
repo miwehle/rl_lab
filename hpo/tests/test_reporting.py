@@ -160,7 +160,11 @@ def test_show_lander_live_progress_updates_fixed_dashboard(monkeypatch) -> None:
         "_show_in",
         lambda panel, value, **kwargs: shown.append((panel, value, kwargs)),
     )
-    monkeypatch.setattr(reporting, "_clear_panel", cleared.append)
+    monkeypatch.setattr(
+        reporting,
+        "_clear_panel",
+        lambda panel, **kwargs: cleared.append((panel, kwargs)),
+    )
     monkeypatch.setattr(
         reporting,
         "_optimization_history_figure",
@@ -181,7 +185,13 @@ def test_show_lander_live_progress_updates_fixed_dashboard(monkeypatch) -> None:
         ("oh", study, 40),
         {"heading": "Study: Unnamed"},
     )
-    assert cleared == ["podium"]
+    assert cleared == [(
+        "podium",
+        {
+            "heading": "Podium",
+            "message": "Waiting for robustness evaluation",
+        },
+    )]
 
 
 def test_dashboard_is_reused_within_one_study_series(monkeypatch) -> None:
@@ -215,6 +225,21 @@ def test_dashboard_is_reused_within_one_study_series(monkeypatch) -> None:
     assert len(created) == 2
     assert displayed == ["dashboard-1", "dashboard-2"]
     assert cleared == [{"wait": True}, {"wait": True}]
+
+
+def test_show_in_embeds_plotly_as_colab_html() -> None:
+    import ipywidgets as widgets
+    import plotly.graph_objects as go
+
+    panel = widgets.Output()
+    reporting._show_in(
+        panel,
+        go.Figure(go.Scatter(x=[1], y=[2])),
+        heading="Study: Test",
+    )
+
+    assert panel.outputs[0]["text"] == "Study: Test\n"
+    assert "text/html" in panel.outputs[1]["data"]
 
 
 def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
@@ -323,7 +348,11 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
         "_show_in",
         lambda panel, value, **kwargs: shown.append((panel, value, kwargs)),
     )
-    monkeypatch.setattr(reporting, "_clear_panel", cleared.append)
+    monkeypatch.setattr(
+        reporting,
+        "_clear_panel",
+        lambda panel, **kwargs: cleared.append((panel, kwargs)),
+    )
 
     reporting.show_robustness_progress(
         study,
@@ -337,7 +366,13 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
 
     assert shown[0][0] == "lh"
     assert shown[0][1].axes[0].get_title() == "Lander History"
-    assert cleared == ["oh"]
+    assert cleared == [(
+        "oh",
+        {
+            "heading": "Study: S1 Update Economy",
+            "message": "Optimization complete",
+        },
+    )]
     assert shown[1][0] == "podium"
     assert shown[1][1].axes[0].get_title() == "Robustness Candidates"
     assert shown[1][2] == {

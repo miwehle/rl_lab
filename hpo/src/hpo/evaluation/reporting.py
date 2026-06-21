@@ -97,7 +97,11 @@ def show_lander_live_progress(
         history,
         heading=f"Study: {_study_title(study)}",
     )
-    _clear_panel(dashboard.podium)
+    _clear_panel(
+        dashboard.podium,
+        heading="Podium",
+        message="Waiting for robustness evaluation",
+    )
 
 
 def plot_robustness_progress(
@@ -150,7 +154,11 @@ def show_robustness_progress(
     history = plot_lander_progress(lander_studies)
     _show_in(dashboard.lander_history, history)
     plt.close(history)
-    _clear_panel(dashboard.optimization_history)
+    _clear_panel(
+        dashboard.optimization_history,
+        heading=f"Study: {_study_title(study)}",
+        message="Optimization complete",
+    )
     candidates = plot_robustness_progress(candidate_scores, candidate_index)
     _show_in(
         dashboard.podium,
@@ -235,13 +243,29 @@ def _create_dashboard() -> _Dashboard:
     import ipywidgets as widgets
 
     lander_history = widgets.Output(
-        layout=widgets.Layout(width="1100px", height="270px", overflow="hidden"),
+        layout=widgets.Layout(
+            width="1100px",
+            height="270px",
+            overflow="hidden",
+        ),
     )
     optimization_history = widgets.Output(
-        layout=widgets.Layout(width="545px", height="350px", overflow="hidden"),
+        layout=widgets.Layout(
+            width="545px",
+            height="350px",
+            overflow="hidden",
+            border="1px solid #ddd",
+            padding="4px",
+        ),
     )
     podium = widgets.Output(
-        layout=widgets.Layout(width="545px", height="350px", overflow="hidden"),
+        layout=widgets.Layout(
+            width="545px",
+            height="350px",
+            overflow="hidden",
+            border="1px solid #ddd",
+            padding="4px",
+        ),
     )
     bottom = widgets.HBox(
         [optimization_history, podium],
@@ -255,6 +279,10 @@ def _create_dashboard() -> _Dashboard:
 
 
 def _show_in(panel: Any, value: Any, *, heading: str | None = None) -> None:
+    if value.__class__.__module__.startswith("plotly."):
+        _show_plotly_in(panel, value, heading=heading)
+        return
+
     with panel:
         _clear_output(wait=True)
         if heading is not None:
@@ -262,9 +290,37 @@ def _show_in(panel: Any, value: Any, *, heading: str | None = None) -> None:
         _display(value)
 
 
-def _clear_panel(panel: Any) -> None:
-    with panel:
-        _clear_output(wait=False)
+def _show_plotly_in(
+    panel: Any,
+    figure: Any,
+    *,
+    heading: str | None,
+) -> None:
+    import plotly.io as pio
+
+    outputs = []
+    if heading is not None:
+        outputs.append({
+            "output_type": "stream",
+            "name": "stdout",
+            "text": f"{heading}\n",
+        })
+    outputs.append({
+        "output_type": "display_data",
+        "data": pio.renderers["colab"].to_mimebundle(figure.to_dict()),
+        "metadata": {},
+    })
+    panel.outputs = tuple(outputs)
+
+
+def _clear_panel(
+    panel: Any,
+    *,
+    heading: str,
+    message: str,
+) -> None:
+    panel.clear_output(wait=False)
+    panel.append_stdout(f"{heading}\n{message}\n")
 
 
 def _plot_optimization_history(study: Any) -> Any:
