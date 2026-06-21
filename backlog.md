@@ -108,7 +108,7 @@ Design: hpo\design_hpo_checks.md
 
 **Ziel:** Ein robuster Mean Gym Score von mindestens 220 über alle fünf Welten.
 
-**Einfachster Erfolgsweg:** Mit etwas Glück genügen die bisher besten robusten HPs als Ausgangspunkt, `quality_weight = 0.95` und eine weitere lokale Study Series mit höherem Trainingsbudget.
+**Einfachster Erfolgsweg:** Mit etwas Glück genügen die bisher besten robusten HPs als Ausgangspunkt, `quality_weight = 0.95` (in der Formel des QE-Scores) und eine weitere lokale Study Series mit höherem Trainingsbudget.
 
 Design: `hpo/design5.md`
 
