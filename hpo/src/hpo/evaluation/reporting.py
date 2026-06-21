@@ -199,7 +199,7 @@ def _dashboard_figure(
         ),
     )
     _add_lander_history(figure, lander_studies)
-    _add_incumbent_table(figure, incumbent_params)
+    _add_incumbent_table(figure, incumbent_params, study)
     if candidate_seed_scores is None:
         _add_optimization_history(figure, study, target_trials)
         figure.add_annotation(
@@ -249,10 +249,20 @@ def _dashboard_figure(
 def _add_incumbent_table(
     figure: Any,
     incumbent_params: dict[str, Any],
+    study: Any,
 ) -> None:
     import plotly.graph_objects as go
 
     names = list(incumbent_params)
+    optimized_params = {
+        name
+        for trial in study.trials
+        for name in trial.params
+    }
+    row_colors = [
+        "#fff2cc" if name in optimized_params else "white"
+        for name in names
+    ]
     figure.add_trace(
         go.Table(
             columnwidth=[1.5, 1.0],
@@ -267,7 +277,7 @@ def _add_incumbent_table(
                     [str(incumbent_params[name]) for name in names],
                 ],
                 align=["left", "right"],
-                fill_color="white",
+                fill_color=[row_colors, row_colors],
                 height=22,
             ),
         ),

@@ -182,7 +182,14 @@ def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
 
 def test_dashboard_contains_fixed_three_panel_layout() -> None:
     study = FakeStudy(
-        trials=[FakeTrial(0, -2.0, {"gym_score": 50.0})],
+        trials=[
+            FakeTrial(
+                0,
+                -2.0,
+                {"gym_score": 50.0},
+                params={"learning_rate": 0.001},
+            )
+        ],
         study_name="s1_qe_update_economy",
     )
     baseline = FakeStudy(
@@ -212,6 +219,8 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
     ]
     table = next(trace for trace in figure.data if trace.type == "table")
     assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
+    assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
+    assert list(table.cells.fill.color[1]) == ["#fff2cc", "white"]
     assert any(
         annotation.text == "Waiting for robustness evaluation"
         for annotation in figure.layout.annotations
