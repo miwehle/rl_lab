@@ -33,6 +33,7 @@ class StudyRunner:
     trial_cfg: TrialConfig
     incumbent_params: dict[str, Any]
     study_attrs: dict[str, Any] = field(default_factory=dict)
+    robust_candidates: int = 3
     extra_seeds: tuple[int, ...] = (1001, 1002)
     sync_fn: SyncFn | None = None
     studies: list[Any] = field(default_factory=list, init=False)
@@ -86,6 +87,7 @@ class StudyRunner:
                 trial_cfg=self.trial_cfg,
                 scoring_cfg=scoring_cfg,
                 base_seed=self.trial_cfg.seed,
+                top_n=self.robust_candidates,
                 extra_seeds=self.extra_seeds,
                 progress_fn=show_robustness,
             )

@@ -84,6 +84,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         trial_cfg=trial_cfg,
         incumbent_params={"x": 1},
         study_attrs={"mode": "8d"},
+        robust_candidates=5,
         extra_seeds=(1,),
         sync_fn=lambda: sync_calls.append(None),
     )
@@ -110,6 +111,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
     assert run_calls[1]["sync_fn"] is runner.sync_fn
     assert robust_calls[0]["search_space"] == "search-space"
+    assert robust_calls[0]["top_n"] == 5
     assert robust_calls[0]["extra_seeds"] == (1,)
     robust_calls[0]["progress_fn"](
         candidate_index=1,
