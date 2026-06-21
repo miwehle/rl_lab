@@ -298,28 +298,17 @@ def _add_current_study(
 ) -> None:
     import plotly.graph_objects as go
 
-    trials = [
-        trial for trial in study.trials
-        if trial.state.name == "COMPLETE"
-        and trial.value is not None
-        and "gym_score" in trial.user_attrs
-    ]
-    hover_params = [
-        "".join(f"<br>{name}: {value}" for name, value in trial.params.items())
-        for trial in trials
-    ]
-    numbers = [trial.number for trial in trials]
-    qe_scores = [float(trial.value) for trial in trials]
-    best_scores = []
-    best = float("-inf")
-    for score in qe_scores:
-        best = max(best, score)
-        best_scores.append(best)
+    points = _current_study_points(study)
+    numbers = [point["trial_number"] for point in points]
+    gym_scores = [point["gym_score"] for point in points]
+    qe_scores = [point["qe_score"] for point in points]
+    best_scores = [point["best_qe_score"] for point in points]
+    hover_params = [point["hover_params"] for point in points]
 
     figure.add_trace(
         go.Scatter(
             x=numbers,
-            y=[trial.user_attrs["gym_score"] for trial in trials],
+            y=gym_scores,
             mode="markers",
             name="Gym score",
             showlegend=False,
@@ -372,6 +361,30 @@ def _add_current_study(
     )
     figure.update_yaxes(title_text="Gym score", row=2, col=1, secondary_y=False)
     figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
+
+
+def _current_study_points(study: Any) -> list[dict[str, Any]]:
+    trials = [
+        trial for trial in study.trials
+        if trial.state.name == "COMPLETE"
+        and trial.value is not None
+        and "gym_score" in trial.user_attrs
+    ]
+    points = []
+    best = float("-inf")
+    for trial in trials:
+        score = float(trial.value)
+        best = max(best, score)
+        points.append({
+            "trial_number": trial.number,
+            "gym_score": trial.user_attrs["gym_score"],
+            "qe_score": score,
+            "best_qe_score": best,
+            "hover_params": "".join(
+                f"<br>{name}: {value}" for name, value in trial.params.items()
+            ),
+        })
+    return points
 
 
 def _add_robustness_evaluation(
