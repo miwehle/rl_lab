@@ -160,45 +160,8 @@ def _display(value: Any) -> None:
 
     display(value)
 
+# -----
 
-def _add_best_hps(
-    figure: Any,
-    incumbent_params: dict[str, Any],
-    study: Any,
-) -> None:
-    import plotly.graph_objects as go
-
-    names = list(incumbent_params)
-    optimized_params = {
-        name
-        for trial in study.trials
-        for name in trial.params
-    }
-    row_colors = [
-        "#fff2cc" if name in optimized_params else "white"
-        for name in names
-    ]
-    figure.add_trace(
-        go.Table(
-            columnwidth=[1.5, 1.0],
-            header=dict(
-                values=["HP", "Value"],
-                align=["left", "right"],
-                fill_color="#e8eef7",
-            ),
-            cells=dict(
-                values=[
-                    names,
-                    [str(incumbent_params[name]) for name in names],
-                ],
-                align=["left", "right"],
-                fill_color=[row_colors, row_colors],
-                height=22,
-            ),
-        ),
-        row=1,
-        col=2,
-    )
 def _add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 
@@ -269,12 +232,10 @@ def _add_study_series(figure: Any, studies: Any) -> None:
     figure.update_yaxes(title_text="Gym score", row=1, col=1, secondary_y=False)
     figure.update_yaxes(title_text="QE score", row=1, col=1, secondary_y=True)
 
-
 def _study_series_list(studies: Any) -> list[Any]:
     if hasattr(studies, "trials"):
         return [studies]
     return list(studies)
-
 
 def _study_series_point(study: Any) -> dict[str, float] | None:
     user_attrs = getattr(study, "user_attrs", {})
@@ -290,13 +251,54 @@ def _study_series_point(study: Any) -> dict[str, float] | None:
         "qe_score": float(qe_score),
     }
 
-
 def _study_series_label(study: Any, index: int) -> str:
     name = getattr(study, "study_name", "")
     if name.startswith("s") and "_" in name:
         return name.split("_", 1)[0].upper()
     return name or f"S{index}"
 
+# -----
+
+def _add_best_hps(
+    figure: Any,
+    incumbent_params: dict[str, Any],
+    study: Any,
+) -> None:
+    import plotly.graph_objects as go
+
+    names = list(incumbent_params)
+    optimized_params = {
+        name
+        for trial in study.trials
+        for name in trial.params
+    }
+    row_colors = [
+        "#fff2cc" if name in optimized_params else "white"
+        for name in names
+    ]
+    figure.add_trace(
+        go.Table(
+            columnwidth=[1.5, 1.0],
+            header=dict(
+                values=["HP", "Value"],
+                align=["left", "right"],
+                fill_color="#e8eef7",
+            ),
+            cells=dict(
+                values=[
+                    names,
+                    [str(incumbent_params[name]) for name in names],
+                ],
+                align=["left", "right"],
+                fill_color=[row_colors, row_colors],
+                height=22,
+            ),
+        ),
+        row=1,
+        col=2,
+    )
+
+# -----
 
 def _add_current_study(
     figure: Any,
@@ -385,6 +387,7 @@ def _current_study_trial_state(trial: Any) -> str:
     state = trial.state
     return state.name if hasattr(state, "name") else str(state)
 
+# -----
 
 def _add_robustness_evaluation(
     figure: Any,
@@ -449,7 +452,6 @@ def _add_robustness_evaluation(
         col=2,
     )
     figure.update_yaxes(title_text="QE score", row=2, col=2)
-
 
 def _robustness_offsets(count: int) -> list[float]:
     if count == 1:
