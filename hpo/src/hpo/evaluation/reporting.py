@@ -204,7 +204,7 @@ def _dashboard_figure(
         )
     else:
         figure.add_annotation(
-            text="Optimization complete",
+            text="Waiting for optimization",
             row=2,
             col=1,
             showarrow=False,

@@ -315,6 +315,10 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     ]
     assert list(mean_trace.y) == pytest.approx([-1.0, -1.45, -2.0])
     assert mean_trace.marker.symbol == "diamond"
+    assert any(
+        annotation.text == "Waiting for optimization"
+        for annotation in figure.layout.annotations
+    )
 
 
 def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
