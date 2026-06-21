@@ -1,19 +1,6 @@
 """Notebook reporting helpers for HPO studies."""
 
-from dataclasses import dataclass
 from typing import Any
-
-
-@dataclass
-class _Dashboard:
-    container: Any
-    lander_history: Any
-    optimization_history: Any
-    podium: Any
-
-
-_dashboard: _Dashboard | None = None
-_dashboard_series: Any = None
 
 
 def plot_lander_progress(study: Any) -> Any:
@@ -85,22 +72,13 @@ def show_lander_live_progress(
     lander_studies: Any,
 ) -> None:
     """Update the fixed dashboard during Optuna optimization."""
-    import matplotlib.pyplot as plt
-
-    dashboard = _get_dashboard(lander_studies)
-    figure = plot_lander_progress(lander_studies)
-    _show_in(dashboard.lander_history, figure)
-    plt.close(figure)
-    history = _optimization_history_figure(study, target_trials)
-    _show_in(
-        dashboard.optimization_history,
-        history,
-        heading=f"Study: {_study_title(study)}",
-    )
-    _clear_panel(
-        dashboard.podium,
-        heading="Podium",
-        message="Waiting for robustness evaluation",
+    _clear_output(wait=True)
+    _display(
+        _dashboard_figure(
+            study=study,
+            target_trials=target_trials,
+            lander_studies=lander_studies,
+        )
     )
 
 
@@ -148,28 +126,19 @@ def show_robustness_progress(
     candidate_scores: list[float],
 ) -> None:
     """Update the fixed dashboard during robustness evaluation."""
-    import matplotlib.pyplot as plt
-
-    dashboard = _get_dashboard(lander_studies)
-    history = plot_lander_progress(lander_studies)
-    _show_in(dashboard.lander_history, history)
-    plt.close(history)
-    _clear_panel(
-        dashboard.optimization_history,
-        heading=f"Study: {_study_title(study)}",
-        message="Optimization complete",
+    _clear_output(wait=True)
+    _display(
+        _dashboard_figure(
+            study=study,
+            target_trials=len(study.trials),
+            lander_studies=lander_studies,
+            candidate_index=candidate_index,
+            candidate_count=candidate_count,
+            seed_index=seed_index,
+            seed_count=seed_count,
+            candidate_scores=candidate_scores,
+        )
     )
-    candidates = plot_robustness_progress(candidate_scores, candidate_index)
-    _show_in(
-        dashboard.podium,
-        candidates,
-        heading=(
-            f"Study: {_study_title(study)} | Robustness evaluation | "
-            f"Candidate {candidate_index}/{candidate_count} | "
-            f"Seed {seed_index}/{seed_count}"
-        ),
-    )
-    plt.close(candidates)
 
 
 def finished_trial_count(study: Any) -> int:
@@ -226,101 +195,269 @@ def _display(value: Any) -> None:
     display(value)
 
 
-def _get_dashboard(lander_studies: Any) -> _Dashboard:
-    global _dashboard, _dashboard_series
+def _dashboard_figure(
+    *,
+    study: Any,
+    target_trials: int,
+    lander_studies: Any,
+    candidate_index: int | None = None,
+    candidate_count: int | None = None,
+    seed_index: int | None = None,
+    seed_count: int | None = None,
+    candidate_scores: list[float] | None = None,
+) -> Any:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
-    studies = _study_list(lander_studies)
-    series = studies[0] if studies else lander_studies
-    if _dashboard is None or series is not _dashboard_series:
-        _clear_output(wait=True)
-        _dashboard = _create_dashboard()
-        _dashboard_series = series
-        _display(_dashboard.container)
-    return _dashboard
-
-
-def _create_dashboard() -> _Dashboard:
-    import ipywidgets as widgets
-
-    lander_history = widgets.Output(
-        layout=widgets.Layout(
-            width="1100px",
-            height="270px",
-            overflow="hidden",
+    figure = make_subplots(
+        rows=2,
+        cols=2,
+        specs=[
+            [{"colspan": 2, "secondary_y": True}, None],
+            [{"secondary_y": True}, {}],
+        ],
+        row_heights=[0.42, 0.58],
+        vertical_spacing=0.14,
+        horizontal_spacing=0.12,
+        subplot_titles=(
+            "Lander History",
+            f"Optimization History · {_study_title(study)}",
+            "Podium",
         ),
     )
-    optimization_history = widgets.Output(
-        layout=widgets.Layout(
-            width="545px",
-            height="350px",
-            overflow="hidden",
-            border="1px solid #ddd",
-            padding="4px",
+    _add_lander_history(figure, lander_studies)
+    if candidate_scores is None:
+        _add_optimization_history(figure, study, target_trials)
+        figure.add_annotation(
+            text="Waiting for robustness evaluation",
+            row=2,
+            col=2,
+            showarrow=False,
+            font=dict(color="gray"),
+        )
+    else:
+        figure.add_annotation(
+            text="Optimization complete",
+            row=2,
+            col=1,
+            showarrow=False,
+            font=dict(color="gray"),
+        )
+        _add_podium(
+            figure,
+            candidate_scores=candidate_scores,
+            candidate_index=candidate_index,
+        )
+        figure.layout.annotations[1].text = (
+            f"Optimization History · {_study_title(study)}"
+        )
+        figure.layout.annotations[2].text = (
+            "Podium · Robustness evaluation · "
+            f"Candidate {candidate_index}/{candidate_count} · "
+            f"Seed {seed_index}/{seed_count}"
+        )
+
+    figure.update_layout(
+        width=1100,
+        height=650,
+        margin=dict(l=70, r=70, t=55, b=55),
+        legend=dict(
+            orientation="h",
+            x=0.01,
+            y=0.61,
+            xanchor="left",
+            yanchor="bottom",
         ),
+        plot_bgcolor="white",
     )
-    podium = widgets.Output(
-        layout=widgets.Layout(
-            width="545px",
-            height="350px",
-            overflow="hidden",
-            border="1px solid #ddd",
-            padding="4px",
+    figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
+    figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
+    return figure
+
+
+def _add_lander_history(figure: Any, studies: Any) -> None:
+    import plotly.graph_objects as go
+
+    points = []
+    for index, study in enumerate(_study_list(studies)):
+        point = _study_progress_point(study)
+        if point is not None:
+            points.append((point, _study_label(study, index)))
+
+    efforts = [point["training_effort"] for point, _ in points]
+    gym_scores = [point["gym_score"] for point, _ in points]
+    qe_scores = [point["qe_score"] for point, _ in points]
+    labels = [label for _, label in points]
+    if efforts:
+        effort_margin = max(0.05, 0.05 * (max(efforts) - min(efforts)))
+        effort_range = [
+            min(efforts) - effort_margin,
+            max(efforts) + effort_margin,
+        ]
+    else:
+        effort_range = [0.95, 1.05]
+    figure.add_trace(
+        go.Scatter(
+            x=efforts,
+            y=gym_scores,
+            mode="lines+markers+text",
+            text=labels,
+            textposition="top right",
+            name="Gym score",
+            line=dict(color="#1f77b4"),
         ),
+        row=1,
+        col=1,
+        secondary_y=False,
     )
-    bottom = widgets.HBox(
-        [optimization_history, podium],
-        layout=widgets.Layout(width="1100px", justify_content="space-between"),
+    figure.add_trace(
+        go.Scatter(
+            x=efforts,
+            y=qe_scores,
+            mode="lines+markers",
+            name="QE score",
+            line=dict(color="#ff7f0e"),
+        ),
+        row=1,
+        col=1,
+        secondary_y=True,
     )
-    container = widgets.VBox(
-        [lander_history, bottom],
-        layout=widgets.Layout(width="1100px"),
+    for value, name, dash in ((200, "Gym 200", "dash"), (250, "Gym 250", "dot")):
+        figure.add_trace(
+            go.Scatter(
+                x=effort_range,
+                y=[value, value],
+                mode="lines",
+                name=name,
+                line=dict(color="gray", dash=dash),
+            ),
+            row=1,
+            col=1,
+            secondary_y=False,
+        )
+    figure.update_xaxes(
+        title_text="Training effort relative to S0",
+        range=effort_range,
+        row=1,
+        col=1,
     )
-    return _Dashboard(container, lander_history, optimization_history, podium)
+    figure.update_yaxes(title_text="Gym score", row=1, col=1, secondary_y=False)
+    figure.update_yaxes(title_text="QE score", row=1, col=1, secondary_y=True)
 
 
-def _show_in(panel: Any, value: Any, *, heading: str | None = None) -> None:
-    if value.__class__.__module__.startswith("plotly."):
-        _show_plotly_in(panel, value, heading=heading)
-        return
+def _add_optimization_history(
+    figure: Any,
+    study: Any,
+    target_trials: int,
+) -> None:
+    import plotly.graph_objects as go
 
-    with panel:
-        _clear_output(wait=True)
-        if heading is not None:
-            print(heading)
-        _display(value)
+    trials = [
+        trial for trial in study.trials
+        if _trial_state_name(trial) == "COMPLETE"
+        and trial.value is not None
+        and "gym_score" in trial.user_attrs
+    ]
+    hover_params = [
+        "".join(f"<br>{name}: {value}" for name, value in trial.params.items())
+        for trial in trials
+    ]
+    numbers = [trial.number for trial in trials]
+    qe_scores = [float(trial.value) for trial in trials]
+    best_scores = []
+    best = float("-inf")
+    for score in qe_scores:
+        best = max(best, score)
+        best_scores.append(best)
+
+    figure.add_trace(
+        go.Scatter(
+            x=numbers,
+            y=[trial.user_attrs["gym_score"] for trial in trials],
+            mode="markers",
+            name="Gym score",
+            showlegend=False,
+            marker=dict(color="#1f77b4"),
+            customdata=hover_params,
+            hovertemplate=(
+                "Trial: %{x}<br>Gym score: %{y:.1f}"
+                "%{customdata}<extra></extra>"
+            ),
+        ),
+        row=2,
+        col=1,
+        secondary_y=False,
+    )
+    figure.add_trace(
+        go.Scatter(
+            x=numbers,
+            y=qe_scores,
+            mode="markers",
+            name="QE score",
+            showlegend=False,
+            marker=dict(color="#ff7f0e"),
+            customdata=hover_params,
+            hovertemplate=(
+                "Trial: %{x}<br>QE score: %{y:.3f}"
+                "%{customdata}<extra></extra>"
+            ),
+        ),
+        row=2,
+        col=1,
+        secondary_y=True,
+    )
+    figure.add_trace(
+        go.Scatter(
+            x=numbers,
+            y=best_scores,
+            mode="lines",
+            name="Best QE score",
+            line=dict(color="red"),
+        ),
+        row=2,
+        col=1,
+        secondary_y=True,
+    )
+    figure.update_xaxes(
+        title_text="Trial",
+        range=[0, max(1, target_trials)],
+        row=2,
+        col=1,
+    )
+    figure.update_yaxes(title_text="Gym score", row=2, col=1, secondary_y=False)
+    figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
 
 
-def _show_plotly_in(
-    panel: Any,
+def _add_podium(
     figure: Any,
     *,
-    heading: str | None,
+    candidate_scores: list[float],
+    candidate_index: int | None,
 ) -> None:
-    import plotly.io as pio
+    import plotly.graph_objects as go
 
-    outputs = []
-    if heading is not None:
-        outputs.append({
-            "output_type": "stream",
-            "name": "stdout",
-            "text": f"{heading}\n",
-        })
-    outputs.append({
-        "output_type": "display_data",
-        "data": pio.renderers["colab"].to_mimebundle(figure.to_dict()),
-        "metadata": {},
-    })
-    panel.outputs = tuple(outputs)
-
-
-def _clear_panel(
-    panel: Any,
-    *,
-    heading: str,
-    message: str,
-) -> None:
-    panel.clear_output(wait=False)
-    panel.append_stdout(f"{heading}\n{message}\n")
+    colors = [
+        "#1f77b4" if index < candidate_index else
+        "#ff7f0e" if index == candidate_index else
+        "lightgray"
+        for index in range(1, len(candidate_scores) + 1)
+    ]
+    figure.add_trace(
+        go.Bar(
+            x=[
+                f"Candidate {index}"
+                for index in range(1, len(candidate_scores) + 1)
+            ],
+            y=candidate_scores,
+            marker_color=colors,
+            text=[f"{score:.3f}" for score in candidate_scores],
+            textposition="outside",
+            showlegend=False,
+        ),
+        row=2,
+        col=2,
+    )
+    figure.update_yaxes(title_text="Mean QE score", row=2, col=2)
 
 
 def _plot_optimization_history(study: Any) -> Any:

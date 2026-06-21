@@ -2,5 +2,4 @@
 optuna>=4.0
 plotly
 nbformat
-ipywidgets
 pandas
