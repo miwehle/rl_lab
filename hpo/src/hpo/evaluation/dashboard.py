@@ -8,65 +8,6 @@ the best candidates at the end of each study.
 from typing import Any
 
 
-def show_dashboard_during_optimization(
-    study: Any,
-    *,
-    target_trials: int,
-    lander_studies: Any,
-    incumbent_params: dict[str, Any],
-) -> None:
-    """Update the fixed dashboard during Optuna optimization."""
-    _clear_output(wait=True)
-    _display(
-        build_dashboard(
-            study=study,
-            target_trials=target_trials,
-            lander_studies=lander_studies,
-            incumbent_params=incumbent_params,
-        )
-    )
-
-
-def show_dashboard_during_robustness_evaluation(
-    study: Any,
-    *,
-    lander_studies: Any,
-    incumbent_params: dict[str, Any],
-    candidate_index: int,
-    candidate_count: int,
-    seed_index: int,
-    seed_count: int,
-    candidate_seed_scores: list[list[float]],
-) -> None:
-    """Update the fixed dashboard during robustness evaluation."""
-    _clear_output(wait=True)
-    _display(
-        build_dashboard(
-            study=study,
-            target_trials=len(study.trials),
-            lander_studies=lander_studies,
-            incumbent_params=incumbent_params,
-            candidate_index=candidate_index,
-            candidate_count=candidate_count,
-            seed_index=seed_index,
-            seed_count=seed_count,
-            candidate_seed_scores=candidate_seed_scores,
-        )
-    )
-
-
-def _clear_output(*args, **kwargs) -> None:
-    from IPython.display import clear_output
-
-    clear_output(*args, **kwargs)
-
-
-def _display(value: Any) -> None:
-    from IPython.display import display
-
-    display(value)
-
-
 def build_dashboard(
     *,
     study: Any,
@@ -132,6 +73,65 @@ def build_dashboard(
 
     _style_dashboard(figure)
     return figure
+
+
+def show_dashboard_during_optimization(
+    study: Any,
+    *,
+    target_trials: int,
+    lander_studies: Any,
+    incumbent_params: dict[str, Any],
+) -> None:
+    """Update the fixed dashboard during Optuna optimization."""
+    _clear_output(wait=True)
+    _display(
+        build_dashboard(
+            study=study,
+            target_trials=target_trials,
+            lander_studies=lander_studies,
+            incumbent_params=incumbent_params,
+        )
+    )
+
+
+def show_dashboard_during_robustness_evaluation(
+    study: Any,
+    *,
+    lander_studies: Any,
+    incumbent_params: dict[str, Any],
+    candidate_index: int,
+    candidate_count: int,
+    seed_index: int,
+    seed_count: int,
+    candidate_seed_scores: list[list[float]],
+) -> None:
+    """Update the fixed dashboard during robustness evaluation."""
+    _clear_output(wait=True)
+    _display(
+        build_dashboard(
+            study=study,
+            target_trials=len(study.trials),
+            lander_studies=lander_studies,
+            incumbent_params=incumbent_params,
+            candidate_index=candidate_index,
+            candidate_count=candidate_count,
+            seed_index=seed_index,
+            seed_count=seed_count,
+            candidate_seed_scores=candidate_seed_scores,
+        )
+    )
+
+
+def _clear_output(*args, **kwargs) -> None:
+    from IPython.display import clear_output
+
+    clear_output(*args, **kwargs)
+
+
+def _display(value: Any) -> None:
+    from IPython.display import display
+
+    display(value)
 
 
 def _style_dashboard(figure: Any) -> None:
