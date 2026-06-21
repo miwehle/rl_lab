@@ -328,6 +328,7 @@ def _add_lander_history(figure: Any, studies: Any) -> None:
                 y=[value, value],
                 mode="lines",
                 name=name,
+                showlegend=False,
                 line=dict(color="gray", dash=dash),
             ),
             row=1,

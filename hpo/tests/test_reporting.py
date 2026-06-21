@@ -223,6 +223,11 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
         "Gym 200",
         "Gym 250",
     }
+    assert {
+        trace.name for trace in figure.data
+        if getattr(trace, "showlegend", False) is not False
+        and trace.name is not None
+    } == {"Gym score", "QE score", "Best QE score"}
 
 
 def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
