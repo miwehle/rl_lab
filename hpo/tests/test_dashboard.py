@@ -44,7 +44,7 @@ def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
     cleared = []
     monkeypatch.setattr(
         dashboard,
-        "_dashboard_figure",
+        "build_dashboard",
         lambda **kwargs: ("dashboard", kwargs),
     )
     monkeypatch.setattr(dashboard, "_display", displayed.append)
@@ -74,7 +74,7 @@ def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
     )]
 
 
-def test_dashboard_contains_fixed_three_panel_layout() -> None:
+def test_dashboard_contains_fixed_four_panel_layout() -> None:
     study = FakeStudy(
         trials=[
             FakeTrial(
@@ -96,7 +96,7 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
         },
     )
 
-    figure = dashboard._dashboard_figure(
+    figure = dashboard.build_dashboard(
         study=study,
         target_trials=40,
         lander_studies=[baseline, study],
@@ -135,7 +135,7 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
 
 def test_robustness_plot_shows_seed_scores_and_means() -> None:
     study = FakeStudy(trials=[], study_name="s1_qe_update_economy")
-    figure = dashboard._dashboard_figure(
+    figure = dashboard.build_dashboard(
         study=study,
         target_trials=40,
         lander_studies=[],
@@ -177,7 +177,7 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
     cleared = []
     monkeypatch.setattr(
         dashboard,
-        "_dashboard_figure",
+        "build_dashboard",
         lambda **kwargs: ("dashboard", kwargs),
     )
     monkeypatch.setattr(dashboard, "_display", displayed.append)

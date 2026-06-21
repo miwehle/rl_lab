@@ -18,7 +18,7 @@ def show_lander_live_progress(
     """Update the fixed dashboard during Optuna optimization."""
     _clear_output(wait=True)
     _display(
-        _dashboard_figure(
+        build_dashboard(
             study=study,
             target_trials=target_trials,
             lander_studies=lander_studies,
@@ -41,7 +41,7 @@ def show_robustness_progress(
     """Update the fixed dashboard during robustness evaluation."""
     _clear_output(wait=True)
     _display(
-        _dashboard_figure(
+        build_dashboard(
             study=study,
             target_trials=len(study.trials),
             lander_studies=lander_studies,
@@ -67,7 +67,7 @@ def _display(value: Any) -> None:
     display(value)
 
 
-def _dashboard_figure(
+def build_dashboard(
     *,
     study: Any,
     target_trials: int,
@@ -100,10 +100,10 @@ def _dashboard_figure(
             "HP Robustness Evaluation",
         ),
     )
-    _add_lander_history(figure, lander_studies)
-    _add_incumbent_table(figure, incumbent_params, study)
+    _add_study_series(figure, lander_studies)
+    _add_best_hps(figure, incumbent_params, study)
     if candidate_seed_scores is None:
-        _add_optimization_history(figure, study, target_trials)
+        _add_current_study(figure, study, target_trials)
         figure.add_annotation(
             text="Waiting for robustness evaluation",
             row=2,
@@ -119,7 +119,7 @@ def _dashboard_figure(
             showarrow=False,
             font=dict(color="gray"),
         )
-        _add_podium(
+        _add_robustness_evaluation(
             figure,
             candidate_seed_scores=candidate_seed_scores,
             candidate_index=candidate_index,
@@ -130,6 +130,11 @@ def _dashboard_figure(
             f"Seed {seed_index}/{seed_count}"
         )
 
+    _style_dashboard(figure)
+    return figure
+
+
+def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
         height=650,
@@ -145,10 +150,9 @@ def _dashboard_figure(
     )
     figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
     figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
-    return figure
 
 
-def _add_incumbent_table(
+def _add_best_hps(
     figure: Any,
     incumbent_params: dict[str, Any],
     study: Any,
@@ -186,7 +190,7 @@ def _add_incumbent_table(
         row=1,
         col=2,
     )
-def _add_lander_history(figure: Any, studies: Any) -> None:
+def _add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 
     points = []
@@ -257,7 +261,7 @@ def _add_lander_history(figure: Any, studies: Any) -> None:
     figure.update_yaxes(title_text="QE score", row=1, col=1, secondary_y=True)
 
 
-def _add_optimization_history(
+def _add_current_study(
     figure: Any,
     study: Any,
     target_trials: int,
@@ -340,7 +344,7 @@ def _add_optimization_history(
     figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
 
 
-def _add_podium(
+def _add_robustness_evaluation(
     figure: Any,
     *,
     candidate_seed_scores: list[list[float]],
