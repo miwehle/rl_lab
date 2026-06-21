@@ -29,6 +29,6 @@ Für eine Folgestudie gilt die Hypothese: Bei gleichem gesamten Trainingsaufwand
 
 ### Qualitätsgrenze ohne Aufwandstrafe
 
-Die bisherigen Studien suchten eine eierlegende Wollmilchsau: hohe Landequalität bei geringem Trainingsaufwand. Dadurch ist noch offen, ob der Generalist grundsätzlich an seiner Kapazitätsgrenze scheitert oder ob der Quality-Effort Score lediglich zu wenig Training belohnt.
+Die bisherigen Studien suchten eine eierlegende Wollmilchsau: hohe Landequalität bei geringem Trainingsaufwand (und das für fünf Welten). Dadurch ist noch offen, ob der Generalist grundsätzlich an seiner Kapazitätsgrenze scheitert oder ob der Quality-Effort Score lediglich zu wenig Training belohnt.
 
-Eine weitere Studienreihe soll deshalb ==ausschließlich den gemeinsamen Gym-Score maximieren==; Trainingsaufwand wird gemessen, aber nicht im Objective bestraft. Damit lässt sich untersuchen, welche Landequalität möglich ist, wenn Trainingskosten praktisch keine Rolle spielen. Erreicht auch dieser Generalist auf Mond, Erde und Venus keine hohen Scores, spricht das deutlich stärker für eine Architektur- beziehungsweise Kapazitätsgrenze.
+==Eine weitere Studienreihe soll deshalb ausschließlich den gemeinsamen Gym-Score maximieren==; Trainingsaufwand wird gemessen, aber nicht im Objective bestraft. Damit lässt sich untersuchen, welche Landequalität möglich ist, wenn Trainingskosten praktisch keine Rolle spielen. Erreicht auch dieser Generalist auf Mond, Erde und Venus keine hohen Scores, spricht das deutlich stärker für eine Architektur- beziehungsweise Kapazitätsgrenze.
