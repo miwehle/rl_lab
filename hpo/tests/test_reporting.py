@@ -199,9 +199,9 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
     assert figure.layout.width == 1100
     assert figure.layout.height == 650
     assert [annotation.text for annotation in figure.layout.annotations[:3]] == [
-        "Lander History",
-        "Optimization History · S1 Update Economy",
-        "Podium",
+        "Study Series",
+        "Study: S1 Update Economy",
+        "HP Robustness Evaluation",
     ]
     assert any(
         annotation.text == "Waiting for robustness evaluation"

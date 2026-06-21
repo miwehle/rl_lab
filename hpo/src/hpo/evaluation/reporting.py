@@ -220,9 +220,9 @@ def _dashboard_figure(
         vertical_spacing=0.14,
         horizontal_spacing=0.12,
         subplot_titles=(
-            "Lander History",
-            f"Optimization History · {_study_title(study)}",
-            "Podium",
+            "Study Series",
+            f"Study: {_study_title(study)}",
+            "HP Robustness Evaluation",
         ),
     )
     _add_lander_history(figure, lander_studies)
@@ -248,11 +248,8 @@ def _dashboard_figure(
             candidate_scores=candidate_scores,
             candidate_index=candidate_index,
         )
-        figure.layout.annotations[1].text = (
-            f"Optimization History · {_study_title(study)}"
-        )
         figure.layout.annotations[2].text = (
-            "Podium · Robustness evaluation · "
+            "HP Robustness Evaluation · "
             f"Candidate {candidate_index}/{candidate_count} · "
             f"Seed {seed_index}/{seed_count}"
         )
