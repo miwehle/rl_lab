@@ -193,7 +193,7 @@ def _dashboard_figure(
         horizontal_spacing=0.12,
         subplot_titles=(
             "Study Series",
-            "Best HPs (Current Incumbent)",
+            "Best HPs",
             f"Study: {_study_title(study)}",
             "HP Robustness Evaluation",
         ),
