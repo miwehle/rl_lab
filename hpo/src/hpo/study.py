@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from hpo.evaluation.dashboard import (
-    show_lander_live_progress,
-    show_robustness_progress,
+    show_dashboard_during_optimization,
+    show_dashboard_during_robustness_evaluation,
 )
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
@@ -50,7 +50,7 @@ class StudyRunner:
         robust: bool = True,
     ) -> None:
         def show_progress(study, *, target_trials):
-            show_lander_live_progress(
+            show_dashboard_during_optimization(
                 study,
                 target_trials=target_trials,
                 lander_studies=[*self.studies, study],
@@ -58,7 +58,7 @@ class StudyRunner:
             )
 
         def show_robustness(**kwargs):
-            show_robustness_progress(
+            show_dashboard_during_robustness_evaluation(
                 study,
                 lander_studies=[*self.studies, study],
                 incumbent_params=self.incumbent_params,

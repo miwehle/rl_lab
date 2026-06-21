@@ -67,12 +67,12 @@ def test_study_runner_reuses_context_and_previous_studies(
     )
     monkeypatch.setattr(
         study_module,
-        "show_lander_live_progress",
+        "show_dashboard_during_optimization",
         lambda *args, **kwargs: progress_calls.append((args, kwargs)),
     )
     monkeypatch.setattr(
         study_module,
-        "show_robustness_progress",
+        "show_dashboard_during_robustness_evaluation",
         lambda *args, **kwargs: robustness_display_calls.append((args, kwargs)),
     )
 
@@ -146,7 +146,11 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         "select_robust_best",
         lambda **_kwargs: {"x": 2},
     )
-    monkeypatch.setattr(study_module, "show_lander_live_progress", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        study_module,
+        "show_dashboard_during_optimization",
+        lambda *_args, **_kwargs: None,
+    )
 
     runner = StudyRunner(
         storage_path=lambda _name: Path("runs/study.db"),

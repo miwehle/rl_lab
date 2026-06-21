@@ -8,7 +8,7 @@ the best candidates at the end of each study.
 from typing import Any
 
 
-def show_lander_live_progress(
+def show_dashboard_during_optimization(
     study: Any,
     *,
     target_trials: int,
@@ -27,7 +27,7 @@ def show_lander_live_progress(
     )
 
 
-def show_robustness_progress(
+def show_dashboard_during_robustness_evaluation(
     study: Any,
     *,
     lander_studies: Any,

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import pytest
 
 from hpo.evaluation import dashboard
-from hpo.evaluation.dashboard import show_lander_live_progress
+from hpo.evaluation.dashboard import show_dashboard_during_optimization
 
 
 @dataclass
@@ -27,7 +27,7 @@ class FakeStudy:
     user_attrs: dict = field(default_factory=dict)
 
 
-def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
+def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) -> None:
     study = FakeStudy(
         trials=[FakeTrial(
             number=0,
@@ -52,7 +52,7 @@ def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
         dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
 
-    show_lander_live_progress(
+    show_dashboard_during_optimization(
         study,
         target_trials=40,
         lander_studies=[study],
@@ -171,7 +171,7 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     )
 
 
-def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
+def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) -> None:
     study = FakeStudy(trials=[], study_name="s1_qe_update_economy")
     displayed = []
     cleared = []
@@ -185,7 +185,7 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
         dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
 
-    dashboard.show_robustness_progress(
+    dashboard.show_dashboard_during_robustness_evaluation(
         study,
         lander_studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
