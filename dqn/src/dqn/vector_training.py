@@ -11,7 +11,7 @@ import torch.optim as optim
 
 from dqn.model import DQN
 from dqn.training import ModelFactory, TrainingConfig, TrainingResult, resolve_device
-from hpo.src.hpo.lunar_lander.logging import log_call
+from hpo.lunar_lander.logging import log_call
 
 
 @dataclass(kw_only=True)
