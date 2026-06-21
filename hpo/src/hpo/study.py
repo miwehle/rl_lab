@@ -155,6 +155,8 @@ def run_study(
         study,
         scoring_cfg.study_attrs() | (study_attrs or {}),
     )
+    if progress_fn is not None:
+        progress_fn(study, target_trials=n_trials)
 
     while finished_trial_count(study) < n_trials:
         logger.info("study.optimize")

@@ -212,6 +212,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     monkeypatch.setattr(Path, "mkdir", lambda self, parents=False, exist_ok=False: None)
 
     sync_calls = []
+    progress_trial_counts = []
     study = run_study(
         study_name="s0",
         search_space=object(),
@@ -220,7 +221,9 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
         storage_path=Path("runs") / "series.db",
         environment_factory=FakeEnvironmentFactory(),
         study_attrs={"observation_mode": "8d"},
-        progress_fn=None,
+        progress_fn=lambda current_study, **_kwargs: progress_trial_counts.append(
+            len(current_study.trials)
+        ),
         sync_fn=lambda: sync_calls.append(None),
     )
 
@@ -229,6 +232,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     assert study.user_attrs["baseline_env_steps"] == 10
     assert study.user_attrs["baseline_processed_samples"] == 20
     assert len(sync_calls) == 3
+    assert progress_trial_counts == [0, 1, 2]
 
 
 def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
