@@ -12,20 +12,23 @@
 | optimize_every | 4 | *categorical([2, 4, 8])* | incumbent | incumbent | *categorical(neighbors(incumbent, [2, 4, 8]))* |
 | replay_memory_capacity | 400_000 | incumbent | incumbent | *categorical([200_000, 400_000, 800_000])* | incumbent |
 | num_episodes | 500 | *categorical([500, 1_000])* | incumbent | incumbent | *categorical(neighbors(incumbent, [500, 1_000, 1_500]))* |
+
 ### Venus-Wetter und Evaluation
 
-Die Diagramme unter **„3. Performance by world“** im Analyse-Notebook `Analyze_SolarSystemLander.ipynb` zeigen, dass Venus für beide Lander besonders schwierig war. Venus besitzt zugleich von allen Welten den stärksten Wind. Das ist ein starkes Indiz dafür, dass der extreme Wind ein wesentlicher Faktor ist und beim Training vermieden oder zumindest reduziert werden sollte. Die bisherigen Daten erlauben jedoch keine saubere Trennung von Wind und Turbulenz.
+Die Diagramme unter **„3. Performance by world“** im Analyse-Notebook `Analyze_SolarSystemLander.ipynb` zeigen, dass ==Venus für beide Lander besonders schwierig== war. Venus hat zugleich von allen Welten den stärksten Wind. Das ist ein starkes Indiz dafür, dass der extreme Wind ein wesentlicher Faktor ist und beim Training vermieden oder zumindest reduziert werden sollte. Die bisherigen Daten erlauben jedoch keine saubere Trennung von Wind und Turbulenz.
 
 Für Series 3 werden deshalb pro Evaluations-Episode Welt, Windstärke, Turbulenzstärke und Return gespeichert. Damit lässt sich anschließend untersuchen, welcher Wetterfaktor die Landungen verhindert.
+
 ### Architektur-Befund
 
-Die Diagramme unter **„3. Performance by world“** zeigen über alle fünf Studien ein ähnliches Muster: Die Lander funktionieren unter den mittleren Bedingungen von Merkur und Mars am besten, während sie an den dynamischen Extremen deutlich schlechter abschneiden. Neben der stürmischen Venus betrifft dies insbesondere den physikalisch leichteren, aber vom mittleren Trainingsfall weit entfernten Mond.
+Die Diagramme unter **„3. Performance by world“** zeigen über alle fünf Studien ein ähnliches Muster: ==Die Lander funktionieren unter den mittleren Bedingungen von Merkur und Mars am besten==, während sie an den dynamischen Extremen deutlich schlechter abschneiden. Neben der stürmischen Venus betrifft dies insbesondere den physikalisch leichteren, aber vom mittleren Trainingsfall weit entfernten Mond.
 
 Damit scheint die direkte Erweiterung vom LunarLander zum SolarSystemLander ohne Architekturänderung ein Irrweg zu sein: Eine einzige kleine Policy mit 256 Neuronen lernt offenbar vor allem eine Steuerung für mittlere Bedingungen und generalisiert nur unzureichend auf stark abweichende Dynamiken. Dieses Negativergebnis ist ein wesentliches Ergebnis der Study Series 2.
 
 Für eine Folgestudie gilt die Hypothese: Bei gleichem gesamten Trainingsaufwand `E` erreichen fünf spezialisierte Policies – eine pro Welt – höhere Gym-Scores als eine gemeinsame Generalisten-Policy. Alternativ kann später eine kleinere Zahl von Spezialisten für ähnliche Dynamikklassen untersucht werden.
+
 ### Qualitätsgrenze ohne Aufwandstrafe
 
 Die bisherigen Studien suchten eine eierlegende Wollmilchsau: hohe Landequalität bei geringem Trainingsaufwand. Dadurch ist noch offen, ob der Generalist grundsätzlich an seiner Kapazitätsgrenze scheitert oder ob der Quality-Effort Score lediglich zu wenig Training belohnt.
 
-Eine weitere Studienreihe soll deshalb ausschließlich den gemeinsamen Gym-Score maximieren; Trainingsaufwand wird gemessen, aber nicht im Objective bestraft. Damit lässt sich untersuchen, welche Landequalität möglich ist, wenn Trainingskosten praktisch keine Rolle spielen. Erreicht auch dieser Generalist auf Mond, Erde und Venus keine hohen Scores, spricht das deutlich stärker für eine Architektur- beziehungsweise Kapazitätsgrenze.
+Eine weitere Studienreihe soll deshalb ==ausschließlich den gemeinsamen Gym-Score maximieren==; Trainingsaufwand wird gemessen, aber nicht im Objective bestraft. Damit lässt sich untersuchen, welche Landequalität möglich ist, wenn Trainingskosten praktisch keine Rolle spielen. Erreicht auch dieser Generalist auf Mond, Erde und Venus keine hohen Scores, spricht das deutlich stärker für eine Architektur- beziehungsweise Kapazitätsgrenze.
