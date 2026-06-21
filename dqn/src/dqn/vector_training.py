@@ -11,7 +11,6 @@ import torch.optim as optim
 
 from dqn.model import DQN
 from dqn.training import ModelFactory, TrainingConfig, TrainingResult, resolve_device
-from hpo.lunar_lander.logging import log_call
 
 
 @dataclass(kw_only=True)
@@ -161,7 +160,6 @@ class VectorTrainer:
             seed=seed,
         )
 
-    @log_call
     def train(self, config: VectorTrainingConfig, plotter=None) -> VectorTrainingResult:
         """Train q_net with batched experience from a vector environment."""
         for param_group in self.optimizer.param_groups:
