@@ -75,6 +75,33 @@ def build_dashboard(
     return figure
 
 
+def _style_dashboard(figure: Any) -> None:
+    figure.update_layout(
+        width=1200,
+        height=650,
+        margin=dict(l=70, r=70, t=55, b=55),
+        legend=dict(
+            orientation="h",
+            x=0.01,
+            y=0.61,
+            xanchor="left",
+            yanchor="bottom",
+        ),
+        plot_bgcolor="white",
+    )
+    figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
+    figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
+
+
+def _study_title(study: Any) -> str:
+    parts = getattr(study, "study_name", "").split("_")
+    if not parts or not parts[0]:
+        return "Unnamed"
+    if len(parts) > 1 and parts[1] == "qe":
+        del parts[1]
+    return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
+
+
 def show_dashboard_during_optimization(
     study: Any,
     *,
@@ -134,24 +161,6 @@ def _display(value: Any) -> None:
     display(value)
 
 
-def _style_dashboard(figure: Any) -> None:
-    figure.update_layout(
-        width=1200,
-        height=650,
-        margin=dict(l=70, r=70, t=55, b=55),
-        legend=dict(
-            orientation="h",
-            x=0.01,
-            y=0.61,
-            xanchor="left",
-            yanchor="bottom",
-        ),
-        plot_bgcolor="white",
-    )
-    figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
-    figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
-
-
 def _add_best_hps(
     figure: Any,
     incumbent_params: dict[str, Any],
@@ -194,10 +203,10 @@ def _add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 
     points = []
-    for index, study in enumerate(_study_list(studies)):
-        point = _study_progress_point(study)
+    for index, study in enumerate(_study_series_list(studies)):
+        point = _study_series_point(study)
         if point is not None:
-            points.append((point, _study_label(study, index)))
+            points.append((point, _study_series_label(study, index)))
 
     efforts = [point["training_effort"] for point, _ in points]
     gym_scores = [point["gym_score"] for point, _ in points]
@@ -261,6 +270,34 @@ def _add_study_series(figure: Any, studies: Any) -> None:
     figure.update_yaxes(title_text="QE score", row=1, col=1, secondary_y=True)
 
 
+def _study_series_list(studies: Any) -> list[Any]:
+    if hasattr(studies, "trials"):
+        return [studies]
+    return list(studies)
+
+
+def _study_series_point(study: Any) -> dict[str, float] | None:
+    user_attrs = getattr(study, "user_attrs", {})
+    gym_score = user_attrs.get("robust_best_gym_score")
+    qe_score = user_attrs.get("robust_best_objective_score")
+    training_effort = user_attrs.get("robust_best_training_effort")
+    if gym_score is None or qe_score is None or training_effort is None:
+        return None
+
+    return {
+        "training_effort": float(training_effort),
+        "gym_score": float(gym_score),
+        "qe_score": float(qe_score),
+    }
+
+
+def _study_series_label(study: Any, index: int) -> str:
+    name = getattr(study, "study_name", "")
+    if name.startswith("s") and "_" in name:
+        return name.split("_", 1)[0].upper()
+    return name or f"S{index}"
+
+
 def _add_current_study(
     figure: Any,
     study: Any,
@@ -270,7 +307,7 @@ def _add_current_study(
 
     trials = [
         trial for trial in study.trials
-        if _trial_state_name(trial) == "COMPLETE"
+        if _current_study_trial_state(trial) == "COMPLETE"
         and trial.value is not None
         and "gym_score" in trial.user_attrs
     ]
@@ -344,6 +381,11 @@ def _add_current_study(
     figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
 
 
+def _current_study_trial_state(trial: Any) -> str:
+    state = trial.state
+    return state.name if hasattr(state, "name") else str(state)
+
+
 def _add_robustness_evaluation(
     figure: Any,
     *,
@@ -358,7 +400,7 @@ def _add_robustness_evaluation(
     point_colors = []
     for candidate, scores in enumerate(candidate_seed_scores, start=1):
         for seed, (score, offset) in enumerate(
-            zip(scores, _centered_offsets(len(scores)), strict=True)
+            zip(scores, _robustness_offsets(len(scores)), strict=True)
         ):
             point_x.append(candidate + offset)
             point_y.append(score)
@@ -409,48 +451,8 @@ def _add_robustness_evaluation(
     figure.update_yaxes(title_text="QE score", row=2, col=2)
 
 
-def _centered_offsets(count: int) -> list[float]:
+def _robustness_offsets(count: int) -> list[float]:
     if count == 1:
         return [0.0]
     center = (count - 1) / 2
     return [(index - center) * 0.06 for index in range(count)]
-
-def _study_list(studies: Any) -> list[Any]:
-    if hasattr(studies, "trials"):
-        return [studies]
-    return list(studies)
-
-
-def _study_progress_point(study: Any) -> dict[str, float] | None:
-    user_attrs = getattr(study, "user_attrs", {})
-    gym_score = user_attrs.get("robust_best_gym_score")
-    qe_score = user_attrs.get("robust_best_objective_score")
-    training_effort = user_attrs.get("robust_best_training_effort")
-    if gym_score is None or qe_score is None or training_effort is None:
-        return None
-
-    return {
-        "training_effort": float(training_effort),
-        "gym_score": float(gym_score),
-        "qe_score": float(qe_score),
-    }
-
-
-def _study_title(study: Any) -> str:
-    parts = getattr(study, "study_name", "").split("_")
-    if not parts or not parts[0]:
-        return "Unnamed"
-    if len(parts) > 1 and parts[1] == "qe":
-        del parts[1]
-    return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
-
-def _study_label(study: Any, index: int) -> str:
-    name = getattr(study, "study_name", "")
-    if name.startswith("s") and "_" in name:
-        return name.split("_", 1)[0].upper()
-    return name or f"S{index}"
-
-
-def _trial_state_name(trial: Any) -> str:
-    state = trial.state
-    return state.name if hasattr(state, "name") else str(state)
