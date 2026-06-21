@@ -73,6 +73,7 @@ def create_objective(
             )
 
             start_time = perf_counter()
+            logger.info("VectorTrainer.train")
             result = trainer.train(training_config)
             wall_time_seconds = perf_counter() - start_time
         finally:
