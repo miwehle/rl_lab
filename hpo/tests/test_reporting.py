@@ -286,24 +286,35 @@ def test_optimization_history_uses_consistent_score_axes(monkeypatch) -> None:
     assert figure.layout["yaxis2"]["title"] == "QE score"
     assert [line["y"] for line in figure.hlines] == [200, 250]
 
-def test_plot_robustness_progress_marks_candidate_states() -> None:
-    fig = reporting.plot_robustness_progress([-1.0, -1.5, -2.0], 2)
-    ax = fig.axes[0]
+def test_robustness_plot_shows_seed_scores_and_means() -> None:
+    study = FakeStudy(trials=[], study_name="s1_qe_update_economy")
+    figure = reporting._dashboard_figure(
+        study=study,
+        target_trials=40,
+        lander_studies=[],
+        candidate_index=2,
+        candidate_count=3,
+        seed_index=2,
+        seed_count=4,
+        candidate_seed_scores=[
+            [-1.0, -1.2, -0.8],
+            [-1.5, -1.4],
+            [-2.0],
+        ],
+    )
 
-    assert ax.get_ylabel() == "Mean QE score"
-    assert ax.get_title() == "Robustness Candidates"
-    assert [patch.get_y() + patch.get_height() for patch in ax.patches] == [
-        pytest.approx(-1.0),
-        pytest.approx(-1.5),
-        pytest.approx(-2.0),
+    seed_trace, mean_trace = figure.data[-2:]
+    assert list(seed_trace.y) == [-1.0, -1.2, -0.8, -1.5, -1.4, -2.0]
+    assert list(seed_trace.customdata) == [
+        "Optimize trial",
+        "Extra seed 1",
+        "Extra seed 2",
+        "Optimize trial",
+        "Extra seed 1",
+        "Optimize trial",
     ]
-    from matplotlib.colors import to_rgba
-
-    assert [patch.get_facecolor() for patch in ax.patches] == [
-        to_rgba("tab:blue"),
-        to_rgba("tab:orange"),
-        to_rgba("lightgray"),
-    ]
+    assert list(mean_trace.y) == pytest.approx([-1.0, -1.45, -2.0])
+    assert mean_trace.marker.symbol == "diamond"
 
 
 def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
@@ -327,7 +338,7 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
         candidate_count=3,
         seed_index=1,
         seed_count=1,
-        candidate_scores=[-1.0, -1.5, -2.0],
+        candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
     )
 
     assert cleared == [{"wait": True}]
@@ -341,6 +352,6 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
             "candidate_count": 3,
             "seed_index": 1,
             "seed_count": 1,
-            "candidate_scores": [-1.0, -1.5, -2.0],
+            "candidate_seed_scores": [[-1.0], [-1.5], [-2.0]],
         },
     )]

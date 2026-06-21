@@ -82,39 +82,6 @@ def show_lander_live_progress(
     )
 
 
-def plot_robustness_progress(
-    candidate_scores: list[float],
-    candidate_index: int,
-) -> Any:
-    """Plot running mean QE scores for robustness candidates."""
-    import matplotlib.pyplot as plt
-
-    colors = [
-        "tab:blue" if index < candidate_index else
-        "tab:orange" if index == candidate_index else
-        "lightgray"
-        for index in range(1, len(candidate_scores) + 1)
-    ]
-    score_range = max(candidate_scores) - min(candidate_scores)
-    baseline = min(candidate_scores) - max(0.1, 0.1 * score_range)
-    fig, ax = plt.subplots(figsize=(5.3, 2.8))
-    bars = ax.bar(
-        [f"Candidate {index}" for index in range(1, len(candidate_scores) + 1)],
-        [score - baseline for score in candidate_scores],
-        bottom=baseline,
-        color=colors,
-    )
-    ax.bar_label(
-        bars,
-        labels=[f"{score:.3f}" for score in candidate_scores],
-        padding=3,
-    )
-    ax.set_title("Robustness Candidates")
-    ax.set_ylabel("Mean QE score")
-    fig.subplots_adjust(left=0.16, right=0.96, top=0.82, bottom=0.22)
-    return fig
-
-
 def show_robustness_progress(
     study: Any,
     *,
@@ -123,7 +90,7 @@ def show_robustness_progress(
     candidate_count: int,
     seed_index: int,
     seed_count: int,
-    candidate_scores: list[float],
+    candidate_seed_scores: list[list[float]],
 ) -> None:
     """Update the fixed dashboard during robustness evaluation."""
     _clear_output(wait=True)
@@ -136,7 +103,7 @@ def show_robustness_progress(
             candidate_count=candidate_count,
             seed_index=seed_index,
             seed_count=seed_count,
-            candidate_scores=candidate_scores,
+            candidate_seed_scores=candidate_seed_scores,
         )
     )
 
@@ -204,7 +171,7 @@ def _dashboard_figure(
     candidate_count: int | None = None,
     seed_index: int | None = None,
     seed_count: int | None = None,
-    candidate_scores: list[float] | None = None,
+    candidate_seed_scores: list[list[float]] | None = None,
 ) -> Any:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
@@ -226,7 +193,7 @@ def _dashboard_figure(
         ),
     )
     _add_lander_history(figure, lander_studies)
-    if candidate_scores is None:
+    if candidate_seed_scores is None:
         _add_optimization_history(figure, study, target_trials)
         figure.add_annotation(
             text="Waiting for robustness evaluation",
@@ -245,7 +212,7 @@ def _dashboard_figure(
         )
         _add_podium(
             figure,
-            candidate_scores=candidate_scores,
+            candidate_seed_scores=candidate_seed_scores,
             candidate_index=candidate_index,
         )
         figure.layout.annotations[2].text = (
@@ -428,34 +395,74 @@ def _add_optimization_history(
 def _add_podium(
     figure: Any,
     *,
-    candidate_scores: list[float],
+    candidate_seed_scores: list[list[float]],
     candidate_index: int | None,
 ) -> None:
     import plotly.graph_objects as go
 
-    colors = [
-        "#1f77b4" if index < candidate_index else
-        "#ff7f0e" if index == candidate_index else
-        "lightgray"
-        for index in range(1, len(candidate_scores) + 1)
-    ]
+    point_x = []
+    point_y = []
+    point_labels = []
+    point_colors = []
+    for candidate, scores in enumerate(candidate_seed_scores, start=1):
+        for seed, (score, offset) in enumerate(
+            zip(scores, _centered_offsets(len(scores)), strict=True)
+        ):
+            point_x.append(candidate + offset)
+            point_y.append(score)
+            point_labels.append(
+                "Optimize trial" if seed == 0 else f"Extra seed {seed}"
+            )
+            point_colors.append(
+                "#1f77b4" if candidate < candidate_index else
+                "#ff7f0e" if candidate == candidate_index else
+                "lightgray"
+            )
+
     figure.add_trace(
-        go.Bar(
-            x=[
-                f"Candidate {index}"
-                for index in range(1, len(candidate_scores) + 1)
-            ],
-            y=candidate_scores,
-            marker_color=colors,
-            text=[f"{score:.3f}" for score in candidate_scores],
-            textposition="outside",
+        go.Scatter(
+            x=point_x,
+            y=point_y,
+            mode="markers",
+            marker=dict(color=point_colors, size=8),
+            customdata=point_labels,
+            hovertemplate="%{customdata}<br>QE score: %{y:.3f}<extra></extra>",
             showlegend=False,
         ),
         row=2,
         col=2,
     )
-    figure.update_yaxes(title_text="Mean QE score", row=2, col=2)
+    means = [sum(scores) / len(scores) for scores in candidate_seed_scores]
+    figure.add_trace(
+        go.Scatter(
+            x=list(range(1, len(means) + 1)),
+            y=means,
+            mode="markers",
+            marker=dict(color="red", symbol="diamond", size=11),
+            hovertemplate="Mean QE score: %{y:.3f}<extra></extra>",
+            showlegend=False,
+        ),
+        row=2,
+        col=2,
+    )
+    figure.update_xaxes(
+        tickmode="array",
+        tickvals=list(range(1, len(means) + 1)),
+        ticktext=[
+            f"Candidate {index}" for index in range(1, len(means) + 1)
+        ],
+        range=[0.5, len(means) + 0.5],
+        row=2,
+        col=2,
+    )
+    figure.update_yaxes(title_text="QE score", row=2, col=2)
 
+
+def _centered_offsets(count: int) -> list[float]:
+    if count == 1:
+        return [0.0]
+    center = (count - 1) / 2
+    return [(index - center) * 0.06 for index in range(count)]
 
 def _plot_optimization_history(study: Any) -> Any:
     from optuna.visualization import plot_optimization_history

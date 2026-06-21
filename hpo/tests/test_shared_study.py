@@ -118,7 +118,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         candidate_count=3,
         seed_index=1,
         seed_count=1,
-        candidate_scores=[1.0, 0.5, 0.0],
+        candidate_seed_scores=[[1.0], [0.5], [0.0]],
     )
     assert robustness_display_calls[0][1]["candidate_index"] == 1
     assert progress_calls[-1][1]["lander_studies"] == studies
@@ -278,7 +278,10 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         extra_seeds=(1,),
         progress_fn=lambda **kwargs: progress_calls.append({
             **kwargs,
-            "candidate_scores": list(kwargs["candidate_scores"]),
+            "candidate_seed_scores": [
+                list(scores)
+                for scores in kwargs["candidate_seed_scores"]
+            ],
         }),
     )
 
@@ -286,9 +289,13 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     assert study.user_attrs["robust_best_objective_score"] == 145
     assert study.user_attrs["robust_best_gym_score"] == 20
     assert study.user_attrs["robust_best_training_effort"] == 2
-    assert [(call["candidate_index"], call["seed_index"]) for call in progress_calls] == [
-        (1, 1),
-        (2, 1),
+    assert [
+        (call["candidate_index"], call["seed_index"])
+        for call in progress_calls
+    ] == [(1, 1), (1, 1), (2, 1), (2, 1)]
+    assert progress_calls[-1]["candidate_seed_scores"] == [
+        [100.0, 100.0],
+        [90.0, 200.0],
     ]
 
 

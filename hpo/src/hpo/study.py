@@ -215,7 +215,10 @@ def select_robust_best(
     best_mean = float("-inf")
     best_gym_mean = None
     best_effort_mean = None
-    candidate_scores = [float(trial.value) for trial in candidates]
+    candidate_seed_scores = [
+        [float(trial.value)]
+        for trial in candidates
+    ]
 
     def score_candidate(
         trial: Any,
@@ -232,7 +235,7 @@ def select_robust_best(
                     candidate_count=len(candidates),
                     seed_index=seed_index,
                     seed_count=len(extra_seeds),
-                    candidate_scores=candidate_scores,
+                    candidate_seed_scores=candidate_seed_scores,
                 )
             objective = create_objective(
                 search_space=search_space,
@@ -247,9 +250,17 @@ def select_robust_best(
             )
             fixed_trial = _FixedParamTrial(trial.params)
             scores.append(objective(fixed_trial))
-            candidate_scores[candidate_index - 1] = sum(scores) / len(scores)
+            candidate_seed_scores[candidate_index - 1] = list(scores)
             gym_scores.append(float(fixed_trial.user_attrs["gym_score"]))
             efforts.append(float(fixed_trial.user_attrs["training_effort"]))
+            if progress_fn is not None:
+                progress_fn(
+                    candidate_index=candidate_index,
+                    candidate_count=len(candidates),
+                    seed_index=seed_index,
+                    seed_count=len(extra_seeds),
+                    candidate_seed_scores=candidate_seed_scores,
+                )
 
         mean_score = sum(scores) / len(scores)
         return (
