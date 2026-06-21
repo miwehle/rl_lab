@@ -7,6 +7,7 @@
 | 3 | The KISS SolarSystemLander – Quest II | 1 | 6? | 7? | 4? | 10,5? | 9? |
 | 5 | Inside the SolarSystemLander | 1 | 7? | 8? | 6? | 9,3? | 10? |
 | 1 | Study Series 2 |  | 10? | 8? | 9? | 8,9? | 10? |
+| 7 | The High-Performance SolarSystemLander | 1 | 8? | 7? | 8? | 7,0? | 9? |
 | 2 | Austauschbare Replay-Sampling-Strategien | 1 | 7? | 6? | 6? | 7,0? | 7? |
 | 4 | Council of Lander Masters | 1 | 7? | 5? | 9? | 3,9? | 10? |
 
@@ -96,6 +97,20 @@ Sinnvolle Hinweise:
 Als erster KISS-Check wird nach einer Studie die Trainingskurve des Gewinners betrachtet: Liegt der mittlere Return der letzten 50 Episoden deutlich über dem der vorherigen 50 Episoden, erscheint ein konkreter Hinweis mit beiden Messwerten und der Empfehlung, `num_episodes` zu prüfen.
 
 Die Checks geben Hinweise, treffen aber keine automatischen Entscheidungen. Sie sollen wenige belastbare und konkrete Meldungen erzeugen, keinen Warnungsteppich für statistische Schwankungen.
+
+Design: hpo\design_hpo_checks.md
+
+## 7. The High-Performance SolarSystemLander
+
+*"Five Worlds. No Economy Class. 🙂"*
+
+**Idee:** Den kleinen 8D-Generalisten konsequent auf Landequalität trimmen. Der Gym Score zählt; längere Ausbildung und höherer Trainingsaufwand sind erlaubt.
+
+**Ziel:** Ein robuster Mean Gym Score von mindestens 220 über alle fünf Welten.
+
+**Einfachster Erfolgsweg:** Mit etwas Glück genügen die bisher besten robusten HPs als Ausgangspunkt, `quality_weight = 0.95` und eine weitere lokale Study Series mit höherem Trainingsbudget.
+
+Design: `hpo/design5.md`
 
 ## Über dieses Backlog
 
