@@ -178,6 +178,12 @@ def _dashboard_figure(
     seed_count: int | None = None,
     candidate_seed_scores: list[list[float]] | None = None,
 ) -> Any:
+    """Tell the story of an HPO study series in one dashboard.
+
+    Study Series shows the overall progress, centered on the Best HPs beside it.
+    Study follows the current optimization, and HP Robustness Evaluation confirms
+    the best candidates at the end of each study.
+    """
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
