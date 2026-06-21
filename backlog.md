@@ -80,6 +80,23 @@ Neuronen anhand ähnlicher Aktivierungsprofile räumlich gruppieren, damit mögl
 
 **Voraussetzung:** Study Series 2 abschließen.
 
+## 6. HPO-Diagnosechecks
+
+Optuna beantwortet, welche Hyperparameter innerhalb der vorgegebenen Versuchsbedingungen am besten sind. Automatisierte Diagnosechecks sollen zusätzlich hinterfragen, ob Suchraum und Versuchsaufbau selbst plausibel waren.
+
+Sinnvolle Hinweise:
+
+- Das Training endet noch mit einem deutlichen Aufwärtstrend; `num_episodes` könnte zu niedrig sein.
+- Der beste Hyperparameter liegt am Rand seines Suchraums; der Suchraum könnte zu eng sein.
+- Das Replay Memory war immer voll oder überwiegend leer; seine Kapazität könnte unpassend sein.
+- Die Exploration liegt am Trainingsende noch deutlich über `eps_end`; das Training könnte zu früh enden.
+- Ein guter Gesamtscore verdeckt eine deutlich schwächere Welt.
+- Die Robustness Evaluation zeigt eine hohe Streuung zwischen Trainings-Seeds.
+
+Als erster KISS-Check wird nach einer Studie die Trainingskurve des Gewinners betrachtet: Liegt der mittlere Return der letzten 50 Episoden deutlich über dem der vorherigen 50 Episoden, erscheint ein konkreter Hinweis mit beiden Messwerten und der Empfehlung, `num_episodes` zu prüfen.
+
+Die Checks geben Hinweise, treffen aber keine automatischen Entscheidungen. Sie sollen wenige belastbare und konkrete Meldungen erzeugen, keinen Warnungsteppich für statistische Schwankungen.
+
 ## Über dieses Backlog
 
 ### Struktur der Items
