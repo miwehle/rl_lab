@@ -161,6 +161,11 @@ def _display(value: Any) -> None:
     display(value)
 
 
+# The code tells the same story as the dashboard:
+# - Four _add_* functions, one per panel.
+# - Presentation and data are kept separate.
+
+
 def _add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 
