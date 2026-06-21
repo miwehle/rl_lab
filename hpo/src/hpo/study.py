@@ -33,6 +33,7 @@ class StudyRunner:
     trial_cfg: TrialConfig
     incumbent_params: dict[str, Any]
     study_attrs: dict[str, Any] = field(default_factory=dict)
+    fixed_params: tuple[str, ...] = ()
     robust_candidates: int = 3
     extra_seeds: tuple[int, ...] = (1001, 1002)
     sync_fn: SyncFn | None = None
@@ -56,12 +57,16 @@ class StudyRunner:
                 study,
                 target_trials=target_trials,
                 lander_studies=[*self.studies, study],
+                incumbent_params=self.incumbent_params,
+                fixed_params=self.fixed_params,
             )
 
         def show_robustness(**kwargs):
             show_robustness_progress(
                 study,
                 lander_studies=[*self.studies, study],
+                incumbent_params=self.incumbent_params,
+                fixed_params=self.fixed_params,
                 **kwargs,
             )
 

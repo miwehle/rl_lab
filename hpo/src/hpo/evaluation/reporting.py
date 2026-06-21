@@ -70,6 +70,8 @@ def show_lander_live_progress(
     *,
     target_trials: int,
     lander_studies: Any,
+    incumbent_params: dict[str, Any],
+    fixed_params: tuple[str, ...] = (),
 ) -> None:
     """Update the fixed dashboard during Optuna optimization."""
     _clear_output(wait=True)
@@ -78,6 +80,8 @@ def show_lander_live_progress(
             study=study,
             target_trials=target_trials,
             lander_studies=lander_studies,
+            incumbent_params=incumbent_params,
+            fixed_params=fixed_params,
         )
     )
 
@@ -86,6 +90,8 @@ def show_robustness_progress(
     study: Any,
     *,
     lander_studies: Any,
+    incumbent_params: dict[str, Any],
+    fixed_params: tuple[str, ...] = (),
     candidate_index: int,
     candidate_count: int,
     seed_index: int,
@@ -99,6 +105,8 @@ def show_robustness_progress(
             study=study,
             target_trials=len(study.trials),
             lander_studies=lander_studies,
+            incumbent_params=incumbent_params,
+            fixed_params=fixed_params,
             candidate_index=candidate_index,
             candidate_count=candidate_count,
             seed_index=seed_index,
@@ -167,6 +175,8 @@ def _dashboard_figure(
     study: Any,
     target_trials: int,
     lander_studies: Any,
+    incumbent_params: dict[str, Any],
+    fixed_params: tuple[str, ...] = (),
     candidate_index: int | None = None,
     candidate_count: int | None = None,
     seed_index: int | None = None,
@@ -180,7 +190,7 @@ def _dashboard_figure(
         rows=2,
         cols=2,
         specs=[
-            [{"colspan": 2, "secondary_y": True}, None],
+            [{"secondary_y": True}, {"type": "domain"}],
             [{"secondary_y": True}, {}],
         ],
         row_heights=[0.42, 0.58],
@@ -188,11 +198,13 @@ def _dashboard_figure(
         horizontal_spacing=0.12,
         subplot_titles=(
             "Study Series",
+            "Best HPs (Current Incumbent)",
             f"Study: {_study_title(study)}",
             "HP Robustness Evaluation",
         ),
     )
     _add_lander_history(figure, lander_studies)
+    _add_incumbent_table(figure, incumbent_params, fixed_params)
     if candidate_seed_scores is None:
         _add_optimization_history(figure, study, target_trials)
         figure.add_annotation(
@@ -215,7 +227,7 @@ def _dashboard_figure(
             candidate_seed_scores=candidate_seed_scores,
             candidate_index=candidate_index,
         )
-        figure.layout.annotations[2].text = (
+        figure.layout.annotations[3].text = (
             "HP Robustness Evaluation · "
             f"Candidate {candidate_index}/{candidate_count} · "
             f"Seed {seed_index}/{seed_count}"
@@ -237,6 +249,55 @@ def _dashboard_figure(
     figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
     figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
     return figure
+
+
+def _add_incumbent_table(
+    figure: Any,
+    incumbent_params: dict[str, Any],
+    fixed_params: tuple[str, ...],
+) -> None:
+    import plotly.graph_objects as go
+
+    fixed = set(fixed_params)
+    names = list(incumbent_params)
+    kinds = ["fixed" if name in fixed else "variable" for name in names]
+    figure.add_trace(
+        go.Table(
+            columnwidth=[1.5, 1.0, 0.8],
+            header=dict(
+                values=["HP", "Value", "Type"],
+                align=["left", "right", "left"],
+                fill_color="#e8eef7",
+            ),
+            cells=dict(
+                values=[
+                    names,
+                    [_format_hp_value(incumbent_params[name]) for name in names],
+                    kinds,
+                ],
+                align=["left", "right", "left"],
+                fill_color=[
+                    ["white"] * len(names),
+                    ["white"] * len(names),
+                    [
+                        "#f0f0f0" if kind == "fixed" else "#eaf3ff"
+                        for kind in kinds
+                    ],
+                ],
+                height=22,
+            ),
+        ),
+        row=1,
+        col=2,
+    )
+
+
+def _format_hp_value(value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.6g}"
+    if isinstance(value, int):
+        return f"{value:_}"
+    return str(value)
 
 
 def _add_lander_history(figure: Any, studies: Any) -> None:

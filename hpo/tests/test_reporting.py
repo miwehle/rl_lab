@@ -162,6 +162,8 @@ def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
         study,
         target_trials=40,
         lander_studies=[study],
+        incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
+        fixed_params=("gamma",),
     )
 
     assert cleared == [{"wait": True}]
@@ -171,6 +173,11 @@ def test_show_lander_live_progress_displays_one_dashboard(monkeypatch) -> None:
             "study": study,
             "target_trials": 40,
             "lander_studies": [study],
+            "incumbent_params": {
+                "learning_rate": 0.001,
+                "gamma": 0.99,
+            },
+            "fixed_params": ("gamma",),
         },
     )]
 
@@ -194,15 +201,21 @@ def test_dashboard_contains_fixed_three_panel_layout() -> None:
         study=study,
         target_trials=40,
         lander_studies=[baseline, study],
+        incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
+        fixed_params=("gamma",),
     )
 
     assert figure.layout.width == 1100
     assert figure.layout.height == 650
-    assert [annotation.text for annotation in figure.layout.annotations[:3]] == [
+    assert [annotation.text for annotation in figure.layout.annotations[:4]] == [
         "Study Series",
+        "Best HPs (Current Incumbent)",
         "Study: S1 Update Economy",
         "HP Robustness Evaluation",
     ]
+    table = next(trace for trace in figure.data if trace.type == "table")
+    assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
+    assert list(table.cells.values[2]) == ["variable", "fixed"]
     assert any(
         annotation.text == "Waiting for robustness evaluation"
         for annotation in figure.layout.annotations
@@ -292,6 +305,8 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
         study=study,
         target_trials=40,
         lander_studies=[],
+        incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
+        fixed_params=("gamma",),
         candidate_index=2,
         candidate_count=3,
         seed_index=2,
@@ -338,6 +353,8 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
     reporting.show_robustness_progress(
         study,
         lander_studies=[],
+        incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
+        fixed_params=("gamma",),
         candidate_index=2,
         candidate_count=3,
         seed_index=1,
@@ -352,6 +369,11 @@ def test_show_robustness_progress_replaces_oh_with_podium(monkeypatch) -> None:
             "study": study,
             "target_trials": 0,
             "lander_studies": [],
+            "incumbent_params": {
+                "learning_rate": 0.001,
+                "gamma": 0.99,
+            },
+            "fixed_params": ("gamma",),
             "candidate_index": 2,
             "candidate_count": 3,
             "seed_index": 1,

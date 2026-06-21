@@ -84,6 +84,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         trial_cfg=trial_cfg,
         incumbent_params={"x": 1},
         study_attrs={"mode": "8d"},
+        fixed_params=("x",),
         robust_candidates=5,
         extra_seeds=(1,),
         sync_fn=lambda: sync_calls.append(None),
@@ -121,7 +122,11 @@ def test_study_runner_reuses_context_and_previous_studies(
         candidate_seed_scores=[[1.0], [0.5], [0.0]],
     )
     assert robustness_display_calls[0][1]["candidate_index"] == 1
+    assert robustness_display_calls[0][1]["incumbent_params"] == {"x": 2}
+    assert robustness_display_calls[0][1]["fixed_params"] == ("x",)
     assert progress_calls[-1][1]["lander_studies"] == studies
+    assert progress_calls[-1][1]["incumbent_params"] == {"x": 2}
+    assert progress_calls[-1][1]["fixed_params"] == ("x",)
     assert len(sync_calls) == 1
 
 
