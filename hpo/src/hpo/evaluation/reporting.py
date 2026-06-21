@@ -71,7 +71,6 @@ def show_lander_live_progress(
     target_trials: int,
     lander_studies: Any,
     incumbent_params: dict[str, Any],
-    fixed_params: tuple[str, ...] = (),
 ) -> None:
     """Update the fixed dashboard during Optuna optimization."""
     _clear_output(wait=True)
@@ -81,7 +80,6 @@ def show_lander_live_progress(
             target_trials=target_trials,
             lander_studies=lander_studies,
             incumbent_params=incumbent_params,
-            fixed_params=fixed_params,
         )
     )
 
@@ -91,7 +89,6 @@ def show_robustness_progress(
     *,
     lander_studies: Any,
     incumbent_params: dict[str, Any],
-    fixed_params: tuple[str, ...] = (),
     candidate_index: int,
     candidate_count: int,
     seed_index: int,
@@ -106,7 +103,6 @@ def show_robustness_progress(
             target_trials=len(study.trials),
             lander_studies=lander_studies,
             incumbent_params=incumbent_params,
-            fixed_params=fixed_params,
             candidate_index=candidate_index,
             candidate_count=candidate_count,
             seed_index=seed_index,
@@ -176,7 +172,6 @@ def _dashboard_figure(
     target_trials: int,
     lander_studies: Any,
     incumbent_params: dict[str, Any],
-    fixed_params: tuple[str, ...] = (),
     candidate_index: int | None = None,
     candidate_count: int | None = None,
     seed_index: int | None = None,
@@ -204,7 +199,7 @@ def _dashboard_figure(
         ),
     )
     _add_lander_history(figure, lander_studies)
-    _add_incumbent_table(figure, incumbent_params, fixed_params)
+    _add_incumbent_table(figure, incumbent_params)
     if candidate_seed_scores is None:
         _add_optimization_history(figure, study, target_trials)
         figure.add_annotation(
@@ -254,36 +249,25 @@ def _dashboard_figure(
 def _add_incumbent_table(
     figure: Any,
     incumbent_params: dict[str, Any],
-    fixed_params: tuple[str, ...],
 ) -> None:
     import plotly.graph_objects as go
 
-    fixed = set(fixed_params)
     names = list(incumbent_params)
-    kinds = ["fixed" if name in fixed else "variable" for name in names]
     figure.add_trace(
         go.Table(
-            columnwidth=[1.5, 1.0, 0.8],
+            columnwidth=[1.5, 1.0],
             header=dict(
-                values=["HP", "Value", "Type"],
-                align=["left", "right", "left"],
+                values=["HP", "Value"],
+                align=["left", "right"],
                 fill_color="#e8eef7",
             ),
             cells=dict(
                 values=[
                     names,
                     [_format_hp_value(incumbent_params[name]) for name in names],
-                    kinds,
                 ],
-                align=["left", "right", "left"],
-                fill_color=[
-                    ["white"] * len(names),
-                    ["white"] * len(names),
-                    [
-                        "#f0f0f0" if kind == "fixed" else "#eaf3ff"
-                        for kind in kinds
-                    ],
-                ],
+                align=["left", "right"],
+                fill_color="white",
                 height=22,
             ),
         ),
