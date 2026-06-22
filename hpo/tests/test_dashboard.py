@@ -116,6 +116,13 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
     assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
     assert list(table.cells.fill.color[1]) == ["#fff2cc", "white"]
+    study_gym_trace = next(
+        trace
+        for trace in figure.data
+        if trace.name == "Gym score" and trace.xaxis == "x2"
+    )
+    assert list(study_gym_trace.y) == [50.0]
+    assert list(figure.layout.yaxis3.range) == [-10, 260]
     assert any(
         annotation.text == "Waiting for robustness evaluation"
         for annotation in figure.layout.annotations

@@ -358,7 +358,14 @@ def _add_current_study(
         row=2,
         col=1,
     )
-    figure.update_yaxes(title_text="Gym score", row=2, col=1, secondary_y=False)
+    gym_floor = min([0, *gym_scores])
+    figure.update_yaxes(
+        title_text="Gym score",
+        range=[gym_floor - 10, 260],
+        row=2,
+        col=1,
+        secondary_y=False,
+    )
     figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
 
 
