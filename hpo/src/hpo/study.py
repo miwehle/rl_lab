@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[..., None]
 RobustnessProgressFn = Callable[[RobustnessProgress], None]
-StoragePathFn = Callable[[str], str | Path]
+DatabasePathFn = Callable[[str], str | Path]
 SyncFn = Callable[[], None]
 
 
@@ -24,7 +24,7 @@ SyncFn = Callable[[], None]
 class StudyRunner:
     """Run a study series and retain its incumbent and results."""
 
-    storage_path: StoragePathFn
+    database_path: DatabasePathFn
     environment_factory: EnvironmentFactory
     trial_cfg: TrialConfig
     incumbent_params: dict[str, Any]
@@ -69,7 +69,7 @@ class StudyRunner:
             search_space=search_space,
             incumbent_params=self.incumbent_params,
             n_trials=n_trials,
-            storage_path=self.storage_path(study_name),
+            database_path=self.database_path(study_name),
             environment_factory=self.environment_factory,
             trial_cfg=self.trial_cfg,
             scoring_cfg=scoring_cfg,
@@ -120,7 +120,7 @@ def run_study(
     search_space: Any,
     incumbent_params: dict[str, Any],
     n_trials: int,
-    storage_path: str | Path,
+    database_path: str | Path,
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig = TrialConfig(),
     scoring_cfg: ScoringConfig = ScoringConfig(),
@@ -128,14 +128,19 @@ def run_study(
     progress_fn: ProgressFn | None = None,
     sync_fn: SyncFn | None = None,
 ) -> Any:
-    """Create or load an Optuna study and run it to the target trial count."""
+    """Create or load an Optuna study and run it to the target trial count.
+
+    database_path: Path to the SQLite database.
+    study_attrs: Study metadata to store and validate when resuming.
+    n_trials: Target total number of finished trials.
+    """
     logger.info("study: %s", study_name)
 
     if n_trials < 1:
         raise ValueError("n_trials must be >= 1")
 
-    storage_path = Path(storage_path)
-    storage_path.parent.mkdir(parents=True, exist_ok=True)
+    database_path = Path(database_path)
+    database_path.parent.mkdir(parents=True, exist_ok=True)
 
     objective = create_objective(
         search_space=search_space,
@@ -147,7 +152,7 @@ def run_study(
     study = _create_study(
         study_name=study_name,
         direction="maximize",
-        storage=f"sqlite:///{storage_path}",
+        storage=f"sqlite:///{database_path}",
         load_if_exists=True,
     )
     _set_or_check_study_attrs(

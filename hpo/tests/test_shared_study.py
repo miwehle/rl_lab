@@ -80,7 +80,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     trial_cfg = TrialConfig(device="cpu")
     reporter = FakeReporter()
     runner = StudyRunner(
-        storage_path=lambda name: Path("runs") / f"{name}.db",
+        database_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
         incumbent_params={"x": 1},
@@ -108,7 +108,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert runner.incumbent_params == {"x": 2}
     assert runner.incumbent_score == 2.0
     assert runner.studies == studies
-    assert run_calls[1]["storage_path"] == Path("runs/s1.db")
+    assert run_calls[1]["database_path"] == Path("runs/s1.db")
     assert run_calls[1]["environment_factory"] is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
     assert run_calls[1]["sync_fn"] is runner.sync_fn
@@ -150,7 +150,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         lambda **_kwargs: {"x": 2},
     )
     runner = StudyRunner(
-        storage_path=lambda _name: Path("runs/study.db"),
+        database_path=lambda _name: Path("runs/study.db"),
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(),
         incumbent_params={"x": 1},
@@ -222,7 +222,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
         search_space=object(),
         incumbent_params={},
         n_trials=2,
-        storage_path=Path("runs") / "series.db",
+        database_path=Path("runs") / "series.db",
         environment_factory=FakeEnvironmentFactory(),
         study_attrs={"observation_mode": "8d"},
         progress_fn=lambda current_study, **_kwargs: progress_trial_counts.append(

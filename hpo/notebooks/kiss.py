@@ -57,8 +57,8 @@ class SearchSpace:
 # run
 
 env_factory = EnvFactory("8d")
-runner = StudyRunner(
-    storage_path=lambda _name: LOCAL_DIR / "kiss.db",
+study_runner = StudyRunner(
+    database_path=lambda _name: LOCAL_DIR / "kiss.db",
     environment_factory=env_factory,
     trial_cfg=TrialConfig(
         num_envs=20,
@@ -78,7 +78,7 @@ scoring_cfg = ScoringConfig(
     baseline_env_steps=112_314.33333333333,
     baseline_processed_samples=28_491_093.333333332,
 )
-runner.run("kiss_study", SearchSpace(), 25, scoring_cfg)
+study_runner.run("kiss_study", SearchSpace(), 25, scoring_cfg)
 
 
 # ----------------------------------------
