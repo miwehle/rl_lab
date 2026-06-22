@@ -6,9 +6,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
-from hpo.objective import EnvironmentFactory, TrialConfig, create_objective
+from hpo.objective import (
+    EnvironmentFactory,
+    EvaluationConfig,
+    TrialConfig,
+    create_objective,
+)
 from hpo.study_reporting import RobustnessProgress, StudySeriesReporter
 
 
@@ -72,7 +76,7 @@ class StudyRunner:
         study_name: str,
         search_space: Any,
         n_trials: int,
-        scoring_cfg: ScoringConfig,
+        evaluation_cfg: EvaluationConfig,
     ) -> None:
         def show_progress(study, *, target_trials):
             self.reporter.report_optimization(
@@ -98,7 +102,7 @@ class StudyRunner:
             database_path=self.database_path(study_name),
             environment_factory=self.environment_factory,
             trial_cfg=self.trial_cfg,
-            scoring_cfg=scoring_cfg,
+            evaluation_cfg=evaluation_cfg,
             study_attrs=self.study_attrs,
             progress_fn=show_progress,
             sync_fn=self.sync_fn,
@@ -109,7 +113,7 @@ class StudyRunner:
             incumbent_params=self.incumbent_params,
             environment_factory=self.environment_factory,
             trial_cfg=self.trial_cfg,
-            scoring_cfg=scoring_cfg,
+            evaluation_cfg=evaluation_cfg,
             base_seed=self.trial_cfg.seed,
             top_n=self.robust_candidates,
             extra_seeds=self.extra_seeds,
@@ -138,7 +142,7 @@ def run_study(
     database_path: str | Path,
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig = TrialConfig(),
-    scoring_cfg: ScoringConfig = ScoringConfig(),
+    evaluation_cfg: EvaluationConfig = EvaluationConfig(),
     study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = None,
     sync_fn: SyncFn | None = None,
@@ -162,7 +166,7 @@ def run_study(
         incumbent_params=incumbent_params,
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
-        scoring_cfg=scoring_cfg,
+            evaluation_cfg=evaluation_cfg,
     )
     study = _create_study(
         study_name=study_name,
@@ -172,7 +176,7 @@ def run_study(
     )
     _set_or_check_study_attrs(
         study,
-        scoring_cfg.study_attrs() | (study_attrs or {}),
+        evaluation_cfg.study_attrs() | (study_attrs or {}),
     )
     if progress_fn is not None:
         progress_fn(study, target_trials=n_trials)
@@ -203,7 +207,7 @@ def select_robust_best(
     incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig,
-    scoring_cfg: ScoringConfig,
+    evaluation_cfg: EvaluationConfig,
     base_seed: int = 42,
     top_n: int = 3,
     extra_seeds: Iterable[int] = (1001, 1002),
@@ -251,7 +255,7 @@ def select_robust_best(
                     seed=None if base_seed is None else base_seed + seed_offset,
                     device=trial_cfg.device,
                 ),
-                scoring_cfg=scoring_cfg,
+                evaluation_cfg=evaluation_cfg,
             )
             fixed_trial = _FixedParamTrial(trial.params)
             scores.append(objective(fixed_trial))

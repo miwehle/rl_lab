@@ -2,14 +2,13 @@
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from time import perf_counter
 from typing import Any, Protocol
 
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
-from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
 
 
@@ -43,12 +42,30 @@ class TrialConfig:
             raise ValueError("num_envs must be >= 1")
 
 
+@dataclass(frozen=True, kw_only=True)
+class EvaluationConfig:
+    eval_episodes: int = 20
+    eval_seed: int = 10_000
+
+    def __post_init__(self) -> None:
+        if self.eval_episodes < 1:
+            raise ValueError("eval_episodes must be >= 1")
+
+    def study_attrs(self) -> dict:
+        attrs = asdict(self)
+        attrs["eval_seeds"] = list(
+            range(self.eval_seed, self.eval_seed + self.eval_episodes)
+        )
+        del attrs["eval_seed"]
+        return attrs
+
+
 def create_objective(
     *, search_space: SearchSpace,
     incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
     trial_cfg: TrialConfig = TrialConfig(),
-    scoring_cfg: ScoringConfig = ScoringConfig(),
+    evaluation_cfg: EvaluationConfig = EvaluationConfig(),
     eval_max_steps: int = 2_000,
 ) -> Callable[[Any], float]:
     """Create an Optuna objective for one vectorized DQN trial."""
@@ -84,9 +101,9 @@ def create_objective(
                 q_net=result.q_net,
                 device=trainer.device,
                 make_env=make_env,
-                episodes=scoring_cfg.eval_episodes,
+                episodes=evaluation_cfg.eval_episodes,
                 max_steps=eval_max_steps,
-                seed=scoring_cfg.eval_seed,
+                seed=evaluation_cfg.eval_seed,
             )
             for name, make_env in environment_factory.evaluation_envs().items()
         }

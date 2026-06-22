@@ -5,8 +5,7 @@ import torch
 
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
 from hpo import objective as objective_module
-from hpo.evaluation.scoring import ScoringConfig
-from hpo.objective import TrialConfig, evaluate_greedy_q_net
+from hpo.objective import EvaluationConfig, TrialConfig, evaluate_greedy_q_net
 
 
 class FakeTrial:
@@ -117,7 +116,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
         incumbent_params={"learning_rate": 0.001},
         environment_factory=environment_factory,
         trial_cfg=TrialConfig(num_envs=20, seed=100),
-        scoring_cfg=ScoringConfig(),
+        evaluation_cfg=EvaluationConfig(),
     )
 
     trial = FakeTrial()
@@ -171,7 +170,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
         incumbent_params={},
         environment_factory=SingleEnvironmentFactory(),
         trial_cfg=TrialConfig(seed=None),
-        scoring_cfg=ScoringConfig(eval_episodes=7, eval_seed=50),
+        evaluation_cfg=EvaluationConfig(eval_episodes=7, eval_seed=50),
     )
     trial = FakeTrial()
     objective(trial)

@@ -4,8 +4,7 @@ from pathlib import Path
 import pytest
 
 from hpo import study as study_module
-from hpo.evaluation.scoring import ScoringConfig
-from hpo.objective import TrialConfig
+from hpo.objective import EvaluationConfig, TrialConfig
 from hpo.study import Baseline, StudyRunner, neighbors, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
 
@@ -96,13 +95,13 @@ def test_study_runner_reuses_context_and_previous_studies(
         "s1",
         search_space="search-space",
         n_trials=4,
-        scoring_cfg=ScoringConfig(),
+        evaluation_cfg=EvaluationConfig(),
     )
     runner.run(
         "s2",
         search_space="next-space",
         n_trials=5,
-        scoring_cfg=ScoringConfig(),
+        evaluation_cfg=EvaluationConfig(),
     )
 
     assert runner.incumbent_params == {"x": 3}
@@ -155,7 +154,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         "s2",
         search_space=object(),
         n_trials=1,
-        scoring_cfg=ScoringConfig(),
+        evaluation_cfg=EvaluationConfig(),
     )
 
     assert runner.incumbent_params == {"x": 1}
@@ -269,7 +268,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         incumbent_params={},
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(device="cpu"),
-        scoring_cfg=ScoringConfig(),
+        evaluation_cfg=EvaluationConfig(),
         top_n=2,
         extra_seeds=(1,),
         progress_fn=record_progress,
@@ -295,7 +294,7 @@ def test_select_robust_best_rejects_empty_study() -> None:
             incumbent_params={},
             environment_factory=FakeEnvironmentFactory(),
             trial_cfg=TrialConfig(),
-            scoring_cfg=ScoringConfig(),
+        evaluation_cfg=EvaluationConfig(),
         )
 
 
