@@ -33,7 +33,7 @@ Nach jeder Studie werden die fünf besten Kandidaten beurteilt. Jeder Kandidat b
 | S3 Learning Regime | Lernen und Optimieren für lange Trainings einstellen | 25 |
 | S4 Joint Finetune | Gewinner gemeinsam fein abstimmen | 40 |
 
-S0 übernimmt den finalen robusten Incumbent aus Study Series 3B. Falls Series 3B keinen besseren Incumbent findet, bleibt der Gewinner aus Series 3A die Ausgangskonfiguration.
+S0 übernimmt den finalen robusten Incumbent aus Study Series 3B und bewertet ihn mit fünf Trainingsläufen neu. Die Replay-Kapazität wird bereits für S0 auf `1_200_000` vergrößert, damit sie während der gesamten Reihe korrekt als fester HP geführt wird. Die 500 Baseline-Episoden schöpfen die bisherigen 400.000 Plätze ohnehin nicht aus.
 
 ### Suchräume
 
@@ -47,7 +47,7 @@ S0 übernimmt den finalen robusten Incumbent aus Study Series 3B. Falls Series 3
 | tau | incumbent | incumbent | incumbent | incumbent | incumbent |
 | learning_starts | incumbent | incumbent | incumbent | *categorical([2_500, 5_000, 10_000])* | *categorical(neighbors(incumbent, [2_500, 5_000, 10_000]))* |
 | optimize_every | incumbent | incumbent | incumbent | *categorical([4, 8])* | *categorical(neighbors(incumbent, [4, 8]))* |
-| replay_memory_capacity | incumbent | 1_200_000 | 1_200_000 | 1_200_000 | 1_200_000 |
+| replay_memory_capacity | 1_200_000 | 1_200_000 | 1_200_000 | 1_200_000 | 1_200_000 |
 | num_episodes | incumbent | *categorical([1_000, 1_500, 2_000])* | incumbent | incumbent | *categorical(neighbors(incumbent, [1_000, 1_500, 2_000]))* |
 
 Notation:
