@@ -1,6 +1,6 @@
 # SolarSystemLander HPO – Low-Level Design
 
-Dieses LLD beschreibt die Implementierung von `hpo/design3.md`. Series 2A und 2B verwenden dieselbe Implementierung; nur der Observation-Modus und die SQLite-Datei unterscheiden sich.
+Dieses LLD beschreibt die Implementierung von `hpo/designs/design3.md`. Series 2A und 2B verwenden dieselbe Implementierung; nur der Observation-Modus und die SQLite-Datei unterscheiden sich.
 
 ## Leitlinien
 

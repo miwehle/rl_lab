@@ -18,7 +18,7 @@ Alle Skalen von 0 bis 10. `Prio = N × W / A`. `?` kennzeichnet vorläufige Sch�
 
 **Ziel:** Hyperparameter für einen SolarSystemLander finden, der auf Mond, Merkur, Mars, Erde und Venus möglichst gut und mit möglichst wenig Trainingsaufwand landet.
 
-Series 2A trainiert mit der klassischen 8D-Observation, Series 2B zusätzlich mit Gravitation, Wind- und Turbulenzparametern. Der kompakte Entwurf steht in `hpo/design3.md`.
+Series 2A trainiert mit der klassischen 8D-Observation, Series 2B zusätzlich mit Gravitation, Wind- und Turbulenzparametern. Der kompakte Entwurf steht in `hpo/designs/design3.md`.
 
 **Nutzen:** Ein gemeinsamer, wirtschaftlich trainierter Lander für fünf Himmelskörper und ein direkter Vergleich von Blindflug und Wetterdienst.
 
@@ -98,7 +98,7 @@ Als erster KISS-Check wird nach einer Studie die Trainingskurve des Gewinners be
 
 Die Checks geben Hinweise, treffen aber keine automatischen Entscheidungen. Sie sollen wenige belastbare und konkrete Meldungen erzeugen, keinen Warnungsteppich für statistische Schwankungen.
 
-Design: hpo\design_hpo_checks.md
+Design: hpo\designs\design_hpo_checks.md
 
 ## 7. The High-Performance SolarSystemLander
 
@@ -110,7 +110,7 @@ Design: hpo\design_hpo_checks.md
 
 **Einfachster Erfolgsweg:** Mit etwas Glück genügen die bisher besten robusten HPs als Ausgangspunkt, `quality_weight = 0.95` (in der Formel des QE-Scores) und eine weitere lokale Study Series mit höherem Trainingsbudget.
 
-Design: `hpo/design5.md`
+Design: `hpo/designs/design5.md`
 
 ## Über dieses Backlog
 

@@ -1,6 +1,6 @@
 # Lunar Lander HPO LLD
 
-Dieses LLD beschreibt die Umsetzung des HLD aus `hpo/design.md`.
+Dieses LLD beschreibt die Umsetzung des HLD aus `hpo/designs/design.md`.
 
 ## Ziel
 

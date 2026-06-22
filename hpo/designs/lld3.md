@@ -1,6 +1,6 @@
 # SolarSystemLander HPO LLD
 
-Dieses LLD beschreibt die Umsetzung von `hpo/design3.md` für die Studienreihen 2A und 2B.
+Dieses LLD beschreibt die Umsetzung von `hpo/designs/design3.md` für die Studienreihen 2A und 2B.
 
 ## Zielstruktur
 
@@ -89,7 +89,7 @@ Das bestehende LunarLander-Notebook wird an die gemeinsamen Objective- und Study
 
 ## Bezug zum Sequenzdiagramm
 
-Der Ablauf aus `hpo/sequence_diagram.md` gilt weiterhin:
+Der Ablauf aus `hpo/designs/sequence_diagram.md` gilt weiterhin:
 
 ```text
 Notebook → Study → Objective → VectorTrainer → Evaluation → Objective-Score
