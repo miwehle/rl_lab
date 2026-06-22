@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from hpo import study as study_module
-from hpo.objective import EvaluationConfig, TrialConfig
+from hpo.objective import ObjectiveConfig
 from hpo.study import Baseline, StudyRunner, neighbors, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
 
@@ -77,13 +77,12 @@ def test_study_runner_reuses_context_and_previous_studies(
         or studies[len(robust_calls) - 1].user_attrs["robust_best_params"],
     )
     environment_factory = FakeEnvironmentFactory()
-    trial_cfg = TrialConfig(device="cpu")
+    objective_cfg = ObjectiveConfig(device="cpu")
     reporter = FakeReporter()
     runner = StudyRunner(
         database_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
-        trial_cfg=trial_cfg,
-        evaluation_cfg=EvaluationConfig(),
+        objective_cfg=objective_cfg,
         baseline=Baseline(params={"x": 1}, score=0.0),
         reporter=reporter,
         study_attrs={"mode": "8d"},
@@ -144,8 +143,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     runner = StudyRunner(
         database_path=lambda _name: Path("runs/study.db"),
         environment_factory=FakeEnvironmentFactory(),
-        trial_cfg=TrialConfig(),
-        evaluation_cfg=EvaluationConfig(),
+        objective_cfg=ObjectiveConfig(),
         baseline=Baseline(params={"x": 1}, score=10.0),
         reporter=FakeReporter(),
     )
@@ -266,8 +264,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         search_space=object(),
         incumbent_params={},
         environment_factory=FakeEnvironmentFactory(),
-        trial_cfg=TrialConfig(device="cpu"),
-        evaluation_cfg=EvaluationConfig(),
+        objective_cfg=ObjectiveConfig(device="cpu"),
         top_n=2,
         extra_seeds=(1,),
         progress_fn=record_progress,
@@ -292,8 +289,7 @@ def test_select_robust_best_rejects_empty_study() -> None:
             search_space=object(),
             incumbent_params={},
             environment_factory=FakeEnvironmentFactory(),
-            trial_cfg=TrialConfig(),
-        evaluation_cfg=EvaluationConfig(),
+            objective_cfg=ObjectiveConfig(),
         )
 
 

@@ -32,24 +32,21 @@ class EnvironmentFactory(Protocol):
 
 
 @dataclass(frozen=True, kw_only=True)
-class TrialConfig:
+class ObjectiveConfig:
     num_envs: int = 16
-    seed: int | None = 42
+    training_seed: int | None = 42
     device: Any = None
+    eval_episodes: int = 20
+    eval_seed: int = 10_000
+    eval_max_steps: int = 2_000
 
     def __post_init__(self) -> None:
         if self.num_envs < 1:
             raise ValueError("num_envs must be >= 1")
-
-
-@dataclass(frozen=True, kw_only=True)
-class EvaluationConfig:
-    eval_episodes: int = 20
-    eval_seed: int = 10_000
-
-    def __post_init__(self) -> None:
         if self.eval_episodes < 1:
             raise ValueError("eval_episodes must be >= 1")
+        if self.eval_max_steps < 1:
+            raise ValueError("eval_max_steps must be >= 1")
 
     def study_attrs(self) -> dict:
         attrs = asdict(self)
@@ -64,13 +61,9 @@ def create_objective(
     *, search_space: SearchSpace,
     incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
-    trial_cfg: TrialConfig = TrialConfig(),
-    evaluation_cfg: EvaluationConfig = EvaluationConfig(),
-    eval_max_steps: int = 2_000,
+    config: ObjectiveConfig = ObjectiveConfig(),
 ) -> Callable[[Any], float]:
     """Create an Optuna objective for one vectorized DQN trial."""
-    if eval_max_steps < 1:
-        raise ValueError("eval_max_steps must be >= 1")
 
     @log_call
     def objective(trial: Any) -> float:
@@ -78,14 +71,18 @@ def create_objective(
         replay_memory_capacity = search_space.replay_memory_capacity(
             trial, incumbent_params
         )
-        trial_seed = None if trial_cfg.seed is None else trial_cfg.seed + trial.number
+        trial_seed = (
+            None
+            if config.training_seed is None
+            else config.training_seed + trial.number
+        )
 
-        env = environment_factory.make_training_env(trial_cfg.num_envs)
+        env = environment_factory.make_training_env(config.num_envs)
         try:
             trainer = VectorTrainer(
                 env,
                 seed=trial_seed,
-                device=trial_cfg.device,
+                device=config.device,
                 replay_memory_capacity=replay_memory_capacity,
             )
 
@@ -101,9 +98,9 @@ def create_objective(
                 q_net=result.q_net,
                 device=trainer.device,
                 make_env=make_env,
-                episodes=evaluation_cfg.eval_episodes,
-                max_steps=eval_max_steps,
-                seed=evaluation_cfg.eval_seed,
+                episodes=config.eval_episodes,
+                max_steps=config.eval_max_steps,
+                seed=config.eval_seed,
             )
             for name, make_env in environment_factory.evaluation_envs().items()
         }

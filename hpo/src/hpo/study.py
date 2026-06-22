@@ -2,15 +2,14 @@
 
 import logging
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 from hpo.lunar_lander.logging import log_call
 from hpo.objective import (
     EnvironmentFactory,
-    EvaluationConfig,
-    TrialConfig,
+    ObjectiveConfig,
     create_objective,
 )
 from hpo.study_reporting import RobustnessProgress, StudySeriesReporter
@@ -56,8 +55,7 @@ class StudyRunner:
 
     database_path: DatabasePathFn
     environment_factory: EnvironmentFactory
-    trial_cfg: TrialConfig
-    evaluation_cfg: EvaluationConfig
+    objective_cfg: ObjectiveConfig
     baseline: Baseline
     reporter: StudySeriesReporter
     study_attrs: dict[str, Any] = field(default_factory=dict)
@@ -101,8 +99,7 @@ class StudyRunner:
             n_trials=n_trials,
             database_path=self.database_path(study_name),
             environment_factory=self.environment_factory,
-            trial_cfg=self.trial_cfg,
-            evaluation_cfg=self.evaluation_cfg,
+            objective_cfg=self.objective_cfg,
             study_attrs=self.study_attrs,
             progress_fn=show_progress,
             sync_fn=self.sync_fn,
@@ -112,9 +109,7 @@ class StudyRunner:
             search_space=search_space,
             incumbent_params=self.incumbent_params,
             environment_factory=self.environment_factory,
-            trial_cfg=self.trial_cfg,
-            evaluation_cfg=self.evaluation_cfg,
-            base_seed=self.trial_cfg.seed,
+            objective_cfg=self.objective_cfg,
             top_n=self.robust_candidates,
             extra_seeds=self.extra_seeds,
             progress_fn=show_robustness,
@@ -141,8 +136,7 @@ def run_study(
     n_trials: int,
     database_path: str | Path,
     environment_factory: EnvironmentFactory,
-    trial_cfg: TrialConfig = TrialConfig(),
-    evaluation_cfg: EvaluationConfig = EvaluationConfig(),
+    objective_cfg: ObjectiveConfig = ObjectiveConfig(),
     study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = None,
     sync_fn: SyncFn | None = None,
@@ -165,8 +159,7 @@ def run_study(
         search_space=search_space,
         incumbent_params=incumbent_params,
         environment_factory=environment_factory,
-        trial_cfg=trial_cfg,
-            evaluation_cfg=evaluation_cfg,
+        config=objective_cfg,
     )
     study = _create_study(
         study_name=study_name,
@@ -176,7 +169,7 @@ def run_study(
     )
     _set_or_check_study_attrs(
         study,
-        evaluation_cfg.study_attrs() | (study_attrs or {}),
+        objective_cfg.study_attrs() | (study_attrs or {}),
     )
     if progress_fn is not None:
         progress_fn(study, target_trials=n_trials)
@@ -206,9 +199,7 @@ def select_robust_best(
     search_space: Any,
     incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
-    trial_cfg: TrialConfig,
-    evaluation_cfg: EvaluationConfig,
-    base_seed: int = 42,
+    objective_cfg: ObjectiveConfig,
     top_n: int = 3,
     extra_seeds: Iterable[int] = (1001, 1002),
     progress_fn: RobustnessProgressFn | None = None,
@@ -250,12 +241,14 @@ def select_robust_best(
                 search_space=search_space,
                 incumbent_params=incumbent_params,
                 environment_factory=environment_factory,
-                trial_cfg=TrialConfig(
-                    num_envs=trial_cfg.num_envs,
-                    seed=None if base_seed is None else base_seed + seed_offset,
-                    device=trial_cfg.device,
+                config=replace(
+                    objective_cfg,
+                    training_seed=(
+                        None
+                        if objective_cfg.training_seed is None
+                        else objective_cfg.training_seed + seed_offset
+                    ),
                 ),
-                evaluation_cfg=evaluation_cfg,
             )
             fixed_trial = _FixedParamTrial(trial.params)
             scores.append(objective(fixed_trial))
