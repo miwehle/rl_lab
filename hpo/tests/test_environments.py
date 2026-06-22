@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from hpo.lunar_lander.environment import LunarLanderEnvironmentFactory
-from hpo.solar_system_lander.environment import SolarSystemLanderEnvironmentFactory
+from hpo.lunar_lander.environment import EnvFactory as LunarLanderEnvFactory
+from hpo.solar_system_lander.environment import EnvFactory as SolarSystemLanderEnvFactory
 
 
 def test_lunar_lander_factory_keeps_original_observation() -> None:
-    env = LunarLanderEnvironmentFactory().make_training_env(2)
+    env = LunarLanderEnvFactory().make_training_env(2)
     try:
         observations, _ = env.reset(seed=42)
     finally:
@@ -16,7 +16,7 @@ def test_lunar_lander_factory_keeps_original_observation() -> None:
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:
-    env = SolarSystemLanderEnvironmentFactory("8d").make_training_env(20)
+    env = SolarSystemLanderEnvFactory("8d").make_training_env(20)
     try:
         names = [wrapped.world.name for wrapped in env.envs]
     finally:
@@ -33,11 +33,11 @@ def test_solar_system_lander_factory_balances_world_slots() -> None:
 
 def test_solar_system_lander_requires_balanced_slot_count() -> None:
     with pytest.raises(ValueError, match="divisible by 5"):
-        SolarSystemLanderEnvironmentFactory("8d").make_training_env(16)
+        SolarSystemLanderEnvFactory("8d").make_training_env(16)
 
 
 def test_solar_system_lander_11d_exposes_reproducible_weather() -> None:
-    make_mars = SolarSystemLanderEnvironmentFactory(
+    make_mars = SolarSystemLanderEnvFactory(
         "11d"
     ).evaluation_envs()["mars"]
     first = make_mars()
@@ -57,7 +57,7 @@ def test_solar_system_lander_11d_exposes_reproducible_weather() -> None:
 
 
 def test_solar_system_lander_8d_hides_world_parameters() -> None:
-    env = SolarSystemLanderEnvironmentFactory("8d").evaluation_envs()["earth"]()
+    env = SolarSystemLanderEnvFactory("8d").evaluation_envs()["earth"]()
     try:
         observation, _ = env.reset(seed=42)
     finally:

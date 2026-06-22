@@ -27,7 +27,7 @@ WORLDS = (
 )
 
 
-class SolarSystemLanderWrapper(gym.Wrapper):
+class EnvWrapper(gym.Wrapper):
     """Apply episodic weather and optionally expose world parameters."""
 
     def __init__(self, env, world: WorldConfig, observation_mode: str) -> None:
@@ -83,7 +83,7 @@ class SolarSystemLanderWrapper(gym.Wrapper):
         return np.concatenate((observation, world)).astype(np.float32, copy=False)
 
 
-class SolarSystemLanderEnvironmentFactory:
+class EnvFactory:
     def __init__(self, observation_mode: str) -> None:
         if observation_mode not in {"8d", "11d"}:
             raise ValueError("observation_mode must be '8d' or '11d'")
@@ -117,7 +117,7 @@ class SolarSystemLanderEnvironmentFactory:
         }
 
     def _factory(self, world: WorldConfig) -> Callable[[], Any]:
-        return lambda: SolarSystemLanderWrapper(
+        return lambda: EnvWrapper(
             gym.make(
                 "LunarLander-v3",
                 gravity=world.gravity,

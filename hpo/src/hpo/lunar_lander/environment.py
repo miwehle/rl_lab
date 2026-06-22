@@ -7,7 +7,7 @@ import gymnasium as gym
 from gymnasium.vector import SyncVectorEnv
 
 
-class LunarLanderEnvironmentFactory:
+class EnvFactory:
     def make_training_env(self, num_envs: int) -> SyncVectorEnv:
         return SyncVectorEnv([self._make_env for _ in range(num_envs)])
 
