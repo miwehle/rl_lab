@@ -48,8 +48,17 @@ Die Checks werden iterativ ergänzt:
 4. `search_space_boundary`: Gewinner liegt am Rand
 5. `replay_utilization`
 6. `seed_stability`
+7. `coupled_hyperparameters`
 
 Für `seed_stability` müssen die Ergebnisse der Robustness Evaluation dauerhaft in der Study gespeichert werden. Derzeit existieren sie nur während der Anzeige; dieser Check folgt deshalb später.
+
+#### Coupled hyperparameters
+
+Gekoppelte Hyperparameter müssen auch nach Änderungen plausibel zueinander stehen. Der Check vergleicht dafür geeignete Verhältnisse mit dem Incumbent und warnt bei starken Abweichungen.
+
+KISS-Start: `num_episodes ↔ eps_decay` mit `eps_decay / num_episodes`. Ändert sich das Verhältnis gegenüber dem Incumbent etwa um mehr als Faktor 2, kann die Exploration deutlich zu früh oder zu spät enden. Bei Series 4 fiel es durch die Erhöhung von 500 auf 2.000 Episoden bei unverändertem `eps_decay` auf ein Viertel.
+
+Spätere Kandidaten sind `num_episodes ↔ replay_memory_capacity`, `batch_size ↔ learning_rate` und `optimize_every ↔ training effort`.
 
 ### Umsetzung
 
