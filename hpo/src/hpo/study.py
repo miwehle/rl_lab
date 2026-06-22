@@ -57,6 +57,7 @@ class StudyRunner:
     database_path: DatabasePathFn
     environment_factory: EnvironmentFactory
     trial_cfg: TrialConfig
+    evaluation_cfg: EvaluationConfig
     baseline: Baseline
     reporter: StudySeriesReporter
     study_attrs: dict[str, Any] = field(default_factory=dict)
@@ -76,7 +77,6 @@ class StudyRunner:
         study_name: str,
         search_space: Any,
         n_trials: int,
-        evaluation_cfg: EvaluationConfig,
     ) -> None:
         def show_progress(study, *, target_trials):
             self.reporter.report_optimization(
@@ -102,7 +102,7 @@ class StudyRunner:
             database_path=self.database_path(study_name),
             environment_factory=self.environment_factory,
             trial_cfg=self.trial_cfg,
-            evaluation_cfg=evaluation_cfg,
+            evaluation_cfg=self.evaluation_cfg,
             study_attrs=self.study_attrs,
             progress_fn=show_progress,
             sync_fn=self.sync_fn,
@@ -113,7 +113,7 @@ class StudyRunner:
             incumbent_params=self.incumbent_params,
             environment_factory=self.environment_factory,
             trial_cfg=self.trial_cfg,
-            evaluation_cfg=evaluation_cfg,
+            evaluation_cfg=self.evaluation_cfg,
             base_seed=self.trial_cfg.seed,
             top_n=self.robust_candidates,
             extra_seeds=self.extra_seeds,

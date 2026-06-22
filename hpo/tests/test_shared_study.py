@@ -83,6 +83,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         database_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
+        evaluation_cfg=EvaluationConfig(),
         baseline=Baseline(params={"x": 1}, score=0.0),
         reporter=reporter,
         study_attrs={"mode": "8d"},
@@ -95,13 +96,11 @@ def test_study_runner_reuses_context_and_previous_studies(
         "s1",
         search_space="search-space",
         n_trials=4,
-        evaluation_cfg=EvaluationConfig(),
     )
     runner.run(
         "s2",
         search_space="next-space",
         n_trials=5,
-        evaluation_cfg=EvaluationConfig(),
     )
 
     assert runner.incumbent_params == {"x": 3}
@@ -146,6 +145,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         database_path=lambda _name: Path("runs/study.db"),
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(),
+        evaluation_cfg=EvaluationConfig(),
         baseline=Baseline(params={"x": 1}, score=10.0),
         reporter=FakeReporter(),
     )
@@ -154,7 +154,6 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         "s2",
         search_space=object(),
         n_trials=1,
-        evaluation_cfg=EvaluationConfig(),
     )
 
     assert runner.incumbent_params == {"x": 1}
