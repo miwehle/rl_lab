@@ -5,7 +5,17 @@ Study follows the current optimization, and HP Robustness Evaluation confirms
 the best candidates at the end of each study.
 """
 
+from dataclasses import dataclass
 from typing import Any
+
+
+@dataclass(frozen=True)
+class RobustnessProgress:
+    candidate_index: int
+    candidate_count: int
+    seed_index: int
+    seed_count: int
+    candidate_seed_scores: list[list[float]]
 
 
 def build_dashboard(
@@ -14,11 +24,7 @@ def build_dashboard(
     target_trials: int,
     lander_studies: Any,
     incumbent_params: dict[str, Any],
-    candidate_index: int | None = None,
-    candidate_count: int | None = None,
-    seed_index: int | None = None,
-    seed_count: int | None = None,
-    candidate_seed_scores: list[list[float]] | None = None,
+    robustness_progress: RobustnessProgress | None = None,
 ) -> Any:
     """Build the study-series dashboard."""
     import plotly.graph_objects as go
@@ -43,7 +49,7 @@ def build_dashboard(
     )
     _add_study_series(figure, lander_studies)
     _add_best_hps(figure, incumbent_params, study)
-    if candidate_seed_scores is None:
+    if robustness_progress is None:
         _add_current_study(figure, study, target_trials)
         figure.add_annotation(
             text="Waiting for robustness evaluation",
@@ -62,13 +68,15 @@ def build_dashboard(
         )
         _add_robustness_evaluation(
             figure,
-            candidate_seed_scores=candidate_seed_scores,
-            candidate_index=candidate_index,
+            candidate_seed_scores=robustness_progress.candidate_seed_scores,
+            candidate_index=robustness_progress.candidate_index,
         )
         figure.layout.annotations[3].text = (
             "HP Robustness Evaluation · "
-            f"Candidate {candidate_index}/{candidate_count} · "
-            f"Seed {seed_index}/{seed_count}"
+            f"Candidate {robustness_progress.candidate_index}/"
+            f"{robustness_progress.candidate_count} · "
+            f"Seed {robustness_progress.seed_index}/"
+            f"{robustness_progress.seed_count}"
         )
 
     _style_dashboard(figure)
@@ -140,11 +148,13 @@ def show_dashboard_during_robustness_evaluation(
             target_trials=len(study.trials),
             lander_studies=lander_studies,
             incumbent_params=incumbent_params,
-            candidate_index=candidate_index,
-            candidate_count=candidate_count,
-            seed_index=seed_index,
-            seed_count=seed_count,
-            candidate_seed_scores=candidate_seed_scores,
+            robustness_progress=RobustnessProgress(
+                candidate_index=candidate_index,
+                candidate_count=candidate_count,
+                seed_index=seed_index,
+                seed_count=seed_count,
+                candidate_seed_scores=candidate_seed_scores,
+            ),
         )
     )
 
