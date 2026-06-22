@@ -9,30 +9,28 @@ participant "objective.py" as objective
 participant ":SearchSpace" as search_space
 participant ":EnvironmentFactory" as environment_factory
 participant ":VectorTrainer" as trainer
-participant "scoring.py" as scoring
 participant ":Trial" as trial
 
-url of runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:26:1]]
+url of runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:53:1]]
 url of study_module is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:1:1]]
 url of objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:1:1]]
-url of search_space is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:19:1]]
-url of environment_factory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:25:1]]
+url of search_space is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:18:1]]
+url of environment_factory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:28:1]]
 url of trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:112:1]]
-url of scoring is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/evaluation/scoring.py:1:1]]
 
-[-> runner : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:36:1 run(name, search_space, ...)]]
+[-> runner : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:73:1 run(name, search_space, n_trials)]]
 activate runner
 
-runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:82:1 run_study(...)]]
+runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:131:1 run_study(...)]]
 activate study_module
 
 study_module -> study : optimize(objective, ...)
 activate study
 
-study -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:54:1 objective(trial)]]
+study -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:69:1 objective(trial)]]
 activate objective
 
-objective -> search_space : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:20:1 training_config(trial)]]
+objective -> search_space : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:19:1 training_config(trial, incumbent_params)]]
 activate search_space
 search_space -> trial : suggest_*(...)
 activate trial
@@ -41,12 +39,12 @@ deactivate trial
 search_space --> objective : training_config
 deactivate search_space
 
-objective -> search_space : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:22:1 replay_memory_capacity(trial)]]
+objective -> search_space : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:23:1 replay_memory_capacity(trial, incumbent_params)]]
 activate search_space
 search_space --> objective : replay memory capacity
 deactivate search_space
 
-objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:26:1 make_training_env(num_envs)]]
+objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:29:1 make_training_env(num_envs)]]
 activate environment_factory
 deactivate environment_factory
 
@@ -55,29 +53,20 @@ activate trainer
 trainer --> objective : training result
 deactivate trainer
 
-objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:28:1 evaluation_envs()]]
+objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:31:1 evaluation_envs()]]
 activate environment_factory
 deactivate environment_factory
 
-objective -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:123:1 evaluate_greedy_q_net(...)]]
+objective -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:129:1 evaluate_greedy_q_net(...)]]
 
-objective -> scoring : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/evaluation/scoring.py:36:1 training_effort(...)]]
-activate scoring
-deactivate scoring
-
-objective -> scoring : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/evaluation/scoring.py:52:1 quality_effort_score(...)]]
-activate scoring
-scoring --> objective : objective score
-deactivate scoring
-
-objective --> study : objective score
+objective --> study : mean world score
 deactivate objective
 deactivate study
 
 study_module --> runner : study
 deactivate study_module
 
-runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:145:1 select_robust_best(...)]]
+runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:196:1 select_robust_best(...)]]
 activate study_module
 study_module --> runner : selected parameters
 deactivate study_module
