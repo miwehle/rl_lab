@@ -140,15 +140,17 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
         target_trials=40,
         lander_studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
-        candidate_index=2,
-        candidate_count=3,
-        seed_index=2,
-        seed_count=4,
-        candidate_seed_scores=[
-            [-1.0, -1.2, -0.8],
-            [-1.5, -1.4],
-            [-2.0],
-        ],
+        robustness_progress=dashboard.RobustnessProgress(
+            candidate_index=2,
+            candidate_count=3,
+            seed_index=2,
+            seed_count=4,
+            candidate_seed_scores=[
+                [-1.0, -1.2, -0.8],
+                [-1.5, -1.4],
+                [-2.0],
+            ],
+        ),
     )
 
     seed_trace, mean_trace = figure.data[-2:]
@@ -207,10 +209,12 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
                 "learning_rate": 0.001,
                 "gamma": 0.99,
             },
-            "candidate_index": 2,
-            "candidate_count": 3,
-            "seed_index": 1,
-            "seed_count": 1,
-            "candidate_seed_scores": [[-1.0], [-1.5], [-2.0]],
+            "robustness_progress": dashboard.RobustnessProgress(
+                candidate_index=2,
+                candidate_count=3,
+                seed_index=1,
+                seed_count=1,
+                candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
+            ),
         },
     )]
