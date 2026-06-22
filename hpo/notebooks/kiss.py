@@ -56,17 +56,17 @@ class SearchSpace:
 # ----------------------------------------
 # run
 
-factory = EnvFactory("8d")
+env_factory = EnvFactory("8d")
 runner = StudyRunner(
     storage_path=lambda _name: LOCAL_DIR / "kiss.db",
-    environment_factory=factory,
+    environment_factory=env_factory,
     trial_cfg=TrialConfig(
         num_envs=20,
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     ),
     incumbent_params={},
     reporter=Mock(),
-    study_attrs=factory.metadata(),
+    study_attrs=env_factory.metadata(),
     robust_candidates=1,
     extra_seeds=(),
 )
