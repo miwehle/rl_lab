@@ -105,22 +105,19 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
 
     scores = iter([120.0, 126.0])
 
-    def gym_score_fn(**kwargs):
+    def score_fn(**kwargs):
         eval_calls.append(kwargs)
         return next(scores)
 
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
-    monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", gym_score_fn)
+    monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", score_fn)
 
     objective = objective_module.create_objective(
         search_space=search_space,
         incumbent_params={"learning_rate": 0.001},
         environment_factory=environment_factory,
         trial_cfg=TrialConfig(num_envs=20, seed=100),
-        scoring_cfg=ScoringConfig(
-            baseline_env_steps=100,
-            baseline_processed_samples=100,
-        ),
+        scoring_cfg=ScoringConfig(),
     )
 
     trial = FakeTrial()
@@ -130,13 +127,9 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
         ("training_config", trial, {"learning_rate": 0.001}),
         ("replay_memory_capacity", trial, {"learning_rate": 0.001}),
     ]
-    assert score == pytest.approx(-1.39)
-    assert trial.user_attrs["gym_score"] == pytest.approx(123.0)
-    assert trial.user_attrs["gym_scores"] == {"moon": 120.0, "mars": 126.0}
+    assert score == pytest.approx(123.0)
+    assert trial.user_attrs["world_scores"] == {"moon": 120.0, "mars": 126.0}
     assert trial.user_attrs["env_steps"] == 80
-    assert trial.user_attrs["processed_samples"] == 128
-    assert trial.user_attrs["training_effort"] == pytest.approx(1.04)
-    assert "objective_score" not in trial.user_attrs
     assert trial.user_attrs["trial_seed"] == 103
     assert environment_factory.training_calls == [20]
     assert calls[0].env.closed
@@ -183,9 +176,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
     trial = FakeTrial()
     objective(trial)
 
-    assert trial.user_attrs["gym_score"] == 5.0
-    assert "gym_scores" not in trial.user_attrs
-    assert trial.user_attrs["training_effort"] == 1.0
+    assert "world_scores" not in trial.user_attrs
 
 
 def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:

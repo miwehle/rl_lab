@@ -29,6 +29,8 @@ class Baseline:
     score: float
 ```
 
+In der ersten Studienreihe wird sie direkt angegeben. Spätere Reihen können sie aus der letzten Studie der vorherigen Datenbank laden.
+
 Der `StudyRunner` startet mit dieser Baseline, führt reguläre Studien `s1`, `s2`, … aus und speichert nach jeder Studie den vollständigen Incumbent:
 
 ```text

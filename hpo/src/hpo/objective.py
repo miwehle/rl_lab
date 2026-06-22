@@ -9,7 +9,7 @@ from typing import Any, Protocol
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
-from hpo.evaluation.scoring import ScoringConfig, quality_effort_score, training_effort
+from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
 
 
@@ -79,7 +79,7 @@ def create_objective(
         finally:
             env.close()
 
-        gym_scores = {
+        world_scores = {
             name: evaluate_greedy_q_net(
                 q_net=result.q_net,
                 device=trainer.device,
@@ -90,31 +90,15 @@ def create_objective(
             )
             for name, make_env in environment_factory.evaluation_envs().items()
         }
-        gym_score = sum(gym_scores.values()) / len(gym_scores)
-        processed_samples = result.optimizer_updates * training_config.batch_size
-        effort = (
-            1.0
-            if scoring_cfg.baseline_env_steps is None
-            else training_effort(
-                env_steps=result.env_steps,
-                processed_samples=processed_samples,
-                baseline_env_steps=scoring_cfg.baseline_env_steps,
-                baseline_processed_samples=scoring_cfg.baseline_processed_samples,
-                alpha=scoring_cfg.alpha,
-            )
-        )
-        objective_score = quality_effort_score(gym_score, effort, scoring_cfg)
+        score = sum(world_scores.values()) / len(world_scores)
 
         def save(key, value):
             trial.set_user_attr(key, value)
 
-        save("gym_score", gym_score)
-        if len(gym_scores) > 1:
-            save("gym_scores", gym_scores)
+        if len(world_scores) > 1:
+            save("world_scores", world_scores)
         save("env_steps", result.env_steps)
         save("optimizer_updates", result.optimizer_updates)
-        save("processed_samples", processed_samples)
-        save("training_effort", effort)
         save("trial_seed", trial_seed)
         save("wall_time_seconds", wall_time_seconds)
         save("training_curve", {
@@ -122,7 +106,7 @@ def create_objective(
             "episode_epsilons": result.episode_epsilons,
         })
 
-        return objective_score
+        return score
 
     return objective
 

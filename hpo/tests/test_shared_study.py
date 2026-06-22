@@ -6,7 +6,7 @@ import pytest
 from hpo import study as study_module
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.objective import TrialConfig
-from hpo.study import StudyRunner, neighbors, run_study, select_robust_best
+from hpo.study import Baseline, StudyRunner, neighbors, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
 
 
@@ -54,12 +54,12 @@ def test_study_runner_reuses_context_and_previous_studies(
 ) -> None:
     studies = [
         FakeStudy([], {
-            "robust_best_params": {},
-            "robust_best_objective_score": 1.0,
+            "robust_best_params": {"x": 2},
+            "robust_best_score": 1.0,
         }),
         FakeStudy([], {
-            "robust_best_params": {"x": 2},
-            "robust_best_objective_score": 2.0,
+            "robust_best_params": {"x": 3},
+            "robust_best_score": 2.0,
         }),
     ]
     run_calls = []
@@ -74,7 +74,8 @@ def test_study_runner_reuses_context_and_previous_studies(
     monkeypatch.setattr(
         study_module,
         "select_robust_best",
-        lambda **kwargs: robust_calls.append(kwargs) or {"x": 2},
+        lambda **kwargs: robust_calls.append(kwargs)
+        or studies[len(robust_calls) - 1].user_attrs["robust_best_params"],
     )
     environment_factory = FakeEnvironmentFactory()
     trial_cfg = TrialConfig(device="cpu")
@@ -83,7 +84,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         database_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
-        incumbent_params={"x": 1},
+        baseline=Baseline(params={"x": 1}, score=0.0),
         reporter=reporter,
         study_attrs={"mode": "8d"},
         robust_candidates=5,
@@ -92,23 +93,22 @@ def test_study_runner_reuses_context_and_previous_studies(
     )
 
     runner.run(
-        "s0",
-        search_space="baseline-space",
-        n_trials=3,
-        scoring_cfg=ScoringConfig(),
-        robust=False,
-    )
-    runner.run(
         "s1",
         search_space="search-space",
         n_trials=4,
         scoring_cfg=ScoringConfig(),
     )
+    runner.run(
+        "s2",
+        search_space="next-space",
+        n_trials=5,
+        scoring_cfg=ScoringConfig(),
+    )
 
-    assert runner.incumbent_params == {"x": 2}
+    assert runner.incumbent_params == {"x": 3}
     assert runner.incumbent_score == 2.0
     assert runner.studies == studies
-    assert run_calls[1]["database_path"] == Path("runs/s1.db")
+    assert run_calls[1]["database_path"] == Path("runs/s2.db")
     assert run_calls[1]["environment_factory"] is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
     assert run_calls[1]["sync_fn"] is runner.sync_fn
@@ -124,24 +124,18 @@ def test_study_runner_reuses_context_and_previous_studies(
     )
     robust_calls[0]["progress_fn"](progress)
     assert reporter.robustness_calls[0][1]["progress"] == progress
-    assert reporter.robustness_calls[0][1]["incumbent_params"] == {"x": 2}
+    assert reporter.robustness_calls[0][1]["incumbent_params"] == {"x": 3}
     assert reporter.optimization_calls[-1][1]["studies"] == studies
-    assert reporter.optimization_calls[-1][1]["incumbent_params"] == {"x": 2}
-    assert len(sync_calls) == 1
+    assert reporter.optimization_calls[-1][1]["incumbent_params"] == {"x": 3}
+    assert len(sync_calls) == 2
+    assert studies[-1].user_attrs["incumbent_params"] == {"x": 3}
+    assert studies[-1].user_attrs["incumbent_score"] == 2.0
 
 
 def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
-    previous = FakeStudy([], {
-        "robust_best_params": {"x": 1},
-        "robust_best_objective_score": 10.0,
-        "robust_best_gym_score": 20.0,
-        "robust_best_training_effort": 0.8,
-    })
     current = FakeStudy([], {
         "robust_best_params": {"x": 2},
-        "robust_best_objective_score": 9.0,
-        "robust_best_gym_score": 30.0,
-        "robust_best_training_effort": 1.0,
+        "robust_best_score": 9.0,
     })
     monkeypatch.setattr(study_module, "run_study", lambda **_kwargs: current)
     monkeypatch.setattr(
@@ -153,11 +147,9 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         database_path=lambda _name: Path("runs/study.db"),
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(),
-        incumbent_params={"x": 1},
+        baseline=Baseline(params={"x": 1}, score=10.0),
         reporter=FakeReporter(),
     )
-    runner.studies.append(previous)
-    runner.incumbent_score = 10.0
 
     runner.run(
         "s2",
@@ -168,10 +160,10 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
 
     assert runner.incumbent_params == {"x": 1}
     assert runner.incumbent_score == 10.0
-    assert current.user_attrs["robust_best_params"] == {"x": 1}
-    assert current.user_attrs["robust_best_objective_score"] == 10.0
-    assert current.user_attrs["robust_best_gym_score"] == 20.0
-    assert current.user_attrs["robust_best_training_effort"] == 0.8
+    assert current.user_attrs["robust_best_params"] == {"x": 2}
+    assert current.user_attrs["robust_best_score"] == 9.0
+    assert current.user_attrs["incumbent_params"] == {"x": 1}
+    assert current.user_attrs["incumbent_score"] == 10.0
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
     assert neighbors(10_000, [2_500, 5_000, 10_000, 20_000]) == [
@@ -186,9 +178,6 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
 
     def fake_create_objective(**_kwargs):
         def objective(trial):
-            trial.user_attrs["env_steps"] = 10
-            trial.user_attrs["processed_samples"] = 20
-            trial.user_attrs["gym_score"] = 30
             return float(trial.number)
 
         return objective
@@ -218,7 +207,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     sync_calls = []
     progress_trial_counts = []
     study = run_study(
-        study_name="s0",
+        study_name="s1",
         search_space=object(),
         incumbent_params={},
         n_trials=2,
@@ -233,9 +222,8 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
 
     assert "series.db" in created_studies[0]["storage"]
     assert study.user_attrs["observation_mode"] == "8d"
-    assert study.user_attrs["baseline_env_steps"] == 10
-    assert study.user_attrs["baseline_processed_samples"] == 20
-    assert len(sync_calls) == 3
+    assert study.user_attrs["eval_episodes"] == 20
+    assert len(sync_calls) == 2
     assert progress_trial_counts == [0, 1, 2]
 
 
@@ -246,21 +234,17 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
                 0,
                 100.0,
                 {"x": 1},
-                {"gym_score": 10.0, "training_effort": 1.0},
             ),
             FakeTrial(
                 1,
                 90.0,
                 {"x": 2},
-                {"gym_score": 20.0, "training_effort": 2.0},
             ),
         ],
     )
 
     def fake_create_objective(**_kwargs):
         def objective(trial):
-            trial.set_user_attr("gym_score", float(trial.params["x"] * 10))
-            trial.set_user_attr("training_effort", float(trial.params["x"]))
             return float(trial.params["x"] * 100)
 
         return objective
@@ -285,19 +269,14 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         incumbent_params={},
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(device="cpu"),
-        scoring_cfg=ScoringConfig(
-            baseline_env_steps=10,
-            baseline_processed_samples=20,
-        ),
+        scoring_cfg=ScoringConfig(),
         top_n=2,
         extra_seeds=(1,),
         progress_fn=record_progress,
     )
 
     assert params == {"x": 2}
-    assert study.user_attrs["robust_best_objective_score"] == 145
-    assert study.user_attrs["robust_best_gym_score"] == 20
-    assert study.user_attrs["robust_best_training_effort"] == 2
+    assert study.user_attrs["robust_best_score"] == 145
     assert [
         (call.candidate_index, call.seed_index)
         for call in progress_calls
@@ -316,8 +295,24 @@ def test_select_robust_best_rejects_empty_study() -> None:
             incumbent_params={},
             environment_factory=FakeEnvironmentFactory(),
             trial_cfg=TrialConfig(),
-            scoring_cfg=ScoringConfig(
-                baseline_env_steps=10,
-                baseline_processed_samples=20,
-            ),
+            scoring_cfg=ScoringConfig(),
         )
+
+
+def test_baseline_loads_incumbent_from_database(monkeypatch) -> None:
+    study = FakeStudy([], {
+        "incumbent_params": {"x": 2},
+        "incumbent_score": 123.0,
+    })
+    load_calls = []
+    monkeypatch.setattr(
+        study_module,
+        "_load_study",
+        lambda **kwargs: load_calls.append(kwargs) or study,
+    )
+
+    baseline = Baseline.from_database(Path("runs/previous.db"), "s4")
+
+    assert baseline == Baseline(params={"x": 2}, score=123.0)
+    assert load_calls[0]["study_name"] == "s4"
+    assert "previous.db" in load_calls[0]["storage"]

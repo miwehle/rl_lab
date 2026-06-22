@@ -14,7 +14,7 @@ def build_dashboard(
     *,
     study: Any,
     target_trials: int,
-    lander_studies: Any,
+    studies: Any,
     incumbent_params: dict[str, Any],
     robustness_progress: RobustnessProgress | None = None,
 ) -> Any:
@@ -26,8 +26,8 @@ def build_dashboard(
         rows=2,
         cols=2,
         specs=[
-            [{"secondary_y": True}, {"type": "domain"}],
-            [{"secondary_y": True}, {}],
+            [{}, {"type": "domain"}],
+            [{}, {}],
         ],
         row_heights=[0.5, 0.5],
         vertical_spacing=0.14,
@@ -39,7 +39,7 @@ def build_dashboard(
             "HP Robustness Evaluation",
         ),
     )
-    _add_study_series(figure, lander_studies)
+    _add_study_series(figure, studies)
     _add_best_hps(figure, incumbent_params, study)
     if robustness_progress is None:
         _add_current_study(figure, study, target_trials)
@@ -97,8 +97,6 @@ def _study_title(study: Any) -> str:
     parts = getattr(study, "study_name", "").split("_")
     if not parts or not parts[0]:
         return "Unnamed"
-    if len(parts) > 1 and parts[1] == "qe":
-        del parts[1]
     return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
 
 
@@ -118,7 +116,7 @@ class Dashboard(StudySeriesReporter):
             build_dashboard(
                 study=study,
                 target_trials=target_trials,
-                lander_studies=studies,
+                studies=studies,
                 incumbent_params=incumbent_params,
             )
         )
@@ -136,7 +134,7 @@ class Dashboard(StudySeriesReporter):
             build_dashboard(
                 study=study,
                 target_trials=len(study.trials),
-                lander_studies=studies,
+                studies=studies,
                 incumbent_params=incumbent_params,
                 robustness_progress=progress,
             )
@@ -164,48 +162,27 @@ def _add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
 
     points = _study_series_points(studies)
-    efforts = [point["training_effort"] for point in points]
-    gym_scores = [point["gym_score"] for point in points]
-    qe_scores = [point["qe_score"] for point in points]
+    scores = [point["score"] for point in points]
     labels = [point["label"] for point in points]
-    if efforts:
-        effort_margin = max(0.05, 0.05 * (max(efforts) - min(efforts)))
-        effort_range = [
-            min(efforts) - effort_margin,
-            max(efforts) + effort_margin,
-        ]
-    else:
-        effort_range = [0.95, 1.05]
+    x = list(range(len(points)))
     figure.add_trace(
         go.Scatter(
-            x=efforts,
-            y=gym_scores,
+            x=x,
+            y=scores,
             mode="lines+markers+text",
             text=labels,
             textposition="top right",
-            name="Gym score",
+            name="Score",
             line=dict(color="#1f77b4"),
         ),
         row=1,
         col=1,
-        secondary_y=False,
     )
-    figure.add_trace(
-        go.Scatter(
-            x=efforts,
-            y=qe_scores,
-            mode="lines+markers",
-            name="QE score",
-            line=dict(color="#ff7f0e"),
-        ),
-        row=1,
-        col=1,
-        secondary_y=True,
-    )
-    for value, name, dash in ((200, "Gym 200", "dash"), (250, "Gym 250", "dot")):
+    x_range = [-0.5, max(0.5, len(points) - 0.5)]
+    for value, name, dash in ((200, "Score 200", "dash"), (250, "Score 250", "dot")):
         figure.add_trace(
             go.Scatter(
-                x=effort_range,
+                x=x_range,
                 y=[value, value],
                 mode="lines",
                 name=name,
@@ -214,25 +191,24 @@ def _add_study_series(figure: Any, studies: Any) -> None:
             ),
             row=1,
             col=1,
-            secondary_y=False,
         )
     figure.update_xaxes(
-        title_text="Training effort relative to S0",
-        range=effort_range,
+        title_text="Study",
+        tickmode="array",
+        tickvals=x,
+        ticktext=labels,
+        range=x_range,
         row=1,
         col=1,
     )
-    figure.update_yaxes(title_text="Gym score", row=1, col=1, secondary_y=False)
-    figure.update_yaxes(title_text="QE score", row=1, col=1, secondary_y=True)
+    figure.update_yaxes(title_text="Score", row=1, col=1)
 
 def _study_series_points(studies: Any) -> list[dict[str, Any]]:
     points = []
     for index, study in enumerate(studies):
         user_attrs = getattr(study, "user_attrs", {})
-        gym_score = user_attrs.get("robust_best_gym_score")
-        qe_score = user_attrs.get("robust_best_objective_score")
-        training_effort = user_attrs.get("robust_best_training_effort")
-        if gym_score is None or qe_score is None or training_effort is None:
+        score = user_attrs.get("incumbent_score")
+        if score is None:
             continue
 
         name = getattr(study, "study_name", "")
@@ -242,9 +218,7 @@ def _study_series_points(studies: Any) -> list[dict[str, Any]]:
             else name or f"S{index}"
         )
         points.append({
-            "training_effort": float(training_effort),
-            "gym_score": float(gym_score),
-            "qe_score": float(qe_score),
+            "score": float(score),
             "label": label,
         })
     return points
@@ -299,58 +273,37 @@ def _add_current_study(
 
     points = _current_study_points(study)
     numbers = [point["trial_number"] for point in points]
-    gym_scores = [point["gym_score"] for point in points]
-    qe_scores = [point["qe_score"] for point in points]
-    best_scores = [point["best_qe_score"] for point in points]
+    scores = [point["score"] for point in points]
+    best_scores = [point["best_score"] for point in points]
     hover_params = [point["hover_params"] for point in points]
 
     figure.add_trace(
         go.Scatter(
             x=numbers,
-            y=gym_scores,
+            y=scores,
             mode="markers",
-            name="Gym score",
+            name="Score",
             showlegend=False,
             marker=dict(color="#1f77b4"),
             customdata=hover_params,
             hovertemplate=(
-                "Trial: %{x}<br>Gym score: %{y:.1f}"
+                "Trial: %{x}<br>Score: %{y:.1f}"
                 "%{customdata}<extra></extra>"
             ),
         ),
         row=2,
         col=1,
-        secondary_y=False,
-    )
-    figure.add_trace(
-        go.Scatter(
-            x=numbers,
-            y=qe_scores,
-            mode="markers",
-            name="QE score",
-            showlegend=False,
-            marker=dict(color="#ff7f0e"),
-            customdata=hover_params,
-            hovertemplate=(
-                "Trial: %{x}<br>QE score: %{y:.3f}"
-                "%{customdata}<extra></extra>"
-            ),
-        ),
-        row=2,
-        col=1,
-        secondary_y=True,
     )
     figure.add_trace(
         go.Scatter(
             x=numbers,
             y=best_scores,
             mode="lines",
-            name="Best QE score",
+            name="Best score",
             line=dict(color="red"),
         ),
         row=2,
         col=1,
-        secondary_y=True,
     )
     figure.update_xaxes(
         title_text="Trial",
@@ -358,15 +311,13 @@ def _add_current_study(
         row=2,
         col=1,
     )
-    gym_floor = min([0, *gym_scores])
+    score_floor = min([0, *scores])
     figure.update_yaxes(
-        title_text="Gym score",
-        range=[gym_floor - 10, 260],
+        title_text="Score",
+        range=[score_floor - 10, 260],
         row=2,
         col=1,
-        secondary_y=False,
     )
-    figure.update_yaxes(title_text="QE score", row=2, col=1, secondary_y=True)
 
 
 def _current_study_points(study: Any) -> list[dict[str, Any]]:
@@ -374,7 +325,6 @@ def _current_study_points(study: Any) -> list[dict[str, Any]]:
         trial for trial in study.trials
         if trial.state.name == "COMPLETE"
         and trial.value is not None
-        and "gym_score" in trial.user_attrs
     ]
     points = []
     best = float("-inf")
@@ -383,9 +333,8 @@ def _current_study_points(study: Any) -> list[dict[str, Any]]:
         best = max(best, score)
         points.append({
             "trial_number": trial.number,
-            "gym_score": trial.user_attrs["gym_score"],
-            "qe_score": score,
-            "best_qe_score": best,
+            "score": score,
+            "best_score": best,
             "hover_params": "".join(
                 f"<br>{name}: {value}" for name, value in trial.params.items()
             ),
@@ -427,7 +376,7 @@ def _add_robustness_evaluation(
             mode="markers",
             marker=dict(color=point_colors, size=8),
             customdata=point_labels,
-            hovertemplate="%{customdata}<br>QE score: %{y:.3f}<extra></extra>",
+            hovertemplate="%{customdata}<br>Score: %{y:.1f}<extra></extra>",
             showlegend=False,
         ),
         row=2,
@@ -440,7 +389,7 @@ def _add_robustness_evaluation(
             y=means,
             mode="markers",
             marker=dict(color="red", symbol="diamond", size=11),
-            hovertemplate="Mean QE score: %{y:.3f}<extra></extra>",
+            hovertemplate="Mean score: %{y:.1f}<extra></extra>",
             showlegend=False,
         ),
         row=2,
@@ -455,7 +404,7 @@ def _add_robustness_evaluation(
         row=2,
         col=2,
     )
-    figure.update_yaxes(title_text="QE score", row=2, col=2)
+    figure.update_yaxes(title_text="Score", row=2, col=2)
 
 def _robustness_offsets(count: int) -> list[float]:
     if count == 1:
