@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 
 import pytest
 import torch
@@ -16,6 +17,13 @@ class FakeTrial:
 
     def set_user_attr(self, name, value) -> None:
         self.user_attrs[name] = value
+
+
+def test_objective_config_study_attrs_are_json_serializable() -> None:
+    attrs = ObjectiveConfig(device=torch.device("cuda")).study_attrs()
+
+    assert attrs["device"] == "cuda"
+    json.dumps(attrs)
 
 
 class FakeEnv:

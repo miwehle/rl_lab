@@ -50,6 +50,8 @@ class ObjectiveConfig:
 
     def study_attrs(self) -> dict:
         attrs = asdict(self)
+        if self.device is not None:
+            attrs["device"] = str(self.device)
         attrs["eval_seeds"] = list(
             range(self.eval_seed, self.eval_seed + self.eval_episodes)
         )
