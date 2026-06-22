@@ -5,17 +5,9 @@ Study follows the current optimization, and HP Robustness Evaluation confirms
 the best candidates at the end of each study.
 """
 
-from dataclasses import dataclass
 from typing import Any
 
-
-@dataclass(frozen=True)
-class RobustnessProgress:
-    candidate_index: int
-    candidate_count: int
-    seed_index: int
-    seed_count: int
-    candidate_seed_scores: list[list[float]]
+from hpo.study_reporting import RobustnessProgress, StudySeriesReporter
 
 
 def build_dashboard(
@@ -110,53 +102,45 @@ def _study_title(study: Any) -> str:
     return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
 
 
-def show_dashboard_during_optimization(
-    study: Any,
-    *,
-    target_trials: int,
-    lander_studies: Any,
-    incumbent_params: dict[str, Any],
-) -> None:
-    """Update the fixed dashboard during Optuna optimization."""
-    _clear_output(wait=True)
-    _display(
-        build_dashboard(
-            study=study,
-            target_trials=target_trials,
-            lander_studies=lander_studies,
-            incumbent_params=incumbent_params,
-        )
-    )
+class Dashboard(StudySeriesReporter):
+    """Report study-series progress through the notebook dashboard."""
 
-
-def show_dashboard_during_robustness_evaluation(
-    study: Any,
-    *,
-    lander_studies: Any,
-    incumbent_params: dict[str, Any],
-    candidate_index: int,
-    candidate_count: int,
-    seed_index: int,
-    seed_count: int,
-    candidate_seed_scores: list[list[float]],
-) -> None:
-    """Update the fixed dashboard during robustness evaluation."""
-    _clear_output(wait=True)
-    _display(
-        build_dashboard(
-            study=study,
-            target_trials=len(study.trials),
-            lander_studies=lander_studies,
-            incumbent_params=incumbent_params,
-            robustness_progress=RobustnessProgress(
-                candidate_index=candidate_index,
-                candidate_count=candidate_count,
-                seed_index=seed_index,
-                seed_count=seed_count,
-                candidate_seed_scores=candidate_seed_scores,
-            ),
+    def report_optimization(
+        self,
+        study: Any,
+        *,
+        target_trials: int,
+        studies: list[Any],
+        incumbent_params: dict[str, Any],
+    ) -> None:
+        _clear_output(wait=True)
+        _display(
+            build_dashboard(
+                study=study,
+                target_trials=target_trials,
+                lander_studies=studies,
+                incumbent_params=incumbent_params,
+            )
         )
-    )
+
+    def report_robustness_evaluation(
+        self,
+        study: Any,
+        *,
+        studies: list[Any],
+        incumbent_params: dict[str, Any],
+        progress: RobustnessProgress,
+    ) -> None:
+        _clear_output(wait=True)
+        _display(
+            build_dashboard(
+                study=study,
+                target_trials=len(study.trials),
+                lander_studies=studies,
+                incumbent_params=incumbent_params,
+                robustness_progress=progress,
+            )
+        )
 
 
 def _clear_output(*args, **kwargs) -> None:

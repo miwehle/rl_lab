@@ -7,6 +7,7 @@ from hpo import study as study_module
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.objective import TrialConfig
 from hpo.study import StudyRunner, neighbors, run_study, select_robust_best
+from hpo.study_reporting import RobustnessProgress
 
 
 @dataclass
@@ -36,6 +37,18 @@ class FakeEnvironmentFactory:
     pass
 
 
+@dataclass
+class FakeReporter:
+    optimization_calls: list = field(default_factory=list)
+    robustness_calls: list = field(default_factory=list)
+
+    def report_optimization(self, *args, **kwargs) -> None:
+        self.optimization_calls.append((args, kwargs))
+
+    def report_robustness_evaluation(self, *args, **kwargs) -> None:
+        self.robustness_calls.append((args, kwargs))
+
+
 def test_study_runner_reuses_context_and_previous_studies(
     monkeypatch,
 ) -> None:
@@ -51,8 +64,6 @@ def test_study_runner_reuses_context_and_previous_studies(
     ]
     run_calls = []
     robust_calls = []
-    progress_calls = []
-    robustness_display_calls = []
     sync_calls = []
 
     monkeypatch.setattr(
@@ -65,24 +76,15 @@ def test_study_runner_reuses_context_and_previous_studies(
         "select_robust_best",
         lambda **kwargs: robust_calls.append(kwargs) or {"x": 2},
     )
-    monkeypatch.setattr(
-        study_module,
-        "show_dashboard_during_optimization",
-        lambda *args, **kwargs: progress_calls.append((args, kwargs)),
-    )
-    monkeypatch.setattr(
-        study_module,
-        "show_dashboard_during_robustness_evaluation",
-        lambda *args, **kwargs: robustness_display_calls.append((args, kwargs)),
-    )
-
     environment_factory = FakeEnvironmentFactory()
     trial_cfg = TrialConfig(device="cpu")
+    reporter = FakeReporter()
     runner = StudyRunner(
         storage_path=lambda name: Path("runs") / f"{name}.db",
         environment_factory=environment_factory,
         trial_cfg=trial_cfg,
         incumbent_params={"x": 1},
+        reporter=reporter,
         study_attrs={"mode": "8d"},
         robust_candidates=5,
         extra_seeds=(1,),
@@ -113,17 +115,18 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert robust_calls[0]["search_space"] == "search-space"
     assert robust_calls[0]["top_n"] == 5
     assert robust_calls[0]["extra_seeds"] == (1,)
-    robust_calls[0]["progress_fn"](
+    progress = RobustnessProgress(
         candidate_index=1,
         candidate_count=3,
         seed_index=1,
         seed_count=1,
         candidate_seed_scores=[[1.0], [0.5], [0.0]],
     )
-    assert robustness_display_calls[0][1]["candidate_index"] == 1
-    assert robustness_display_calls[0][1]["incumbent_params"] == {"x": 2}
-    assert progress_calls[-1][1]["lander_studies"] == studies
-    assert progress_calls[-1][1]["incumbent_params"] == {"x": 2}
+    robust_calls[0]["progress_fn"](progress)
+    assert reporter.robustness_calls[0][1]["progress"] == progress
+    assert reporter.robustness_calls[0][1]["incumbent_params"] == {"x": 2}
+    assert reporter.optimization_calls[-1][1]["studies"] == studies
+    assert reporter.optimization_calls[-1][1]["incumbent_params"] == {"x": 2}
     assert len(sync_calls) == 1
 
 
@@ -146,17 +149,12 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         "select_robust_best",
         lambda **_kwargs: {"x": 2},
     )
-    monkeypatch.setattr(
-        study_module,
-        "show_dashboard_during_optimization",
-        lambda *_args, **_kwargs: None,
-    )
-
     runner = StudyRunner(
         storage_path=lambda _name: Path("runs/study.db"),
         environment_factory=FakeEnvironmentFactory(),
         trial_cfg=TrialConfig(),
         incumbent_params={"x": 1},
+        reporter=FakeReporter(),
     )
     runner.studies.append(previous)
     runner.incumbent_score = 10.0
@@ -270,6 +268,17 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     monkeypatch.setattr(study_module, "create_objective", fake_create_objective)
     progress_calls = []
 
+    def record_progress(progress):
+        progress_calls.append(RobustnessProgress(
+            candidate_index=progress.candidate_index,
+            candidate_count=progress.candidate_count,
+            seed_index=progress.seed_index,
+            seed_count=progress.seed_count,
+            candidate_seed_scores=[
+                list(scores) for scores in progress.candidate_seed_scores
+            ],
+        ))
+
     params = select_robust_best(
         study=study,
         search_space=object(),
@@ -282,13 +291,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         ),
         top_n=2,
         extra_seeds=(1,),
-        progress_fn=lambda **kwargs: progress_calls.append({
-            **kwargs,
-            "candidate_seed_scores": [
-                list(scores)
-                for scores in kwargs["candidate_seed_scores"]
-            ],
-        }),
+        progress_fn=record_progress,
     )
 
     assert params == {"x": 2}
@@ -296,10 +299,10 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     assert study.user_attrs["robust_best_gym_score"] == 20
     assert study.user_attrs["robust_best_training_effort"] == 2
     assert [
-        (call["candidate_index"], call["seed_index"])
+        (call.candidate_index, call.seed_index)
         for call in progress_calls
     ] == [(1, 1), (1, 1), (2, 1), (2, 1)]
-    assert progress_calls[-1]["candidate_seed_scores"] == [
+    assert progress_calls[-1].candidate_seed_scores == [
         [100.0, 100.0],
         [90.0, 200.0],
     ]

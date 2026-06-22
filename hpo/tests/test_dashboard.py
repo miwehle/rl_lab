@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 import pytest
 
 from hpo.evaluation import dashboard
-from hpo.evaluation.dashboard import show_dashboard_during_optimization
+from hpo.evaluation.dashboard import Dashboard
+from hpo.study_reporting import RobustnessProgress
 
 
 @dataclass
@@ -52,10 +53,10 @@ def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) 
         dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
 
-    show_dashboard_during_optimization(
+    Dashboard().report_optimization(
         study,
         target_trials=40,
-        lander_studies=[study],
+        studies=[study],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
     )
 
@@ -140,7 +141,7 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
         target_trials=40,
         lander_studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
-        robustness_progress=dashboard.RobustnessProgress(
+        robustness_progress=RobustnessProgress(
             candidate_index=2,
             candidate_count=3,
             seed_index=2,
@@ -187,15 +188,17 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
         dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
 
-    dashboard.show_dashboard_during_robustness_evaluation(
+    Dashboard().report_robustness_evaluation(
         study,
-        lander_studies=[],
+        studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
-        candidate_index=2,
-        candidate_count=3,
-        seed_index=1,
-        seed_count=1,
-        candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
+        progress=RobustnessProgress(
+            candidate_index=2,
+            candidate_count=3,
+            seed_index=1,
+            seed_count=1,
+            candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
+        ),
     )
 
     assert cleared == [{"wait": True}]
@@ -209,7 +212,7 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
                 "learning_rate": 0.001,
                 "gamma": 0.99,
             },
-            "robustness_progress": dashboard.RobustnessProgress(
+            "robustness_progress": RobustnessProgress(
                 candidate_index=2,
                 candidate_count=3,
                 seed_index=1,

@@ -6,18 +6,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from hpo.evaluation.dashboard import (
-    show_dashboard_during_optimization,
-    show_dashboard_during_robustness_evaluation,
-)
 from hpo.evaluation.scoring import ScoringConfig
 from hpo.lunar_lander.logging import log_call
 from hpo.objective import EnvironmentFactory, TrialConfig, create_objective
+from hpo.study_reporting import RobustnessProgress, StudySeriesReporter
 
 
 logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[..., None]
+RobustnessProgressFn = Callable[[RobustnessProgress], None]
 StoragePathFn = Callable[[str], str | Path]
 SyncFn = Callable[[], None]
 
@@ -30,6 +28,7 @@ class StudyRunner:
     environment_factory: EnvironmentFactory
     trial_cfg: TrialConfig
     incumbent_params: dict[str, Any]
+    reporter: StudySeriesReporter
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     extra_seeds: tuple[int, ...] = (1001, 1002)
@@ -50,19 +49,19 @@ class StudyRunner:
         robust: bool = True,
     ) -> None:
         def show_progress(study, *, target_trials):
-            show_dashboard_during_optimization(
+            self.reporter.report_optimization(
                 study,
                 target_trials=target_trials,
-                lander_studies=[*self.studies, study],
+                studies=[*self.studies, study],
                 incumbent_params=self.incumbent_params,
             )
 
-        def show_robustness(**kwargs):
-            show_dashboard_during_robustness_evaluation(
+        def show_robustness(progress: RobustnessProgress):
+            self.reporter.report_robustness_evaluation(
                 study,
-                lander_studies=[*self.studies, study],
+                studies=[*self.studies, study],
                 incumbent_params=self.incumbent_params,
-                **kwargs,
+                progress=progress,
             )
 
         study = run_study(
@@ -200,7 +199,7 @@ def select_robust_best(
     base_seed: int = 42,
     top_n: int = 3,
     extra_seeds: Iterable[int] = (1001, 1002),
-    progress_fn: ProgressFn | None = None,
+    progress_fn: RobustnessProgressFn | None = None,
 ) -> dict[str, Any]:
     """Re-check top candidates with extra seeds and return the best params."""
     if top_n < 1:
@@ -231,11 +230,13 @@ def select_robust_best(
         for seed_index, seed_offset in enumerate(extra_seeds, start=1):
             if progress_fn is not None:
                 progress_fn(
-                    candidate_index=candidate_index,
-                    candidate_count=len(candidates),
-                    seed_index=seed_index,
-                    seed_count=len(extra_seeds),
-                    candidate_seed_scores=candidate_seed_scores,
+                    RobustnessProgress(
+                        candidate_index=candidate_index,
+                        candidate_count=len(candidates),
+                        seed_index=seed_index,
+                        seed_count=len(extra_seeds),
+                        candidate_seed_scores=candidate_seed_scores,
+                    )
                 )
             objective = create_objective(
                 search_space=search_space,
@@ -255,11 +256,13 @@ def select_robust_best(
             efforts.append(float(fixed_trial.user_attrs["training_effort"]))
             if progress_fn is not None:
                 progress_fn(
-                    candidate_index=candidate_index,
-                    candidate_count=len(candidates),
-                    seed_index=seed_index,
-                    seed_count=len(extra_seeds),
-                    candidate_seed_scores=candidate_seed_scores,
+                    RobustnessProgress(
+                        candidate_index=candidate_index,
+                        candidate_count=len(candidates),
+                        seed_index=seed_index,
+                        seed_count=len(extra_seeds),
+                        candidate_seed_scores=candidate_seed_scores,
+                    )
                 )
 
         mean_score = sum(scores) / len(scores)
