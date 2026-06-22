@@ -60,3 +60,18 @@ Notation:
 ### Erwartete Aussage
 
 Erreicht der robuste Gewinner Gym `>= 220`, kann die bestehende Trainingsinfrastruktur einen leistungsfähigen Fünf-Welten-Generalisten ausbilden, sofern genügend Trainingsbudget bereitsteht. Bleiben insbesondere Mond und Venus trotz längerer Ausbildung deutlich zurück, spricht das stärker für eine Kapazitäts- oder Architekturgrenze und damit für größere Netze oder mehrere spezialisierte Policies.
+
+
+### Kurz und knackig formuliert
+
+Fünf Welten gibt es nicht zum Economy-Tarif. ;o)
+
+Series 3B zeigt: Der kleine Generalist kann landen, aber seine Ausbildung ist noch zu kurz und stark seedabhängig. Die nächste Reihe darf deshalb investieren:
+
+- `quality_weight = 0.95`
+- 1.000–2.000 Episoden
+- ausreichend großes Replay Memory
+- robuste Abnahme über fünf Trainingsläufe
+- Ziel: Mean Gym ≥ 220
+
+Jetzt bauen wir keinen sparsamen Mietwagen mehr, sondern einen Piloten mit echten Flugstunden.
