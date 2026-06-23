@@ -1,7 +1,7 @@
 """Shared Optuna orchestration for resumable HPO study series."""
 
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
@@ -183,14 +183,6 @@ def run_study(
             progress_fn(study, target_trials=n_trials)
 
     return study
-
-
-def neighbors(value: Any, choices: Sequence[Any]) -> list[Any]:
-    """Return value plus its direct neighbors in choices."""
-    index = choices.index(value)
-    start = max(0, index - 1)
-    end = min(len(choices), index + 2)
-    return list(choices[start:end])
 
 
 def select_robust_best(

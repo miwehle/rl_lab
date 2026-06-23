@@ -5,7 +5,7 @@ import pytest
 
 from hpo import study as study_module
 from hpo.objective import ObjectiveConfig
-from hpo.study import Baseline, StudyRunner, neighbors, run_study, select_robust_best
+from hpo.study import Baseline, StudyRunner, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
 
 
@@ -160,14 +160,6 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     assert current.user_attrs["robust_best_score"] == 9.0
     assert current.user_attrs["incumbent_params"] == {"x": 1}
     assert current.user_attrs["incumbent_score"] == 10.0
-
-def test_neighbors_returns_value_plus_direct_neighbors() -> None:
-    assert neighbors(10_000, [2_500, 5_000, 10_000, 20_000]) == [
-        5_000,
-        10_000,
-        20_000,
-    ]
-
 
 def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     created_studies = []
