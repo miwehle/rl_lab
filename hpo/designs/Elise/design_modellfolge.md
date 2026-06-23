@@ -1,3 +1,5 @@
+# HPO-gestützte Modellfolge
+
 ## Essenz des Designs
 
 Ausgangsmodell → Trainingsabschnitt → Checkpoint-Folge
