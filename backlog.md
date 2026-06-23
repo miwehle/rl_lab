@@ -112,6 +112,28 @@ Design: hpo\designs\design_hpo_checks.md
 
 Design: `hpo/designs/design5.md`
 
+## 8. Planet Lander-Programm
+
+> **Ziel:** Einen Lander effizient entwickeln und trainieren, der auf den inneren Planeten einen Gym-Score über 200 zuverlässig erreicht.
+
+
+Das Programm umfasst:
+
+- Entwicklungsmodelle als gespeicherte Checkpoints
+- HPO-unterstützte Testkampagnen
+- Qualifikationstests auf allen fünf Welten
+- Flugerprobung mit zusätzlichen Seeds
+
+**Beobachtung:**
+Einzelne hervorragende Modelle entstehen, aber erneutes Training derselben HPs streut erheblich.
+
+**Ansatz:**
+HPO erzeugt pro Trial eine Checkpoint-Folge. Aus ihr wird das beste konkrete Modell ausgewählt und samt HPs, Seed und Trainingszeitpunkt gespeichert.
+
+**TODO:**
+Speicherung konkreter guter Modelle entwerfen.
+
+
 ## Über dieses Backlog
 
 ### Struktur der Items
