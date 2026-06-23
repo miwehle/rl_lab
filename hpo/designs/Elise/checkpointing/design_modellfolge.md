@@ -83,6 +83,8 @@ Das ist tatsächlich eine *Model Lineage*: Jede Iteration erzeugt Nachfolger ein
 
 ==Zuerst speichern wir pro Trial den besten konkreten Checkpoint samt Score, HPs, Seed und Episode.== Noch keine große Lineage-Verwaltung, kein Replay-Speicher, keine komplexe Artefaktstruktur.
 
+Details: s. checkpointing.md
+
 ## Mögliche Erweiterungen
 
 ### Modellbaum
