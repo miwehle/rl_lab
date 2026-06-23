@@ -74,12 +74,12 @@ bisher: HPs → immer wieder neue Modelle
 neu:     Modell → verbesserte Nachfolgemodelle
 ```
 
-Das ist tatsächlich eine **Model Lineage**: Jede Iteration erzeugt Nachfolger eines bekannten Entwicklungsmodells.
+Das ist tatsächlich eine *Model Lineage*: Jede Iteration erzeugt Nachfolger eines bekannten Entwicklungsmodells.
 
 
 ## Kleinster nächster Schritt
 
-Zuerst speichern wir pro Trial den besten konkreten Checkpoint samt Score, HPs, Seed und Episode. Noch keine große Lineage-Verwaltung, kein Replay-Speicher, keine komplexe Artefaktstruktur.
+==Zuerst speichern wir pro Trial den besten konkreten Checkpoint samt Score, HPs, Seed und Episode.== Noch keine große Lineage-Verwaltung, kein Replay-Speicher, keine komplexe Artefaktstruktur.
 
 ## Mögliche Erweiterungen
 
