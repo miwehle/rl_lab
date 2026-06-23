@@ -1,6 +1,8 @@
 @startuml
 title Modell speichern mit loser Kopplung
 
+hide footbox
+
 actor Optuna
 participant "objective.py" as Objective
 participant "VectorTrainer" as Trainer
