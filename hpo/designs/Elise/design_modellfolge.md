@@ -57,13 +57,14 @@ In jeder Iteration:
    Pro Trial bleibt der beste konkrete Checkpoint erhalten, nicht bloß dessen HPs.
 
 5. **Kandidaten qualifizieren**  
-   Die besten Modelle werden auf allen fünf Welten mit zusätzlichen Evaluationsseeds geprüft. Maßgebend ist zunächst die schwächste Welt, damit gute Erde-Werte keinen schlechten Mond ausgleichen.
+   Die besten Modelle werden auf allen fünf Welten mit zusätzlichen Evaluationsseeds geprüft. ~~Maßgebend ist zunächst die schwächste Welt, damit gute Erde-Werte keinen schlechten Mond ausgleichen.~~
 
 6. **Entwicklungsmodell aktualisieren**  
    Nur ein besser qualifiziertes Modell ersetzt den bisherigen Stand. Andernfalls bleibt der alte Checkpoint erhalten.
 
 7. **Ziel prüfen**  
    Erreicht das Modell zuverlässig über 200 auf jeder Welt, ist es qualifiziert. Sonst beginnt die nächste Iteration.
+
 
 Der entscheidende Unterschied zur bisherigen HPO:
 
@@ -74,3 +75,8 @@ neu:     Modell → verbesserte Nachfolgemodelle
 ```
 
 Das ist tatsächlich eine **Model Lineage**: Jede Iteration erzeugt Nachfolger eines bekannten Entwicklungsmodells.
+
+
+## Kleinster nächster Schritt
+
+Zuerst speichern wir pro Trial den besten konkreten Checkpoint samt Score, HPs, Seed und Episode. Noch keine große Lineage-Verwaltung, kein Replay-Speicher, keine komplexe Artefaktstruktur.
