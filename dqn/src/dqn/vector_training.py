@@ -214,8 +214,13 @@ class VectorTrainer:
                 new_epsilons = [self._exploration_rate(config)] * new_episode_count
                 episode_epsilons.extend(new_epsilons)
                 self.epsilons.extend(new_epsilons)
-                if plotter is not None:
-                    plotter.plot_returns(episode_returns, epsilons=episode_epsilons)
+                self._after_episode(
+                    episode_returns,
+                    episode_lengths,
+                    episode_epsilons,
+                    config,
+                    plotter,
+                )
 
             self._optimize_due(config, previous_steps)
             observations = next_observations
@@ -229,6 +234,18 @@ class VectorTrainer:
             self.steps_done,
             self.optimizer_updates,
         )
+
+    def _after_episode(
+        self,
+        episode_returns: list[float],
+        episode_lengths: list[int],
+        episode_epsilons: list[float],
+        config: VectorTrainingConfig,
+        plotter=None,
+    ) -> None:
+        """Hook used by train() after one or more episodes have finished."""
+        if plotter is not None:
+            plotter.plot_returns(episode_returns, epsilons=episode_epsilons)
 
     def _select_actions(
         self,

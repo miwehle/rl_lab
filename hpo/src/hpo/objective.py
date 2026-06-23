@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any, Protocol
 
@@ -31,6 +31,59 @@ class EnvironmentFactory(Protocol):
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
 
 
+class ObjectiveHooks(Protocol):
+    def make_trainer(
+        self,
+        env,
+        *,
+        seed: int | None,
+        device: Any,
+        replay_memory_capacity: int,
+    ) -> Any: ...
+
+    def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any: ...
+
+    def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None: ...
+
+
+class ObjectiveHookFactory(Protocol):
+    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> ObjectiveHooks:
+        ...
+
+    def study_attrs(self) -> dict[str, Any]: ...
+
+
+class DefaultObjectiveHooks:
+    def make_trainer(
+        self,
+        env,
+        *,
+        seed: int | None,
+        device: Any,
+        replay_memory_capacity: int,
+    ) -> Any:
+        return VectorTrainer(
+            env,
+            seed=seed,
+            device=device,
+            replay_memory_capacity=replay_memory_capacity,
+        )
+
+    def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any:
+        return q_net
+
+    def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None:
+        pass
+
+
+class DefaultObjectiveHookFactory:
+    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> ObjectiveHooks:
+        return DefaultObjectiveHooks()
+
+    def study_attrs(self) -> dict[str, Any]:
+        return {}
+
+
 @dataclass(frozen=True, kw_only=True)
 class ObjectiveConfig:
     num_envs: int = 16
@@ -39,6 +92,9 @@ class ObjectiveConfig:
     eval_episodes: int = 20
     eval_seed: int = 10_000
     eval_max_steps: int = 2_000
+    objective_hooks: ObjectiveHookFactory = field(
+        default_factory=DefaultObjectiveHookFactory
+    )
 
     def __post_init__(self) -> None:
         if self.num_envs < 1:
@@ -49,13 +105,21 @@ class ObjectiveConfig:
             raise ValueError("eval_max_steps must be >= 1")
 
     def study_attrs(self) -> dict:
-        attrs = asdict(self)
+        attrs = {
+            "num_envs": self.num_envs,
+            "training_seed": self.training_seed,
+            "device": self.device,
+            "eval_episodes": self.eval_episodes,
+            "eval_max_steps": self.eval_max_steps,
+        }
         if self.device is not None:
             attrs["device"] = str(self.device)
+        else:
+            del attrs["device"]
+        attrs.update(self.objective_hooks.study_attrs())
         attrs["eval_seeds"] = list(
             range(self.eval_seed, self.eval_seed + self.eval_episodes)
         )
-        del attrs["eval_seed"]
         return attrs
 
 
@@ -78,10 +142,11 @@ def create_objective(
             if config.training_seed is None
             else config.training_seed + trial.number
         )
+        hooks = config.objective_hooks.for_trial(trial, training_config)
 
         env = environment_factory.make_training_env(config.num_envs)
         try:
-            trainer = VectorTrainer(
+            trainer = hooks.make_trainer(
                 env,
                 seed=trial_seed,
                 device=config.device,
@@ -95,9 +160,11 @@ def create_objective(
         finally:
             env.close()
 
+        q_net = hooks.q_net_for_evaluation(result.q_net, trainer.device)
+
         world_scores = {
             name: evaluate_greedy_q_net(
-                q_net=result.q_net,
+                q_net=q_net,
                 device=trainer.device,
                 make_env=make_env,
                 episodes=config.eval_episodes,
@@ -117,6 +184,7 @@ def create_objective(
         save("optimizer_updates", result.optimizer_updates)
         save("trial_seed", trial_seed)
         save("wall_time_seconds", wall_time_seconds)
+        hooks.save_trial_attrs(save)
         save("training_curve", {
             "episode_returns": result.episode_returns,
             "episode_epsilons": result.episode_epsilons,

@@ -188,6 +188,79 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
     assert "world_scores" not in trial.user_attrs
 
 
+def test_objective_uses_objective_hooks(monkeypatch) -> None:
+    search_space = FakeSearchSpace()
+    hook_calls = []
+
+    class FakeQNet:
+        hooked = False
+
+    class FakeTrainer:
+        device = "cpu"
+
+        def __init__(
+            self,
+            _env,
+            *,
+            seed,
+            device,
+            replay_memory_capacity,
+        ) -> None:
+            hook_calls.append((seed, device, replay_memory_capacity))
+
+        def train(self, _training_config):
+            return VectorTrainingResult(
+                q_net=FakeQNet(),
+                episode_returns=[1.0],
+                episode_lengths=[1],
+                episode_epsilons=[0.1],
+                env_steps=1,
+                optimizer_updates=1,
+            )
+
+    class FakeHooks:
+        def make_trainer(self, *args, **kwargs):
+            return FakeTrainer(*args, **kwargs)
+
+        def q_net_for_evaluation(self, q_net, device):
+            q_net.hooked = True
+            return q_net
+
+        def save_trial_attrs(self, save):
+            save("hook_attr", "yes")
+
+    class FakeHookFactory:
+        def for_trial(self, trial, training_config):
+            hook_calls.append((trial, training_config))
+            return FakeHooks()
+
+        def study_attrs(self):
+            return {"hook_factory": "fake"}
+
+    def score_fn(**kwargs):
+        assert kwargs["q_net"].hooked
+        return 10.0
+
+    monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", score_fn)
+
+    objective = objective_module.create_objective(
+        search_space=search_space,
+        incumbent_params={},
+        environment_factory=FakeEnvironmentFactory(),
+        config=ObjectiveConfig(
+            objective_hooks=FakeHookFactory(),
+            eval_episodes=1,
+        ),
+    )
+    trial = FakeTrial()
+
+    assert objective(trial) == pytest.approx(10.0)
+    assert hook_calls[0][0] is trial
+    assert isinstance(hook_calls[0][1], VectorTrainingConfig)
+    assert hook_calls[1] == (45, None, 12_345)
+    assert trial.user_attrs["hook_attr"] == "yes"
+
+
 def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:
     class FakeQNet:
         def eval(self) -> None:

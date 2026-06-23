@@ -94,6 +94,46 @@ def test_vector_training_accepts_plotter() -> None:
     assert plot_calls[-1][2] is not None
 
 
+def test_vector_training_calls_after_episode_hook() -> None:
+    env = vector_env(num_envs=2)
+    hook_calls = []
+
+    class HookTrainer(VectorTrainer):
+        def _after_episode(
+            self,
+            episode_returns,
+            episode_lengths,
+            episode_epsilons,
+            config,
+            plotter=None,
+        ) -> None:
+            super()._after_episode(
+                episode_returns,
+                episode_lengths,
+                episode_epsilons,
+                config,
+                plotter,
+            )
+            hook_calls.append(
+                (
+                    list(episode_returns),
+                    list(episode_lengths),
+                    list(episode_epsilons),
+                )
+            )
+
+    try:
+        trainer = HookTrainer(env, seed=42)
+        trainer.train(vector_training_config(num_episodes=2))
+    finally:
+        env.close()
+
+    assert hook_calls
+    assert len(hook_calls[-1][0]) == 2
+    assert len(hook_calls[-1][1]) == 2
+    assert len(hook_calls[-1][2]) == 2
+
+
 def test_vector_trainer_optimizes_for_each_crossed_interval() -> None:
     env = vector_env(num_envs=4)
     calls = []
