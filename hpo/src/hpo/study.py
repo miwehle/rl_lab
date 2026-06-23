@@ -1,4 +1,4 @@
-"""Shared Optuna study orchestration for HPO tasks."""
+"""Shared Optuna orchestration for resumable HPO study series."""
 
 import logging
 from collections.abc import Callable, Iterable, Sequence
