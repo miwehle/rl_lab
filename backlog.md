@@ -124,6 +124,9 @@ Das Programm umfasst:
 - Qualifikationstests auf allen fünf Welten
 - Flugerprobung mit zusätzlichen Seeds
 
+
+## 9. HPO-unterstütze Modellfolge zum multiplanetaren Gym-Score 200+
+
 **Beobachtung:**
 Einzelne hervorragende Modelle entstehen, aber erneutes Training derselben HPs streut erheblich.
 
