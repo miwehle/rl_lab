@@ -313,6 +313,7 @@ def _set_study_user_attr(study: Any, name: str, value: Any) -> None:
 
 
 def _set_or_check_study_attrs(study: Any, attrs: dict[str, Any]) -> None:
+    """Prevent resuming a study with a different configuration."""
     for name, value in attrs.items():
         if name in study.user_attrs and study.user_attrs[name] != value:
             raise ValueError(f"study {name} does not match current configuration")
