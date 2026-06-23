@@ -33,3 +33,6 @@ Bei uns:
 - Die Flugerprobung prüft das qualifizierte Modell mit neuen Seeds und Wetterlagen.
 
 Damit wird nichts doppelt geprüft: erst entwickeln, dann Anforderung nachweisen, dann der Realität eine Gelegenheit geben, uns zu demütigen. Murphy bekommt keinen Sitzplatz, reist aber erfahrungsgemäß trotzdem mit.
+
+
+https://www.nasa.gov/the-apollo-program
