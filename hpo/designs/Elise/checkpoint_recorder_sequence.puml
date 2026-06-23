@@ -1,0 +1,28 @@
+@startuml
+title Bestes Modell während des Trainings sichern
+
+hide footbox
+
+participant "objective.py" as Objective
+participant "VectorTrainer" as Trainer
+participant "CheckpointRecorder" as Recorder
+participant "model_store.py" as Store
+database "SQLite\nTrial-Attribute" as DB
+collections "Checkpoint-Dateien" as Files
+
+Objective -> Trainer: train(config, recorder)
+
+loop pro Episode
+    Trainer -> Recorder: after_episode(q_net, returns)
+    alt Fenster-Score verbessert
+        Recorder -> Store: save_q_net(q_net, metadata)
+        Store -> Files: state_dict + metadata speichern
+        Store --> Recorder: model_path
+    end
+end
+
+Trainer --> Objective: TrainingResult(best_model_path, best_score)
+Objective -> DB: trial.user_attrs speichern
+Objective --> Objective: score zurückgeben
+
+@enduml
