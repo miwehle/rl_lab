@@ -100,7 +100,7 @@ class CheckpointingTrainer(VectorTrainer):
 
 
 @dataclass(frozen=True)
-class CheckpointingObjectiveHookFactory:
+class ObjectiveHookFactory:
     checkpoint_dir: str | Path
     window: int = 100
     min_score: float | None = None
@@ -116,7 +116,7 @@ class CheckpointingObjectiveHookFactory:
         self,
         trial: Any,
         training_config: VectorTrainingConfig,
-    ) -> "CheckpointingObjectiveHooks":
+    ) -> "ObjectiveHooks":
         recorder = BestCheckpointRecorder(
             Path(self.checkpoint_dir) / f"trial_{trial.number:04d}_best.pt",
             window=self.window,
@@ -127,7 +127,7 @@ class CheckpointingObjectiveHookFactory:
                 "training_config": asdict(training_config),
             },
         )
-        return CheckpointingObjectiveHooks(recorder)
+        return ObjectiveHooks(recorder)
 
     def study_attrs(self) -> dict[str, Any]:
         return {
@@ -139,7 +139,7 @@ class CheckpointingObjectiveHookFactory:
 
 
 @dataclass
-class CheckpointingObjectiveHooks:
+class ObjectiveHooks:
     recorder: BestCheckpointRecorder
 
     def make_trainer(

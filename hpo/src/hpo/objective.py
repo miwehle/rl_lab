@@ -33,7 +33,7 @@ class EnvironmentFactory(Protocol):
 
 # Hook Object pattern: keep objective() simple while extensions customize the few
 # lifecycle decisions without making objective.py know their concrete feature.
-class ObjectiveHooks(Protocol):
+class Hooks(Protocol):
     def make_trainer(
         self,
         env,
@@ -48,14 +48,13 @@ class ObjectiveHooks(Protocol):
     def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None: ...
 
 
-class ObjectiveHookFactory(Protocol):
-    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> ObjectiveHooks:
-        ...
+class HookFactory(Protocol):
+    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> Hooks: ...
 
     def study_attrs(self) -> dict[str, Any]: ...
 
 
-class DefaultObjectiveHooks:
+class DefaultHooks:
     def make_trainer(
         self,
         env,
@@ -78,9 +77,9 @@ class DefaultObjectiveHooks:
         pass
 
 
-class DefaultObjectiveHookFactory:
-    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> ObjectiveHooks:
-        return DefaultObjectiveHooks()
+class DefaultHookFactory:
+    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> Hooks:
+        return DefaultHooks()
 
     def study_attrs(self) -> dict[str, Any]:
         return {}
@@ -94,9 +93,7 @@ class ObjectiveConfig:
     eval_episodes: int = 20
     eval_seed: int = 10_000
     eval_max_steps: int = 2_000
-    objective_hooks: ObjectiveHookFactory = field(
-        default_factory=DefaultObjectiveHookFactory
-    )
+    objective_hooks: HookFactory = field(default_factory=DefaultHookFactory)
 
     def __post_init__(self) -> None:
         if self.num_envs < 1:

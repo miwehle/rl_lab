@@ -4,7 +4,7 @@ import torch
 from dqn.vector_training import VectorTrainingConfig
 from hpo.checkpointing import (
     BestCheckpointRecorder,
-    CheckpointingObjectiveHookFactory,
+    ObjectiveHookFactory,
     load_model_checkpoint,
 )
 
@@ -75,7 +75,7 @@ def test_best_checkpoint_recorder_saves_best_full_window(tmp_path) -> None:
 
 
 def test_checkpointing_objective_hook_factory_reports_study_attrs(tmp_path) -> None:
-    factory = CheckpointingObjectiveHookFactory(
+    factory = ObjectiveHookFactory(
         tmp_path,
         window=50,
         min_score=100.0,
@@ -93,7 +93,7 @@ def test_checkpointing_objective_hook_factory_reports_study_attrs(tmp_path) -> N
 def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     tmp_path,
 ) -> None:
-    hooks = CheckpointingObjectiveHookFactory(
+    hooks = ObjectiveHookFactory(
         tmp_path,
         window=2,
     ).for_trial(FakeTrial(), training_config())
