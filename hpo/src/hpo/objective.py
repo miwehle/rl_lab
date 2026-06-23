@@ -31,6 +31,8 @@ class EnvironmentFactory(Protocol):
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
 
 
+# Hook Object pattern: keep objective() simple while extensions customize the few
+# lifecycle decisions without making objective.py know their concrete feature.
 class ObjectiveHooks(Protocol):
     def make_trainer(
         self,
