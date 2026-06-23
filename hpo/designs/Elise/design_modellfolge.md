@@ -80,3 +80,9 @@ Das ist tatsächlich eine **Model Lineage**: Jede Iteration erzeugt Nachfolger e
 ## Kleinster nächster Schritt
 
 Zuerst speichern wir pro Trial den besten konkreten Checkpoint samt Score, HPs, Seed und Episode. Noch keine große Lineage-Verwaltung, kein Replay-Speicher, keine komplexe Artefaktstruktur.
+
+## Mögliche Erweiterungen
+
+### Modellbaum
+
+Zunächst wird nur eine Modelllinie weiterentwickelt. Eine spätere Erweiterung zu einem kleinen Modellbaum ist möglich, falls gute alternative Linien zu früh verloren gehen.
