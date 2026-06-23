@@ -119,8 +119,8 @@ class StudyRunner:
             self.incumbent_params.update(selected_params)
             self.incumbent_score = selected_score
 
-        _set_study_user_attr(study, "incumbent_params", self.incumbent_params)
-        _set_study_user_attr(study, "incumbent_score", self.incumbent_score)
+        study.set_user_attr("incumbent_params", self.incumbent_params)
+        study.set_user_attr("incumbent_score", self.incumbent_score)
         if self.sync_fn is not None:
             self.sync_fn()
         show_progress(study, target_trials=n_trials)
@@ -277,15 +277,15 @@ def select_robust_best(
             best_params = params
 
     selected_params = best_params or {}
-    _set_study_user_attr(study, "robust_best_params", selected_params)
-    _set_study_user_attr(study, "robust_best_score", best_mean)
+    study.set_user_attr("robust_best_params", selected_params)
+    study.set_user_attr("robust_best_score", best_mean)
     return selected_params
 
 
 def _top_complete_trials(study: Any, top_n: int) -> list[Any]:
     trials = [
         trial for trial in study.trials
-        if _trial_state_name(trial) == "COMPLETE" and trial.value is not None
+        if trial.state.name == "COMPLETE" and trial.value is not None
     ]
     trials.sort(key=lambda trial: trial.value, reverse=True)
     return trials[:top_n]
@@ -304,32 +304,19 @@ def _load_study(**kwargs) -> Any:
     return optuna.load_study(**kwargs)
 
 
-def _set_study_user_attr(study: Any, name: str, value: Any) -> None:
-    if hasattr(study, "set_user_attr"):
-        study.set_user_attr(name, value)
-    else:
-        study.user_attrs = getattr(study, "user_attrs", {})
-        study.user_attrs[name] = value
-
-
 def _set_or_check_study_attrs(study: Any, attrs: dict[str, Any]) -> None:
     """Prevent resuming a study with a different configuration."""
     for name, value in attrs.items():
         if name in study.user_attrs and study.user_attrs[name] != value:
             raise ValueError(f"study {name} does not match current configuration")
-        _set_study_user_attr(study, name, value)
+        study.set_user_attr(name, value)
 
 
 def _finished_trial_count(study: Any) -> int:
     return sum(
-        _trial_state_name(trial) in {"COMPLETE", "PRUNED"}
+        trial.state.name in {"COMPLETE", "PRUNED"}
         for trial in study.trials
     )
-
-
-def _trial_state_name(trial: Any) -> str:
-    state = trial.state
-    return state.name if hasattr(state, "name") else str(state)
 
 
 class _FixedParamTrial:
