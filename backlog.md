@@ -137,6 +137,13 @@ HPO erzeugt pro Trial eine Checkpoint-Folge. Aus ihr wird das beste konkrete Mod
 Speicherung konkreter guter Modelle entwerfen.
 
 
+## 10. Gym Score 200+ auf allen inneren Planeten
+
+Ansätze:
+- Curriculum Learning: Heißt bei uns: Nachhilfe auf dem Mond
+- 1 Modell pro Welt
+
+
 ## Über dieses Backlog
 
 ### Struktur der Items
