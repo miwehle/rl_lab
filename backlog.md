@@ -4,12 +4,12 @@
 
 | Nr. | Item | Voraus-<br>setzungen | Nutzen | Aufwand | Prio | Cool |
 |---:|---|---|---|---|---|---:|
-| 3 | The KISS SolarSystemLander – Quest II | 1 |  | S | high |  |
-| 5 | Inside the SolarSystemLander | 1 |  | M | med | 😎 |
-| 1 | Study Series 2 |  |  | M | med | 😎 |
-| 7 | The High-Performance SolarSystemLander | 1 |  | M | med |  |
-| 2 | Austauschbare Replay-Sampling-Strategien | 1 |  | M | med |  |
-| 4 | Council of Lander Masters | 1 |  | M | low | 😎 |
+| 3 | The KISS SolarSystemLander – Quest II | 1 |  | S | High |  |
+| 5 | Inside the SolarSystemLander | 1 |  | M | Med | 😎 |
+| 1 | Study Series 2 |  |  | M | Med | 😎 |
+| 7 | The High-Performance SolarSystemLander | 1 |  | M | Med |  |
+| 2 | Austauschbare Replay-Sampling-Strategien | 1 |  | M | Med |  |
+| 4 | Council of Lander Masters | 1 |  | M | Low | 😎 |
 
 ==Die Aufwände und Prios sind zu überprüfen, stimmen großteils wohl nicht.==
 
