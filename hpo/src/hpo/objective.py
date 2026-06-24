@@ -35,8 +35,11 @@ class EnvironmentFactory(Protocol):
 # lifecycle decisions without making objective.py know their concrete feature.
 #
 # References:
-#   https://stackoverflow.com/questions/467557/what-is-meant-by-the-term-hook-in-programming
-#   https://martinfowler.com/articles/injection.html
+#   Hook concept:
+#     https://stackoverflow.com/questions/467557/what-is-meant-by-the-term-hook-in-programming
+#   Dependency Injection:
+#     https://martinfowler.com/articles/injection.html
+
 class Hooks(Protocol):
     def make_trainer(
         self,
