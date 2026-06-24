@@ -97,6 +97,7 @@ class ObjectiveConfig:
     num_envs sets how many parallel training environments each trial uses.
     Internally, this is passed to VectorTrainer.
     """
+    environment_factory: EnvironmentFactory
     num_envs: int = 16
     eval_episodes: int = 20
     eval_max_steps: int = 2_000
@@ -135,8 +136,7 @@ class ObjectiveConfig:
 def create_objective(
     *, suggest_parameter_values: SuggestParameterValues,
     incumbent_params: dict[str, Any],
-    environment_factory: EnvironmentFactory,
-    config: ObjectiveConfig = ObjectiveConfig(),
+    config: ObjectiveConfig,
 ) -> Callable[[Any], float]:
     """Create an Optuna objective for one vectorized DQN trial."""
 
@@ -153,7 +153,7 @@ def create_objective(
         )
         hooks = config.hooks.for_trial(trial, training_config)
 
-        env = environment_factory.make_training_env(config.num_envs)
+        env = config.environment_factory.make_training_env(config.num_envs)
         try:
             trainer = hooks.make_trainer(
                 env,
@@ -180,7 +180,7 @@ def create_objective(
                 max_steps=config.eval_max_steps,
                 seed=config.eval_seed,
             )
-            for name, make_env in environment_factory.evaluation_envs().items()
+            for name, make_env in config.environment_factory.evaluation_envs().items()
         }
         score = sum(world_scores.values()) / len(world_scores)
 

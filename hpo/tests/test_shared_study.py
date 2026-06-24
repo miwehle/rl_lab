@@ -77,11 +77,13 @@ def test_study_runner_reuses_context_and_previous_studies(
         or studies[len(robust_calls) - 1].user_attrs["robust_best_params"],
     )
     environment_factory = FakeEnvironmentFactory()
-    objective_cfg = ObjectiveConfig(device="cpu")
+    objective_cfg = ObjectiveConfig(
+        environment_factory=environment_factory,
+        device="cpu",
+    )
     reporter = FakeReporter()
     runner = StudyRunner(
         database_path=lambda name: Path("runs") / f"{name}.db",
-        environment_factory=environment_factory,
         objective_cfg=objective_cfg,
         baseline=Baseline(params={"x": 1}, score=0.0),
         reporter=reporter,
@@ -106,7 +108,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert runner.incumbent_score == 2.0
     assert runner.studies == studies
     assert run_calls[1]["database_path"] == Path("runs/s2.db")
-    assert run_calls[1]["environment_factory"] is environment_factory
+    assert run_calls[1]["objective_cfg"].environment_factory is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
     assert run_calls[1]["sync_fn"] is runner.sync_fn
     assert robust_calls[0]["suggest_parameter_values"] == "suggest-values"
@@ -142,8 +144,9 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     )
     runner = StudyRunner(
         database_path=lambda _name: Path("runs/study.db"),
-        environment_factory=FakeEnvironmentFactory(),
-        objective_cfg=ObjectiveConfig(),
+        objective_cfg=ObjectiveConfig(
+            environment_factory=FakeEnvironmentFactory(),
+        ),
         baseline=Baseline(params={"x": 1}, score=10.0),
         reporter=FakeReporter(),
     )
@@ -200,7 +203,9 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
         incumbent_params={},
         n_trials=2,
         database_path=Path("runs") / "series.db",
-        environment_factory=FakeEnvironmentFactory(),
+        objective_cfg=ObjectiveConfig(
+            environment_factory=FakeEnvironmentFactory(),
+        ),
         study_attrs={"observation_mode": "8d"},
         progress_fn=lambda current_study, **_kwargs: progress_trial_counts.append(
             len(current_study.trials)
@@ -255,8 +260,10 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         study=study,
         suggest_parameter_values=object(),
         incumbent_params={},
-        environment_factory=FakeEnvironmentFactory(),
-        objective_cfg=ObjectiveConfig(device="cpu"),
+        objective_cfg=ObjectiveConfig(
+            environment_factory=FakeEnvironmentFactory(),
+            device="cpu",
+        ),
         top_n=2,
         extra_seeds=(1,),
         progress_fn=record_progress,
@@ -280,8 +287,9 @@ def test_select_robust_best_rejects_empty_study() -> None:
             study=FakeStudy(trials=[]),
             suggest_parameter_values=object(),
             incumbent_params={},
-            environment_factory=FakeEnvironmentFactory(),
-            objective_cfg=ObjectiveConfig(),
+            objective_cfg=ObjectiveConfig(
+                environment_factory=FakeEnvironmentFactory(),
+            ),
         )
 
 

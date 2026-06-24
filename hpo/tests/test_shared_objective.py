@@ -47,8 +47,15 @@ BASELINE_PARAMS = {
 }
 
 
+class EmptyEnvironmentFactory:
+    pass
+
+
 def test_objective_config_study_attrs_are_json_serializable() -> None:
-    attrs = ObjectiveConfig(device=torch.device("cuda")).study_attrs()
+    attrs = ObjectiveConfig(
+        environment_factory=EmptyEnvironmentFactory(),
+        device=torch.device("cuda"),
+    ).study_attrs()
 
     assert attrs["device"] == "cuda"
     json.dumps(attrs)
@@ -133,8 +140,11 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=BASELINE_PARAMS,
-        environment_factory=environment_factory,
-        config=ObjectiveConfig(num_envs=20, training_seed=100),
+        config=ObjectiveConfig(
+            environment_factory=environment_factory,
+            num_envs=20,
+            training_seed=100,
+        ),
     )
 
     trial = FakeTrial()
@@ -184,8 +194,8 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=FakeSuggestParameterValues(),
         incumbent_params=BASELINE_PARAMS,
-        environment_factory=SingleEnvironmentFactory(),
         config=ObjectiveConfig(
+            environment_factory=SingleEnvironmentFactory(),
             training_seed=None,
             eval_episodes=7,
             eval_seed=50,
@@ -255,8 +265,8 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=BASELINE_PARAMS,
-        environment_factory=FakeEnvironmentFactory(),
         config=ObjectiveConfig(
+            environment_factory=FakeEnvironmentFactory(),
             hooks=FakeHookFactory(),
             eval_episodes=1,
         ),

@@ -8,7 +8,6 @@ from typing import Any
 
 from hpo.lunar_lander.logging import log_call
 from hpo.objective import (
-    EnvironmentFactory,
     ObjectiveConfig,
     create_objective,
 )
@@ -54,7 +53,6 @@ class StudyRunner:
     """Run a study series and retain its incumbent and results."""
 
     database_path: DatabasePathFn
-    environment_factory: EnvironmentFactory
     objective_cfg: ObjectiveConfig
     baseline: Baseline
     reporter: StudySeriesReporter
@@ -98,7 +96,6 @@ class StudyRunner:
             incumbent_params=self.incumbent_params,
             n_trials=n_trials,
             database_path=self.database_path(study_name),
-            environment_factory=self.environment_factory,
             objective_cfg=self.objective_cfg,
             study_attrs=self.study_attrs,
             progress_fn=show_progress,
@@ -108,7 +105,6 @@ class StudyRunner:
             study=study,
             suggest_parameter_values=suggest_parameter_values,
             incumbent_params=self.incumbent_params,
-            environment_factory=self.environment_factory,
             objective_cfg=self.objective_cfg,
             top_n=self.robust_candidates,
             extra_seeds=self.extra_seeds,
@@ -135,8 +131,7 @@ def run_study(
     incumbent_params: dict[str, Any],
     n_trials: int,
     database_path: str | Path,
-    environment_factory: EnvironmentFactory,
-    objective_cfg: ObjectiveConfig = ObjectiveConfig(),
+    objective_cfg: ObjectiveConfig,
     study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = None,
     sync_fn: SyncFn | None = None,
@@ -158,7 +153,6 @@ def run_study(
     objective = create_objective(
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=incumbent_params,
-        environment_factory=environment_factory,
         config=objective_cfg,
     )
     study = _create_study(
@@ -190,7 +184,6 @@ def select_robust_best(
     study: Any,
     suggest_parameter_values: Any,
     incumbent_params: dict[str, Any],
-    environment_factory: EnvironmentFactory,
     objective_cfg: ObjectiveConfig,
     top_n: int = 3,
     extra_seeds: Iterable[int] = (1001, 1002),
@@ -232,7 +225,6 @@ def select_robust_best(
             objective = create_objective(
                 suggest_parameter_values=suggest_parameter_values,
                 incumbent_params=incumbent_params,
-                environment_factory=environment_factory,
                 config=replace(
                     objective_cfg,
                     training_seed=(
