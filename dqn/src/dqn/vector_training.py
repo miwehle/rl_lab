@@ -1,4 +1,7 @@
-"""Vectorized DQN training for many flat-observation Gymnasium environments."""
+"""DQN training in many parallel Gymnasium environments.
+
+Purpose: use the GPU more efficiently to reduce wall-clock time and CUs.
+"""
 
 from dataclasses import dataclass
 import math
