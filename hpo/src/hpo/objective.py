@@ -33,9 +33,10 @@ class EnvironmentFactory(Protocol):
 
 # Hook Object pattern: keep objective() simple while extensions customize the few
 # lifecycle decisions without making objective.py know their concrete feature.
-# See:
-# https://stackoverflow.com/questions/467557/what-is-meant-by-the-term-hook-in-programming
-# https://martinfowler.com/articles/injection.html
+#
+# References:
+#   https://stackoverflow.com/questions/467557/what-is-meant-by-the-term-hook-in-programming
+#   https://martinfowler.com/articles/injection.html
 class Hooks(Protocol):
     def make_trainer(
         self,
