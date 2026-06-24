@@ -73,7 +73,7 @@ class StudyRunner:
     def run(
         self,
         study_name: str,
-        search_space: Any,
+        suggest_parameter_values: Any,
         n_trials: int,
     ) -> None:
         def show_progress(study, *, target_trials):
@@ -94,7 +94,7 @@ class StudyRunner:
 
         study = run_study(
             study_name=study_name,
-            search_space=search_space,
+            suggest_parameter_values=suggest_parameter_values,
             incumbent_params=self.incumbent_params,
             n_trials=n_trials,
             database_path=self.database_path(study_name),
@@ -106,7 +106,7 @@ class StudyRunner:
         )
         selected_params = select_robust_best(
             study=study,
-            search_space=search_space,
+            suggest_parameter_values=suggest_parameter_values,
             incumbent_params=self.incumbent_params,
             environment_factory=self.environment_factory,
             objective_cfg=self.objective_cfg,
@@ -131,7 +131,7 @@ class StudyRunner:
 def run_study(
     *,
     study_name: str,
-    search_space: Any,
+    suggest_parameter_values: Any,
     incumbent_params: dict[str, Any],
     n_trials: int,
     database_path: str | Path,
@@ -156,7 +156,7 @@ def run_study(
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
     objective = create_objective(
-        search_space=search_space,
+        suggest_parameter_values=suggest_parameter_values,
         incumbent_params=incumbent_params,
         environment_factory=environment_factory,
         config=objective_cfg,
@@ -188,7 +188,7 @@ def run_study(
 def select_robust_best(
     *,
     study: Any,
-    search_space: Any,
+    suggest_parameter_values: Any,
     incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
     objective_cfg: ObjectiveConfig,
@@ -230,7 +230,7 @@ def select_robust_best(
                     )
                 )
             objective = create_objective(
-                search_space=search_space,
+                suggest_parameter_values=suggest_parameter_values,
                 incumbent_params=incumbent_params,
                 environment_factory=environment_factory,
                 config=replace(

@@ -13,10 +13,38 @@ class FakeTrial:
     number = 3
 
     def __init__(self) -> None:
+        self.params = {}
         self.user_attrs = {}
+
+    def suggest_float(self, name, low, high, *, log=False):
+        self.params[name] = low
+        return low
+
+    def suggest_int(self, name, low, high, *, log=False):
+        self.params[name] = low
+        return low
+
+    def suggest_categorical(self, name, choices):
+        value = choices[0]
+        self.params[name] = value
+        return value
 
     def set_user_attr(self, name, value) -> None:
         self.user_attrs[name] = value
+
+
+BASELINE_PARAMS = {
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "eps_end": 0.02,
+    "eps_decay": 1234,
+    "gamma": 0.99,
+    "tau": 0.005,
+    "learning_starts": 77,
+    "optimize_every": 3,
+    "replay_memory_capacity": 12_345,
+    "num_episodes": 12,
+}
 
 
 def test_objective_config_study_attrs_are_json_serializable() -> None:
@@ -46,30 +74,13 @@ class FakeEnvironmentFactory:
         return {"moon": lambda: FakeEnv(), "mars": lambda: FakeEnv()}
 
 
-class FakeSearchSpace:
+class FakeSuggestParameterValues:
     def __init__(self) -> None:
         self.calls = []
 
-    def training_config(
-        self,
-        trial,
-        incumbent_params,
-    ) -> VectorTrainingConfig:
-        self.calls.append(("training_config", trial, incumbent_params))
-        return VectorTrainingConfig(
-            num_episodes=12,
-            batch_size=64,
-            eps_start=0.7,
-            eps_end=0.02,
-            eps_decay=1234,
-            learning_rate=5e-4,
-            learning_starts=77,
-            optimize_every=3,
-        )
-
-    def replay_memory_capacity(self, trial, incumbent_params) -> int:
-        self.calls.append(("replay_memory_capacity", trial, incumbent_params))
-        return 12_345
+    def __call__(self, trial, incumbent_params) -> None:
+        self.calls.append((trial, incumbent_params))
+        trial.suggest_float("learning_rate", 5e-4, 1e-3)
 
 
 @dataclass
@@ -84,7 +95,7 @@ class TrainerCall:
 def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     calls = []
     eval_calls = []
-    search_space = FakeSearchSpace()
+    suggest_parameter_values = FakeSuggestParameterValues()
     environment_factory = FakeEnvironmentFactory()
 
     class FakeTrainer:
@@ -120,8 +131,8 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", score_fn)
 
     objective = objective_module.create_objective(
-        search_space=search_space,
-        incumbent_params={"learning_rate": 0.001},
+        suggest_parameter_values=suggest_parameter_values,
+        incumbent_params=BASELINE_PARAMS,
         environment_factory=environment_factory,
         config=ObjectiveConfig(num_envs=20, training_seed=100),
     )
@@ -129,10 +140,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     trial = FakeTrial()
     score = objective(trial)
 
-    assert search_space.calls == [
-        ("training_config", trial, {"learning_rate": 0.001}),
-        ("replay_memory_capacity", trial, {"learning_rate": 0.001}),
-    ]
+    assert suggest_parameter_values.calls == [(trial, BASELINE_PARAMS)]
     assert score == pytest.approx(123.0)
     assert trial.user_attrs["world_scores"] == {"moon": 120.0, "mars": 126.0}
     assert trial.user_attrs["env_steps"] == 80
@@ -140,6 +148,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert environment_factory.training_calls == [20]
     assert calls[0].env.closed
     assert calls[0].training_config.num_episodes == 12
+    assert calls[0].training_config.learning_rate == 5e-4
     assert len(eval_calls) == 2
     assert all(call["episodes"] == 20 for call in eval_calls)
 
@@ -173,8 +182,8 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
     )
 
     objective = objective_module.create_objective(
-        search_space=FakeSearchSpace(),
-        incumbent_params={},
+        suggest_parameter_values=FakeSuggestParameterValues(),
+        incumbent_params=BASELINE_PARAMS,
         environment_factory=SingleEnvironmentFactory(),
         config=ObjectiveConfig(
             training_seed=None,
@@ -189,7 +198,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
 
 
 def test_objective_uses_objective_hooks(monkeypatch) -> None:
-    search_space = FakeSearchSpace()
+    suggest_parameter_values = FakeSuggestParameterValues()
     hook_calls = []
 
     class FakeQNet:
@@ -244,8 +253,8 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", score_fn)
 
     objective = objective_module.create_objective(
-        search_space=search_space,
-        incumbent_params={},
+        suggest_parameter_values=suggest_parameter_values,
+        incumbent_params=BASELINE_PARAMS,
         environment_factory=FakeEnvironmentFactory(),
         config=ObjectiveConfig(
             hooks=FakeHookFactory(),

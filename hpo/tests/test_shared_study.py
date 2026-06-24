@@ -93,12 +93,12 @@ def test_study_runner_reuses_context_and_previous_studies(
 
     runner.run(
         "s1",
-        search_space="search-space",
+        suggest_parameter_values="suggest-values",
         n_trials=4,
     )
     runner.run(
         "s2",
-        search_space="next-space",
+        suggest_parameter_values="next-values",
         n_trials=5,
     )
 
@@ -109,7 +109,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert run_calls[1]["environment_factory"] is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
     assert run_calls[1]["sync_fn"] is runner.sync_fn
-    assert robust_calls[0]["search_space"] == "search-space"
+    assert robust_calls[0]["suggest_parameter_values"] == "suggest-values"
     assert robust_calls[0]["top_n"] == 5
     assert robust_calls[0]["extra_seeds"] == (1,)
     progress = RobustnessProgress(
@@ -150,7 +150,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
 
     runner.run(
         "s2",
-        search_space=object(),
+        suggest_parameter_values=object(),
         n_trials=1,
     )
 
@@ -196,7 +196,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     progress_trial_counts = []
     study = run_study(
         study_name="s1",
-        search_space=object(),
+        suggest_parameter_values=object(),
         incumbent_params={},
         n_trials=2,
         database_path=Path("runs") / "series.db",
@@ -253,7 +253,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
 
     params = select_robust_best(
         study=study,
-        search_space=object(),
+        suggest_parameter_values=object(),
         incumbent_params={},
         environment_factory=FakeEnvironmentFactory(),
         objective_cfg=ObjectiveConfig(device="cpu"),
@@ -278,7 +278,7 @@ def test_select_robust_best_rejects_empty_study() -> None:
     with pytest.raises(ValueError, match="no complete trials"):
         select_robust_best(
             study=FakeStudy(trials=[]),
-            search_space=object(),
+            suggest_parameter_values=object(),
             incumbent_params={},
             environment_factory=FakeEnvironmentFactory(),
             objective_cfg=ObjectiveConfig(),

@@ -28,12 +28,12 @@ The objective maximizes greedy Gym quality while penalizing training effort. Use
 ```python
 study = run_study(
     study_name="s1_qe_update_economy",
-    search_space=SearchSpace1(),
+    suggest_parameter_values=suggest_s1_parameter_values,
+    incumbent_params=baseline_params,
     n_trials=40,
-    storage_path=study_db,
+    database_path=study_db,
     environment_factory=environment_factory,
-    trial_cfg=trial_cfg,
-    scoring_cfg=scoring_cfg,
+    objective_cfg=objective_cfg,
 )
 ```
 

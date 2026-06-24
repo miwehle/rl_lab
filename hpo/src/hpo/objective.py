@@ -15,14 +15,11 @@ from hpo.lunar_lander.logging import log_call
 logger = logging.getLogger(__name__)
 
 
-class SearchSpace(Protocol):
-    def training_config(
-        self, trial: Any, incumbent_params: dict[str, Any]
-    ) -> VectorTrainingConfig: ...
+class SuggestParameterValues(Protocol):
+    def __call__(self, trial: Any, incumbent_params: dict[str, Any]) -> None: ...
 
-    def replay_memory_capacity(
-        self, trial: Any, incumbent_params: dict[str, Any]
-    ) -> int: ...
+
+REPLAY_MEMORY_CAPACITY = "replay_memory_capacity"
 
 
 class EnvironmentFactory(Protocol):
@@ -136,7 +133,7 @@ class ObjectiveConfig:
 
 
 def create_objective(
-    *, search_space: SearchSpace,
+    *, suggest_parameter_values: SuggestParameterValues,
     incumbent_params: dict[str, Any],
     environment_factory: EnvironmentFactory,
     config: ObjectiveConfig = ObjectiveConfig(),
@@ -145,10 +142,10 @@ def create_objective(
 
     @log_call
     def objective(trial: Any) -> float:
-        training_config = search_space.training_config(trial, incumbent_params)
-        replay_memory_capacity = search_space.replay_memory_capacity(
-            trial, incumbent_params
-        )
+        suggest_parameter_values(trial, incumbent_params)
+        params = incumbent_params | trial.params
+        training_config = vector_training_config(params)
+        replay_memory_capacity = params[REPLAY_MEMORY_CAPACITY]
         trial_seed = (
             None
             if config.training_seed is None
@@ -205,6 +202,21 @@ def create_objective(
         return score
 
     return objective
+
+
+def vector_training_config(params: dict[str, Any]) -> VectorTrainingConfig:
+    return VectorTrainingConfig(
+        num_episodes=params["num_episodes"],
+        batch_size=params["batch_size"],
+        gamma=params["gamma"],
+        eps_start=1.0,
+        eps_end=params["eps_end"],
+        eps_decay=params["eps_decay"],
+        tau=params["tau"],
+        learning_rate=params["learning_rate"],
+        learning_starts=params["learning_starts"],
+        optimize_every=params["optimize_every"],
+    )
 
 
 @log_call
