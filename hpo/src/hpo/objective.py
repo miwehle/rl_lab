@@ -31,8 +31,9 @@ class EnvironmentFactory(Protocol):
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
 
 
-# Hook Object pattern: keep objective() simple while extensions customize the few
-# lifecycle decisions without making objective.py know their concrete feature.
+# We use the Hook Object pattern to keep objective() simple.
+# It lets us plug in extensions and customizations
+# without making objective.py know their concrete features.
 #
 # References:
 #   Hook concept:
