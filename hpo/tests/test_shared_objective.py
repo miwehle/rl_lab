@@ -6,7 +6,8 @@ import torch
 
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
 from hpo import objective as objective_module
-from hpo.objective import ObjectiveConfig, evaluate_greedy_q_net
+from hpo.objective import evaluate_greedy_q_net
+from helpers import objective_config
 
 
 class FakeTrial:
@@ -47,13 +48,8 @@ BASELINE_PARAMS = {
 }
 
 
-class EmptyEnvironmentFactory:
-    pass
-
-
 def test_objective_config_study_attrs_are_json_serializable() -> None:
-    attrs = ObjectiveConfig(
-        environment_factory=EmptyEnvironmentFactory(),
+    attrs = objective_config(
         device=torch.device("cuda"),
     ).study_attrs()
 
@@ -140,7 +136,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=BASELINE_PARAMS,
-        config=ObjectiveConfig(
+        config=objective_config(
             environment_factory=environment_factory,
             num_envs=20,
             training_seed=100,
@@ -194,7 +190,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=FakeSuggestParameterValues(),
         incumbent_params=BASELINE_PARAMS,
-        config=ObjectiveConfig(
+        config=objective_config(
             environment_factory=SingleEnvironmentFactory(),
             training_seed=None,
             eval_episodes=7,
@@ -265,7 +261,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=BASELINE_PARAMS,
-        config=ObjectiveConfig(
+        config=objective_config(
             environment_factory=FakeEnvironmentFactory(),
             hooks=FakeHookFactory(),
             eval_episodes=1,

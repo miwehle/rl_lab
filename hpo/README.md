@@ -26,7 +26,11 @@ L4 GPU
 The objective maximizes greedy Gym quality while penalizing training effort. Use `run_study(...)` from the notebook; it persists the scoring configuration and the S0 effort baseline in Optuna's SQLite storage.
 
 ```python
-objective_cfg = ObjectiveConfig(environment_factory=environment_factory)
+objective_cfg = ObjectiveConfig(
+    environment_factory=environment_factory,
+    num_envs=16,
+    eval_episodes=20,
+)
 
 study = run_study(
     study_name="s1_qe_update_economy",

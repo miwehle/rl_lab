@@ -14,6 +14,8 @@ from hpo.study import StudyRunner
 
 OBJECTIVE_CFG = ObjectiveConfig(
     environment_factory=ENVIRONMENT_FACTORY,
+    num_envs=16,
+    eval_episodes=20,
     hooks=checkpointing.ObjectiveHookFactory(
         checkpoint_dir=STUDY_DIR / f"{RUN_NAME}_checkpoints",
         window=100), ...)

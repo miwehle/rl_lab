@@ -4,9 +4,9 @@ from pathlib import Path
 import pytest
 
 from hpo import study as study_module
-from hpo.objective import ObjectiveConfig
 from hpo.study import Baseline, StudyRunner, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
+from helpers import objective_config
 
 
 @dataclass
@@ -77,7 +77,7 @@ def test_study_runner_reuses_context_and_previous_studies(
         or studies[len(robust_calls) - 1].user_attrs["robust_best_params"],
     )
     environment_factory = FakeEnvironmentFactory()
-    objective_cfg = ObjectiveConfig(
+    objective_cfg = objective_config(
         environment_factory=environment_factory,
         device="cpu",
     )
@@ -144,7 +144,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     )
     runner = StudyRunner(
         database_path=lambda _name: Path("runs/study.db"),
-        objective_cfg=ObjectiveConfig(
+        objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(),
         ),
         baseline=Baseline(params={"x": 1}, score=10.0),
@@ -203,7 +203,7 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
         incumbent_params={},
         n_trials=2,
         database_path=Path("runs") / "series.db",
-        objective_cfg=ObjectiveConfig(
+        objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(),
         ),
         study_attrs={"observation_mode": "8d"},
@@ -260,7 +260,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         study=study,
         suggest_parameter_values=object(),
         incumbent_params={},
-        objective_cfg=ObjectiveConfig(
+        objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(),
             device="cpu",
         ),
@@ -287,7 +287,7 @@ def test_select_robust_best_rejects_empty_study() -> None:
             study=FakeStudy(trials=[]),
             suggest_parameter_values=object(),
             incumbent_params={},
-            objective_cfg=ObjectiveConfig(
+            objective_cfg=objective_config(
                 environment_factory=FakeEnvironmentFactory(),
             ),
         )

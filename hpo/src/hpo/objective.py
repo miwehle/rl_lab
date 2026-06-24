@@ -98,8 +98,8 @@ class ObjectiveConfig:
     Internally, this is passed to VectorTrainer.
     """
     environment_factory: EnvironmentFactory
-    num_envs: int = 16
-    eval_episodes: int = 20
+    num_envs: int
+    eval_episodes: int
     eval_max_steps: int = 2_000
     eval_seed: int = 10_000
     training_seed: int | None = 42
