@@ -2,17 +2,16 @@
 
 ## Priorisierung
 
-| Nr. | Item | Voraussetzungen | N | W | A | Prio | Cool |
-|---:|---|---|---:|---:|---:|---:|---:|
-| 3 | The KISS SolarSystemLander – Quest II | 1 | 6? | 7? | 4? | 10,5? | 9? |
-| 5 | Inside the SolarSystemLander | 1 | 7? | 8? | 6? | 9,3? | 10? |
-| 1 | Study Series 2 |  | 10? | 8? | 9? | 8,9? | 10? |
-| 7 | The High-Performance SolarSystemLander | 1 | 8? | 7? | 8? | 7,0? | 9? |
-| 2 | Austauschbare Replay-Sampling-Strategien | 1 | 7? | 6? | 6? | 7,0? | 7? |
-| 4 | Council of Lander Masters | 1 | 7? | 5? | 9? | 3,9? | 10? |
+| Nr. | Item | Voraus-<br>setzungen | Nutzen | Aufwand | Prio | Cool |
+|---:|---|---|---|---|---|---:|
+| 3 | The KISS SolarSystemLander – Quest II | 1 |  | S | high |  |
+| 5 | Inside the SolarSystemLander | 1 |  | M | med | 😎 |
+| 1 | Study Series 2 |  |  | M | med | 😎 |
+| 7 | The High-Performance SolarSystemLander | 1 |  | M | med |  |
+| 2 | Austauschbare Replay-Sampling-Strategien | 1 |  | M | med |  |
+| 4 | Council of Lander Masters | 1 |  | M | low | 😎 |
 
-N = Nutzen, W = Eintrittswahrscheinlichkeit des Nutzens, A = Aufwand.  
-Alle Skalen von 0 bis 10. `Prio = N × W / A`. `?` kennzeichnet vorläufige Schätzungen.
+==Die Aufwände und Prios sind zu überprüfen, stimmen großteils wohl nicht.==
 
 ## 1. Study Series 2
 
@@ -156,7 +155,3 @@ Das erste Feld beschreibt Ursprung oder Charakter des Items:
 - **Hypothese:** Eine konkrete Vermutung soll geprüft werden.
 
 Danach folgen **Nutzen** und, falls erforderlich, **Voraussetzung**.
-
-### Priorisierung
-
-Alle Bewertungen verwenden eine Skala von 0 bis 10. Der Cool Factor ist eine separate B-Note und fließt nicht in die Prioritätsformel ein. Der Aufwand muss wegen der Division mindestens 1 sein. Die Tabelle ist nach absteigender Priorität sortiert; die Nummern bilden stabile Identitäten der Backlog Items. Die Spalte **Voraussetzung** enthält die Nummern der Items, die zuvor abgeschlossen sein müssen; eine leere Zelle bedeutet, dass keine Voraussetzung bekannt ist.
