@@ -248,7 +248,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         incumbent_params={},
         environment_factory=FakeEnvironmentFactory(),
         config=ObjectiveConfig(
-            objective_hooks=FakeHookFactory(),
+            hooks=FakeHookFactory(),
             eval_episodes=1,
         ),
     )

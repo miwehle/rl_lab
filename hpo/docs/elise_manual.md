@@ -13,7 +13,7 @@ from hpo import checkpointing
 from hpo.study import StudyRunner
 
 OBJECTIVE_CFG = ObjectiveConfig(
-    objective_hooks=checkpointing.ObjectiveHookFactory(
+    hooks=checkpointing.ObjectiveHookFactory(
         checkpoint_dir=STUDY_DIR / f"{RUN_NAME}_checkpoints",
         window=100), ...)
 

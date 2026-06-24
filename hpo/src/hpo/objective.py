@@ -90,14 +90,19 @@ class DefaultHookFactory:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ObjectiveConfig:
+class ObjectiveConfig:    
+    """Configure one Optuna objective.
+
+    num_envs sets how many parallel training environments each trial uses.
+    Internally, this is passed to VectorTrainer.
+    """
     num_envs: int = 16
-    training_seed: int | None = 42
-    device: Any = None
     eval_episodes: int = 20
-    eval_seed: int = 10_000
     eval_max_steps: int = 2_000
-    objective_hooks: HookFactory = field(default_factory=DefaultHookFactory)
+    eval_seed: int = 10_000
+    training_seed: int | None = 42
+    hooks: HookFactory = field(default_factory=DefaultHookFactory)
+    device: Any = None
 
     def __post_init__(self) -> None:
         if self.num_envs < 1:
@@ -110,16 +115,16 @@ class ObjectiveConfig:
     def study_attrs(self) -> dict:
         attrs = {
             "num_envs": self.num_envs,
-            "training_seed": self.training_seed,
             "device": self.device,
             "eval_episodes": self.eval_episodes,
             "eval_max_steps": self.eval_max_steps,
+            "training_seed": self.training_seed,
         }
         if self.device is not None:
             attrs["device"] = str(self.device)
         else:
             del attrs["device"]
-        attrs.update(self.objective_hooks.study_attrs())
+        attrs.update(self.hooks.study_attrs())
         attrs["eval_seeds"] = list(
             range(self.eval_seed, self.eval_seed + self.eval_episodes)
         )
@@ -145,7 +150,7 @@ def create_objective(
             if config.training_seed is None
             else config.training_seed + trial.number
         )
-        hooks = config.objective_hooks.for_trial(trial, training_config)
+        hooks = config.hooks.for_trial(trial, training_config)
 
         env = environment_factory.make_training_env(config.num_envs)
         try:
