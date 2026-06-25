@@ -20,6 +20,15 @@ class ModelCheckpoint:
     metadata: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class BestCheckpoint:
+    path: Path
+    score: float
+    episode: int
+    window: int
+    source: str
+
+
 class BestCheckpointRecorder:
     """Save q_net whenever the trailing return window reaches a new best score."""
 
@@ -196,6 +205,35 @@ def save_checkpoint(
             "metadata": metadata or {},
         },
         path,
+    )
+
+
+def best_checkpoint(study: Any) -> BestCheckpoint:
+    """Return the highest-scoring checkpoint saved for a study."""
+    checkpoint_dir = Path(study.user_attrs["checkpoint_dir"])
+    checkpoints = [
+        _checkpoint_reference(path)
+        for subdir in ("trials", "robustness")
+        for path in (checkpoint_dir / subdir).glob("*_best.pt")
+    ]
+    if not checkpoints:
+        raise ValueError("study has no checkpoints")
+
+    return max(checkpoints, key=lambda checkpoint: checkpoint.score)
+
+
+def _checkpoint_reference(path: Path) -> BestCheckpoint:
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    if checkpoint.get("version") != CHECKPOINT_VERSION:
+        raise ValueError(f"unsupported checkpoint version: {checkpoint.get('version')}")
+
+    metadata = checkpoint["metadata"]
+    return BestCheckpoint(
+        path=path,
+        score=metadata["score"],
+        episode=metadata["episode"],
+        window=metadata["window"],
+        source=path.parent.name,
     )
 
 

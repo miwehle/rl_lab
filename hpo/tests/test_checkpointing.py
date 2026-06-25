@@ -5,7 +5,9 @@ from dqn.vector_training import VectorTrainingConfig
 from hpo.checkpointing import (
     BestCheckpointRecorder,
     ObjectiveHookFactory,
+    best_checkpoint,
     load_checkpoint,
+    save_checkpoint,
 )
 
 
@@ -22,6 +24,11 @@ class FakeRobustTrial:
     number = 3
     checkpoint_subdir = "robustness"
     checkpoint_stem = "trial_0003_seed_1001"
+
+
+class FakeStudy:
+    def __init__(self, checkpoint_dir) -> None:
+        self.user_attrs = {"checkpoint_dir": str(checkpoint_dir)}
 
 
 def training_config() -> VectorTrainingConfig:
@@ -141,3 +148,35 @@ def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(
     assert attrs["checkpoint_path"] == str(
         tmp_path / "robustness" / "trial_0003_seed_1001_best.pt"
     )
+
+
+def test_best_checkpoint_selects_highest_score_across_checkpoint_dirs(
+    tmp_path,
+) -> None:
+    model = torch.nn.Linear(1, 1)
+    trial_path = tmp_path / "trials" / "trial_0001_best.pt"
+    robustness_path = tmp_path / "robustness" / "trial_0001_seed_1001_best.pt"
+
+    save_checkpoint(
+        model,
+        trial_path,
+        {"score": 10.0, "episode": 3, "window": 2},
+    )
+    save_checkpoint(
+        model,
+        robustness_path,
+        {"score": 20.0, "episode": 4, "window": 2},
+    )
+
+    checkpoint = best_checkpoint(FakeStudy(tmp_path))
+
+    assert checkpoint.path == robustness_path
+    assert checkpoint.score == pytest.approx(20.0)
+    assert checkpoint.episode == 4
+    assert checkpoint.window == 2
+    assert checkpoint.source == "robustness"
+
+
+def test_best_checkpoint_rejects_study_without_checkpoints(tmp_path) -> None:
+    with pytest.raises(ValueError, match="study has no checkpoints"):
+        best_checkpoint(FakeStudy(tmp_path))
