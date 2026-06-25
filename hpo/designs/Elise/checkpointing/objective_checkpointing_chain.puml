@@ -1,0 +1,80 @@
+@startuml
+
+!include ../../../../puml_links.iuml
+
+title Objective-Checkpointing-Kette fuer Training und Nachpruefung
+
+hide footbox
+
+participant "study.py" as Study
+participant "trial\nOptuna oder _FixedParamTrial" as Trial
+participant "objective" as Objective
+participant "checkpointing.py" as Checkpointing
+participant "trainer" as Trainer
+participant "recorder" as Recorder
+
+url of Study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
+url of Trial is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:311:1]]
+url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1]]
+url of Checkpointing is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:1:1]]
+url of Trainer is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:72:1]]
+url of Recorder is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:23:1]]
+
+alt normaler Study-Lauf
+    Study -> Objective: objective(Optuna Trial)
+else robuste Nachpruefung #FFE6E6
+    Study -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:237:1 fixed_trial = _FixedParamTrial(...)]]
+    note right of Trial #CCFFCC
+        Fix:
+        _FixedParamTrial traegt trial.number,
+        checkpoint_subdir = robustness
+        und einen seed-spezifischen Stem.
+    end note
+    Study -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:243:1 objective(fixed_trial)]]
+end
+
+Objective -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:143:1 suggest_parameter_values(...)]]
+Trial --> Objective: params
+
+Objective -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:205:1 vector_training_config(params)]]
+Objective -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:152:1 hooks = config.hooks.for_trial(...)]]
+create Recorder
+Checkpointing -> Recorder: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:122:1 new BestCheckpointRecorder(...)]]
+note right of Recorder #CCFFCC
+    Pfad:
+    checkpoint_dir / checkpoint_subdir /
+    checkpoint_stem_best.pt
+end note
+Checkpointing --> Objective: hooks
+
+Objective -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:145:1 hooks.make_trainer(...)]]
+create Trainer
+Checkpointing -> Trainer: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:153:1 new CheckpointingTrainer(...)]]
+Checkpointing --> Objective: trainer
+
+Objective -> Trainer: [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
+
+loop pro Episode
+    Trainer -> Recorder: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:49:1 after_episode(...)]]
+    alt Fenster-Score verbessert
+        Recorder -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:177:1 save_checkpoint(...)]]
+        Checkpointing --> Recorder: checkpoint gespeichert
+    end
+end
+
+Trainer --> Objective: TrainingResult
+
+Objective -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:161:1 hooks.q_net_for_evaluation(...)]]
+alt bester Checkpoint vorhanden
+    Checkpointing -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:194:1 load_checkpoint(...)]]
+end
+Checkpointing --> Objective: q_net
+
+Objective -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:194:1 hooks.save_trial_attrs(save)]]
+alt bester Checkpoint vorhanden
+    Checkpointing --> Objective: checkpoint_path und Score
+end
+
+Objective --> Study: score
+
+@enduml

@@ -234,7 +234,12 @@ def select_robust_best(
                     ),
                 ),
             )
-            fixed_trial = _FixedParamTrial(trial.params)
+            fixed_trial = _FixedParamTrial(
+                trial.params,
+                number=trial.number,
+                checkpoint_subdir="robustness",
+                checkpoint_stem=f"trial_{trial.number:04d}_seed_{seed_offset}",
+            )
             scores.append(objective(fixed_trial))
             candidate_seed_scores[candidate_index - 1] = list(scores)
             if progress_fn is not None:
@@ -304,9 +309,24 @@ def _finished_trial_count(study: Any) -> int:
 
 
 class _FixedParamTrial:
-    number = 0
+    """Stand-in for an Optuna Trial during robustness evaluation.
 
-    def __init__(self, params: dict[str, Any]) -> None:
+    It replays fixed suggested HP values, but gets its own trial number for
+    checkpoint files, so robustness evaluation can use the same objective and
+    checkpointing chain as normal training trials.
+    """
+
+    def __init__(
+        self,
+        params: dict[str, Any],
+        *,
+        number: int,
+        checkpoint_subdir: str,
+        checkpoint_stem: str,
+    ) -> None:
+        self.number = number
+        self.checkpoint_subdir = checkpoint_subdir
+        self.checkpoint_stem = checkpoint_stem
         self.params = params
         self.user_attrs = {}
 

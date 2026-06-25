@@ -117,8 +117,16 @@ class ObjectiveHookFactory:
         trial: Any,
         training_config: VectorTrainingConfig,
     ) -> "ObjectiveHooks":
+        checkpoint_subdir = getattr(trial, "checkpoint_subdir", "trials")
+        checkpoint_stem = getattr(
+            trial,
+            "checkpoint_stem",
+            f"trial_{trial.number:04d}",
+        )
         recorder = BestCheckpointRecorder(
-            Path(self.checkpoint_dir) / f"trial_{trial.number:04d}_best.pt",
+            Path(self.checkpoint_dir)
+            / checkpoint_subdir
+            / f"{checkpoint_stem}_best.pt",
             window=self.window,
             min_score=self.min_score,
             min_score_delta=self.min_score_delta,

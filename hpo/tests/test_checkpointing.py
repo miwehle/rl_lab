@@ -18,6 +18,12 @@ class FakeTrial:
     number = 3
 
 
+class FakeRobustTrial:
+    number = 3
+    checkpoint_subdir = "robustness"
+    checkpoint_stem = "trial_0003_seed_1001"
+
+
 def training_config() -> VectorTrainingConfig:
     return VectorTrainingConfig(
         num_episodes=12,
@@ -110,7 +116,28 @@ def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     attrs = {}
     hooks.save_trial_attrs(attrs.__setitem__)
 
-    assert attrs["checkpoint_path"] == str(tmp_path / "trial_0003_best.pt")
+    assert attrs["checkpoint_path"] == str(
+        tmp_path / "trials" / "trial_0003_best.pt"
+    )
     assert attrs["checkpoint_score"] == pytest.approx(2.0)
     assert attrs["checkpoint_episode"] == 2
     assert attrs["checkpoint_window"] == 2
+
+
+def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(
+    tmp_path,
+) -> None:
+    hooks = ObjectiveHookFactory(
+        tmp_path,
+        window=2,
+    ).for_trial(FakeRobustTrial(), training_config())
+    trainer = FakeTrainer()
+
+    hooks.recorder.after_episode(trainer, [1.0, 3.0])
+
+    attrs = {}
+    hooks.save_trial_attrs(attrs.__setitem__)
+
+    assert attrs["checkpoint_path"] == str(
+        tmp_path / "robustness" / "trial_0003_seed_1001_best.pt"
+    )

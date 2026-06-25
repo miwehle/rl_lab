@@ -6,7 +6,7 @@ import pytest
 from hpo import study as study_module
 from hpo.study import Baseline, StudyRunner, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
-from helper.helpers import objective_config
+from common import objective_config
 
 
 @dataclass
@@ -236,8 +236,11 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         ],
     )
 
+    fixed_trials = []
+
     def fake_create_objective(**_kwargs):
         def objective(trial):
+            fixed_trials.append(trial)
             return float(trial.params["x"] * 100)
 
         return objective
@@ -278,6 +281,13 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     assert progress_calls[-1].candidate_seed_scores == [
         [100.0, 100.0],
         [90.0, 200.0],
+    ]
+    assert [
+        (trial.number, trial.checkpoint_subdir, trial.checkpoint_stem)
+        for trial in fixed_trials
+    ] == [
+        (0, "robustness", "trial_0000_seed_1"),
+        (1, "robustness", "trial_0001_seed_1"),
     ]
 
 
