@@ -1,10 +1,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pytest
-
 from hpo import study as study_module
-from hpo.study import Baseline, StudyRunner, run_study, select_robust_best
+from hpo.study import Baseline, StudyRunner, run_study
 from hpo.study_reporting import RobustnessProgress
 from common import objective_config
 
@@ -218,89 +216,6 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     assert study.user_attrs["eval_episodes"] == 20
     assert len(sync_calls) == 2
     assert progress_trial_counts == [0, 1, 2]
-
-
-def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
-    study = FakeStudy(
-        trials=[
-            FakeTrial(
-                0,
-                100.0,
-                {"x": 1},
-            ),
-            FakeTrial(
-                1,
-                90.0,
-                {"x": 2},
-            ),
-        ],
-    )
-
-    fixed_trials = []
-
-    def fake_create_objective(**_kwargs):
-        def objective(trial):
-            fixed_trials.append(trial)
-            return float(trial.params["x"] * 100)
-
-        return objective
-
-    monkeypatch.setattr(study_module, "create_objective", fake_create_objective)
-    progress_calls = []
-
-    def record_progress(progress):
-        progress_calls.append(RobustnessProgress(
-            candidate_index=progress.candidate_index,
-            candidate_count=progress.candidate_count,
-            seed_index=progress.seed_index,
-            seed_count=progress.seed_count,
-            candidate_seed_scores=[
-                list(scores) for scores in progress.candidate_seed_scores
-            ],
-        ))
-
-    params = select_robust_best(
-        study=study,
-        suggest_parameter_values=object(),
-        incumbent_params={},
-        objective_cfg=objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            device="cpu",
-        ),
-        top_n=2,
-        extra_seeds=(1,),
-        progress_fn=record_progress,
-    )
-
-    assert params == {"x": 2}
-    assert study.user_attrs["robust_best_score"] == 145
-    assert [
-        (call.candidate_index, call.seed_index)
-        for call in progress_calls
-    ] == [(1, 1), (1, 1), (2, 1), (2, 1)]
-    assert progress_calls[-1].candidate_seed_scores == [
-        [100.0, 100.0],
-        [90.0, 200.0],
-    ]
-    assert [
-        (trial.number, trial.checkpoint_subdir, trial.checkpoint_stem)
-        for trial in fixed_trials
-    ] == [
-        (0, "robustness", "trial_0000_seed_1"),
-        (1, "robustness", "trial_0001_seed_1"),
-    ]
-
-
-def test_select_robust_best_rejects_empty_study() -> None:
-    with pytest.raises(ValueError, match="no complete trials"):
-        select_robust_best(
-            study=FakeStudy(trials=[]),
-            suggest_parameter_values=object(),
-            incumbent_params={},
-            objective_cfg=objective_config(
-                environment_factory=FakeEnvironmentFactory(),
-            ),
-        )
 
 
 def test_baseline_loads_incumbent_from_database(monkeypatch) -> None:

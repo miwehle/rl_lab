@@ -6,6 +6,7 @@ hide footbox
 
 participant ":StudyRunner" as runner
 participant "study.py" as study_module
+participant "robust_selection.py" as robust_selection
 participant "study:Study" as study
 participant "objective.py" as objective
 participant ":SuggestParameterValues" as suggest_parameter_values
@@ -15,7 +16,8 @@ participant ":Trial" as trial
 
 url of runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:52:1]]
 url of study_module is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
-url of study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:279:1]]
+url of robust_selection is [[WORKSPACE_ROOT/hpo/src/hpo/robust_selection.py:1:1]]
+url of study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:182:1]]
 url of objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1]]
 url of suggest_parameter_values is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:19:1]]
 url of environment_factory is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:23:1]]
@@ -28,7 +30,7 @@ activate runner
 runner -> study_module : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:127:1 run_study(...)]]
 activate study_module
 
-study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:279:1 _create_study(...)]]
+study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:182:1 _create_study(...)]]
 
 study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:173:1 optimize(...)]]
 activate study
@@ -72,10 +74,10 @@ deactivate study
 study_module --> runner : study
 deactivate study_module
 
-runner -> study_module : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:182:1 select_robust_best(...)]]
-activate study_module
-study_module --> runner : selected\nparameters
-deactivate study_module
+runner -> robust_selection : [[WORKSPACE_ROOT/hpo/src/hpo/robust_selection.py:14:1 select_robust_best(...)]]
+activate robust_selection
+robust_selection --> runner : selected\nparameters
+deactivate robust_selection
 
 runner -> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:114:1 incumbent_score\naktualisieren]]
 runner -> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:123:1 study in\nstudies ablegen]]
