@@ -14,6 +14,7 @@ def model_hash(model: nn.Module) -> str:
     torch.save(state_dict, buffer)
     return hashlib.sha256(buffer.getvalue()).hexdigest()
 
+
 def ema(values, alpha=0.1):
     result = []
     avg = values[0]

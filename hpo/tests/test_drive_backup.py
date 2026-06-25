@@ -1,7 +1,7 @@
 import sqlite3
 
-from hpo import drive_backup
-from hpo.drive_backup import backup_to_drive, restore_from_drive
+from hpo.notebook import drive_backup
+from hpo.notebook.drive_backup import backup_to_drive, restore_from_drive
 
 
 def test_backup_to_and_restore_from_drive(tmp_path) -> None:

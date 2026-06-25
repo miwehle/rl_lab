@@ -2,8 +2,8 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 import sys
 
-from hpo import colab
-from hpo.colab import (
+from hpo.notebook import colab
+from hpo.notebook.colab import (
     ColabSetup,
     prepare_storage,
     setup_colab,

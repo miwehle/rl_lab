@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from hpo.drive_backup import backup_to_drive, restore_from_drive
+from hpo.notebook.drive_backup import backup_to_drive, restore_from_drive
 from hpo.lunar_lander.logging import configure_file_logging
 
 
