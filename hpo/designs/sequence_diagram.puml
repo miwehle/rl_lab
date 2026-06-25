@@ -67,7 +67,7 @@ deactivate study
 study_module --> runner : study
 deactivate study_module
 
-runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:182:1 select_robust\n_best(...)]]
+runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:182:1 select_robust_best(...)]]
 activate study_module
 study_module --> runner : selected\nparameters
 deactivate study_module
