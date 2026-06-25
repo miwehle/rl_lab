@@ -3,7 +3,7 @@ from types import ModuleType, SimpleNamespace
 import sys
 
 from hpo import colab
-from hpo.colab import ColabSetup, prepare_run_storage, setup_colab
+from hpo.colab import ColabSetup, prepare_run_storage, prepare_study_storage, setup_colab
 
 
 def test_setup_colab_uses_conventional_directories(monkeypatch) -> None:
@@ -85,3 +85,30 @@ def test_run_storage_backs_up_database_and_log(tmp_path, monkeypatch) -> None:
         "local_log": setup.local_study_dir / "study_name.log",
         "drive_log": setup.drive_study_dir / "study_name.log",
     }]
+
+
+def test_study_storage_prepares_and_backs_up_each_study(tmp_path, monkeypatch) -> None:
+    backup_calls = []
+    setup = ColabSetup(
+        drive_study_dir=tmp_path / "drive",
+        local_study_dir=tmp_path / "local",
+    )
+    monkeypatch.setattr(colab, "restore_from_drive", lambda *_args: None)
+    monkeypatch.setattr(colab, "configure_file_logging", lambda *_args: None)
+    monkeypatch.setattr(
+        colab,
+        "backup_to_drive",
+        lambda **kwargs: backup_calls.append(kwargs),
+    )
+
+    storage = prepare_study_storage(setup)
+
+    assert storage.database_path("s1") == setup.local_study_dir / "s1.db"
+    assert storage.database_path("s2") == setup.local_study_dir / "s2.db"
+
+    storage.backup()
+
+    assert [call["local_database"] for call in backup_calls] == [
+        setup.local_study_dir / "s1.db",
+        setup.local_study_dir / "s2.db",
+    ]

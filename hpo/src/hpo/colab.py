@@ -29,6 +29,24 @@ class RunStorage:
         )
 
 
+class StudyStorage:
+    def __init__(self, setup: ColabSetup) -> None:
+        self.setup = setup
+        self._storages: dict[str, RunStorage] = {}
+
+    def database_path(self, study_name: str) -> Path:
+        return self.run_storage(study_name).database_path
+
+    def backup(self) -> None:
+        for storage in self._storages.values():
+            storage.backup()
+
+    def run_storage(self, study_name: str) -> RunStorage:
+        if study_name not in self._storages:
+            self._storages[study_name] = prepare_run_storage(self.setup, study_name)
+        return self._storages[study_name]
+
+
 def setup_colab() -> ColabSetup:
     from google.colab import drive
 
@@ -53,3 +71,7 @@ def prepare_run_storage(setup: ColabSetup, run_name: str) -> RunStorage:
     restore_from_drive(storage.drive_log_path, storage.log_path)
     configure_file_logging(setup.local_study_dir, storage.log_path.name)
     return storage
+
+
+def prepare_study_storage(setup: ColabSetup) -> StudyStorage:
+    return StudyStorage(setup)
