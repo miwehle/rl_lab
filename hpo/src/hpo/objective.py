@@ -10,7 +10,7 @@ import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.lunar_lander.logging import log_call
-from hpo.params import HP
+from hpo.hyperparams import HP
 
 
 logger = logging.getLogger(__name__)

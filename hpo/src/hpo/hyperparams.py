@@ -1,4 +1,4 @@
-"""Shared names for HPO parameter dictionaries and Optuna trials."""
+"""Shared names for HPO hyperparameter dictionaries and Optuna trials."""
 
 
 class HP:
