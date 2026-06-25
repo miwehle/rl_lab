@@ -9,7 +9,12 @@ participant "q_net:DQN" as q_net
 participant "target_net:DQN" as target_net
 participant "optimizer:AdamW" as optimizer
 
-[-> trainer : train(config)
+url of trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:112:1]]
+url of memory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:48:1]]
+url of q_net is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:8:1]]
+url of target_net is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:8:1]]
+
+[-> trainer : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:163:1 train(config)]]
 activate trainer
 
 trainer -> env : reset()
@@ -22,21 +27,21 @@ activate env
 env --> trainer : observations, rewards, done
 deactivate env
 
-trainer -> memory : push_batch(...)
+trainer -> memory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:67:1 push_batch(...)]]
 activate memory
 deactivate memory
 
-trainer -> memory : sample(batch_size, device)
+trainer -> memory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:97:1 sample(batch_size, device)]]
 activate memory
 memory --> trainer : replay batch
 deactivate memory
 
-trainer -> q_net : q_net(states)
+trainer -> q_net : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:15:1 q_net(states)]]
 activate q_net
 q_net --> trainer : Q-values
 deactivate q_net
 
-trainer -> target_net : target_net(next_states)
+trainer -> target_net : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:15:1 target_net(next_states)]]
 activate target_net
 target_net --> trainer : target Q-values
 deactivate target_net
