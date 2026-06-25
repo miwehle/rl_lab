@@ -3,7 +3,12 @@ from types import ModuleType, SimpleNamespace
 import sys
 
 from hpo import colab
-from hpo.colab import ColabSetup, prepare_run_storage, prepare_study_storage, setup_colab
+from hpo.colab import (
+    ColabSetup,
+    prepare_study_series_storage,
+    prepare_study_storage,
+    setup_colab,
+)
 
 
 def test_setup_colab_uses_conventional_directories(monkeypatch) -> None:
@@ -36,7 +41,7 @@ def test_setup_colab_uses_conventional_directories(monkeypatch) -> None:
     ]
 
 
-def test_prepare_run_storage_uses_conventional_files(tmp_path, monkeypatch) -> None:
+def test_prepare_study_storage_uses_conventional_files(tmp_path, monkeypatch) -> None:
     restored = []
     logging_calls = []
     setup = ColabSetup(
@@ -50,7 +55,7 @@ def test_prepare_run_storage_uses_conventional_files(tmp_path, monkeypatch) -> N
         lambda *args: logging_calls.append(args),
     )
 
-    storage = prepare_run_storage(setup, "study_name")
+    storage = prepare_study_storage(setup, "study_name")
 
     assert storage.database_path == setup.local_study_dir / "study_name.db"
     assert storage.drive_database_path == setup.drive_study_dir / "study_name.db"
@@ -63,7 +68,7 @@ def test_prepare_run_storage_uses_conventional_files(tmp_path, monkeypatch) -> N
     assert logging_calls == [(setup.local_study_dir, "study_name.log")]
 
 
-def test_run_storage_backs_up_database_and_log(tmp_path, monkeypatch) -> None:
+def test_study_storage_backs_up_database_and_log(tmp_path, monkeypatch) -> None:
     backup_calls = []
     setup = ColabSetup(
         drive_study_dir=tmp_path / "drive",
@@ -77,7 +82,7 @@ def test_run_storage_backs_up_database_and_log(tmp_path, monkeypatch) -> None:
         lambda **kwargs: backup_calls.append(kwargs),
     )
 
-    prepare_run_storage(setup, "study_name").backup()
+    prepare_study_storage(setup, "study_name").backup()
 
     assert backup_calls == [{
         "local_database": setup.local_study_dir / "study_name.db",
@@ -87,7 +92,10 @@ def test_run_storage_backs_up_database_and_log(tmp_path, monkeypatch) -> None:
     }]
 
 
-def test_study_storage_prepares_and_backs_up_each_study(tmp_path, monkeypatch) -> None:
+def test_study_series_storage_prepares_and_backs_up_each_study(
+    tmp_path,
+    monkeypatch,
+) -> None:
     backup_calls = []
     setup = ColabSetup(
         drive_study_dir=tmp_path / "drive",
@@ -101,7 +109,7 @@ def test_study_storage_prepares_and_backs_up_each_study(tmp_path, monkeypatch) -
         lambda **kwargs: backup_calls.append(kwargs),
     )
 
-    storage = prepare_study_storage(setup)
+    storage = prepare_study_series_storage(setup)
 
     assert storage.database_path("s1") == setup.local_study_dir / "s1.db"
     assert storage.database_path("s2") == setup.local_study_dir / "s2.db"

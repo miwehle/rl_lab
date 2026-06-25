@@ -1,4 +1,4 @@
-"""Copy HPO run files between Colab and Google Drive."""
+"""Copy HPO database and log files between Colab and Google Drive."""
 
 import logging
 from pathlib import Path
