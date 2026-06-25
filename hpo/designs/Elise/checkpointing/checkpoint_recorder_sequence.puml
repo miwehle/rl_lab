@@ -1,28 +1,50 @@
 @startuml
-title Bestes Modell während des Trainings sichern
+title Bestes Modell waehrend des Trainings sichern
 
 hide footbox
 
-participant "objective.py" as Objective
-participant "VectorTrainer" as Trainer
-participant "CheckpointRecorder" as Recorder
-participant "model_store.py" as Store
-database "SQLite\nTrial-Attribute" as DB
-collections "Checkpoint-Dateien" as Files
+participant "objective\n(trainer per Hook: CheckpointingTrainer)" as Objective
+participant "checkpointing.py" as Checkpointing
+participant "trainer:CheckpointingTrainer" as Trainer
+participant "recorder:BestCheckpointRecorder" as Recorder
 
-Objective -> Trainer: train(config, recorder)
+Objective -> Checkpointing: for_trial(trial, training_config)
+create Recorder
+Checkpointing -> Recorder: new BestCheckpointRecorder(...)
+Checkpointing --> Objective: hooks
+
+Objective -> Checkpointing: hooks.make_trainer(env, seed, device, replay_memory_capacity)
+create Trainer
+Checkpointing -> Trainer: new CheckpointingTrainer(..., checkpoint_recorder)
+Checkpointing --> Objective: trainer
+
+Objective -> Trainer: train(training_config)
 
 loop pro Episode
-    Trainer -> Recorder: after_episode(q_net, returns)
+    note right of Trainer
+        train() ruft den Recorder ueber
+        den Trainer-Hook nach Episodenabschluss auf.
+    end note
+    Trainer -> Recorder: after_episode(trainer, episode_returns)
     alt Fenster-Score verbessert
-        Recorder -> Store: save_q_net(q_net, metadata)
-        Store -> Files: state_dict + metadata speichern
-        Store --> Recorder: model_path
+        Recorder -> Checkpointing: save_model_checkpoint(q_net, path, metadata)
+        Checkpointing --> Recorder: checkpoint gespeichert
     end
 end
 
-Trainer --> Objective: TrainingResult(best_model_path, best_score)
-Objective -> DB: trial.user_attrs speichern
-Objective --> Objective: score zurückgeben
+Trainer --> Objective: TrainingResult
+
+Objective -> Checkpointing: hooks.q_net_for_evaluation(result.q_net, trainer.device)
+alt bester Checkpoint vorhanden
+    Checkpointing -> Checkpointing: load_model_checkpoint(q_net, path, device)
+end
+Checkpointing --> Objective: q_net
+
+Objective -> Checkpointing: hooks.save_trial_attrs(save)
+alt bester Checkpoint vorhanden
+    Checkpointing --> Objective: checkpoint attrs gespeichert
+end
+
+Objective --> Objective: score zurueckgeben
 
 @enduml
