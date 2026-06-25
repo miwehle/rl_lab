@@ -43,6 +43,7 @@ Use `hide footbox` in sequence diagrams.
 Use plain lifeline heads plus `url of Alias is [[...]]` for clickable participants, not inline-linked participant labels.
 Use message links only when they point to one concrete function or API, and keep at most one link per message.
 Prefer local `vscode://file/...` links for workspace code; use external API links sparingly for established external concepts such as Optuna, Gymnasium, and PyTorch.
+Centralize the local workspace URI in `puml_links.iuml` and use `WORKSPACE_ROOT/...` in PUML links instead of repeating the absolute path.
 Do not add extra notes just to hold secondary links.
 Use `\n` in long labels when it keeps the diagram narrow and the link still works.
 Use `update pumls` or `aktualisiere pumls` as an explicit maintenance command.

@@ -1,5 +1,7 @@
 @startuml
 
+!include ../puml_links.iuml
+
 hide footbox
 
 participant "trainer:VectorTrainer" as trainer
@@ -9,14 +11,14 @@ participant "q_net:DQN" as q_net
 participant "target_net:DQN" as target_net
 participant "optimizer:AdamW" as optimizer
 
-url of trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:115:1]]
-url of memory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:51:1]]
-url of q_net is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:8:1]]
-url of target_net is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:8:1]]
+url of trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:115:1]]
+url of memory is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:51:1]]
+url of q_net is [[WORKSPACE_ROOT/dqn/src/dqn/model.py:8:1]]
+url of target_net is [[WORKSPACE_ROOT/dqn/src/dqn/model.py:8:1]]
 url of env is [[https://gymnasium.farama.org/api/vector/]]
 url of optimizer is [[https://docs.pytorch.org/docs/stable/generated/torch.optim.AdamW.html]]
 
-[-> trainer : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(config)]]
+[-> trainer : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:166:1 train(config)]]
 activate trainer
 
 trainer -> env : [[https://gymnasium.farama.org/api/vector/ reset()]]
@@ -29,21 +31,21 @@ activate env
 env --> trainer : observations, rewards, done
 deactivate env
 
-trainer -> memory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:70:1 push_batch(...)]]
+trainer -> memory : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:70:1 push_batch(...)]]
 activate memory
 deactivate memory
 
-trainer -> memory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:100:1 sample(batch_size, device)]]
+trainer -> memory : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:100:1 sample(batch_size, device)]]
 activate memory
 memory --> trainer : replay batch
 deactivate memory
 
-trainer -> q_net : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:15:1 q_net(states)]]
+trainer -> q_net : [[WORKSPACE_ROOT/dqn/src/dqn/model.py:15:1 q_net(states)]]
 activate q_net
 q_net --> trainer : Q-values
 deactivate q_net
 
-trainer -> target_net : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:15:1 target_net(next_states)]]
+trainer -> target_net : [[WORKSPACE_ROOT/dqn/src/dqn/model.py:15:1 target_net(next_states)]]
 activate target_net
 target_net --> trainer : target Q-values
 deactivate target_net

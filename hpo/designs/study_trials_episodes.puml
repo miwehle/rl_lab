@@ -1,4 +1,7 @@
 @startuml
+
+!include ../../puml_links.iuml
+
 title Optuna Study, Trials und Gym Episodes
 
 hide footbox
@@ -11,43 +14,43 @@ participant "study:Optuna Study" as Study #FFF2CC
 participant "trial:Optuna Trial" as Trial #FFF2CC
 participant "trainer" as Trainer
 
-url of Runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:52:1]]
-url of Objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1]]
-url of Study is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1]]
-url of Trial is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1]]
-url of Trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:115:1]]
+url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:52:1]]
+url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1]]
+url of Study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:279:1]]
+url of Trial is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1]]
+url of Trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:115:1]]
 
 create Runner
 Caller -> Runner: new StudyRunner(...)
 
-Caller -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:71:1 run(...)]]
+Caller -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:71:1 run(...)]]
 activate Runner
 
 create Objective
-Runner -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1 create_objective(...)]]
+Runner -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1 create_objective(...)]]
 
 create Study
-Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1 create_study(..., load_if_exists=True)]]
+Runner -> Study: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:279:1 create_study(..., load_if_exists=True)]]
 
-Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective)]]
+Runner -> Study: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:173:1 optimize(objective)]]
 activate Study
 
 loop pro Trial
     create Trial
     Study -> Trial: [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html <<create>>]]
 
-    Study -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]]
+    Study -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1 objective(trial)]]
     activate Objective
 
-    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:143:1 suggest_*(...)]]
+    Objective -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:143:1 suggest_*(...)]]
     activate Trial
     Trial --> Objective: parameter value
     deactivate Trial
 
     create Trainer
-    Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:156:1 make_trainer(...)]]
+    Objective -> Trainer: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:156:1 make_trainer(...)]]
 
-    Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
+    Objective -> Trainer: [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
     activate Trainer
 
     loop pro Gym Episode
@@ -58,7 +61,7 @@ loop pro Trial
     Trainer --> Objective: TrainingResult
     deactivate Trainer
 
-    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:186:1 set_user_attr(...)]]
+    Objective -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:186:1 set_user_attr(...)]]
     activate Trial
     deactivate Trial
 
@@ -73,8 +76,8 @@ end note
 
 deactivate Study
 
-Runner -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:114:1 incumbent_score aktualisieren]]
-Runner -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:123:1 study in studies ablegen]]
+Runner -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:114:1 incumbent_score aktualisieren]]
+Runner -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:123:1 study in studies ablegen]]
 
 deactivate Runner
 
