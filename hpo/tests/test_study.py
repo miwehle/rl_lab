@@ -6,7 +6,7 @@ import pytest
 from hpo import study as study_module
 from hpo.study import Baseline, StudyRunner, run_study, select_robust_best
 from hpo.study_reporting import RobustnessProgress
-from hpo_helpers import objective_config
+from helper.helpers import objective_config
 
 
 @dataclass

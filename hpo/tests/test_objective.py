@@ -7,7 +7,7 @@ import torch
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
 from hpo import objective as objective_module
 from hpo.objective import evaluate_greedy_q_net
-from hpo_helpers import objective_config
+from helper.helpers import objective_config
 
 
 class FakeTrial:

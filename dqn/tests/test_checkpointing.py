@@ -8,7 +8,7 @@ import torch
 from dqn.checkpointing import load_checkpoint, save_checkpoint
 from dqn.training import TrainingConfig
 from dqn.tuned_training import TunedTrainer, TuningConfig
-from dqn_helpers import model_hash
+from helpers import model_hash
 
 
 def tuning_config(**overrides) -> TuningConfig:

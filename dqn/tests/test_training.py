@@ -5,7 +5,7 @@ import pytest
 
 from dqn.model import DQN
 from dqn.training import Trainer, TrainingConfig, TrainingResult
-from dqn_helpers import model_hash, ema
+from helpers import model_hash, ema
 
 MAX_SMOKE_TEST_SECONDS = 6.0
 MAX_TEST_SECONDS = 30.0
