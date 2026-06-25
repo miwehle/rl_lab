@@ -51,6 +51,9 @@ deactivate environment_factory
 
 objective -> trainer : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
 activate trainer
+note right of trainer
+    [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/vector_training.puml:1:1 details]]
+end note
 trainer --> objective : training result
 deactivate trainer
 
