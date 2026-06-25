@@ -13,16 +13,18 @@ url of trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src
 url of memory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:51:1]]
 url of q_net is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:8:1]]
 url of target_net is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/model.py:8:1]]
+url of env is [[https://gymnasium.farama.org/api/vector/]]
+url of optimizer is [[https://docs.pytorch.org/docs/stable/generated/torch.optim.AdamW.html]]
 
 [-> trainer : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(config)]]
 activate trainer
 
-trainer -> env : reset()
+trainer -> env : [[https://gymnasium.farama.org/api/vector/ reset()]]
 activate env
 env --> trainer : observations
 deactivate env
 
-trainer -> env : step(actions)
+trainer -> env : [[https://gymnasium.farama.org/api/vector/ step(actions)]]
 activate env
 env --> trainer : observations, rewards, done
 deactivate env
@@ -46,7 +48,7 @@ activate target_net
 target_net --> trainer : target Q-values
 deactivate target_net
 
-trainer -> optimizer : step()
+trainer -> optimizer : [[https://docs.pytorch.org/docs/stable/generated/torch.optim.AdamW.html step()]]
 activate optimizer
 deactivate optimizer
 
