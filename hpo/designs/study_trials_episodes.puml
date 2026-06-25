@@ -5,39 +5,46 @@ hide footbox
 
 actor "Aufrufer" as Caller
 
-create participant "study_runner" as Runner
+participant "study_runner" as Runner
+participant "objective" as Objective
+participant "study:Optuna Study" as Study #FFF2CC
+participant "trial:Optuna Trial" as Trial #FFF2CC
+participant "trainer" as Trainer
+
 url of Runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:52:1]]
+url of Objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1]]
+url of Study is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1]]
+url of Trial is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1]]
+url of Trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:115:1]]
+
+create Runner
 Caller -> Runner: new StudyRunner(...)
 
 Caller -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:71:1 run(...)]]
 activate Runner
 
-create participant "objective" as Objective
-url of Objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1]]
+create Objective
 Runner -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1 create_objective(...)]]
 
-create participant "study:Optuna Study" as Study #FFF2CC
-url of Study is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1]]
-Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1 create_study(..., load_if_exists=True)]]
+create Study
+Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1 create_study(..., load_if_exists=True)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.create_study.html Optuna create_study]]
 
-Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective)]]
+Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html Optuna Study]]
 activate Study
 
 loop pro Trial
-    create participant "trial:Optuna Trial" as Trial #FFF2CC
-    url of Trial is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1]]
-    Study -> Trial: <<create>>
+    create Trial
+    Study -> Trial: [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html <<create>>]]
 
-    Study -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]]
+    Study -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html Optuna Trial]]
     activate Objective
 
-    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:143:1 suggest_*(...)]]
+    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:143:1 suggest_*(...)]] [[https://optuna.readthedocs.io/en/stable/tutorial/10_key_features/002_configurations.html Optuna Search Space]]
     activate Trial
     Trial --> Objective: parameter value
     deactivate Trial
 
-    create participant "trainer" as Trainer
-    url of Trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:115:1]]
+    create Trainer
     Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:156:1 make_trainer(...)]]
 
     Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
@@ -51,7 +58,7 @@ loop pro Trial
     Trainer --> Objective: TrainingResult
     deactivate Trainer
 
-    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:186:1 set_user_attr(...)]]
+    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:186:1 set_user_attr(...)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html Optuna Trial]]
     activate Trial
     deactivate Trial
 

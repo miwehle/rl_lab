@@ -13,7 +13,7 @@ url of Checkpointing is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/h
 url of Trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:72:1]]
 url of Recorder is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:23:1]]
 
-Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:115:1 for_trial(trial, training_config)]]
+Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:115:1 for_trial(trial, training_config)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html Optuna Trial]]
 create Recorder
 Checkpointing -> Recorder: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:120:1 new BestCheckpointRecorder(...)]]
 Checkpointing --> Objective: hooks
@@ -45,7 +45,7 @@ alt bester Checkpoint vorhanden
 end
 Checkpointing --> Objective: q_net
 
-Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:166:1 hooks.save_trial_attrs(save)]]
+Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:166:1 hooks.save_trial_attrs(save)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html Optuna Trial]]
 alt bester Checkpoint vorhanden
     Checkpointing --> Objective: checkpoint attrs gespeichert
 end

@@ -26,15 +26,17 @@ activate runner
 runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:127:1 run_study(...)]]
 activate study_module
 
-study_module -> study : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective, n_trials=1)]]
+study_module -> study : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1 _create_study(...)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.create_study.html Optuna create_study]]
+
+study_module -> study : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective, n_trials=1)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html Optuna Study]]
 activate study
 
-study -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]]
+study -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]] [[https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html Optuna Trial]]
 activate objective
 
 objective -> suggest_parameter_values : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:143:1 suggest_parameter_values(trial, incumbent_params)]]
 activate suggest_parameter_values
-suggest_parameter_values -> trial : suggest_*(...)
+suggest_parameter_values -> trial : [[https://optuna.readthedocs.io/en/stable/tutorial/10_key_features/002_configurations.html suggest_*(...)]]
 activate trial
 trial --> suggest_parameter_values : parameter value
 deactivate trial
