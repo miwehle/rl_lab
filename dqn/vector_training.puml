@@ -52,7 +52,7 @@ trainer -> optimizer : [[https://docs.pytorch.org/docs/stable/generated/torch.op
 activate optimizer
 deactivate optimizer
 
-trainer -->] : VectorTrainingResult
+trainer -->[ : VectorTrainingResult
 deactivate trainer
 
 @enduml
