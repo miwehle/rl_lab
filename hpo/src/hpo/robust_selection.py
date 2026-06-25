@@ -113,11 +113,11 @@ def _top_complete_trials(study: Any, top_n: int) -> list[Any]:
 
 
 class _FixedParamTrial:
-    """Stand-in for an Optuna Trial during robustness evaluation.
+    """Double for an Optuna Trial during robustness evaluation.
 
-    It replays fixed suggested HP values, but gets its own trial number for
-    checkpoint files, so robustness evaluation can use the same objective and
-    checkpointing chain as normal training trials.
+    It provides a fixed HP set through the suggest_* methods, but gets its own
+    trial number for checkpoint files, so robustness evaluation can use the same
+    objective and checkpointing chain as normal training trials.
     """
 
     def __init__(
