@@ -32,10 +32,14 @@ def select_robust_best(
 
     best_params = None
     best_mean = float("-inf")
+    robustness_checkpoints = []
     candidate_seed_scores = [
         [float(trial.value)]
         for trial in candidates
     ]
+
+    def save(key, value):
+        study.set_user_attr(key, value)
 
     def score_candidate(
         trial: Any,
@@ -72,7 +76,15 @@ def select_robust_best(
                 checkpoint_subdir="robustness",
                 checkpoint_stem=f"trial_{trial.number:04d}_seed_{seed_offset}",
             )
-            scores.append(objective(fixed_trial))
+            score = objective(fixed_trial)
+            scores.append(score)
+            robustness_checkpoints.append(
+                {
+                    "trial_number": trial.number,
+                    "seed_offset": seed_offset,
+                    "score": score,
+                } | fixed_trial.user_attrs
+            )
             candidate_seed_scores[candidate_index - 1] = list(scores)
             if progress_fn is not None:
                 progress_fn(
@@ -98,8 +110,9 @@ def select_robust_best(
             best_params = params
 
     selected_params = best_params or {}
-    study.set_user_attr("robust_best_params", selected_params)
-    study.set_user_attr("robust_best_score", best_mean)
+    save("robust_best_params", selected_params)
+    save("robust_best_score", best_mean)
+    save("robustness_checkpoints", robustness_checkpoints)
     return selected_params
 
 

@@ -56,6 +56,11 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     def fake_create_objective(**_kwargs):
         def objective(trial):
             fixed_trials.append(trial)
+            trial.set_user_attr(
+                "checkpoint_path",
+                f"{trial.checkpoint_subdir}/{trial.checkpoint_stem}_best.pt",
+            )
+            trial.set_user_attr("checkpoint_score", trial.params["x"] * 10)
             return float(trial.params["x"] * 100)
 
         return objective
@@ -100,6 +105,22 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     assert progress_calls[-1].candidate_seed_scores == [
         [100.0, 100.0],
         [90.0, 200.0],
+    ]
+    assert study.user_attrs["robustness_checkpoints"] == [
+        {
+            "trial_number": 0,
+            "seed_offset": 1,
+            "score": 100.0,
+            "checkpoint_path": "robustness/trial_0000_seed_1_best.pt",
+            "checkpoint_score": 10,
+        },
+        {
+            "trial_number": 1,
+            "seed_offset": 1,
+            "score": 200.0,
+            "checkpoint_path": "robustness/trial_0001_seed_1_best.pt",
+            "checkpoint_score": 20,
+        },
     ]
     assert [
         (trial.number, trial.checkpoint_subdir, trial.checkpoint_stem)
