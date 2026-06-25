@@ -45,6 +45,10 @@ Use message links only when they point to one concrete function or API, and keep
 Prefer local `vscode://file/...` links for workspace code; use external API links sparingly for established external concepts such as Optuna, Gymnasium, and PyTorch.
 Do not add extra notes just to hold secondary links.
 Use `\n` in long labels when it keeps the diagram narrow and the link still works.
+Use `update pumls` or `aktualisiere pumls` as an explicit maintenance command.
+For that command, find all `.puml` files and refresh local `vscode://file/...:line:col` links semantically against the current workspace code.
+Do not check all PUML links on every code change; do it only when this command is requested or when directly editing a PUML file.
+After refreshing links, mechanically check that local targets exist, line numbers are valid, and messages do not contain multiple links.
 
 ### Alignment
 
