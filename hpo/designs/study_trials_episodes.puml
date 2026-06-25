@@ -1,0 +1,69 @@
+@startuml
+title Optuna Study, Trials und Gym Episodes
+
+hide footbox
+
+actor "Aufrufer" as Caller
+
+create participant "study_runner" as Runner
+Caller -> Runner: new StudyRunner(...)
+
+Caller -> Runner: run(...)
+activate Runner
+
+create participant "objective" as Objective
+Runner -> Objective: create_objective(...)
+
+create participant "study:Optuna Study" as Study #FFF2CC
+Runner -> Study: create_study(..., load_if_exists=True)
+
+Runner -> Study: optimize(objective)
+activate Study
+
+loop pro Trial
+    create participant "trial:Optuna Trial" as Trial #FFF2CC
+    Study -> Trial: <<create>>
+
+    Study -> Objective: objective(trial)
+    activate Objective
+
+    Objective -> Trial: suggest_*(...)
+    activate Trial
+    Trial --> Objective: parameter value
+    deactivate Trial
+
+    create participant "trainer" as Trainer
+    Objective -> Trainer: make_trainer(...)
+
+    Objective -> Trainer: train(training_config)
+    activate Trainer
+
+    loop pro Episode
+        note over Trainer #FFF2CC: Gym Episode
+        Trainer -> Trainer: env.reset(...), viele env.step(...)
+    end
+
+    Trainer --> Objective: TrainingResult
+    deactivate Trainer
+
+    Objective -> Trial: set_user_attr(...)
+    activate Trial
+    deactivate Trial
+
+    Objective --> Study: score
+    deactivate Objective
+end
+
+note right of Study
+    Optuna speichert den score
+    im Trial der Study.
+end note
+
+deactivate Study
+
+Runner -> Runner: incumbent_score aktualisieren
+Runner -> Runner: study in studies ablegen
+
+deactivate Runner
+
+@enduml
