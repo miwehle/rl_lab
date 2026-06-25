@@ -6,39 +6,44 @@ hide footbox
 actor "Aufrufer" as Caller
 
 create participant "study_runner" as Runner
+url of Runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:52:1]]
 Caller -> Runner: new StudyRunner(...)
 
-Caller -> Runner: run(...)
+Caller -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:71:1 run(...)]]
 activate Runner
 
 create participant "objective" as Objective
-Runner -> Objective: create_objective(...)
+url of Objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1]]
+Runner -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1 create_objective(...)]]
 
 create participant "study:Optuna Study" as Study #FFF2CC
-Runner -> Study: create_study(..., load_if_exists=True)
+url of Study is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1]]
+Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1 create_study(..., load_if_exists=True)]]
 
-Runner -> Study: optimize(objective)
+Runner -> Study: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective)]]
 activate Study
 
 loop pro Trial
     create participant "trial:Optuna Trial" as Trial #FFF2CC
+    url of Trial is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1]]
     Study -> Trial: <<create>>
 
-    Study -> Objective: objective(trial)
+    Study -> Objective: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]]
     activate Objective
 
-    Objective -> Trial: suggest_*(...)
+    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:143:1 suggest_*(...)]]
     activate Trial
     Trial --> Objective: parameter value
     deactivate Trial
 
     create participant "trainer" as Trainer
-    Objective -> Trainer: make_trainer(...)
+    url of Trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:115:1]]
+    Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:156:1 make_trainer(...)]]
 
-    Objective -> Trainer: train(training_config)
+    Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
     activate Trainer
 
-    loop pro Episode
+    loop pro Gym Episode
         note over Trainer #FFF2CC: Gym Episode
         Trainer -> Trainer: env.reset(...), viele env.step(...)
     end
@@ -46,7 +51,7 @@ loop pro Trial
     Trainer --> Objective: TrainingResult
     deactivate Trainer
 
-    Objective -> Trial: set_user_attr(...)
+    Objective -> Trial: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:186:1 set_user_attr(...)]]
     activate Trial
     deactivate Trial
 
@@ -61,8 +66,8 @@ end note
 
 deactivate Study
 
-Runner -> Runner: incumbent_score aktualisieren
-Runner -> Runner: study in studies ablegen
+Runner -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:114:1 incumbent_score aktualisieren]]
+Runner -> Runner: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:123:1 study in studies ablegen]]
 
 deactivate Runner
 

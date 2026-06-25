@@ -6,58 +6,57 @@ participant ":StudyRunner" as runner
 participant "study.py" as study_module
 participant "study:Study" as study
 participant "objective.py" as objective
-participant ":SearchSpace" as search_space
+participant ":SuggestParameterValues" as suggest_parameter_values
 participant ":EnvironmentFactory" as environment_factory
 participant ":VectorTrainer" as trainer
 participant ":Trial" as trial
 
-url of runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:53:1]]
+url of runner is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:52:1]]
 url of study_module is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:1:1]]
-url of objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:1:1]]
-url of search_space is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:18:1]]
-url of environment_factory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:28:1]]
-url of trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:112:1]]
+url of study is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:279:1]]
+url of objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:134:1]]
+url of suggest_parameter_values is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:19:1]]
+url of environment_factory is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:23:1]]
+url of trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:115:1]]
+url of trial is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1]]
 
-[-> runner : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:73:1 run(name, search_space, n_trials)]]
+[-> runner : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:71:1 run(study_name, suggest_parameter_values, n_trials)]]
 activate runner
 
-runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:131:1 run_study(...)]]
+runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:127:1 run_study(...)]]
 activate study_module
 
-study_module -> study : optimize(objective, ...)
+study_module -> study : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:173:1 optimize(objective, n_trials=1)]]
 activate study
 
-study -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:69:1 objective(trial)]]
+study -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1 objective(trial)]]
 activate objective
 
-objective -> search_space : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:19:1 training_config(trial, incumbent_params)]]
-activate search_space
-search_space -> trial : suggest_*(...)
+objective -> suggest_parameter_values : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:143:1 suggest_parameter_values(trial, incumbent_params)]]
+activate suggest_parameter_values
+suggest_parameter_values -> trial : suggest_*(...)
 activate trial
-trial --> search_space : parameter value
+trial --> suggest_parameter_values : parameter value
 deactivate trial
-search_space --> objective : training_config
-deactivate search_space
+suggest_parameter_values --> objective : trial.params ergaenzt
+deactivate suggest_parameter_values
 
-objective -> search_space : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:23:1 replay_memory_capacity(trial, incumbent_params)]]
-activate search_space
-search_space --> objective : replay memory capacity
-deactivate search_space
+objective -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:205:1 vector_training_config(params)]]
 
-objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:29:1 make_training_env(num_envs)]]
+objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:23:1 make_training_env(num_envs)]]
 activate environment_factory
 deactivate environment_factory
 
-objective -> trainer : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:163:1 train(training_config)]]
+objective -> trainer : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
 activate trainer
 trainer --> objective : training result
 deactivate trainer
 
-objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:31:1 evaluation_envs()]]
+objective -> environment_factory : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:26:1 evaluation_envs()]]
 activate environment_factory
 deactivate environment_factory
 
-objective -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:129:1 evaluate_greedy_q_net(...)]]
+objective -> objective : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:221:1 evaluate_greedy_q_net(...)]]
 
 objective --> study : mean world score
 deactivate objective
@@ -66,12 +65,13 @@ deactivate study
 study_module --> runner : study
 deactivate study_module
 
-runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:196:1 select_robust_best(...)]]
+runner -> study_module : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:182:1 select_robust_best(...)]]
 activate study_module
 study_module --> runner : selected parameters
 deactivate study_module
 
-runner -->] : study and selected parameters
+runner -> runner : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:114:1 incumbent_score aktualisieren]]
+runner -> runner : [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/study.py:123:1 study in studies ablegen]]
 deactivate runner
 
 @enduml

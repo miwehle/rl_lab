@@ -8,39 +8,44 @@ participant "checkpointing.py" as Checkpointing
 participant "trainer:CheckpointingTrainer" as Trainer
 participant "recorder:BestCheckpointRecorder" as Recorder
 
-Objective -> Checkpointing: for_trial(trial, training_config)
+url of Objective is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/objective.py:142:1]]
+url of Checkpointing is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:1:1]]
+url of Trainer is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:72:1]]
+url of Recorder is [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:23:1]]
+
+Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:115:1 for_trial(trial, training_config)]]
 create Recorder
-Checkpointing -> Recorder: new BestCheckpointRecorder(...)
+Checkpointing -> Recorder: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:120:1 new BestCheckpointRecorder(...)]]
 Checkpointing --> Objective: hooks
 
-Objective -> Checkpointing: hooks.make_trainer(env, seed, device, replay_memory_capacity)
+Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:145:1 hooks.make_trainer(env, seed, device, replay_memory_capacity)]]
 create Trainer
-Checkpointing -> Trainer: new CheckpointingTrainer(..., checkpoint_recorder)
+Checkpointing -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:153:1 new CheckpointingTrainer(..., checkpoint_recorder)]]
 Checkpointing --> Objective: trainer
 
-Objective -> Trainer: train(training_config)
+Objective -> Trainer: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/dqn/src/dqn/vector_training.py:166:1 train(training_config)]]
 
 loop pro Episode
     note right of Trainer
         train() ruft den Recorder ueber
         den Trainer-Hook nach Episodenabschluss auf.
     end note
-    Trainer -> Recorder: after_episode(trainer, episode_returns)
+    Trainer -> Recorder: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:49:1 after_episode(trainer, episode_returns)]]
     alt Fenster-Score verbessert
-        Recorder -> Checkpointing: checkpointing.save_checkpoint(q_net, path, metadata)
+        Recorder -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:177:1 checkpointing.save_checkpoint(q_net, path, metadata)]]
         Checkpointing --> Recorder: checkpoint gespeichert
     end
 end
 
 Trainer --> Objective: TrainingResult
 
-Objective -> Checkpointing: hooks.q_net_for_evaluation(result.q_net, trainer.device)
+Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:161:1 hooks.q_net_for_evaluation(result.q_net, trainer.device)]]
 alt bester Checkpoint vorhanden
-    Checkpointing -> Checkpointing: checkpointing.load_checkpoint(q_net, path, device)
+    Checkpointing -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:194:1 checkpointing.load_checkpoint(q_net, path, device)]]
 end
 Checkpointing --> Objective: q_net
 
-Objective -> Checkpointing: hooks.save_trial_attrs(save)
+Objective -> Checkpointing: [[vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab/hpo/src/hpo/checkpointing.py:166:1 hooks.save_trial_attrs(save)]]
 alt bester Checkpoint vorhanden
     Checkpointing --> Objective: checkpoint attrs gespeichert
 end
