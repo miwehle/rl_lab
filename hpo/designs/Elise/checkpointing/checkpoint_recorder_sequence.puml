@@ -27,7 +27,7 @@ loop pro Episode
     end note
     Trainer -> Recorder: after_episode(trainer, episode_returns)
     alt Fenster-Score verbessert
-        Recorder -> Checkpointing: save_model_checkpoint(q_net, path, metadata)
+        Recorder -> Checkpointing: checkpointing.save_model_checkpoint(q_net, path, metadata)
         Checkpointing --> Recorder: checkpoint gespeichert
     end
 end
