@@ -63,7 +63,7 @@ class BestCheckpointRecorder:
             "episode": episode,
             "window": self.window,
         }
-        save_model_checkpoint(trainer.q_net, self.path, metadata)
+        save_checkpoint(trainer.q_net, self.path, metadata)
         self.best_score = score
         self.best_episode = episode
         self.best_checkpoint = ModelCheckpoint(self.path, metadata)
@@ -160,7 +160,7 @@ class ObjectiveHooks:
 
     def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any:
         if self.recorder.best_checkpoint is not None:
-            load_model_checkpoint(q_net, self.recorder.best_checkpoint.path, device)
+            load_checkpoint(q_net, self.recorder.best_checkpoint.path, device)
         return q_net
 
     def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None:
@@ -174,7 +174,7 @@ class ObjectiveHooks:
         save("checkpoint_window", metadata["window"])
 
 
-def save_model_checkpoint(
+def save_checkpoint(
     q_net: nn.Module,
     path: str | Path,
     metadata: dict[str, Any] | None = None,
@@ -191,7 +191,7 @@ def save_model_checkpoint(
     )
 
 
-def load_model_checkpoint(
+def load_checkpoint(
     q_net: nn.Module,
     path: str | Path,
     device=None,

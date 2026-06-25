@@ -5,7 +5,7 @@ from dqn.vector_training import VectorTrainingConfig
 from hpo.checkpointing import (
     BestCheckpointRecorder,
     ObjectiveHookFactory,
-    load_model_checkpoint,
+    load_checkpoint,
 )
 
 
@@ -65,7 +65,7 @@ def test_best_checkpoint_recorder_saves_best_full_window(tmp_path) -> None:
     recorder.after_episode(trainer, [1.0, 3.0, 4.0])
 
     restored = torch.nn.Linear(1, 1)
-    metadata = load_model_checkpoint(restored, path, torch.device("cpu"))
+    metadata = load_checkpoint(restored, path, torch.device("cpu"))
 
     assert first_weight(restored) == pytest.approx(5.0)
     assert metadata["trial_number"] == 7

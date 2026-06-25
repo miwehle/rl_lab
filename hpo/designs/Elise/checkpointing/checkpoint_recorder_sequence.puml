@@ -27,7 +27,7 @@ loop pro Episode
     end note
     Trainer -> Recorder: after_episode(trainer, episode_returns)
     alt Fenster-Score verbessert
-        Recorder -> Checkpointing: checkpointing.save_model_checkpoint(q_net, path, metadata)
+        Recorder -> Checkpointing: checkpointing.save_checkpoint(q_net, path, metadata)
         Checkpointing --> Recorder: checkpoint gespeichert
     end
 end
@@ -36,7 +36,7 @@ Trainer --> Objective: TrainingResult
 
 Objective -> Checkpointing: hooks.q_net_for_evaluation(result.q_net, trainer.device)
 alt bester Checkpoint vorhanden
-    Checkpointing -> Checkpointing: load_model_checkpoint(q_net, path, device)
+    Checkpointing -> Checkpointing: checkpointing.load_checkpoint(q_net, path, device)
 end
 Checkpointing --> Objective: q_net
 
