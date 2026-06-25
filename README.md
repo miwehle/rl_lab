@@ -30,6 +30,18 @@ $\alpha$ is the learning rate (controlling how strongly the TD error updates the
 
 TD stands for temporal difference.
 
+
+## UML diagrams
+
+The UML diagrams contain links to jump to the corresponding line of code. To make this work, add this file to your workspace:
+
+> rl_lab/puml_links.iuml
+
+Content: Absolute path to your workspace root.
+
+Example:
+> !define WORKSPACE_ROOT vscode://file/C:/Users/mwehle/Documents/_P/KI/rl_lab
+
 ## References
 
 [MIT Intro to ML](https://introml.mit.edu/notes/reinforcement_learning.html)
