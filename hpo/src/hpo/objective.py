@@ -10,6 +10,7 @@ import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.lunar_lander.logging import log_call
+from hpo.params import HP
 
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,6 @@ logger = logging.getLogger(__name__)
 
 class SuggestParameterValues(Protocol):
     def __call__(self, trial: Any, incumbent_params: dict[str, Any]) -> None: ...
-
-
-REPLAY_MEMORY_CAPACITY = "replay_memory_capacity"
 
 
 class EnvironmentFactory(Protocol):
@@ -145,7 +143,7 @@ def create_objective(
         suggest_parameter_values(trial, incumbent_params)
         params = incumbent_params | trial.params
         training_config = vector_training_config(params)
-        replay_memory_capacity = params[REPLAY_MEMORY_CAPACITY]
+        replay_memory_capacity = params[HP.REPLAY_MEMORY_CAPACITY]
         trial_seed = (
             None
             if config.training_seed is None
@@ -206,16 +204,16 @@ def create_objective(
 
 def vector_training_config(params: dict[str, Any]) -> VectorTrainingConfig:
     return VectorTrainingConfig(
-        num_episodes=params["num_episodes"],
-        batch_size=params["batch_size"],
-        gamma=params["gamma"],
+        num_episodes=params[HP.NUM_EPISODES],
+        batch_size=params[HP.BATCH_SIZE],
+        gamma=params[HP.GAMMA],
         eps_start=1.0,
-        eps_end=params["eps_end"],
-        eps_decay=params["eps_decay"],
-        tau=params["tau"],
-        learning_rate=params["learning_rate"],
-        learning_starts=params["learning_starts"],
-        optimize_every=params["optimize_every"],
+        eps_end=params[HP.EPS_END],
+        eps_decay=params[HP.EPS_DECAY],
+        tau=params[HP.TAU],
+        learning_rate=params[HP.LEARNING_RATE],
+        learning_starts=params[HP.LEARNING_STARTS],
+        optimize_every=params[HP.OPTIMIZE_EVERY],
     )
 
 
