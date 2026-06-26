@@ -10,6 +10,7 @@ The dashboard is the visual interface between the human and the running HPO:
 """
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Literal
 
 from hpo.study_reporting import (
@@ -144,12 +145,20 @@ class Dashboard(StudySeriesReporter):
 
     render_mode="safe" clears and redisplays the whole dashboard. This is robust
     in notebooks and Colab, but can visibly flicker during live training.
+    training_update_interval_seconds throttles live training updates.
     """
 
-    def __init__(self, *, render_mode: DashboardRenderMode = "safe") -> None:
+    def __init__(
+        self,
+        *,
+        render_mode: DashboardRenderMode = "safe",
+        training_update_interval_seconds: float = 5.0,
+    ) -> None:
         if render_mode != "safe":
             raise ValueError(f"unsupported dashboard render_mode: {render_mode}")
         self.render_mode = render_mode
+        self.training_update_interval_seconds = training_update_interval_seconds
+        self._last_training_update = 0.0
         self._context: DashboardContext | None = None
         self._series: StudySeriesContext | None = None
 
@@ -192,6 +201,14 @@ class Dashboard(StudySeriesReporter):
     def report_training_progress(self, progress: TrainingProgress) -> None:
         if self._context is None:
             return
+        now = perf_counter()
+        is_final = len(progress.episode_returns) >= progress.target_episodes
+        if (
+            not is_final
+            and now - self._last_training_update < self.training_update_interval_seconds
+        ):
+            return
+        self._last_training_update = now
         self._show(training_progress=progress)
 
     def _show(self, training_progress: TrainingProgress | None = None) -> None:

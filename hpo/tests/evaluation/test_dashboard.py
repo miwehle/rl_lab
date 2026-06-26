@@ -113,6 +113,29 @@ def test_show_dashboard_during_training_reuses_current_context(monkeypatch) -> N
     assert displayed[-1][1]["training_progress"] == progress
 
 
+def test_dashboard_throttles_training_updates_but_shows_final(monkeypatch) -> None:
+    study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
+    displayed = []
+    times = iter([10.0, 11.0, 12.0])
+    monkeypatch.setattr(dashboard, "perf_counter", lambda: next(times))
+    monkeypatch.setattr(dashboard, "build_dashboard", lambda **kwargs: kwargs)
+    monkeypatch.setattr(dashboard, "_display", displayed.append)
+    monkeypatch.setattr(dashboard, "_clear_output", lambda **_kwargs: None)
+    reporter = Dashboard(training_update_interval_seconds=5.0)
+    reporter.set_study_series_context(studies=[study], incumbent_params={})
+    reporter.report_optimization(study, target_trials=40)
+
+    reporter.report_training_progress(TrainingProgress(1, 3, [1.0]))
+    reporter.report_training_progress(TrainingProgress(1, 3, [1.0, 2.0]))
+    reporter.report_training_progress(TrainingProgress(1, 3, [1.0, 2.0, 3.0]))
+
+    training_updates = [
+        item["training_progress"] for item in displayed if item["training_progress"]
+    ]
+    assert len(training_updates) == 2
+    assert training_updates[-1].episode_returns == [1.0, 2.0, 3.0]
+
+
 def test_dashboard_contains_fixed_four_panel_layout() -> None:
     study = FakeStudy(
         trials=[
