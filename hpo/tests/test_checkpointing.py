@@ -103,6 +103,42 @@ def test_checkpointing_objective_hook_factory_reports_study_attrs(tmp_path) -> N
     }
 
 
+def test_checkpointing_objective_hook_factory_copies_with_min_score(tmp_path) -> None:
+    factory = ObjectiveHookFactory(tmp_path, window=50, min_score=100.0)
+
+    copied = factory.with_min_score(120.0)
+
+    assert copied is not factory
+    assert copied.min_score == pytest.approx(120.0)
+    assert factory.min_score == pytest.approx(100.0)
+    assert copied.with_min_score(90.0).min_score == pytest.approx(120.0)
+
+
+def test_checkpointing_objective_hooks_create_training_plotter(tmp_path) -> None:
+    progress_calls = []
+    hooks = ObjectiveHookFactory(
+        tmp_path,
+        window=2,
+        min_score=10.0,
+    ).with_training_progress(progress_calls.append).for_trial(
+        FakeTrial(),
+        training_config(),
+    )
+    trainer = FakeTrainer()
+
+    plotter = hooks.training_plotter()
+    assert plotter is not None
+
+    plotter.plot_returns([1.0])
+    hooks.recorder.after_episode(trainer, [10.0, 20.0])
+    plotter.plot_returns([10.0, 20.0])
+
+    assert progress_calls[0].checkpoint_window == 2
+    assert progress_calls[0].checkpoint_min_score == pytest.approx(10.0)
+    assert progress_calls[0].best_checkpoint_score is None
+    assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
+
+
 def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     tmp_path,
 ) -> None:
@@ -115,6 +151,9 @@ def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     set_weights(trainer.q_net, 7.0)
     hooks.recorder.after_episode(trainer, [1.0, 3.0])
     set_weights(trainer.q_net, 1.0)
+
+    assert hooks.checkpoint_window == 2
+    assert hooks.best_checkpoint_score == pytest.approx(2.0)
 
     q_net = hooks.q_net_for_evaluation(trainer.q_net, torch.device("cpu"))
     assert q_net is trainer.q_net

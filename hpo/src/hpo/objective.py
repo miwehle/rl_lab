@@ -48,6 +48,8 @@ class Hooks(Protocol):
 
     def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any: ...
 
+    def training_plotter(self) -> Any | None: ...
+
     def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None: ...
 
 
@@ -75,6 +77,9 @@ class DefaultHooks:
 
     def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any:
         return q_net
+
+    def training_plotter(self) -> Any | None:
+        return None
 
     def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None:
         pass
@@ -162,7 +167,7 @@ def create_objective(
 
             start_time = perf_counter()
             logger.info("VectorTrainer.train")
-            result = trainer.train(training_config)
+            result = trainer.train(training_config, plotter=hooks.training_plotter())
             wall_time_seconds = perf_counter() - start_time
         finally:
             env.close()

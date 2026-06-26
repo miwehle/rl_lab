@@ -8,7 +8,7 @@ from hpo.objective import ObjectiveConfig, create_objective
 from hpo.study_reporting import RobustnessProgress
 
 
-RobustnessProgressFn = Callable[[RobustnessProgress], None]
+RobustnessProgressFn = Callable[..., None]
 
 
 def select_robust_best(
@@ -48,16 +48,16 @@ def select_robust_best(
         scores = [float(trial.value)]
 
         for seed_index, seed_offset in enumerate(extra_seeds, start=1):
+            progress = _robustness_progress(
+                candidate_index=candidate_index,
+                candidate_count=len(candidates),
+                seed_index=seed_index,
+                seed_count=len(extra_seeds),
+                candidate_seed_scores=candidate_seed_scores,
+            )
             if progress_fn is not None:
-                progress_fn(
-                    RobustnessProgress(
-                        candidate_index=candidate_index,
-                        candidate_count=len(candidates),
-                        seed_index=seed_index,
-                        seed_count=len(extra_seeds),
-                        candidate_seed_scores=candidate_seed_scores,
-                    )
-                )
+                progress_fn(progress)
+
             objective = create_objective(
                 suggest_parameter_values=suggest_parameter_values,
                 incumbent_params=incumbent_params,
@@ -86,16 +86,15 @@ def select_robust_best(
                 } | fixed_trial.user_attrs
             )
             candidate_seed_scores[candidate_index - 1] = list(scores)
+            progress = _robustness_progress(
+                candidate_index=candidate_index,
+                candidate_count=len(candidates),
+                seed_index=seed_index,
+                seed_count=len(extra_seeds),
+                candidate_seed_scores=candidate_seed_scores,
+            )
             if progress_fn is not None:
-                progress_fn(
-                    RobustnessProgress(
-                        candidate_index=candidate_index,
-                        candidate_count=len(candidates),
-                        seed_index=seed_index,
-                        seed_count=len(extra_seeds),
-                        candidate_seed_scores=candidate_seed_scores,
-                    )
-                )
+                progress_fn(progress)
 
         mean_score = sum(scores) / len(scores)
         return dict(trial.params), mean_score
@@ -114,6 +113,23 @@ def select_robust_best(
     save("robust_best_score", best_mean)
     save("robustness_checkpoints", robustness_checkpoints)
     return selected_params
+
+
+def _robustness_progress(
+    *,
+    candidate_index: int,
+    candidate_count: int,
+    seed_index: int,
+    seed_count: int,
+    candidate_seed_scores: list[list[float]],
+) -> RobustnessProgress:
+    return RobustnessProgress(
+        candidate_index=candidate_index,
+        candidate_count=candidate_count,
+        seed_index=seed_index,
+        seed_count=seed_count,
+        candidate_seed_scores=[list(scores) for scores in candidate_seed_scores],
+    )
 
 
 def _top_complete_trials(study: Any, top_n: int) -> list[Any]:

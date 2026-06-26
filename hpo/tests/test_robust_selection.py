@@ -3,8 +3,9 @@ from dataclasses import dataclass, field
 import pytest
 
 from hpo import robust_selection as robust_selection_module
+from hpo.checkpointing import ObjectiveHookFactory
 from hpo.robust_selection import select_robust_best
-from hpo.study_reporting import RobustnessProgress
+from hpo.study_reporting import RobustnessProgress, TrainingProgress
 from common import objective_config
 
 
@@ -129,6 +130,61 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         (0, "robustness", "trial_0000_seed_1"),
         (1, "robustness", "trial_0001_seed_1"),
     ]
+
+
+def test_select_robust_best_reports_training_progress(monkeypatch, tmp_path) -> None:
+    study = FakeStudy(
+        trials=[FakeTrial(0, 100.0, {"x": 1})],
+    )
+    training_calls = []
+    progress_calls = []
+
+    def fake_create_objective(**kwargs):
+        def objective(_trial):
+            kwargs["config"].hooks.training_progress_fn(
+                TrainingProgress(
+                    trial_number=0,
+                    target_episodes=10,
+                    episode_returns=[1.0],
+                )
+            )
+            return 110.0
+
+        return objective
+
+    monkeypatch.setattr(
+        robust_selection_module,
+        "create_objective",
+        fake_create_objective,
+    )
+
+    def record_progress(progress):
+        progress_calls.append(progress)
+
+    select_robust_best(
+        study=study,
+        suggest_parameter_values=object(),
+        incumbent_params={},
+        objective_cfg=objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+            hooks=ObjectiveHookFactory(
+                tmp_path,
+                window=2,
+            ).with_training_progress(training_calls.append),
+        ),
+        extra_seeds=(1,),
+        progress_fn=record_progress,
+    )
+
+    assert len(training_calls) == 1
+    assert progress_calls[0] == RobustnessProgress(
+        candidate_index=1,
+        candidate_count=1,
+        seed_index=1,
+        seed_count=1,
+        candidate_seed_scores=[[100.0]],
+    )
+    assert training_calls[0].episode_returns == [1.0]
 
 
 def test_select_robust_best_rejects_empty_study() -> None:

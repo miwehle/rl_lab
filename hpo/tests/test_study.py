@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import pytest
+
 from hpo import study as study_module
+from hpo.checkpointing import ObjectiveHookFactory
 from hpo.study import Baseline, StudyRunner, run_study
 from hpo.study_reporting import RobustnessProgress
 from common import objective_config
@@ -38,12 +41,16 @@ class FakeEnvironmentFactory:
 class FakeReporter:
     optimization_calls: list = field(default_factory=list)
     robustness_calls: list = field(default_factory=list)
+    training_calls: list = field(default_factory=list)
 
     def report_optimization(self, *args, **kwargs) -> None:
         self.optimization_calls.append((args, kwargs))
 
     def report_robustness_evaluation(self, *args, **kwargs) -> None:
         self.robustness_calls.append((args, kwargs))
+
+    def report_training_progress(self, *args, **kwargs) -> None:
+        self.training_calls.append((args, kwargs))
 
 
 def test_study_runner_reuses_context_and_previous_studies(
@@ -161,6 +168,55 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     assert current.user_attrs["robust_best_score"] == 9.0
     assert current.user_attrs["incumbent_params"] == {"x": 1}
     assert current.user_attrs["incumbent_score"] == 10.0
+
+
+def test_study_runner_uses_incumbent_as_checkpoint_min_score(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    current = FakeStudy([], {
+        "robust_best_params": {"x": 2},
+        "robust_best_score": 9.0,
+    })
+    run_calls = []
+    robust_calls = []
+    cfg = objective_config(
+        environment_factory=FakeEnvironmentFactory(),
+        hooks=ObjectiveHookFactory(tmp_path, window=2),
+    )
+    monkeypatch.setattr(
+        study_module,
+        "run_study",
+        lambda **kwargs: run_calls.append(kwargs) or current,
+    )
+    monkeypatch.setattr(
+        study_module,
+        "select_robust_best",
+        lambda **kwargs: robust_calls.append(kwargs) or {"x": 2},
+    )
+    runner = StudyRunner(
+        database_path=lambda _name: Path("runs/study.db"),
+        objective_cfg=cfg,
+        baseline=Baseline(params={"x": 1}, score=10.0),
+        reporter=FakeReporter(),
+    )
+
+    runner.run(
+        "s2",
+        suggest_parameter_values=object(),
+        n_trials=1,
+    )
+
+    assert run_calls[0]["objective_cfg"].hooks.min_score == pytest.approx(10.0)
+    assert robust_calls[0]["objective_cfg"].hooks.min_score == pytest.approx(10.0)
+    assert run_calls[0]["objective_cfg"].hooks.training_progress_fn == (
+        runner.reporter.report_training_progress
+    )
+    assert robust_calls[0]["objective_cfg"].hooks.training_progress_fn == (
+        runner.reporter.report_training_progress
+    )
+    assert cfg.hooks.min_score is None
+
 
 def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
     created_studies = []

@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +12,11 @@ from hpo.objective import (
     create_objective,
 )
 from hpo.robust_selection import select_robust_best
-from hpo.study_reporting import RobustnessProgress, StudySeriesReporter
+from hpo.study_reporting import (
+    StudySeriesReporter,
+    StudySeriesReporting,
+    TrainingProgressFn,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -74,21 +78,19 @@ class StudyRunner:
         suggest_parameter_values: Any,
         n_trials: int,
     ) -> None:
-        def show_progress(study, *, target_trials):
-            self.reporter.report_optimization(
-                study,
-                target_trials=target_trials,
-                studies=[*self.studies, study],
-                incumbent_params=self.incumbent_params,
-            )
-
-        def show_robustness(progress: RobustnessProgress):
-            self.reporter.report_robustness_evaluation(
-                study,
-                studies=[*self.studies, study],
-                incumbent_params=self.incumbent_params,
-                progress=progress,
-            )
+        objective_cfg = _with_checkpoint_min_score(
+            self.objective_cfg,
+            self.incumbent_score,
+        )
+        objective_cfg = _with_training_progress(
+            objective_cfg,
+            self.reporter.report_training_progress,
+        )
+        reporting = StudySeriesReporting(
+            reporter=self.reporter,
+            previous_studies=self.studies,
+            incumbent_params=self.incumbent_params,
+        )
 
         study = run_study(
             study_name=study_name,
@@ -96,19 +98,19 @@ class StudyRunner:
             incumbent_params=self.incumbent_params,
             n_trials=n_trials,
             database_path=self.database_path(study_name),
-            objective_cfg=self.objective_cfg,
+            objective_cfg=objective_cfg,
             study_attrs=self.study_attrs,
-            progress_fn=show_progress,
+            progress_fn=reporting.report_optimization,
             sync_fn=self.sync_fn,
         )
         selected_params = select_robust_best(
             study=study,
             suggest_parameter_values=suggest_parameter_values,
             incumbent_params=self.incumbent_params,
-            objective_cfg=self.objective_cfg,
+            objective_cfg=objective_cfg,
             top_n=self.robust_candidates,
             extra_seeds=self.extra_seeds,
-            progress_fn=show_robustness,
+            progress_fn=reporting.report_robustness(study),
         )
         selected_score = study.user_attrs["robust_best_score"]
         if selected_score > self.incumbent_score:
@@ -119,7 +121,7 @@ class StudyRunner:
         study.set_user_attr("incumbent_score", self.incumbent_score)
         if self.sync_fn is not None:
             self.sync_fn()
-        show_progress(study, target_trials=n_trials)
+        reporting.report_optimization(study, target_trials=n_trials)
         self.studies.append(study)
 
 
@@ -150,11 +152,6 @@ def run_study(
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
-    objective = create_objective(
-        suggest_parameter_values=suggest_parameter_values,
-        incumbent_params=incumbent_params,
-        config=objective_cfg,
-    )
     study = _create_study(
         study_name=study_name,
         direction="maximize",
@@ -164,6 +161,12 @@ def run_study(
     _set_or_check_study_attrs(
         study,
         objective_cfg.study_attrs() | (study_attrs or {}),
+    )
+
+    objective = create_objective(
+        suggest_parameter_values=suggest_parameter_values,
+        incumbent_params=incumbent_params,
+        config=objective_cfg,
     )
     if progress_fn is not None:
         progress_fn(study, target_trials=n_trials)
@@ -177,6 +180,27 @@ def run_study(
             progress_fn(study, target_trials=n_trials)
 
     return study
+
+
+def _with_checkpoint_min_score(
+    objective_cfg: ObjectiveConfig,
+    min_score: float,
+) -> ObjectiveConfig:
+    with_min_score = getattr(objective_cfg.hooks, "with_min_score", None)
+    if with_min_score is None:
+        return objective_cfg
+    return replace(objective_cfg, hooks=with_min_score(min_score))
+
+
+def _with_training_progress(
+    objective_cfg: ObjectiveConfig,
+    progress_fn: TrainingProgressFn | None,
+) -> ObjectiveConfig:
+    with_progress = getattr(objective_cfg.hooks, "with_training_progress", None)
+    if with_progress is None:
+        return objective_cfg
+    return replace(objective_cfg, hooks=with_progress(progress_fn))
+
 
 @log_call
 def _create_study(**kwargs) -> Any:

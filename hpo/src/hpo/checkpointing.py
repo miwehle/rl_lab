@@ -1,7 +1,7 @@
 """Checkpoint the best concrete model produced during an HPO trial."""
 
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +9,7 @@ import torch
 from torch import nn
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
+from hpo.study_reporting import TrainingProgressFn, TrainingProgressPlotter
 
 
 CHECKPOINT_VERSION = 1
@@ -98,6 +99,7 @@ class CheckpointingTrainer(VectorTrainer):
         config: VectorTrainingConfig,
         plotter=None,
     ) -> None:
+        self.checkpoint_recorder.after_episode(self, episode_returns)
         super()._after_episode(
             episode_returns,
             episode_lengths,
@@ -105,7 +107,6 @@ class CheckpointingTrainer(VectorTrainer):
             config,
             plotter,
         )
-        self.checkpoint_recorder.after_episode(self, episode_returns)
 
 
 @dataclass(frozen=True)
@@ -114,12 +115,24 @@ class ObjectiveHookFactory:
     window: int = 100
     min_score: float | None = None
     min_score_delta: float = 0.0
+    training_progress_fn: TrainingProgressFn | None = None
 
     def __post_init__(self) -> None:
         if self.window < 1:
             raise ValueError("window must be >= 1")
         if self.min_score_delta < 0:
             raise ValueError("min_score_delta must be >= 0")
+
+    def with_min_score(self, min_score: float) -> "ObjectiveHookFactory":
+        if self.min_score is not None:
+            min_score = max(self.min_score, min_score)
+        return replace(self, min_score=min_score)
+
+    def with_training_progress(
+        self,
+        progress_fn: TrainingProgressFn | None,
+    ) -> "ObjectiveHookFactory":
+        return replace(self, training_progress_fn=progress_fn)
 
     def for_trial(
         self,
@@ -144,7 +157,12 @@ class ObjectiveHookFactory:
                 "training_config": asdict(training_config),
             },
         )
-        return ObjectiveHooks(recorder)
+        return ObjectiveHooks(
+            recorder=recorder,
+            trial_number=trial.number,
+            target_episodes=training_config.num_episodes,
+            training_progress_fn=self.training_progress_fn,
+        )
 
     def study_attrs(self) -> dict[str, Any]:
         return {
@@ -158,6 +176,35 @@ class ObjectiveHookFactory:
 @dataclass
 class ObjectiveHooks:
     recorder: BestCheckpointRecorder
+    trial_number: int
+    target_episodes: int
+    training_progress_fn: TrainingProgressFn | None = None
+
+    @property
+    def checkpoint_window(self) -> int:
+        return self.recorder.window
+
+    @property
+    def checkpoint_min_score(self) -> float | None:
+        return self.recorder.min_score
+
+    @property
+    def best_checkpoint_score(self) -> float | None:
+        if self.recorder.best_checkpoint is None:
+            return None
+        return self.recorder.best_score
+
+    def training_plotter(self) -> TrainingProgressPlotter | None:
+        if self.training_progress_fn is None:
+            return None
+        return TrainingProgressPlotter(
+            trial_number=self.trial_number,
+            target_episodes=self.target_episodes,
+            progress_fn=self.training_progress_fn,
+            checkpoint_window=self.recorder.window,
+            checkpoint_min_score=self.recorder.min_score,
+            best_checkpoint_score=lambda: self.best_checkpoint_score,
+        )
 
     def make_trainer(
         self,

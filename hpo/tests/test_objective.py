@@ -7,6 +7,7 @@ import torch
 from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
 from hpo import objective as objective_module
 from hpo.objective import evaluate_greedy_q_net
+from hpo.study_reporting import TrainingProgressPlotter
 from common import objective_config
 
 
@@ -113,7 +114,8 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
             self.device = "trainer-device"
             calls.append(TrainerCall(env, seed, device, replay_memory_capacity))
 
-        def train(self, training_config):
+        def train(self, training_config, *, plotter=None):
+            assert plotter is None
             calls[-1].training_config = training_config
             return VectorTrainingResult(
                 q_net="fake-q-net",
@@ -170,7 +172,8 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
         def __init__(self, *_args, **_kwargs) -> None:
             pass
 
-        def train(self, _training_config):
+        def train(self, _training_config, *, plotter=None):
+            assert plotter is None
             return VectorTrainingResult(
                 q_net="fake-q-net",
                 episode_returns=[1.0],
@@ -223,7 +226,8 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         ) -> None:
             hook_calls.append((seed, device, replay_memory_capacity))
 
-        def train(self, _training_config):
+        def train(self, _training_config, *, plotter=None):
+            assert plotter is None
             return VectorTrainingResult(
                 q_net=FakeQNet(),
                 episode_returns=[1.0],
@@ -240,6 +244,9 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         def q_net_for_evaluation(self, q_net, device):
             q_net.hooked = True
             return q_net
+
+        def training_plotter(self):
+            return None
 
         def save_trial_attrs(self, save):
             save("hook_attr", "yes")
@@ -274,6 +281,85 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
     assert isinstance(hook_calls[0][1], VectorTrainingConfig)
     assert hook_calls[1] == (45, None, 12_345)
     assert trial.user_attrs["hook_attr"] == "yes"
+
+
+def test_objective_reports_live_training_progress(monkeypatch) -> None:
+    progress_calls = []
+
+    class FakeTrainer:
+        device = "cpu"
+
+        def __init__(self, hooks) -> None:
+            self.hooks = hooks
+
+        def train(self, _training_config, *, plotter):
+            plotter.plot_returns([1.0])
+            self.hooks.best_checkpoint_score = 4.0
+            plotter.plot_returns([1.0, 5.0])
+            return VectorTrainingResult(
+                q_net="fake-q-net",
+                episode_returns=[1.0, 5.0],
+                episode_lengths=[1, 1],
+                episode_epsilons=[0.1, 0.1],
+                env_steps=2,
+                optimizer_updates=1,
+            )
+
+    class FakeHooks:
+        best_checkpoint_score = None
+
+        def make_trainer(self, *_args, **_kwargs):
+            return FakeTrainer(self)
+
+        def q_net_for_evaluation(self, q_net, _device):
+            return q_net
+
+        def training_plotter(self):
+            return TrainingProgressPlotter(
+                trial_number=3,
+                target_episodes=12,
+                progress_fn=progress_calls.append,
+                checkpoint_window=2,
+                checkpoint_min_score=3.0,
+                best_checkpoint_score=lambda: self.best_checkpoint_score,
+            )
+
+        def save_trial_attrs(self, _save):
+            pass
+
+    class FakeHookFactory:
+        def for_trial(self, _trial, _training_config):
+            return FakeHooks()
+
+        def study_attrs(self):
+            return {}
+
+    monkeypatch.setattr(
+        objective_module,
+        "evaluate_greedy_q_net",
+        lambda **_kwargs: 10.0,
+    )
+
+    objective = objective_module.create_objective(
+        suggest_parameter_values=FakeSuggestParameterValues(),
+        incumbent_params=BASELINE_PARAMS,
+        config=objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+            hooks=FakeHookFactory(),
+            eval_episodes=1,
+        ),
+    )
+
+    objective(FakeTrial())
+
+    assert [progress.episode_returns for progress in progress_calls] == [
+        [1.0],
+        [1.0, 5.0],
+    ]
+    assert progress_calls[0].checkpoint_window == 2
+    assert progress_calls[0].checkpoint_min_score == pytest.approx(3.0)
+    assert progress_calls[0].best_checkpoint_score is None
+    assert progress_calls[1].best_checkpoint_score == pytest.approx(4.0)
 
 
 def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:

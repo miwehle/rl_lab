@@ -5,9 +5,14 @@ Study follows the current optimization, and HP Robustness Evaluation confirms
 the best candidates at the end of each study.
 """
 
+from dataclasses import dataclass
 from typing import Any
 
-from hpo.study_reporting import RobustnessProgress, StudySeriesReporter
+from hpo.study_reporting import (
+    RobustnessProgress,
+    StudySeriesReporter,
+    TrainingProgress,
+)
 
 
 def build_dashboard(
@@ -17,26 +22,29 @@ def build_dashboard(
     studies: Any,
     incumbent_params: dict[str, Any],
     robustness_progress: RobustnessProgress | None = None,
+    training_progress: TrainingProgress | None = None,
 ) -> Any:
     """Build the study-series dashboard."""
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
     figure = make_subplots(
-        rows=2,
+        rows=3,
         cols=2,
         specs=[
             [{}, {"type": "domain"}],
             [{}, {}],
+            [{"colspan": 2}, None],
         ],
-        row_heights=[0.5, 0.5],
-        vertical_spacing=0.14,
+        row_heights=[0.36, 0.36, 0.28],
+        vertical_spacing=0.11,
         horizontal_spacing=0.12,
         subplot_titles=(
             "Study Series",
             "Best HPs",
             f"Study: {_study_title(study)}",
             "HP Robustness Evaluation",
+            "Current Trial Training",
         ),
     )
     _add_study_series(figure, studies)
@@ -71,6 +79,17 @@ def build_dashboard(
             f"{robustness_progress.seed_count}"
         )
 
+    if training_progress is None:
+        figure.add_annotation(
+            text="Waiting for trial training",
+            row=3,
+            col=1,
+            showarrow=False,
+            font=dict(color="gray"),
+        )
+    else:
+        _add_training_progress(figure, training_progress)
+
     _style_dashboard(figure)
     return figure
 
@@ -78,12 +97,12 @@ def build_dashboard(
 def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
-        height=650,
+        height=850,
         margin=dict(l=70, r=70, t=55, b=55),
         legend=dict(
             orientation="h",
             x=0.01,
-            y=0.61,
+            y=1.04,
             xanchor="left",
             yanchor="bottom",
         ),
@@ -100,8 +119,20 @@ def _study_title(study: Any) -> str:
     return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
 
 
+@dataclass
+class DashboardContext:
+    study: Any
+    target_trials: int
+    studies: list[Any]
+    incumbent_params: dict[str, Any]
+    robustness_progress: RobustnessProgress | None = None
+
+
 class Dashboard(StudySeriesReporter):
     """Report study-series progress through the notebook dashboard."""
+
+    def __init__(self) -> None:
+        self._context: DashboardContext | None = None
 
     def report_optimization(
         self,
@@ -111,15 +142,13 @@ class Dashboard(StudySeriesReporter):
         studies: list[Any],
         incumbent_params: dict[str, Any],
     ) -> None:
-        _clear_output(wait=True)
-        _display(
-            build_dashboard(
-                study=study,
-                target_trials=target_trials,
-                studies=studies,
-                incumbent_params=incumbent_params,
-            )
+        self._context = DashboardContext(
+            study=study,
+            target_trials=target_trials,
+            studies=studies,
+            incumbent_params=incumbent_params,
         )
+        self._show()
 
     def report_robustness_evaluation(
         self,
@@ -129,14 +158,32 @@ class Dashboard(StudySeriesReporter):
         incumbent_params: dict[str, Any],
         progress: RobustnessProgress,
     ) -> None:
+        self._context = DashboardContext(
+            study=study,
+            target_trials=len(study.trials),
+            studies=studies,
+            incumbent_params=incumbent_params,
+            robustness_progress=progress,
+        )
+        self._show()
+
+    def report_training_progress(self, progress: TrainingProgress) -> None:
+        if self._context is None:
+            return
+        self._show(training_progress=progress)
+
+    def _show(self, training_progress: TrainingProgress | None = None) -> None:
+        if self._context is None:
+            return
         _clear_output(wait=True)
         _display(
             build_dashboard(
-                study=study,
-                target_trials=len(study.trials),
-                studies=studies,
-                incumbent_params=incumbent_params,
-                robustness_progress=progress,
+                study=self._context.study,
+                target_trials=self._context.target_trials,
+                studies=self._context.studies,
+                incumbent_params=self._context.incumbent_params,
+                robustness_progress=self._context.robustness_progress,
+                training_progress=training_progress,
             )
         )
 
@@ -405,6 +452,108 @@ def _add_robustness_evaluation(
         col=2,
     )
     figure.update_yaxes(title_text="Score", row=2, col=2)
+
+
+def _add_training_progress(
+    figure: Any,
+    progress: TrainingProgress,
+) -> None:
+    import plotly.graph_objects as go
+
+    returns = [float(value) for value in progress.episode_returns]
+    episodes = list(range(1, len(returns) + 1))
+    x_range = [1, max(progress.target_episodes, len(returns), 1)]
+    figure.add_trace(
+        go.Scatter(
+            x=episodes,
+            y=returns,
+            mode="lines+markers",
+            name="Episode return",
+            showlegend=False,
+            marker=dict(color="#1f77b4", size=5),
+            line=dict(color="#1f77b4"),
+            hovertemplate="Episode: %{x}<br>Return: %{y:.1f}<extra></extra>",
+        ),
+        row=3,
+        col=1,
+    )
+
+    mean_label = "Mean: n/a"
+    if progress.checkpoint_window is not None:
+        mean_episodes, means = _trailing_means(returns, progress.checkpoint_window)
+        if means:
+            mean_label = (
+                f"Mean ({progress.checkpoint_window} episodes): {means[-1]:.1f}"
+            )
+            figure.add_trace(
+                go.Scatter(
+                    x=mean_episodes,
+                    y=means,
+                    mode="lines",
+                    name=f"Mean ({progress.checkpoint_window} episodes)",
+                    showlegend=False,
+                    line=dict(color="red"),
+                    hovertemplate="Mean: %{y:.1f}<extra></extra>",
+                ),
+                row=3,
+                col=1,
+            )
+
+    reference_score = (
+        progress.best_checkpoint_score
+        if progress.best_checkpoint_score is not None
+        else progress.checkpoint_min_score
+    )
+    if reference_score is not None:
+        reference_name = (
+            "Best checkpoint score"
+            if progress.best_checkpoint_score is not None
+            else "Checkpoint threshold"
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=x_range,
+                y=[reference_score, reference_score],
+                mode="lines",
+                name=reference_name,
+                showlegend=False,
+                line=dict(color="gray", dash="dash"),
+                hovertemplate=f"{reference_name}: %{{y:.1f}}<extra></extra>",
+            ),
+            row=3,
+            col=1,
+        )
+
+    figure.layout.annotations[4].text = (
+        f"Current Trial Training - Trial {progress.trial_number} - {mean_label}"
+    )
+    figure.update_xaxes(
+        title_text="Episode",
+        range=x_range,
+        row=3,
+        col=1,
+    )
+    score_values = [0, *returns]
+    if reference_score is not None:
+        score_values.append(reference_score)
+    figure.update_yaxes(
+        title_text="Gym score",
+        range=[min(score_values) - 10, max(score_values) + 10],
+        row=3,
+        col=1,
+    )
+
+
+def _trailing_means(values: list[float], window: int) -> tuple[list[int], list[float]]:
+    if window < 1 or len(values) < window:
+        return [], []
+    episodes = []
+    means = []
+    for end in range(window, len(values) + 1):
+        episodes.append(end)
+        window_values = values[end - window:end]
+        means.append(sum(window_values) / window)
+    return episodes, means
 
 def _robustness_offsets(count: int) -> list[float]:
     if count == 1:
