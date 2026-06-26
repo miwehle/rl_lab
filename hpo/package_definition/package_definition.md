@@ -6,6 +6,10 @@ Read this before making design or implementation changes in `hpo`, especially af
 
 The package orchestrates hyperparameter optimization for DQN lander agents, with Optuna studies, vectorized training, checkpointing, robust candidate re-evaluation, Colab persistence, and a notebook dashboard for the human running the HPO.
 
+The package's first practical goal is to produce and preserve the best possible model checkpoints by evaluation Gym score.
+
+The second practical goal is to grow the dashboard as the central HPO tool: it should make the optimization understandable to the human and may later become a more general deep-learning dashboard.
+
 Related sequence diagrams:
 
 - `hpo_study_flow.puml`: StudyRunner, dashboard, objective, trainer, and robust selection.
@@ -13,7 +17,7 @@ Related sequence diagrams:
 
 ## Mental Model
 
-The core story is: a human starts a study series in a notebook, `StudyRunner` runs one named Optuna study at a time, each trial trains a DQN with `VectorTrainer`, the objective evaluates the trained model across one or more worlds, robust selection re-checks the best candidates with extra seeds, and the dashboard reports the study series live.
+The core story is: a human starts a study series in a notebook, `StudyRunner` runs one named Optuna study at a time, each trial trains a DQN with `VectorTrainer`, the objective evaluates the trained model across one or more worlds, robust selection re-checks the best candidates with extra seeds, and the dashboard tells the live story of the study series.
 
 A study series is the long-running HPO campaign; in this project, one SQLite database is assumed to represent one study series.
 
@@ -26,6 +30,8 @@ An incumbent is the current title holder for the series; it seeds future trials 
 The current optimization is deliberately simple: `StudyRunner.run(...)` is still the main orchestration point; do not add a hook layer to `study.py` without a strong current need.
 
 KISS rule for this package: prefer small orchestration helpers and explicit data flow over speculative framework code.
+
+KISS does not mean avoiding good libraries or future reuse; it means avoiding complexity that has not earned its keep yet.
 
 ## Main Modules
 
@@ -75,9 +81,9 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 `TrainingProgressPlotter` adapts the DQN trainer plotter protocol into `TrainingProgress` reports.
 
-`hpo/src/hpo/evaluation/dashboard.py` owns the notebook dashboard.
+`hpo/src/hpo/evaluation/dashboard.py` owns the notebook dashboard and is a central HPO tool, not merely a reporting afterthought.
 
-The dashboard is the visual interface between the human and the running HPO.
+The dashboard is the visual interface between the human and the running HPO, and it should make the study series feel readable while it runs.
 
 Dashboard panels: Study Series, Best HPs, current Study, HP Robustness Evaluation, and Current Trial Training.
 
@@ -150,7 +156,7 @@ The 211 score appeared in the robustness dashboard as an evaluation result, but 
 
 The runtime can still live while a model from a completed objective call is already gone; if no checkpoint was saved, the local function's `result.q_net` is not recoverable later.
 
-For future Armstrong-level models, add evaluation-best checkpointing.
+For future Armstrong-level models, add evaluation-best checkpointing soon; this is one of the highest-priority next steps because preserving high-score checkpoints is a main package goal.
 
 The likely future design: after each objective evaluation, if the evaluation score beats the current study or series best, save exactly that evaluated Q-net as an evaluation-best or incumbent checkpoint.
 
@@ -230,7 +236,7 @@ For dashboard changes, run:
 
 ## Open Next Steps
 
-Add evaluation-best checkpointing so high evaluation scores cannot vanish when training checkpointing misses them.
+Add evaluation-best checkpointing so high evaluation scores cannot vanish when training checkpointing misses them; prioritize this before deeper dashboard polish.
 
 Reconstruct Study Series dashboard context from the existing series DB after Colab reconnect.
 

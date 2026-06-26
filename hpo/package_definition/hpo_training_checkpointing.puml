@@ -29,6 +29,7 @@ activate HookFactory
 create Recorder
 HookFactory -> Recorder : create with window and min score
 create Hooks
+HookFactory -> Hooks : create hooks
 HookFactory --> Objective : hooks
 deactivate HookFactory
 
