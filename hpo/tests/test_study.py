@@ -179,6 +179,39 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     assert current.user_attrs["incumbent_score"] == 10.0
 
 
+def test_study_runner_skips_already_finished_study(monkeypatch, capsys) -> None:
+    current = FakeStudy(
+        [FakeTrial(0, 9.0, {})],
+        {"robust_best_score": 9.0, "incumbent_score": 9.0},
+    )
+    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
+    monkeypatch.setattr(
+        study_module,
+        "run_study",
+        lambda **_kwargs: pytest.fail("finished study should not run"),
+    )
+    monkeypatch.setattr(
+        study_module,
+        "select_robust_best",
+        lambda **_kwargs: pytest.fail("finished study should not select again"),
+    )
+    reporter = FakeReporter()
+    runner = StudyRunner(
+        database_path=lambda _name: Path("runs/study.db"),
+        objective_cfg=objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+        ),
+        baseline=Baseline(params={"x": 1}, score=0.0),
+        reporter=reporter,
+    )
+
+    runner.run("s1", suggest_parameter_values=object(), n_trials=1)
+
+    assert capsys.readouterr().out == "Study already finished.\n"
+    assert reporter.context_calls == []
+    assert runner.studies == []
+
+
 def test_study_runner_uses_incumbent_as_checkpoint_min_score(
     monkeypatch,
     tmp_path,

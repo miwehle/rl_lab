@@ -90,6 +90,10 @@ class StudyRunner:
             study_name=study_name,
             database_path=self.database_path(study_name),
         )
+        if _study_already_finished(study, n_trials):
+            print("Study already finished.")
+            return
+
         self.reporter.set_study_series_context(
             studies=[*self.studies, study],
             incumbent_params=self.incumbent_params,
@@ -237,5 +241,14 @@ def _finished_trial_count(study: Any) -> int:
     return sum(
         trial.state.name in {"COMPLETE", "PRUNED"}
         for trial in study.trials
+    )
+
+
+def _study_already_finished(study: Any, n_trials: int) -> bool:
+    return (
+        n_trials >= 1
+        and _finished_trial_count(study) >= n_trials
+        and "robust_best_score" in study.user_attrs
+        and "incumbent_score" in study.user_attrs
     )
 
