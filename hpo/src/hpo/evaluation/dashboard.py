@@ -1,8 +1,12 @@
 """Tell the story of an HPO study series in one notebook dashboard.
 
-Study Series shows the overall progress, centered on the Best HPs beside it.
-Study follows the current optimization, and HP Robustness Evaluation confirms
-the best candidates at the end of each study.
+The dashboard is the visual interface between the human and the running HPO:
+- Study Series shows the overall progress.
+- Best HPs shows the current incumbent hyperparameters.
+- Study follows the current optimization.
+- HP Robustness Evaluation confirms the best candidates at the end of each study.
+- Current Trial Training shows live episode returns for the running trial, so the
+  human at the dashboard can see how training is going before the trial finishes.
 """
 
 from dataclasses import dataclass
