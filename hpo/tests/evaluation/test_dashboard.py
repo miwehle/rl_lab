@@ -28,6 +28,11 @@ class FakeStudy:
     user_attrs: dict = field(default_factory=dict)
 
 
+def test_dashboard_rejects_unknown_render_mode() -> None:
+    with pytest.raises(ValueError, match="unsupported dashboard render_mode"):
+        Dashboard(render_mode="smooth")
+
+
 def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) -> None:
     study = FakeStudy(
         trials=[FakeTrial(

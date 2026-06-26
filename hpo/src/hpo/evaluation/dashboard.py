@@ -10,13 +10,16 @@ The dashboard is the visual interface between the human and the running HPO:
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from hpo.study_reporting import (
     RobustnessProgress,
     StudySeriesReporter,
     TrainingProgress,
 )
+
+
+DashboardRenderMode = Literal["safe"]
 
 
 def build_dashboard(
@@ -137,9 +140,16 @@ class StudySeriesContext:
 
 
 class Dashboard(StudySeriesReporter):
-    """Report study-series progress through the notebook dashboard."""
+    """Report study-series progress through the notebook dashboard.
 
-    def __init__(self) -> None:
+    render_mode="safe" clears and redisplays the whole dashboard. This is robust
+    in notebooks and Colab, but can visibly flicker during live training.
+    """
+
+    def __init__(self, *, render_mode: DashboardRenderMode = "safe") -> None:
+        if render_mode != "safe":
+            raise ValueError(f"unsupported dashboard render_mode: {render_mode}")
+        self.render_mode = render_mode
         self._context: DashboardContext | None = None
         self._series: StudySeriesContext | None = None
 
