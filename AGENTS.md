@@ -8,6 +8,12 @@ Run DQN tests from the repository root with the DQN virtual environment:
 dqn\.venv\Scripts\python.exe -m pytest dqn\tests
 ```
 
+## HPO Package Context
+
+For HPO work, read `hpo/package_definition/package_definition.md` first.
+It is the compact package definition meant to restore context at the start of a
+new session, with supporting PlantUML diagrams in the same folder.
+
 ## Working Style
 
 ### KISS and YAGNI

@@ -1,0 +1,77 @@
+@startuml
+
+!include ../../puml_links.iuml
+
+title HPO Study Flow
+
+hide footbox
+
+actor Human as Human
+participant "notebook" as Notebook
+participant ":StudyRunner" as Runner
+participant ":Dashboard" as Dashboard
+participant "study.py" as StudyModule
+participant "Optuna Study" as Study
+participant "objective.py" as Objective
+participant ":VectorTrainer" as Trainer
+participant "robust_selection.py" as RobustSelection
+
+url of Notebook is [[WORKSPACE_ROOT/hpo/notebooks/HPO_SolarSystemLander.ipynb]]
+url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:55:1]]
+url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:143:1]]
+url of StudyModule is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
+url of Study is [[https://optuna.readthedocs.io/]]
+url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:139:1]]
+url of Trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:124:1]]
+url of RobustSelection is [[WORKSPACE_ROOT/hpo/src/hpo/robust_selection.py:14:1]]
+
+Human -> Notebook : start or resume study
+Notebook -> Runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:74:1 run(study_name, suggest, n_trials)]]
+activate Runner
+
+Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:184:1 _create_or_load_study(...)]]
+StudyModule --> Runner : study
+
+Runner -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:56:1 set_study_series_context(...)]]
+Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:139:1 run_study(...)]]
+activate StudyModule
+
+StudyModule -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:63:1 report_optimization(...)]]
+
+loop until finished trial count reaches target
+    StudyModule -> Study : optimize one trial
+    activate Study
+    Study -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:147:1 objective(trial)]]
+    activate Objective
+    Objective -> Trainer : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:175:1 train(training_config, plotter)]]
+    activate Trainer
+    Trainer -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:76:1 report_training_progress(...)]]
+    Trainer --> Objective : TrainingResult
+    deactivate Trainer
+    Objective -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:228:1 evaluate_greedy_q_net(...)]]
+    Objective --> Study : mean world score
+    deactivate Objective
+    Study --> StudyModule : trial complete
+    deactivate Study
+    StudyModule -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:63:1 report_optimization(...)]]
+end
+
+StudyModule --> Runner : study
+deactivate StudyModule
+
+Runner -> RobustSelection : [[WORKSPACE_ROOT/hpo/src/hpo/robust_selection.py:14:1 select_robust_best(...)]]
+activate RobustSelection
+loop top candidates and extra seeds
+    RobustSelection -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:70:1 report_robustness_evaluation(...)]]
+    RobustSelection -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:147:1 objective(fixed_trial)]]
+    Objective --> RobustSelection : score
+end
+RobustSelection --> Runner : selected params and robust score
+deactivate RobustSelection
+
+Runner -> Study : set incumbent attrs
+Runner -> Dashboard : final context and optimization report
+Runner --> Notebook : done
+deactivate Runner
+
+@enduml

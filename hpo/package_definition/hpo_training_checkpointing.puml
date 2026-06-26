@@ -1,0 +1,72 @@
+@startuml
+
+!include ../../puml_links.iuml
+
+title Training Progress, Checkpointing, and Adaptive Extension
+
+hide footbox
+
+participant "objective.py" as Objective
+participant ":ObjectiveHookFactory" as HookFactory
+participant ":ObjectiveHooks" as Hooks
+participant ":CheckpointingTrainer" as Trainer
+participant ":BestCheckpointRecorder" as Recorder
+participant ":TrainingProgressPlotter" as Plotter
+participant ":Dashboard" as Dashboard
+participant "evaluation-best\nfuture gap" as EvalBest
+
+url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:139:1]]
+url of HookFactory is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:113:1]]
+url of Hooks is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:177:1]]
+url of Trainer is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:82:1]]
+url of Recorder is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:33:1]]
+url of Plotter is [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:31:1]]
+url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:143:1]]
+url of EvalBest is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:147:1]]
+
+Objective -> HookFactory : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:137:1 for_trial(trial, training_config)]]
+activate HookFactory
+create Recorder
+HookFactory -> Recorder : create with window and min score
+create Hooks
+HookFactory --> Objective : hooks
+deactivate HookFactory
+
+Objective -> Hooks : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:209:1 make_trainer(...)]]
+activate Hooks
+create Trainer
+Hooks -> Trainer : create checkpointing trainer
+Hooks --> Objective : trainer
+deactivate Hooks
+
+Objective -> Hooks : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:197:1 training_plotter()]]
+Hooks --> Objective : plotter
+
+Objective -> Trainer : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:175:1 train(config, plotter)]]
+activate Trainer
+
+loop after one or more episodes finish
+    Trainer -> Recorder : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:94:1 after_episode(...)]]
+    alt trailing training mean improves
+        Recorder -> Recorder : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:241:1 save_checkpoint(...)]]
+    end
+    Trainer -> Plotter : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:39:1 plot_returns(...)]]
+    Plotter -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:201:1 report_training_progress(...)]]
+    alt target reached and Armstrong momentum is high
+        Trainer -> Trainer : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:363:1 _should_extend_training(...)]]
+    end
+end
+
+Trainer --> Objective : TrainingResult with episode returns
+deactivate Trainer
+
+Objective -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:228:1 evaluate_greedy_q_net(...)]]
+
+alt current behavior
+    Objective -> Hooks : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:231:1 save_trial_attrs(save)]]
+    Hooks --> Objective : training-checkpoint attrs if present
+else future needed for Armstrong models
+    Objective -> EvalBest : save q_net when evaluation score beats incumbent
+end
+
+@enduml
