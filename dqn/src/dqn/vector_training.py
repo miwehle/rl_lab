@@ -1,6 +1,9 @@
 """DQN training in many parallel Gymnasium environments.
 
 Purpose: use the GPU more efficiently to reduce wall-clock time and CUs.
+
+The vector trainer can use adaptive training extension to continue late-learning
+trials instead of stopping them at the initial episode target.
 """
 
 from dataclasses import dataclass
@@ -22,6 +25,7 @@ class VectorTrainingConfig(TrainingConfig):
 
     learning_starts: int = 0
     optimize_every: int = 1
+    adaptive_extension_window: int | None = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -30,6 +34,11 @@ class VectorTrainingConfig(TrainingConfig):
             raise ValueError("learning_starts must be >= 0")
         if self.optimize_every < 1:
             raise ValueError("optimize_every must be >= 1")
+        if (
+            self.adaptive_extension_window is not None
+            and self.adaptive_extension_window < 1
+        ):
+            raise ValueError("adaptive_extension_window must be >= 1")
 
 
 @dataclass
@@ -175,8 +184,10 @@ class VectorTrainer:
         episode_returns: list[float] = []
         episode_lengths: list[int] = []
         episode_epsilons: list[float] = []
+        base_num_episodes = config.num_episodes
+        target_num_episodes = base_num_episodes
 
-        while len(episode_returns) < config.num_episodes:
+        while len(episode_returns) < target_num_episodes:
             states = observations
             actions = self._select_actions(states, config)
             (
@@ -205,7 +216,7 @@ class VectorTrainer:
             done = (terminated | truncated) & stepped
             episode_count_before_step = len(episode_returns)
             for env_index in np.flatnonzero(done):
-                if len(episode_returns) >= config.num_episodes:
+                if len(episode_returns) >= target_num_episodes:
                     break
                 episode_returns.append(float(running_returns[env_index]))
                 episode_lengths.append(int(running_lengths[env_index]))
@@ -224,6 +235,14 @@ class VectorTrainer:
                     config,
                     plotter,
                 )
+                if len(episode_returns) >= target_num_episodes and (
+                    _should_extend_training(
+                        episode_returns,
+                        window=config.adaptive_extension_window,
+                        base_num_episodes=base_num_episodes,
+                    )
+                ):
+                    target_num_episodes += base_num_episodes
 
             self._optimize_due(config, previous_steps)
             observations = next_observations
@@ -339,3 +358,28 @@ def set_vector_seeds(env, seed: int) -> None:
     env.action_space.seed(seed)
     env.single_action_space.seed(seed)
     env.single_observation_space.seed(seed)
+
+
+def _should_extend_training(
+    episode_returns: list[float],
+    *,
+    window: int | None,
+    base_num_episodes: int,
+) -> bool:
+    if window is None or len(episode_returns) < 2 * window:
+        return False
+    if len(episode_returns) < base_num_episodes:
+        return False
+    if len(episode_returns) >= 4 * base_num_episodes:
+        return False
+
+    lm50 = _mean(episode_returns[-window:])
+    pm50 = _mean(episode_returns[-2 * window:-window])
+    diff = lm50 - pm50
+    armstrong_factor = lm50 / 100
+    learning_momentum = diff * armstrong_factor
+    return learning_momentum > 10
+
+
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values)

@@ -194,6 +194,7 @@ def create_objective(
             save("world_scores", world_scores)
         save("env_steps", result.env_steps)
         save("optimizer_updates", result.optimizer_updates)
+        save("trained_episodes", len(result.episode_returns))
         save("trial_seed", trial_seed)
         save("wall_time_seconds", wall_time_seconds)
         hooks.save_trial_attrs(save)
@@ -219,6 +220,7 @@ def vector_training_config(params: dict[str, Any]) -> VectorTrainingConfig:
         learning_rate=params[HP.LEARNING_RATE],
         learning_starts=params[HP.LEARNING_STARTS],
         optimize_every=params[HP.OPTIMIZE_EVERY],
+        adaptive_extension_window=50,
     )
 
 

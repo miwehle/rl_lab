@@ -152,10 +152,12 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert score == pytest.approx(123.0)
     assert trial.user_attrs["world_scores"] == {"moon": 120.0, "mars": 126.0}
     assert trial.user_attrs["env_steps"] == 80
+    assert trial.user_attrs["trained_episodes"] == 2
     assert trial.user_attrs["trial_seed"] == 103
     assert environment_factory.training_calls == [20]
     assert calls[0].env.closed
     assert calls[0].training_config.num_episodes == 12
+    assert calls[0].training_config.adaptive_extension_window == 50
     assert calls[0].training_config.learning_rate == 5e-4
     assert len(eval_calls) == 2
     assert all(call["episodes"] == 20 for call in eval_calls)

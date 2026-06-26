@@ -9,6 +9,7 @@ from dqn.vector_training import (
     VectorTrainer,
     VectorTrainingConfig,
     VectorTrainingResult,
+    _should_extend_training,
 )
 
 
@@ -132,6 +133,27 @@ def test_vector_training_calls_after_episode_hook() -> None:
     assert len(hook_calls[-1][0]) == 2
     assert len(hook_calls[-1][1]) == 2
     assert len(hook_calls[-1][2]) == 2
+
+
+def test_adaptive_training_extension_detects_armstrong_momentum() -> None:
+    late_bloomer = [80.0] * 50 + [120.0] * 50
+    exhausted = [110.0] * 50 + [112.0] * 50
+
+    assert _should_extend_training(
+        late_bloomer,
+        window=50,
+        base_num_episodes=100,
+    )
+    assert not _should_extend_training(
+        exhausted,
+        window=50,
+        base_num_episodes=100,
+    )
+    assert not _should_extend_training(
+        late_bloomer * 4,
+        window=50,
+        base_num_episodes=100,
+    )
 
 
 def test_vector_trainer_optimizes_for_each_crossed_interval() -> None:
