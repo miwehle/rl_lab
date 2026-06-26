@@ -39,9 +39,13 @@ class FakeEnvironmentFactory:
 
 @dataclass
 class FakeReporter:
+    context_calls: list = field(default_factory=list)
     optimization_calls: list = field(default_factory=list)
     robustness_calls: list = field(default_factory=list)
     training_calls: list = field(default_factory=list)
+
+    def set_study_series_context(self, *args, **kwargs) -> None:
+        self.context_calls.append((args, kwargs))
 
     def report_optimization(self, *args, **kwargs) -> None:
         self.optimization_calls.append((args, kwargs))
@@ -72,8 +76,13 @@ def test_study_runner_reuses_context_and_previous_studies(
 
     monkeypatch.setattr(
         study_module,
+        "_create_or_load_study",
+        lambda **kwargs: studies[len(run_calls)],
+    )
+    monkeypatch.setattr(
+        study_module,
         "run_study",
-        lambda **kwargs: run_calls.append(kwargs) or studies[len(run_calls) - 1],
+        lambda **kwargs: run_calls.append(kwargs) or kwargs["study"],
     )
     monkeypatch.setattr(
         study_module,
@@ -112,7 +121,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert runner.incumbent_params == {"x": 3}
     assert runner.incumbent_score == 2.0
     assert runner.studies == studies
-    assert run_calls[1]["database_path"] == Path("runs/s2.db")
+    assert run_calls[1]["study"] is studies[1]
     assert run_calls[1]["objective_cfg"].environment_factory is environment_factory
     assert run_calls[1]["study_attrs"] == {"mode": "8d"}
     assert run_calls[1]["sync_fn"] is runner.sync_fn
@@ -127,10 +136,9 @@ def test_study_runner_reuses_context_and_previous_studies(
         candidate_seed_scores=[[1.0], [0.5], [0.0]],
     )
     robust_calls[0]["progress_fn"](progress)
-    assert reporter.robustness_calls[0][1]["progress"] == progress
-    assert reporter.robustness_calls[0][1]["incumbent_params"] == {"x": 3}
-    assert reporter.optimization_calls[-1][1]["studies"] == studies
-    assert reporter.optimization_calls[-1][1]["incumbent_params"] == {"x": 3}
+    assert reporter.robustness_calls[0][0] == (progress,)
+    assert reporter.context_calls[-1][1]["studies"] == studies
+    assert reporter.context_calls[-1][1]["incumbent_params"] == {"x": 3}
     assert len(sync_calls) == 2
     assert studies[-1].user_attrs["incumbent_params"] == {"x": 3}
     assert studies[-1].user_attrs["incumbent_score"] == 2.0
@@ -141,7 +149,8 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         "robust_best_params": {"x": 2},
         "robust_best_score": 9.0,
     })
-    monkeypatch.setattr(study_module, "run_study", lambda **_kwargs: current)
+    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
+    monkeypatch.setattr(study_module, "run_study", lambda **kwargs: kwargs["study"])
     monkeypatch.setattr(
         study_module,
         "select_robust_best",
@@ -186,8 +195,13 @@ def test_study_runner_uses_incumbent_as_checkpoint_min_score(
     )
     monkeypatch.setattr(
         study_module,
+        "_create_or_load_study",
+        lambda **_kwargs: current,
+    )
+    monkeypatch.setattr(
+        study_module,
         "run_study",
-        lambda **kwargs: run_calls.append(kwargs) or current,
+        lambda **kwargs: run_calls.append(kwargs) or kwargs["study"],
     )
     monkeypatch.setattr(
         study_module,
@@ -218,9 +232,7 @@ def test_study_runner_uses_incumbent_as_checkpoint_min_score(
     assert cfg.hooks.min_score is None
 
 
-def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
-    created_studies = []
-
+def test_run_study_uses_task_attrs_and_reports_progress(monkeypatch) -> None:
     def fake_create_objective(**_kwargs):
         def objective(trial):
             return float(trial.number)
@@ -241,22 +253,16 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
             trial.value = objective(trial)
             self.trials.append(trial)
 
-    def fake_create_study(**kwargs):
-        created_studies.append(kwargs)
-        return FakeOptunaStudy()
-
     monkeypatch.setattr(study_module, "create_objective", fake_create_objective)
-    monkeypatch.setattr(study_module, "_create_study", fake_create_study)
-    monkeypatch.setattr(Path, "mkdir", lambda self, parents=False, exist_ok=False: None)
 
     sync_calls = []
     progress_trial_counts = []
+    study = FakeOptunaStudy()
     study = run_study(
-        study_name="s1",
+        study=study,
         suggest_parameter_values=object(),
         incumbent_params={},
         n_trials=2,
-        database_path=Path("runs") / "series.db",
         objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(),
         ),
@@ -267,7 +273,6 @@ def test_run_study_uses_shared_storage_and_task_attrs(monkeypatch) -> None:
         sync_fn=lambda: sync_calls.append(None),
     )
 
-    assert "series.db" in created_studies[0]["storage"]
     assert study.user_attrs["observation_mode"] == "8d"
     assert study.user_attrs["eval_episodes"] == 20
     assert len(sync_calls) == 2

@@ -48,16 +48,19 @@ def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) 
     monkeypatch.setattr(
         dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
-
-    Dashboard().report_optimization(
-        study,
-        target_trials=40,
+    reporter = Dashboard()
+    reporter.set_study_series_context(
         studies=[study],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
     )
 
+    reporter.report_optimization(
+        study,
+        target_trials=40,
+    )
+
     assert cleared == [{"wait": True}]
-    assert displayed == [(
+    assert displayed[-1] == (
         "dashboard",
         {
             "study": study,
@@ -70,7 +73,7 @@ def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) 
             "robustness_progress": None,
             "training_progress": None,
         },
-    )]
+    )
 
 
 def test_show_dashboard_during_training_reuses_current_context(monkeypatch) -> None:
@@ -84,11 +87,13 @@ def test_show_dashboard_during_training_reuses_current_context(monkeypatch) -> N
     monkeypatch.setattr(dashboard, "_display", displayed.append)
     monkeypatch.setattr(dashboard, "_clear_output", lambda **_kwargs: None)
     reporter = Dashboard()
+    reporter.set_study_series_context(
+        studies=[study],
+        incumbent_params={"learning_rate": 0.001},
+    )
     reporter.report_optimization(
         study,
         target_trials=40,
-        studies=[study],
-        incumbent_params={"learning_rate": 0.001},
     )
     progress = TrainingProgress(
         trial_number=3,
@@ -283,11 +288,14 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
     monkeypatch.setattr(
         dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
-
-    Dashboard().report_robustness_evaluation(
-        study,
+    reporter = Dashboard()
+    reporter.set_study_series_context(
         studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
+    )
+    reporter.report_optimization(study, target_trials=0)
+
+    reporter.report_robustness_evaluation(
         progress=RobustnessProgress(
             candidate_index=2,
             candidate_count=3,
@@ -297,8 +305,8 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
         ),
     )
 
-    assert cleared == [{"wait": True}]
-    assert displayed == [(
+    assert cleared == [{"wait": True}, {"wait": True}]
+    assert displayed[-1] == (
         "dashboard",
         {
             "study": study,
@@ -317,4 +325,4 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
             ),
             "training_progress": None,
         },
-    )]
+    )

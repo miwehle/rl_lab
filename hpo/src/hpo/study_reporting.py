@@ -54,21 +54,22 @@ class TrainingProgressPlotter:
 
 
 class StudySeriesReporter(Protocol):
+    def set_study_series_context(
+        self,
+        *,
+        studies: list[Any],
+        incumbent_params: dict[str, Any],
+    ) -> None: ...
+
     def report_optimization(
         self,
         study: Any,
         *,
         target_trials: int,
-        studies: list[Any],
-        incumbent_params: dict[str, Any],
     ) -> None: ...
 
     def report_robustness_evaluation(
         self,
-        study: Any,
-        *,
-        studies: list[Any],
-        incumbent_params: dict[str, Any],
         progress: RobustnessProgress,
     ) -> None: ...
 
@@ -76,29 +77,3 @@ class StudySeriesReporter(Protocol):
         self,
         progress: TrainingProgress,
     ) -> None: ...
-
-
-@dataclass
-class StudySeriesReporting:
-    reporter: StudySeriesReporter
-    previous_studies: list[Any]
-    incumbent_params: dict[str, Any]
-
-    def report_optimization(self, study: Any, *, target_trials: int) -> None:
-        self.reporter.report_optimization(
-            study,
-            target_trials=target_trials,
-            studies=[*self.previous_studies, study],
-            incumbent_params=self.incumbent_params,
-        )
-
-    def report_robustness(self, study: Any) -> Callable[[RobustnessProgress], None]:
-        def report(progress: RobustnessProgress) -> None:
-            self.reporter.report_robustness_evaluation(
-                study,
-                studies=[*self.previous_studies, study],
-                incumbent_params=self.incumbent_params,
-                progress=progress,
-            )
-
-        return report

@@ -123,9 +123,13 @@ def _study_title(study: Any) -> str:
 class DashboardContext:
     study: Any
     target_trials: int
+    robustness_progress: RobustnessProgress | None = None
+
+
+@dataclass
+class StudySeriesContext:
     studies: list[Any]
     incumbent_params: dict[str, Any]
-    robustness_progress: RobustnessProgress | None = None
 
 
 class Dashboard(StudySeriesReporter):
@@ -133,36 +137,40 @@ class Dashboard(StudySeriesReporter):
 
     def __init__(self) -> None:
         self._context: DashboardContext | None = None
+        self._series: StudySeriesContext | None = None
+
+    def set_study_series_context(
+        self,
+        *,
+        studies: list[Any],
+        incumbent_params: dict[str, Any],
+    ) -> None:
+        self._series = StudySeriesContext(
+            studies=studies,
+            incumbent_params=incumbent_params,
+        )
 
     def report_optimization(
         self,
         study: Any,
         *,
         target_trials: int,
-        studies: list[Any],
-        incumbent_params: dict[str, Any],
     ) -> None:
         self._context = DashboardContext(
             study=study,
             target_trials=target_trials,
-            studies=studies,
-            incumbent_params=incumbent_params,
         )
         self._show()
 
     def report_robustness_evaluation(
         self,
-        study: Any,
-        *,
-        studies: list[Any],
-        incumbent_params: dict[str, Any],
         progress: RobustnessProgress,
     ) -> None:
+        if self._context is None:
+            return
         self._context = DashboardContext(
-            study=study,
-            target_trials=len(study.trials),
-            studies=studies,
-            incumbent_params=incumbent_params,
+            study=self._context.study,
+            target_trials=self._context.target_trials,
             robustness_progress=progress,
         )
         self._show()
@@ -173,15 +181,15 @@ class Dashboard(StudySeriesReporter):
         self._show(training_progress=progress)
 
     def _show(self, training_progress: TrainingProgress | None = None) -> None:
-        if self._context is None:
+        if self._context is None or self._series is None:
             return
         _clear_output(wait=True)
         _display(
             build_dashboard(
                 study=self._context.study,
                 target_trials=self._context.target_trials,
-                studies=self._context.studies,
-                incumbent_params=self._context.incumbent_params,
+                studies=self._series.studies,
+                incumbent_params=self._series.incumbent_params,
                 robustness_progress=self._context.robustness_progress,
                 training_progress=training_progress,
             )

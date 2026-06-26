@@ -14,7 +14,6 @@ from hpo.objective import (
 from hpo.robust_selection import select_robust_best
 from hpo.study_reporting import (
     StudySeriesReporter,
-    StudySeriesReporting,
     TrainingProgressFn,
 )
 
@@ -86,21 +85,24 @@ class StudyRunner:
             objective_cfg,
             self.reporter.report_training_progress,
         )
-        reporting = StudySeriesReporting(
-            reporter=self.reporter,
-            previous_studies=self.studies,
+
+        study = _create_or_load_study(
+            study_name=study_name,
+            database_path=self.database_path(study_name),
+        )
+        self.reporter.set_study_series_context(
+            studies=[*self.studies, study],
             incumbent_params=self.incumbent_params,
         )
 
-        study = run_study(
-            study_name=study_name,
+        run_study(
+            study=study,
             suggest_parameter_values=suggest_parameter_values,
             incumbent_params=self.incumbent_params,
             n_trials=n_trials,
-            database_path=self.database_path(study_name),
             objective_cfg=objective_cfg,
             study_attrs=self.study_attrs,
-            progress_fn=reporting.report_optimization,
+            progress_fn=self.reporter.report_optimization,
             sync_fn=self.sync_fn,
         )
         selected_params = select_robust_best(
@@ -110,7 +112,7 @@ class StudyRunner:
             objective_cfg=objective_cfg,
             top_n=self.robust_candidates,
             extra_seeds=self.extra_seeds,
-            progress_fn=reporting.report_robustness(study),
+            progress_fn=self.reporter.report_robustness_evaluation,
         )
         selected_score = study.user_attrs["robust_best_score"]
         if selected_score > self.incumbent_score:
@@ -121,43 +123,36 @@ class StudyRunner:
         study.set_user_attr("incumbent_score", self.incumbent_score)
         if self.sync_fn is not None:
             self.sync_fn()
-        reporting.report_optimization(study, target_trials=n_trials)
+        self.reporter.set_study_series_context(
+            studies=[*self.studies, study],
+            incumbent_params=self.incumbent_params,
+        )
+        self.reporter.report_optimization(study, target_trials=n_trials)
         self.studies.append(study)
 
 
 @log_call
 def run_study(
     *,
-    study_name: str,
+    study: Any,
     suggest_parameter_values: Any,
     incumbent_params: dict[str, Any],
     n_trials: int,
-    database_path: str | Path,
     objective_cfg: ObjectiveConfig,
     study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = None,
     sync_fn: SyncFn | None = None,
 ) -> Any:
-    """Create or load an Optuna study and run it to the target trial count.
+    """Run an Optuna study to the target trial count.
 
-    database_path: Path to the SQLite database.
     study_attrs: Study metadata to store and validate when resuming.
     n_trials: Target total number of finished trials.
     """
-    logger.info("study: %s", study_name)
+    logger.info("study: %s", getattr(study, "study_name", ""))
 
     if n_trials < 1:
         raise ValueError("n_trials must be >= 1")
 
-    database_path = Path(database_path)
-    database_path.parent.mkdir(parents=True, exist_ok=True)
-
-    study = _create_study(
-        study_name=study_name,
-        direction="maximize",
-        storage=f"sqlite:///{database_path}",
-        load_if_exists=True,
-    )
     _set_or_check_study_attrs(
         study,
         objective_cfg.study_attrs() | (study_attrs or {}),
@@ -180,6 +175,21 @@ def run_study(
             progress_fn(study, target_trials=n_trials)
 
     return study
+
+
+def _create_or_load_study(
+    *,
+    study_name: str,
+    database_path: str | Path,
+) -> Any:
+    database_path = Path(database_path)
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    return _create_study(
+        study_name=study_name,
+        direction="maximize",
+        storage=f"sqlite:///{database_path}",
+        load_if_exists=True,
+    )
 
 
 def _with_checkpoint_min_score(
