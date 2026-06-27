@@ -22,10 +22,10 @@ from hpo.study_reporting import (
 
 DashboardRenderMode = Literal["safe"]
 _ENV_LABEL_COLORS = {
-    "moon": "#1f77b4",
-    "mercury": "#ff7f0e",
-    "mars": "#d62728",
-    "earth": "#2ca02c",
+    "moon": "#c0c0c0",
+    "mercury": "#7f7f7f",
+    "mars": "#ff7f0e",
+    "earth": "#1f77b4",
     "venus": "#9467bd",
 }
 _FALLBACK_COLORS = (
@@ -280,7 +280,8 @@ def _add_study_series(figure: Any, studies: Any) -> None:
             text=labels,
             textposition="top right",
             name="Score",
-            line=dict(color="#1f77b4"),
+            line=dict(color="red"),
+            marker=dict(color="black"),
         ),
         row=1,
         col=1,
@@ -391,7 +392,7 @@ def _add_current_study(
             mode="markers",
             name="Score",
             showlegend=False,
-            marker=dict(color="#1f77b4"),
+            marker=dict(color="black"),
             customdata=hover_params,
             hovertemplate=(
                 "Trial: %{x}<br>Score: %{y:.1f}"
