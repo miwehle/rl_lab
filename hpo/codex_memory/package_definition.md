@@ -125,7 +125,7 @@ HPO defaults `ObjectiveConfig.early_stopping_score` to `-250.0`; set it to `None
 
 The rule is evaluated only when the current target episode count has been reached.
 
-The rule can extend training in blocks of the original `num_episodes`, up to a hard maximum of `4 * num_episodes`.
+The rule can extend training in blocks of half the original `num_episodes`, up to a hard maximum of `4 * num_episodes`.
 
 The rule uses these deliberate variable names:
 

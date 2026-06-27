@@ -188,6 +188,7 @@ class VectorTrainer:
         episode_lengths: list[int] = []
         episode_epsilons: list[float] = []
         base_num_episodes = config.num_episodes
+        extension_num_episodes = math.ceil(base_num_episodes / 2)
         target_num_episodes = base_num_episodes
         early_stopping_score: float | None = None
         early_stopping_checked = False
@@ -261,7 +262,7 @@ class VectorTrainer:
                         base_num_episodes=base_num_episodes,
                     )
                 ):
-                    target_num_episodes += base_num_episodes
+                    target_num_episodes += extension_num_episodes
                     if plotter is not None and hasattr(plotter, "target_episodes"):
                         plotter.target_episodes = target_num_episodes
                 self._after_episode(

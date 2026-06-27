@@ -124,8 +124,8 @@ def test_vector_training_updates_plotter_target_when_training_extends(
     finally:
         env.close()
 
-    assert len(result.episode_returns) == 4
-    assert any(length >= 2 and target == 4 for length, target in plot_calls)
+    assert len(result.episode_returns) == 3
+    assert any(length >= 2 and target == 3 for length, target in plot_calls)
 
 
 def test_vector_training_stops_early_when_midpoint_mean_is_too_low(
