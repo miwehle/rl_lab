@@ -74,11 +74,12 @@ def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) 
             "incumbent_params": {
                 "learning_rate": 0.001,
                 "gamma": 0.99,
+                },
+                "robustness_progress": None,
+                "training_progress": None,
+                "training_score_min": -500.0,
             },
-            "robustness_progress": None,
-            "training_progress": None,
-        },
-    )
+        )
 
 
 def test_show_dashboard_during_training_reuses_current_context(monkeypatch) -> None:
@@ -303,6 +304,34 @@ def test_training_plot_starts_reference_at_checkpoint_threshold() -> None:
     assert list(threshold.y) == [10.0, 10.0]
 
 
+def test_training_plot_clips_lower_score_axis_by_default() -> None:
+    study = FakeStudy(trials=[], study_name="s1_update_economy")
+    progress = TrainingProgress(
+        trial_number=3,
+        target_episodes=5,
+        episode_returns=[-3000.0, 10.0],
+    )
+
+    clipped = dashboard.build_dashboard(
+        study=study,
+        target_trials=40,
+        studies=[],
+        incumbent_params={},
+        training_progress=progress,
+    )
+    unclipped = dashboard.build_dashboard(
+        study=study,
+        target_trials=40,
+        studies=[],
+        incumbent_params={},
+        training_progress=progress,
+        training_score_min=None,
+    )
+
+    assert list(clipped.layout.yaxis4.range) == [-500, 20.0]
+    assert list(unclipped.layout.yaxis4.range) == [-3010.0, 20.0]
+
+
 def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
     displayed = []
@@ -350,7 +379,8 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
                 seed_index=1,
                 seed_count=1,
                 candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
-            ),
-            "training_progress": None,
-        },
-    )
+                ),
+                "training_progress": None,
+                "training_score_min": -500.0,
+            },
+        )

@@ -31,6 +31,7 @@ def build_dashboard(
     incumbent_params: dict[str, Any],
     robustness_progress: RobustnessProgress | None = None,
     training_progress: TrainingProgress | None = None,
+    training_score_min: float | None = -500.0,
 ) -> Any:
     """Build the study-series dashboard."""
     import plotly.graph_objects as go
@@ -96,7 +97,7 @@ def build_dashboard(
             font=dict(color="gray"),
         )
     else:
-        _add_training_progress(figure, training_progress)
+        _add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
     return figure
@@ -153,11 +154,13 @@ class Dashboard(StudySeriesReporter):
         *,
         render_mode: DashboardRenderMode = "safe",
         training_update_interval_seconds: float = 5.0,
+        training_score_min: float | None = -500.0,
     ) -> None:
         if render_mode != "safe":
             raise ValueError(f"unsupported dashboard render_mode: {render_mode}")
         self.render_mode = render_mode
         self.training_update_interval_seconds = training_update_interval_seconds
+        self.training_score_min = training_score_min
         self._last_training_update = 0.0
         self._context: DashboardContext | None = None
         self._series: StudySeriesContext | None = None
@@ -223,6 +226,7 @@ class Dashboard(StudySeriesReporter):
                 incumbent_params=self._series.incumbent_params,
                 robustness_progress=self._context.robustness_progress,
                 training_progress=training_progress,
+                training_score_min=self.training_score_min,
             )
         )
 
@@ -496,6 +500,7 @@ def _add_robustness_evaluation(
 def _add_training_progress(
     figure: Any,
     progress: TrainingProgress,
+    training_score_min: float | None,
 ) -> None:
     import plotly.graph_objects as go
 
@@ -577,7 +582,12 @@ def _add_training_progress(
         score_values.append(reference_score)
     figure.update_yaxes(
         title_text="Gym score",
-        range=[max(min(score_values) - 10, -500), max(score_values) + 10],
+        range=[
+            max(min(score_values) - 10, training_score_min)
+            if training_score_min is not None
+            else min(score_values) - 10,
+            max(score_values) + 10,
+        ],
         row=3,
         col=1,
     )
