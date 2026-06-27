@@ -243,19 +243,22 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         def make_trainer(self, *args, **kwargs):
             return FakeTrainer(*args, **kwargs)
 
-        def q_net_for_evaluation(self, q_net, device):
-            q_net.hooked = True
-            return q_net
+        def q_net_for_evaluation(self, ctx, device):
+            ctx.q_net.hooked = True
+            return ctx.q_net
 
         def training_plotter(self):
             return None
 
-        def save_trial_attrs(self, save):
+        def finalize_trial(self, ctx, save):
+            assert ctx.score == pytest.approx(10.0)
+            assert ctx.world_scores == {"moon": 10.0, "mars": 10.0}
+            assert ctx.training_result is not None
             save("hook_attr", "yes")
 
     class FakeHookFactory:
-        def for_trial(self, trial, training_config):
-            hook_calls.append((trial, training_config))
+        def for_trial(self, ctx):
+            hook_calls.append((ctx.trial, ctx.training_config))
             return FakeHooks()
 
         def study_attrs(self):
@@ -313,8 +316,8 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
         def make_trainer(self, *_args, **_kwargs):
             return FakeTrainer(self)
 
-        def q_net_for_evaluation(self, q_net, _device):
-            return q_net
+        def q_net_for_evaluation(self, ctx, _device):
+            return ctx.q_net
 
         def training_plotter(self):
             return TrainingProgressPlotter(
@@ -326,11 +329,11 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
                 best_checkpoint_score=lambda: self.best_checkpoint_score,
             )
 
-        def save_trial_attrs(self, _save):
+        def finalize_trial(self, _ctx, _save):
             pass
 
     class FakeHookFactory:
-        def for_trial(self, _trial, _training_config):
+        def for_trial(self, _ctx):
             return FakeHooks()
 
         def study_attrs(self):

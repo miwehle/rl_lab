@@ -8,7 +8,11 @@ from typing import Any, Protocol
 
 import torch
 
-from dqn.vector_training import VectorTrainer, VectorTrainingConfig
+from dqn.vector_training import (
+    VectorTrainer,
+    VectorTrainingConfig,
+    VectorTrainingResult,
+)
 from hpo.lunar_lander.logging import log_call
 from hpo.hyperparams import HP
 
@@ -24,6 +28,18 @@ class EnvironmentFactory(Protocol):
     def make_training_env(self, num_envs: int) -> Any: ...
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
+
+
+@dataclass
+class ObjectiveContext:
+    trial: Any
+    training_config: VectorTrainingConfig
+    trainer: Any | None = None
+    training_result: VectorTrainingResult | None = None
+    q_net: Any | None = None
+    world_scores: dict[str, float] = field(default_factory=dict)
+    score: float | None = None
+    wall_time_seconds: float | None = None
 
 
 # We use the Hook Object pattern to keep objective() simple.
@@ -46,15 +62,19 @@ class Hooks(Protocol):
         replay_memory_capacity: int,
     ) -> Any: ...
 
-    def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any: ...
+    def q_net_for_evaluation(self, ctx: ObjectiveContext, device: Any) -> Any: ...
 
     def training_plotter(self) -> Any | None: ...
 
-    def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None: ...
+    def finalize_trial(
+        self,
+        ctx: ObjectiveContext,
+        save: Callable[[str, Any], None],
+    ) -> None: ...
 
 
 class HookFactory(Protocol):
-    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> Hooks: ...
+    def for_trial(self, ctx: ObjectiveContext) -> Hooks: ...
 
     def study_attrs(self) -> dict[str, Any]: ...
 
@@ -75,18 +95,22 @@ class DefaultHooks:
             replay_memory_capacity=replay_memory_capacity,
         )
 
-    def q_net_for_evaluation(self, q_net: Any, device: Any) -> Any:
-        return q_net
+    def q_net_for_evaluation(self, ctx: ObjectiveContext, device: Any) -> Any:
+        return ctx.q_net
 
     def training_plotter(self) -> Any | None:
         return None
 
-    def save_trial_attrs(self, save: Callable[[str, Any], None]) -> None:
+    def finalize_trial(
+        self,
+        ctx: ObjectiveContext,
+        save: Callable[[str, Any], None],
+    ) -> None:
         pass
 
 
 class DefaultHookFactory:
-    def for_trial(self, trial: Any, training_config: VectorTrainingConfig) -> Hooks:
+    def for_trial(self, ctx: ObjectiveContext) -> Hooks:
         return DefaultHooks()
 
     def study_attrs(self) -> dict[str, Any]:
@@ -148,13 +172,14 @@ def create_objective(
         suggest_parameter_values(trial, incumbent_params)
         params = incumbent_params | trial.params
         training_config = vector_training_config(params)
+        ctx = ObjectiveContext(trial=trial, training_config=training_config)
         replay_memory_capacity = params[HP.REPLAY_MEMORY_CAPACITY]
         trial_seed = (
             None
             if config.training_seed is None
             else config.training_seed + trial.number
         )
-        hooks = config.hooks.for_trial(trial, training_config)
+        hooks = config.hooks.for_trial(ctx)
 
         env = config.environment_factory.make_training_env(config.num_envs)
         try:
@@ -169,10 +194,15 @@ def create_objective(
             logger.info("VectorTrainer.train")
             result = trainer.train(training_config, plotter=hooks.training_plotter())
             wall_time_seconds = perf_counter() - start_time
+            ctx.trainer = trainer
+            ctx.training_result = result
+            ctx.wall_time_seconds = wall_time_seconds
         finally:
             env.close()
 
-        q_net = hooks.q_net_for_evaluation(result.q_net, trainer.device)
+        ctx.q_net = result.q_net
+        q_net = hooks.q_net_for_evaluation(ctx, trainer.device)
+        ctx.q_net = q_net
 
         world_scores = {
             name: evaluate_greedy_q_net(
@@ -186,6 +216,8 @@ def create_objective(
             for name, make_env in config.environment_factory.evaluation_envs().items()
         }
         score = sum(world_scores.values()) / len(world_scores)
+        ctx.world_scores = world_scores
+        ctx.score = score
 
         def save(key, value):
             trial.set_user_attr(key, value)
@@ -197,7 +229,7 @@ def create_objective(
         save("trained_episodes", len(result.episode_returns))
         save("trial_seed", trial_seed)
         save("wall_time_seconds", wall_time_seconds)
-        hooks.save_trial_attrs(save)
+        hooks.finalize_trial(ctx, save)
         save("training_curve", {
             "episode_returns": result.episode_returns,
             "episode_epsilons": result.episode_epsilons,

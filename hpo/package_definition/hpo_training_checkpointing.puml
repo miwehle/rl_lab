@@ -2,7 +2,7 @@
 
 !include ../../puml_links.iuml
 
-title Training Progress, Checkpointing, and Adaptive Extension
+title Training Progress, Checkpointing, Evaluation Best, and Adaptive Extension
 
 hide footbox
 
@@ -13,7 +13,7 @@ participant ":CheckpointingTrainer" as Trainer
 participant ":BestCheckpointRecorder" as Recorder
 participant ":TrainingProgressPlotter" as Plotter
 participant ":Dashboard" as Dashboard
-participant "evaluation-best\nfuture gap" as EvalBest
+participant ":EvaluationBestCheckpointRecorder" as EvalBest
 
 url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:139:1]]
 url of HookFactory is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:113:1]]
@@ -22,9 +22,9 @@ url of Trainer is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:82:1]]
 url of Recorder is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:33:1]]
 url of Plotter is [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:31:1]]
 url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:143:1]]
-url of EvalBest is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:147:1]]
+url of EvalBest is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:83:1]]
 
-Objective -> HookFactory : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:137:1 for_trial(trial, training_config)]]
+Objective -> HookFactory : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:181:1 for_trial(ctx)]]
 activate HookFactory
 create Recorder
 HookFactory -> Recorder : create with window and min score
@@ -63,11 +63,11 @@ deactivate Trainer
 
 Objective -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:228:1 evaluate_greedy_q_net(...)]]
 
-alt current behavior
-    Objective -> Hooks : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:231:1 save_trial_attrs(save)]]
-    Hooks --> Objective : training-checkpoint attrs if present
-else future needed for Armstrong models
-    Objective -> EvalBest : save q_net when evaluation score beats incumbent
+Objective -> Hooks : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:284:1 finalize_trial(ctx, save)]]
+Hooks -> EvalBest : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:101:1 after_evaluation(ctx)]]
+alt evaluation score beats threshold
+    EvalBest -> EvalBest : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:306:1 save_checkpoint(...)]]
 end
+Hooks --> Objective : checkpoint attrs
 
 @enduml

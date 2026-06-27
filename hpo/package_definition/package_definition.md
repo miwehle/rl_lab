@@ -13,7 +13,7 @@ The second practical goal is to grow the dashboard as the central HPO tool: it s
 Related sequence diagrams:
 
 - `hpo_study_flow.puml`: StudyRunner, dashboard, objective, trainer, and robust selection.
-- `hpo_training_checkpointing.puml`: training progress, checkpointing, adaptive training extension, and the current evaluation-best risk.
+- `hpo_training_checkpointing.puml`: training progress, training checkpoints, evaluation-best checkpoints, and adaptive training extension.
 
 ## Mental Model
 
@@ -49,7 +49,9 @@ If a study is already fully finished, `StudyRunner.run(...)` prints `Study alrea
 
 The objective uses a Hook Object pattern through `ObjectiveConfig.hooks` so checkpointing and live training progress do not clutter `objective.py`.
 
-`create_objective(...)` suggests params, builds `VectorTrainingConfig`, creates hooks for the trial, builds a trainer, trains, evaluates greedy Q-net performance over worlds, saves trial attrs, and returns the mean score.
+`create_objective(...)` suggests params, builds `VectorTrainingConfig`, creates an `ObjectiveContext`, creates hooks for the trial, builds a trainer, trains, evaluates greedy Q-net performance over worlds, finalizes hooks, saves trial attrs, and returns the mean score.
+
+`ObjectiveContext` is the small hook-relevant context object that is filled through the objective; hooks receive it at `for_trial(ctx)` and `finalize_trial(ctx, save)`.
 
 `vector_training_config(...)` maps HPO hyperparameters to `VectorTrainingConfig`; HPO currently enables adaptive training extension with `adaptive_extension_window=50`.
 
@@ -65,7 +67,11 @@ The objective saves `trained_episodes` so planned vs. actual training length is 
 
 Training checkpoint score is the trailing training mean, not the final evaluation score.
 
-`best_checkpoint(study)` scans both `trials` and `robustness` checkpoint subdirectories and returns the highest checkpoint metadata score.
+`EvaluationBestCheckpointRecorder` saves the evaluated Q-net after world evaluation when the evaluation score beats the configured minimum score; this protects high-score pilots that training-window checkpointing did not save.
+
+`ObjectiveHooks.finalize_trial(ctx, save)` is the post-evaluation hook that saves training-checkpoint attrs and evaluation-checkpoint attrs.
+
+`best_checkpoint(study)` scans both `trials` and `robustness` checkpoint subdirectories; it prefers `*_eval_best.pt` evaluation checkpoints, and only falls back to training-window `*_best.pt` checkpoints when no evaluation checkpoints exist.
 
 `hpo/src/hpo/robust_selection.py` owns robust candidate re-evaluation.
 
@@ -156,9 +162,9 @@ The 211 score appeared in the robustness dashboard as an evaluation result, but 
 
 The runtime can still live while a model from a completed objective call is already gone; if no checkpoint was saved, the local function's `result.q_net` is not recoverable later.
 
-For future Armstrong-level models, add evaluation-best checkpointing soon; this is one of the highest-priority next steps because preserving high-score checkpoints is a main package goal.
+Evaluation-best checkpointing has been added so future Armstrong-level models should be saved after evaluation, not only when the training trailing mean looks best.
 
-The likely future design: after each objective evaluation, if the evaluation score beats the current study or series best, save exactly that evaluated Q-net as an evaluation-best or incumbent checkpoint.
+Current design: after each objective evaluation, `ObjectiveHooks.finalize_trial(...)` can save exactly the evaluated Q-net as an `*_eval_best.pt` checkpoint and write `evaluation_checkpoint_*` attrs.
 
 Drive policy should stay intentional: local runtime may keep all trial and robustness checkpoints, but Google Drive should ideally receive the selected incumbent/evaluation-best checkpoint rather than every transient file.
 
@@ -236,7 +242,7 @@ For dashboard changes, run:
 
 ## Open Next Steps
 
-Add evaluation-best checkpointing so high evaluation scores cannot vanish when training checkpointing misses them; prioritize this before deeper dashboard polish.
+Verify evaluation-best checkpointing in Colab on the next strong run and decide how selected evaluation-best checkpoints should be copied to Drive.
 
 Reconstruct Study Series dashboard context from the existing series DB after Colab reconnect.
 
