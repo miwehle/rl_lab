@@ -21,8 +21,14 @@ class FakeTrainer:
 class FakeTrial:
     number = 3
 
+    def __init__(self) -> None:
+        self.user_attrs = {}
 
-class FakeRobustTrial:
+    def set_user_attr(self, name, value) -> None:
+        self.user_attrs[name] = value
+
+
+class FakeRobustTrial(FakeTrial):
     number = 3
     checkpoint_subdir = "robustness"
     checkpoint_stem = "trial_0003_seed_1001"
@@ -189,8 +195,8 @@ def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     assert q_net is trainer.q_net
     assert first_weight(trainer.q_net) == pytest.approx(7.0)
 
-    attrs = {}
-    hooks.finalize_trial(ctx, attrs.__setitem__)
+    hooks.finalize_trial(ctx)
+    attrs = ctx.trial.user_attrs
 
     assert attrs["checkpoint_path"] == str(
         tmp_path / "trials" / "trial_0003_best.pt"
@@ -211,8 +217,9 @@ def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(
 
     hooks.recorder.after_episode(trainer, [1.0, 3.0])
 
-    attrs = {}
-    hooks.finalize_trial(objective_context(trial=FakeRobustTrial()), attrs.__setitem__)
+    ctx = objective_context(trial=FakeRobustTrial())
+    hooks.finalize_trial(ctx)
+    attrs = ctx.trial.user_attrs
 
     assert attrs["checkpoint_path"] == str(
         tmp_path / "robustness" / "trial_0003_seed_1001_best.pt"

@@ -40,6 +40,7 @@ class ObjectiveContext:
     world_scores: dict[str, float] = field(default_factory=dict)
     score: float | None = None
     wall_time_seconds: float | None = None
+    trial_seed: int | None = None
 
 
 # We use the Hook Object pattern to keep objective() simple.
@@ -66,11 +67,7 @@ class Hooks(Protocol):
 
     def training_plotter(self) -> Any | None: ...
 
-    def finalize_trial(
-        self,
-        ctx: ObjectiveContext,
-        save: Callable[[str, Any], None],
-    ) -> None: ...
+    def finalize_trial(self, ctx: ObjectiveContext) -> None: ...
 
 
 class HookFactory(Protocol):
@@ -101,11 +98,7 @@ class DefaultHooks:
     def training_plotter(self) -> Any | None:
         return None
 
-    def finalize_trial(
-        self,
-        ctx: ObjectiveContext,
-        save: Callable[[str, Any], None],
-    ) -> None:
+    def finalize_trial(self, ctx: ObjectiveContext) -> None:
         pass
 
 
@@ -169,6 +162,7 @@ def create_objective(
 
     @log_call
     def objective(trial: Any) -> float:
+        # set up
         suggest_parameter_values(trial, incumbent_params)
         params = incumbent_params | trial.params
         training_config = vector_training_config(params)
@@ -179,9 +173,10 @@ def create_objective(
             if config.training_seed is None
             else config.training_seed + trial.number
         )
+        ctx.trial_seed = trial_seed
         hooks = config.hooks.for_trial(ctx)
-
         env = config.environment_factory.make_training_env(config.num_envs)
+
         try:
             ctx.trainer = hooks.make_trainer(
                 env,
@@ -190,6 +185,7 @@ def create_objective(
                 replay_memory_capacity=replay_memory_capacity,
             )
 
+            # train
             start_time = perf_counter()
             logger.info("VectorTrainer.train")
             ctx.training_result = ctx.trainer.train(training_config, plotter=hooks.training_plotter())
@@ -199,6 +195,7 @@ def create_objective(
 
         ctx.q_net = hooks.q_net_for_evaluation(ctx)
 
+        # evaluate
         ctx.world_scores = {
             name: evaluate_greedy_q_net(
                 q_net=ctx.q_net,
@@ -210,29 +207,34 @@ def create_objective(
             )
             for name, make_env in config.environment_factory.evaluation_envs().items()
         }
-        score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
-        ctx.score = score
-
-        def save(key, value):
-            trial.set_user_attr(key, value)
-        result = ctx.training_result
-
-        if len(ctx.world_scores) > 1:
-            save("world_scores", ctx.world_scores)
-        save("env_steps", result.env_steps)
-        save("optimizer_updates", result.optimizer_updates)
-        save("trained_episodes", len(result.episode_returns))
-        save("trial_seed", trial_seed)
-        save("wall_time_seconds", ctx.wall_time_seconds)
-        hooks.finalize_trial(ctx, save)
-        save("training_curve", {
-            "episode_returns": result.episode_returns,
-            "episode_epsilons": result.episode_epsilons,
-        })
-
-        return score
+        ctx.score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
+        
+        set_user_attrs(trial, ctx)
+        hooks.finalize_trial(ctx)
+        return ctx.score
 
     return objective
+
+
+def set_user_attrs(trial: Any, ctx: ObjectiveContext) -> None:
+    def save(key, value):
+        trial.set_user_attr(key, value)
+
+    result = ctx.training_result
+    if len(ctx.world_scores) > 1:
+        save("world_scores", ctx.world_scores)
+    save("env_steps", result.env_steps)
+    save("optimizer_updates", result.optimizer_updates)
+    save("trained_episodes", len(result.episode_returns))
+    save("trial_seed", ctx.trial_seed)
+    save("wall_time_seconds", ctx.wall_time_seconds)
+    save(
+        "training_curve",
+        {
+            "episode_returns": result.episode_returns,
+            "episode_epsilons": result.episode_epsilons,
+        },
+    )
 
 
 def vector_training_config(params: dict[str, Any]) -> VectorTrainingConfig:

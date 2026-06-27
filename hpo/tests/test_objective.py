@@ -250,11 +250,11 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         def training_plotter(self):
             return None
 
-        def finalize_trial(self, ctx, save):
+        def finalize_trial(self, ctx):
             assert ctx.score == pytest.approx(10.0)
             assert ctx.world_scores == {"moon": 10.0, "mars": 10.0}
             assert ctx.training_result is not None
-            save("hook_attr", "yes")
+            ctx.trial.set_user_attr("hook_attr", "yes")
 
     class FakeHookFactory:
         def for_trial(self, ctx):
@@ -329,7 +329,7 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
                 best_checkpoint_score=lambda: self.best_checkpoint_score,
             )
 
-        def finalize_trial(self, _ctx, _save):
+        def finalize_trial(self, _ctx):
             pass
 
     class FakeHookFactory:

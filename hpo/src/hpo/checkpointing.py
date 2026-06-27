@@ -1,6 +1,5 @@
 """Checkpoint the best concrete model produced during an HPO trial."""
 
-from collections.abc import Callable
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -285,11 +284,10 @@ class ObjectiveHooks:
             )
         return q_net
 
-    def finalize_trial(
-        self,
-        ctx: ObjectiveContext,
-        save: Callable[[str, Any], None],
-    ) -> None:
+    def finalize_trial(self, ctx: ObjectiveContext) -> None:
+        def save(key, value):
+            ctx.trial.set_user_attr(key, value)
+
         self.evaluation_recorder.after_evaluation(ctx)
         if self.recorder.best_checkpoint is not None:
             metadata = self.recorder.best_checkpoint.metadata
