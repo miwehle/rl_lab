@@ -577,7 +577,7 @@ def _add_training_progress(
         score_values.append(reference_score)
     figure.update_yaxes(
         title_text="Gym score",
-        range=[min(score_values) - 10, max(score_values) + 10],
+        range=[max(min(score_values) - 10, -500), max(score_values) + 10],
         row=3,
         col=1,
     )
