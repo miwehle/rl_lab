@@ -228,13 +228,6 @@ class VectorTrainer:
                 new_epsilons = [self._exploration_rate(config)] * new_episode_count
                 episode_epsilons.extend(new_epsilons)
                 self.epsilons.extend(new_epsilons)
-                self._after_episode(
-                    episode_returns,
-                    episode_lengths,
-                    episode_epsilons,
-                    config,
-                    plotter,
-                )
                 if len(episode_returns) >= target_num_episodes and (
                     _should_extend_training(
                         episode_returns,
@@ -243,6 +236,15 @@ class VectorTrainer:
                     )
                 ):
                     target_num_episodes += base_num_episodes
+                    if plotter is not None and hasattr(plotter, "target_episodes"):
+                        plotter.target_episodes = target_num_episodes
+                self._after_episode(
+                    episode_returns,
+                    episode_lengths,
+                    episode_epsilons,
+                    config,
+                    plotter,
+                )
 
             self._optimize_due(config, previous_steps)
             observations = next_observations

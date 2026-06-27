@@ -95,6 +95,38 @@ def test_vector_training_accepts_plotter() -> None:
     assert plot_calls[-1][2] is not None
 
 
+def test_vector_training_updates_plotter_target_when_training_extends(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "dqn.vector_training._should_extend_training",
+        lambda episode_returns, **_kwargs: len(episode_returns) == 2,
+    )
+    env = vector_env(num_envs=2)
+    plot_calls = []
+
+    class Plotter:
+        target_episodes = 2
+
+        def plot_returns(self, returns, **_kwargs) -> None:
+            plot_calls.append((len(returns), self.target_episodes))
+
+    try:
+        trainer = VectorTrainer(env, seed=42)
+        result = trainer.train(
+            vector_training_config(
+                num_episodes=2,
+                adaptive_extension_window=1,
+            ),
+            plotter=Plotter(),
+        )
+    finally:
+        env.close()
+
+    assert len(result.episode_returns) == 4
+    assert any(length >= 2 and target == 4 for length, target in plot_calls)
+
+
 def test_vector_training_calls_after_episode_hook() -> None:
     env = vector_env(num_envs=2)
     hook_calls = []
