@@ -166,7 +166,7 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     assert figure.layout.height == 850
     assert [annotation.text for annotation in figure.layout.annotations[:4]] == [
         "Study Series",
-        "Best HPs",
+        "Current HPs",
         "Study: S1 Update Economy",
         "HP Robustness Evaluation",
     ]
@@ -200,6 +200,29 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
         if getattr(trace, "showlegend", False) is not False
         and trace.name is not None
     } == {"Score", "Best score"}
+
+
+def test_current_hps_use_live_trial_params_during_training() -> None:
+    study = FakeStudy(trials=[], study_name="s1_update_economy")
+
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=40,
+        studies=[],
+        incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
+        training_progress=TrainingProgress(
+            trial_number=3,
+            target_episodes=5,
+            episode_returns=[1.0],
+            trial_params={"learning_rate": 0.002, "gamma": 0.99},
+            optimized_param_names=["learning_rate"],
+        ),
+    )
+
+    table = next(trace for trace in figure.data if trace.type == "table")
+    assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
+    assert list(table.cells.values[1]) == ["0.002", "0.99"]
+    assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
 
 
 def test_robustness_plot_shows_seed_scores_and_means() -> None:

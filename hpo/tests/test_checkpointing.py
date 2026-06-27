@@ -20,6 +20,7 @@ class FakeTrainer:
 
 class FakeTrial:
     number = 3
+    params = {"learning_rate": 0.002}
 
     def __init__(self) -> None:
         self.user_attrs = {}
@@ -66,12 +67,14 @@ def objective_context(
     trial=None,
     config=None,
     *,
+    params=None,
     q_net=None,
     score=None,
     episode_returns=None,
 ) -> ObjectiveContext:
     ctx = ObjectiveContext(
         trial=trial or FakeTrial(),
+        params=params or {"learning_rate": 0.002, "gamma": 0.99},
         training_config=config or training_config(),
     )
     if q_net is not None:
@@ -171,6 +174,8 @@ def test_checkpointing_objective_hooks_create_training_plotter(tmp_path) -> None
 
     assert progress_calls[0].checkpoint_window == 2
     assert progress_calls[0].checkpoint_min_score == pytest.approx(10.0)
+    assert progress_calls[0].trial_params == {"learning_rate": 0.002, "gamma": 0.99}
+    assert progress_calls[0].optimized_param_names == ["learning_rate"]
     assert progress_calls[0].best_checkpoint_score is None
     assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
 

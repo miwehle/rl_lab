@@ -91,7 +91,7 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 The dashboard is the visual interface between the human and the running HPO, and it should make the study series feel readable while it runs.
 
-Dashboard panels: Study Series, Best HPs, current Study, HP Robustness Evaluation, and Current Trial Training.
+Dashboard panels: Study Series, Current HPs, current Study, HP Robustness Evaluation, and Current Trial Training.
 
 Current Trial Training plots raw episode returns, trailing mean over the checkpoint window, epsilon on a secondary axis, and a horizontal reference line from the current best checkpoint score or initial checkpoint threshold.
 

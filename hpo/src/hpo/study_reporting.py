@@ -21,6 +21,8 @@ class TrainingProgress:
     episode_returns: list[float]
     episode_epsilons: list[float] | None = None
     episode_env_labels: list[str | None] | None = None
+    trial_params: dict[str, Any] | None = None
+    optimized_param_names: list[str] | None = None
     checkpoint_window: int | None = None
     checkpoint_min_score: float | None = None
     best_checkpoint_score: float | None = None
@@ -38,6 +40,8 @@ class TrainingProgressPlotter:
     checkpoint_min_score: float | None = None
     best_checkpoint_score: Callable[[], float | None] | None = None
     env_labels: list[str | None] | None = None
+    trial_params: dict[str, Any] | None = None
+    optimized_param_names: list[str] | None = None
 
     def plot_returns(self, episode_returns: list[float], **kwargs) -> None:
         env_indices = kwargs.get("env_indices")
@@ -60,6 +64,16 @@ class TrainingProgressPlotter:
                         for index in env_indices
                     ]
                     if env_indices is not None
+                    else None
+                ),
+                trial_params=(
+                    dict(self.trial_params)
+                    if self.trial_params is not None
+                    else None
+                ),
+                optimized_param_names=(
+                    list(self.optimized_param_names)
+                    if self.optimized_param_names is not None
                     else None
                 ),
                 checkpoint_window=self.checkpoint_window,

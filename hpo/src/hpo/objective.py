@@ -33,6 +33,7 @@ class EnvironmentFactory(Protocol):
 @dataclass
 class ObjectiveContext:
     trial: Any
+    params: dict[str, Any]
     training_config: VectorTrainingConfig
     trainer: Any | None = None
     training_result: VectorTrainingResult | None = None
@@ -171,7 +172,11 @@ def create_objective(
             params,
             early_stopping_score=config.early_stopping_score,
         )
-        ctx = ObjectiveContext(trial=trial, training_config=training_config)
+        ctx = ObjectiveContext(
+            trial=trial,
+            params=params,
+            training_config=training_config,
+        )
         replay_memory_capacity = params[HP.REPLAY_MEMORY_CAPACITY]
         trial_seed = (
             None

@@ -2,7 +2,7 @@
 
 The dashboard is the visual interface between the human and the running HPO:
 - Study Series shows the overall progress.
-- Best HPs shows the current incumbent hyperparameters.
+- Current HPs shows the running trial hyperparameters, or the incumbent otherwise.
 - Study follows the current optimization.
 - HP Robustness Evaluation confirms the best candidates at the end of each study.
 - Current Trial Training shows live episode returns for the running trial, so the
@@ -68,14 +68,23 @@ def build_dashboard(
         horizontal_spacing=0.12,
         subplot_titles=(
             "Study Series",
-            "Best HPs",
+            "Current HPs",
             f"Study: {_study_title(study)}",
             "HP Robustness Evaluation",
             "Current Trial Training",
         ),
     )
     _add_study_series(figure, studies)
-    _add_best_hps(figure, incumbent_params, study)
+    _add_current_hps(
+        figure,
+        _current_params(incumbent_params, training_progress),
+        study,
+        optimized_param_names=(
+            training_progress.optimized_param_names
+            if training_progress is not None
+            else None
+        ),
+    )
     if robustness_progress is None:
         _add_current_study(figure, study, target_trials)
         figure.add_annotation(
@@ -333,19 +342,32 @@ def _study_series_points(studies: Any) -> list[dict[str, Any]]:
     return points
 
 
-def _add_best_hps(
-    figure: Any,
+def _current_params(
     incumbent_params: dict[str, Any],
+    training_progress: TrainingProgress | None,
+) -> dict[str, Any]:
+    if training_progress is None or training_progress.trial_params is None:
+        return incumbent_params
+    return training_progress.trial_params
+
+
+def _add_current_hps(
+    figure: Any,
+    params: dict[str, Any],
     study: Any,
+    *,
+    optimized_param_names: list[str] | None = None,
 ) -> None:
     import plotly.graph_objects as go
 
-    names = list(incumbent_params)
+    names = list(params)
     optimized_params = {
         name
         for trial in study.trials
         for name in trial.params
     }
+    if optimized_param_names is not None:
+        optimized_params.update(optimized_param_names)
     row_colors = [
         "#fff2cc" if name in optimized_params else "white"
         for name in names
@@ -361,7 +383,7 @@ def _add_best_hps(
             cells=dict(
                 values=[
                     names,
-                    [str(incumbent_params[name]) for name in names],
+                    [str(params[name]) for name in names],
                 ],
                 align=["left", "right"],
                 fill_color=[row_colors, row_colors],

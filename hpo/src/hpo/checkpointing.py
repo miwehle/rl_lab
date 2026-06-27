@@ -215,6 +215,8 @@ class ObjectiveHookFactory:
             trial_number=trial.number,
             target_episodes=ctx.training_config.num_episodes,
             training_progress_fn=self.training_progress_fn,
+            trial_params=ctx.params,
+            optimized_param_names=list(getattr(trial, "params", {})),
         )
 
     def study_attrs(self) -> dict[str, Any]:
@@ -234,6 +236,8 @@ class ObjectiveHooks:
     target_episodes: int
     training_progress_fn: TrainingProgressFn | None = None
     env_labels: list[str | None] | None = None
+    trial_params: dict[str, Any] | None = None
+    optimized_param_names: list[str] | None = None
 
     @property
     def checkpoint_window(self) -> int:
@@ -260,6 +264,8 @@ class ObjectiveHooks:
             checkpoint_min_score=self.recorder.min_score,
             best_checkpoint_score=lambda: self.best_checkpoint_score,
             env_labels=self.env_labels,
+            trial_params=self.trial_params,
+            optimized_param_names=self.optimized_param_names,
         )
 
     def make_trainer(
