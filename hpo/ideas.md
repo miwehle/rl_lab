@@ -36,3 +36,30 @@ Damit wird nichts doppelt geprüft: erst entwickeln, dann Anforderung nachweisen
 
 
 https://www.nasa.gov/the-apollo-program
+
+
+# Vereinfachung der Objective
+
+        # Idee:
+        # - Folgendes in einem neuen hook evaluate_model machen.
+        # - Danach den Hook q_net_for_evaluation entfernen.
+        # - Also folgende Zeile statt "# { ... # }":
+        # world_scores = hook.evaluate_model(ctx)
+        # {
+        ctx.q_net = ctx.training_result.q_net
+        ctx.q_net = hooks.q_net_for_evaluation(ctx, ctx.trainer.device)
+
+        ctx.world_scores = {
+            name: evaluate_greedy_q_net(
+                q_net=ctx.q_net,
+                device=ctx.trainer.device,
+                make_env=make_env,
+                episodes=config.eval_episodes,
+                max_steps=config.eval_max_steps,
+                seed=config.eval_seed,
+            )
+            for name, make_env in config.environment_factory.evaluation_envs().items()
+        }
+        score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
+        ctx.score = score
+        # }

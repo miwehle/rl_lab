@@ -62,7 +62,7 @@ class Hooks(Protocol):
         replay_memory_capacity: int,
     ) -> Any: ...
 
-    def q_net_for_evaluation(self, ctx: ObjectiveContext, device: Any) -> Any: ...
+    def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any: ...
 
     def training_plotter(self) -> Any | None: ...
 
@@ -95,8 +95,8 @@ class DefaultHooks:
             replay_memory_capacity=replay_memory_capacity,
         )
 
-    def q_net_for_evaluation(self, ctx: ObjectiveContext, device: Any) -> Any:
-        return ctx.q_net
+    def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any:
+        return ctx.training_result.q_net
 
     def training_plotter(self) -> Any | None:
         return None
@@ -183,7 +183,7 @@ def create_objective(
 
         env = config.environment_factory.make_training_env(config.num_envs)
         try:
-            trainer = hooks.make_trainer(
+            ctx.trainer = hooks.make_trainer(
                 env,
                 seed=trial_seed,
                 device=config.device,
@@ -192,22 +192,17 @@ def create_objective(
 
             start_time = perf_counter()
             logger.info("VectorTrainer.train")
-            result = trainer.train(training_config, plotter=hooks.training_plotter())
-            wall_time_seconds = perf_counter() - start_time
-            ctx.trainer = trainer
-            ctx.training_result = result
-            ctx.wall_time_seconds = wall_time_seconds
+            ctx.training_result = ctx.trainer.train(training_config, plotter=hooks.training_plotter())
+            ctx.wall_time_seconds = perf_counter() - start_time
         finally:
             env.close()
 
-        ctx.q_net = result.q_net
-        q_net = hooks.q_net_for_evaluation(ctx, trainer.device)
-        ctx.q_net = q_net
+        ctx.q_net = hooks.q_net_for_evaluation(ctx)
 
-        world_scores = {
+        ctx.world_scores = {
             name: evaluate_greedy_q_net(
-                q_net=q_net,
-                device=trainer.device,
+                q_net=ctx.q_net,
+                device=ctx.trainer.device,
                 make_env=make_env,
                 episodes=config.eval_episodes,
                 max_steps=config.eval_max_steps,
@@ -215,20 +210,20 @@ def create_objective(
             )
             for name, make_env in config.environment_factory.evaluation_envs().items()
         }
-        score = sum(world_scores.values()) / len(world_scores)
-        ctx.world_scores = world_scores
+        score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
         ctx.score = score
 
         def save(key, value):
             trial.set_user_attr(key, value)
+        result = ctx.training_result
 
-        if len(world_scores) > 1:
-            save("world_scores", world_scores)
+        if len(ctx.world_scores) > 1:
+            save("world_scores", ctx.world_scores)
         save("env_steps", result.env_steps)
         save("optimizer_updates", result.optimizer_updates)
         save("trained_episodes", len(result.episode_returns))
         save("trial_seed", trial_seed)
-        save("wall_time_seconds", wall_time_seconds)
+        save("wall_time_seconds", ctx.wall_time_seconds)
         hooks.finalize_trial(ctx, save)
         save("training_curve", {
             "episode_returns": result.episode_returns,

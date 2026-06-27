@@ -184,8 +184,8 @@ def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     assert hooks.checkpoint_window == 2
     assert hooks.best_checkpoint_score == pytest.approx(2.0)
 
-    ctx = objective_context(q_net=trainer.q_net)
-    q_net = hooks.q_net_for_evaluation(ctx, torch.device("cpu"))
+    ctx = objective_context(q_net=trainer.q_net, episode_returns=[1.0, 3.0])
+    q_net = hooks.q_net_for_evaluation(ctx)
     assert q_net is trainer.q_net
     assert first_weight(trainer.q_net) == pytest.approx(7.0)
 

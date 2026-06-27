@@ -275,10 +275,14 @@ class ObjectiveHooks:
             checkpoint_recorder=self.recorder,
         )
 
-    def q_net_for_evaluation(self, ctx: ObjectiveContext, device: Any) -> Any:
-        q_net = ctx.q_net
+    def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any:
+        q_net = ctx.training_result.q_net
         if self.recorder.best_checkpoint is not None:
-            load_checkpoint(q_net, self.recorder.best_checkpoint.path, device)
+            load_checkpoint(
+                q_net,
+                self.recorder.best_checkpoint.path,
+                getattr(ctx.trainer, "device", None),
+            )
         return q_net
 
     def finalize_trial(

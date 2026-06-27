@@ -243,9 +243,9 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         def make_trainer(self, *args, **kwargs):
             return FakeTrainer(*args, **kwargs)
 
-        def q_net_for_evaluation(self, ctx, device):
-            ctx.q_net.hooked = True
-            return ctx.q_net
+        def q_net_for_evaluation(self, ctx):
+            ctx.training_result.q_net.hooked = True
+            return ctx.training_result.q_net
 
         def training_plotter(self):
             return None
@@ -316,8 +316,8 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
         def make_trainer(self, *_args, **_kwargs):
             return FakeTrainer(self)
 
-        def q_net_for_evaluation(self, ctx, _device):
-            return ctx.q_net
+        def q_net_for_evaluation(self, ctx):
+            return ctx.training_result.q_net
 
         def training_plotter(self):
             return TrainingProgressPlotter(
