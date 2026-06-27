@@ -252,9 +252,9 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
         training_progress=TrainingProgress(
             trial_number=3,
             target_episodes=5,
-            episode_returns=[1.0, 3.0, 5.0],
-            episode_epsilons=[0.9, 0.8, 0.7],
-            episode_env_labels=["moon", "mars", "moon"],
+            episode_returns=[1.0, 3.0, 5.0, 7.0],
+            episode_epsilons=[0.9, 0.8, 0.7, 0.6],
+            episode_env_labels=["moon", "mars", "mercury", "earth"],
             checkpoint_window=2,
             checkpoint_min_score=2.5,
             best_checkpoint_score=4.0,
@@ -271,26 +271,32 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     epsilon = next(trace for trace in figure.data if trace.name == "Epsilon")
     moon = next(trace for trace in figure.data if trace.name == "moon")
     mars = next(trace for trace in figure.data if trace.name == "mars")
+    env_traces = [
+        trace.name
+        for trace in figure.data
+        if trace.name in {"mercury", "earth", "moon", "mars"}
+    ]
 
-    assert list(returns.x) == [1, 2, 3]
-    assert list(returns.y) == [1.0, 3.0, 5.0]
+    assert list(returns.x) == [1, 2, 3, 4]
+    assert list(returns.y) == [1.0, 3.0, 5.0, 7.0]
     assert returns.mode == "lines"
     assert returns.line.color == "#9a9a9a"
-    assert list(moon.x) == [1, 3]
-    assert list(moon.y) == [1.0, 5.0]
+    assert env_traces == ["mercury", "earth", "moon", "mars"]
+    assert list(moon.x) == [1]
+    assert list(moon.y) == [1.0]
     assert list(mars.x) == [2]
     assert list(mars.y) == [3.0]
-    assert list(epsilon.x) == [1, 2, 3]
-    assert list(epsilon.y) == [0.9, 0.8, 0.7]
-    assert list(trailing_mean.x) == [2, 3]
-    assert list(trailing_mean.y) == pytest.approx([2.0, 4.0])
+    assert list(epsilon.x) == [1, 2, 3, 4]
+    assert list(epsilon.y) == [0.9, 0.8, 0.7, 0.6]
+    assert list(trailing_mean.x) == [2, 3, 4]
+    assert list(trailing_mean.y) == pytest.approx([2.0, 4.0, 6.0])
     assert list(checkpoint.y) == [4.0, 4.0]
     assert figure.layout.xaxis4.title.text == "Episode"
     assert figure.layout.yaxis4.title.text == "Gym score"
     assert figure.layout.yaxis5.title.text == "Epsilon"
     assert any(
         annotation.text
-        == "Current Trial Training - Trial 3 - Mean (2 episodes): 4.0 · Best Mean: 4.0"
+        == "Current Trial Training - Trial 3 - Mean (2 episodes): 6.0 · Best Mean: 6.0"
         for annotation in figure.layout.annotations
     )
 

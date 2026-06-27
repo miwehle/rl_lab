@@ -22,12 +22,13 @@ from hpo.study_reporting import (
 
 DashboardRenderMode = Literal["safe"]
 _ENV_LABEL_COLORS = {
-    "moon": "#c0c0c0",
-    "mercury": "#7f7f7f",
-    "mars": "#ff7f0e",
-    "earth": "#1f77b4",
-    "venus": "#9467bd",
+    "moon": "#a0a0a0",
+    "mercury": "#4f4f4f",
+    "mars": "#ff5f0e",
+    "earth": "#1f77d4",
+    "venus": "#f2c94c",
 }
+_ENV_LABEL_ORDER = ("mercury", "venus", "earth", "moon", "mars")
 _FALLBACK_COLORS = (
     "#1f77b4",
     "#ff7f0e",
@@ -542,7 +543,11 @@ def _add_training_progress(
         secondary_y=False,
     )
     if has_env_labels:
-        labels = list(dict.fromkeys(progress.episode_env_labels))
+        seen_labels = list(dict.fromkeys(progress.episode_env_labels))
+        labels = [
+            *[label for label in _ENV_LABEL_ORDER if label in seen_labels],
+            *[label for label in seen_labels if label not in _ENV_LABEL_ORDER],
+        ]
         fallback_colors = {
             label: _FALLBACK_COLORS[index % len(_FALLBACK_COLORS)]
             for index, label in enumerate(labels)
