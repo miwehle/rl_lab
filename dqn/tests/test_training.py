@@ -66,7 +66,7 @@ def test_training_can_continue_with_another_config() -> None:
     assert trainer.optimizer.param_groups[0]["lr"] == pytest.approx(1e-4)
 
 
-
+#@pytest.mark.skip(reason="temporarily disabled")
 @pytest.mark.timeout(MAX_TEST_SECONDS)
 def test_cartpole_training() -> None:
     env = gym.make("CartPole-v1")
