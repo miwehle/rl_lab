@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from hpo.solar_system_lander.environment import EnvFactory
+from hpo.solar_system_lander.environment import EnvFactory, WorldConfig
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:
@@ -23,6 +23,25 @@ def test_solar_system_lander_factory_balances_world_slots() -> None:
 def test_solar_system_lander_requires_balanced_slot_count() -> None:
     with pytest.raises(ValueError, match="divisible by 5"):
         EnvFactory("8d").make_training_env(16)
+
+
+def test_solar_system_lander_factory_accepts_custom_worlds() -> None:
+    calm_venus = WorldConfig("calm_venus", -9.0, (0.0, 0.0), (0.0, 0.0))
+    factory = EnvFactory("9d", worlds=(calm_venus,))
+    env = factory.make_training_env(3)
+    try:
+        names = [wrapped.world.name for wrapped in env.envs]
+    finally:
+        env.close()
+
+    assert names == ["calm_venus", "calm_venus", "calm_venus"]
+    assert list(factory.evaluation_envs()) == ["calm_venus"]
+    assert factory.metadata()["worlds"][0]["wind_power"] == [0.0, 0.0]
+
+
+def test_solar_system_lander_factory_rejects_empty_worlds() -> None:
+    with pytest.raises(ValueError, match="worlds must not be empty"):
+        EnvFactory("8d", worlds=())
 
 
 def test_solar_system_lander_11d_exposes_reproducible_weather() -> None:

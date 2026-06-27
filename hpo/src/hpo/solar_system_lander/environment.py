@@ -1,6 +1,6 @@
 """Mixed-world LunarLander environments for SolarSystemLander HPO."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -88,24 +88,32 @@ class EnvWrapper(gym.Wrapper):
 
 
 class EnvFactory:
-    def __init__(self, observation_mode: str) -> None:
+    def __init__(
+        self,
+        observation_mode: str,
+        *,
+        worlds: Sequence[WorldConfig] = WORLDS,
+    ) -> None:
         if observation_mode not in {"8d", "9d", "11d"}:
             raise ValueError("observation_mode must be '8d', '9d', or '11d'")
+        if not worlds:
+            raise ValueError("worlds must not be empty")
         self.observation_mode = observation_mode
+        self.worlds = tuple(worlds)
 
     def make_training_env(self, num_envs: int) -> SyncVectorEnv:
-        if num_envs % len(WORLDS):
-            raise ValueError(f"num_envs must be divisible by {len(WORLDS)}")
-        slots_per_world = num_envs // len(WORLDS)
+        if num_envs % len(self.worlds):
+            raise ValueError(f"num_envs must be divisible by {len(self.worlds)}")
+        slots_per_world = num_envs // len(self.worlds)
         factories = [
             self._factory(world)
-            for world in WORLDS
+            for world in self.worlds
             for _ in range(slots_per_world)
         ]
         return SyncVectorEnv(factories)
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]:
-        return {world.name: self._factory(world) for world in WORLDS}
+        return {world.name: self._factory(world) for world in self.worlds}
 
     def metadata(self) -> dict[str, Any]:
         return {
@@ -116,7 +124,7 @@ class EnvFactory:
                     "wind_power": list(world.wind_power),
                     "turbulence_power": list(world.turbulence_power),
                 }
-                for world in WORLDS
+                for world in self.worlds
             ],
         }
 
