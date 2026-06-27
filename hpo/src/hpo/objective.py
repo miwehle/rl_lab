@@ -178,6 +178,7 @@ def create_objective(
         env = config.environment_factory.make_training_env(config.num_envs)
 
         try:
+            # make trainer
             ctx.trainer = hooks.make_trainer(
                 env,
                 seed=trial_seed,
@@ -185,7 +186,7 @@ def create_objective(
                 replay_memory_capacity=replay_memory_capacity,
             )
 
-            # train
+            # train DQN
             start_time = perf_counter()
             logger.info("VectorTrainer.train")
             ctx.training_result = ctx.trainer.train(training_config, plotter=hooks.training_plotter())
@@ -195,7 +196,7 @@ def create_objective(
 
         ctx.q_net = hooks.q_net_for_evaluation(ctx)
 
-        # evaluate
+        # evaluate DQN
         ctx.world_scores = {
             name: evaluate_greedy_q_net(
                 q_net=ctx.q_net,
@@ -209,16 +210,17 @@ def create_objective(
         }
         ctx.score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
         
-        set_user_attrs(trial, ctx)
+        set_user_attrs(ctx)
         hooks.finalize_trial(ctx)
+        
         return ctx.score
 
     return objective
 
 
-def set_user_attrs(trial: Any, ctx: ObjectiveContext) -> None:
+def set_user_attrs(ctx: ObjectiveContext) -> None:
     def save(key, value):
-        trial.set_user_attr(key, value)
+        ctx.trial.set_user_attr(key, value)
 
     result = ctx.training_result
     if len(ctx.world_scores) > 1:
