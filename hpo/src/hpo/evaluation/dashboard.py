@@ -22,7 +22,7 @@ from hpo.study_reporting import (
 
 DashboardRenderMode = Literal["safe"]
 _ENV_LABEL_COLORS = {
-    "moon": "#a0a0a0",
+    "moon": "#809090",
     "mercury": "#4f4f4f",
     "mars": "#ff5f0e",
     "earth": "#1f77d4",
