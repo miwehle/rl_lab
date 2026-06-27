@@ -93,7 +93,7 @@ The dashboard is the visual interface between the human and the running HPO, and
 
 Dashboard panels: Study Series, Best HPs, current Study, HP Robustness Evaluation, and Current Trial Training.
 
-Current Trial Training plots raw episode returns, trailing mean over the checkpoint window, and a horizontal reference line from the current best checkpoint score or initial checkpoint threshold.
+Current Trial Training plots raw episode returns, trailing mean over the checkpoint window, epsilon on a secondary axis, and a horizontal reference line from the current best checkpoint score or initial checkpoint threshold.
 
 `Dashboard(render_mode="safe")` clears and redisplays the whole dashboard; this is robust in notebooks/Colab but can flicker.
 

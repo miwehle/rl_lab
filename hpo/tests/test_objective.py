@@ -343,9 +343,9 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
             self.hooks = hooks
 
         def train(self, _training_config, *, plotter):
-            plotter.plot_returns([1.0])
+            plotter.plot_returns([1.0], epsilons=[0.9])
             self.hooks.best_checkpoint_score = 4.0
-            plotter.plot_returns([1.0, 5.0])
+            plotter.plot_returns([1.0, 5.0], epsilons=[0.9, 0.8])
             return VectorTrainingResult(
                 q_net="fake-q-net",
                 episode_returns=[1.0, 5.0],
@@ -405,6 +405,10 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
     assert [progress.episode_returns for progress in progress_calls] == [
         [1.0],
         [1.0, 5.0],
+    ]
+    assert [progress.episode_epsilons for progress in progress_calls] == [
+        [0.9],
+        [0.9, 0.8],
     ]
     assert progress_calls[0].checkpoint_window == 2
     assert progress_calls[0].checkpoint_min_score == pytest.approx(3.0)

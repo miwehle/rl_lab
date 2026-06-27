@@ -43,7 +43,7 @@ def build_dashboard(
         specs=[
             [{}, {"type": "domain"}],
             [{}, {}],
-            [{"colspan": 2}, None],
+            [{"colspan": 2, "secondary_y": True}, None],
         ],
         row_heights=[0.36, 0.32, 0.32],
         vertical_spacing=0.11,
@@ -520,7 +520,24 @@ def _add_training_progress(
         ),
         row=3,
         col=1,
+        secondary_y=False,
     )
+    if progress.episode_epsilons:
+        epsilon_count = min(len(episodes), len(progress.episode_epsilons))
+        figure.add_trace(
+            go.Scatter(
+                x=episodes[:epsilon_count],
+                y=[float(value) for value in progress.episode_epsilons[:epsilon_count]],
+                mode="lines",
+                name="Epsilon",
+                showlegend=False,
+                line=dict(color="#2ca02c", dash="dot"),
+                hovertemplate="Epsilon: %{y:.3f}<extra></extra>",
+            ),
+            row=3,
+            col=1,
+            secondary_y=True,
+        )
 
     mean_label = "Mean: n/a"
     if progress.checkpoint_window is not None:
@@ -542,6 +559,7 @@ def _add_training_progress(
                 ),
                 row=3,
                 col=1,
+                secondary_y=False,
             )
 
     reference_score = (
@@ -567,6 +585,7 @@ def _add_training_progress(
             ),
             row=3,
             col=1,
+            secondary_y=False,
         )
 
     figure.layout.annotations[4].text = (
@@ -591,6 +610,14 @@ def _add_training_progress(
         ],
         row=3,
         col=1,
+        secondary_y=False,
+    )
+    figure.update_yaxes(
+        title_text="Epsilon",
+        range=[0, 1],
+        row=3,
+        col=1,
+        secondary_y=True,
     )
 
 

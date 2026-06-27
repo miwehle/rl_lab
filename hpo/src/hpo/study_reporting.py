@@ -19,6 +19,7 @@ class TrainingProgress:
     trial_number: int
     target_episodes: int
     episode_returns: list[float]
+    episode_epsilons: list[float] | None = None
     checkpoint_window: int | None = None
     checkpoint_min_score: float | None = None
     best_checkpoint_score: float | None = None
@@ -36,12 +37,17 @@ class TrainingProgressPlotter:
     checkpoint_min_score: float | None = None
     best_checkpoint_score: Callable[[], float | None] | None = None
 
-    def plot_returns(self, episode_returns: list[float], **_kwargs) -> None:
+    def plot_returns(self, episode_returns: list[float], **kwargs) -> None:
         self.progress_fn(
             TrainingProgress(
                 trial_number=self.trial_number,
                 target_episodes=self.target_episodes,
                 episode_returns=list(episode_returns),
+                episode_epsilons=(
+                    list(kwargs["epsilons"])
+                    if kwargs.get("epsilons") is not None
+                    else None
+                ),
                 checkpoint_window=self.checkpoint_window,
                 checkpoint_min_score=self.checkpoint_min_score,
                 best_checkpoint_score=(
