@@ -32,25 +32,29 @@ class EnvWrapper(gym.Wrapper):
 
     def __init__(self, env, world: WorldConfig, observation_mode: str) -> None:
         super().__init__(env)
-        if observation_mode not in {"8d", "11d"}:
-            raise ValueError("observation_mode must be '8d' or '11d'")
+        if observation_mode not in {"8d", "9d", "11d"}:
+            raise ValueError("observation_mode must be '8d', '9d', or '11d'")
 
         self.world = world
         self.observation_mode = observation_mode
         self._weather_rng = np.random.default_rng()
         self._weather = (0.0, 0.0)
 
-        if observation_mode == "11d":
+        if observation_mode in {"9d", "11d"}:
             base = env.observation_space
+            extra_low = (
+                np.array([-1.0], dtype=np.float32)
+                if observation_mode == "9d"
+                else np.array([-1.0, 0.0, 0.0], dtype=np.float32)
+            )
+            extra_high = (
+                np.array([0.0], dtype=np.float32)
+                if observation_mode == "9d"
+                else np.array([0.0, 1.0, 1.0], dtype=np.float32)
+            )
             self.observation_space = Box(
-                low=np.concatenate((
-                    base.low,
-                    np.array([-1.0, 0.0, 0.0], dtype=np.float32),
-                )),
-                high=np.concatenate((
-                    base.high,
-                    np.array([0.0, 1.0, 1.0], dtype=np.float32),
-                )),
+                low=np.concatenate((base.low, extra_low)),
+                high=np.concatenate((base.high, extra_high)),
                 dtype=np.float32,
             )
 
@@ -76,17 +80,17 @@ class EnvWrapper(gym.Wrapper):
         if self.observation_mode == "8d":
             return observation
         wind, turbulence = self._weather
-        world = np.array(
-            [self.world.gravity / 12, wind / 20, turbulence / 2],
-            dtype=np.float32,
-        )
+        values = [self.world.gravity / 12]
+        if self.observation_mode == "11d":
+            values.extend([wind / 20, turbulence / 2])
+        world = np.array(values, dtype=np.float32)
         return np.concatenate((observation, world)).astype(np.float32, copy=False)
 
 
 class EnvFactory:
     def __init__(self, observation_mode: str) -> None:
-        if observation_mode not in {"8d", "11d"}:
-            raise ValueError("observation_mode must be '8d' or '11d'")
+        if observation_mode not in {"8d", "9d", "11d"}:
+            raise ValueError("observation_mode must be '8d', '9d', or '11d'")
         self.observation_mode = observation_mode
 
     def make_training_env(self, num_envs: int) -> SyncVectorEnv:

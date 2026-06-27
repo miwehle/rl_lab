@@ -43,6 +43,17 @@ def test_solar_system_lander_11d_exposes_reproducible_weather() -> None:
     assert 0 <= first_observation[-1] <= 1 / 2
 
 
+def test_solar_system_lander_9d_exposes_gravity() -> None:
+    env = EnvFactory("9d").evaluation_envs()["mars"]()
+    try:
+        observation, _ = env.reset(seed=42)
+    finally:
+        env.close()
+
+    assert observation.shape == (9,)
+    assert observation[-1] == pytest.approx(-3.8 / 12)
+
+
 def test_solar_system_lander_8d_hides_world_parameters() -> None:
     env = EnvFactory("8d").evaluation_envs()["earth"]()
     try:

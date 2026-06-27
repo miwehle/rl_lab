@@ -214,15 +214,19 @@ def test_current_hps_use_live_trial_params_during_training() -> None:
             trial_number=3,
             target_episodes=5,
             episode_returns=[1.0],
-            trial_params={"learning_rate": 0.002, "gamma": 0.99},
-            optimized_param_names=["learning_rate"],
+            trial_params={
+                "learning_rate": 0.0022727854024196057,
+                "eps_end": 0.047716002108220544,
+                "gamma": 0.99,
+            },
+            optimized_param_names=["learning_rate", "eps_end"],
         ),
     )
 
     table = next(trace for trace in figure.data if trace.type == "table")
-    assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
-    assert list(table.cells.values[1]) == ["0.002", "0.99"]
-    assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
+    assert list(table.cells.values[0]) == ["learning_rate", "eps_end", "gamma"]
+    assert list(table.cells.values[1]) == ["0.002273", "0.04772", "0.99"]
+    assert list(table.cells.fill.color[0]) == ["#fff2cc", "#fff2cc", "white"]
 
 
 def test_robustness_plot_shows_seed_scores_and_means() -> None:

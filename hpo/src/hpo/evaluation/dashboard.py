@@ -383,7 +383,7 @@ def _add_current_hps(
             cells=dict(
                 values=[
                     names,
-                    [str(params[name]) for name in names],
+                    [_format_hp_value(name, params[name]) for name in names],
                 ],
                 align=["left", "right"],
                 fill_color=[row_colors, row_colors],
@@ -393,6 +393,12 @@ def _add_current_hps(
         row=1,
         col=2,
     )
+
+
+def _format_hp_value(name: str, value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.4g}"
+    return str(value)
 
 
 def _add_current_study(
