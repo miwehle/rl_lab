@@ -45,7 +45,7 @@ def build_dashboard(
             [{}, {}],
             [{"colspan": 2}, None],
         ],
-        row_heights=[0.36, 0.36, 0.28],
+        row_heights=[0.36, 0.32, 0.32],
         vertical_spacing=0.11,
         horizontal_spacing=0.12,
         subplot_titles=(
