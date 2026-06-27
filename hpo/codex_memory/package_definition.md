@@ -53,9 +53,9 @@ The objective uses a Hook Object pattern through `ObjectiveConfig.hooks` so chec
 
 `ObjectiveContext` is the small hook-relevant context object that is filled through the objective; hooks receive it at `for_trial(ctx)` and `finalize_trial(ctx, save)`.
 
-`vector_training_config(...)` maps HPO hyperparameters to `VectorTrainingConfig`; HPO currently enables adaptive training extension with `adaptive_extension_window=50`.
+`vector_training_config(...)` maps HPO hyperparameters to `VectorTrainingConfig`; HPO currently enables adaptive training extension with `adaptive_extension_window=50` and early stopping through `ObjectiveConfig.early_stopping_score`.
 
-The objective saves `trained_episodes` so planned vs. actual training length is visible after adaptive extension.
+The objective saves `trained_episodes` so planned vs. actual training length is visible after adaptive extension or early stopping.
 
 `hpo/src/hpo/checkpointing.py` owns training-time checkpoints and HPO objective hooks.
 
@@ -118,6 +118,10 @@ Current notebook storage backup does not automatically save model checkpoints to
 Adaptive training extension is implemented in `VectorTrainer.train(...)`, not in the dashboard.
 
 Adaptive extension protects late-learning trials from being cut off at the initial episode target.
+
+Early stopping protects HPO time from clearly weak trials: if the trailing mean over the adaptive extension window is below `early_stopping_score` at the halfway point, training stops and the objective returns that trailing mean as the trial score.
+
+HPO defaults `ObjectiveConfig.early_stopping_score` to `-250.0`; set it to `None` in notebooks to disable early stopping.
 
 The rule is evaluated only when the current target episode count has been reached.
 

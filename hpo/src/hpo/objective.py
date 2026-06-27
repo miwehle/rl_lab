@@ -123,6 +123,7 @@ class ObjectiveConfig:
     eval_max_steps: int = 2_000
     eval_seed: int = 10_000
     training_seed: int | None = 42
+    early_stopping_score: float | None = -250.0
     hooks: HookFactory = field(default_factory=DefaultHookFactory)
     device: Any = None
 
@@ -141,6 +142,7 @@ class ObjectiveConfig:
             "eval_episodes": self.eval_episodes,
             "eval_max_steps": self.eval_max_steps,
             "training_seed": self.training_seed,
+            "early_stopping_score": self.early_stopping_score,
         }
         if self.device is not None:
             attrs["device"] = str(self.device)
@@ -165,7 +167,10 @@ def create_objective(
         # set up
         suggest_parameter_values(trial, incumbent_params)
         params = incumbent_params | trial.params
-        training_config = vector_training_config(params)
+        training_config = vector_training_config(
+            params,
+            early_stopping_score=config.early_stopping_score,
+        )
         ctx = ObjectiveContext(trial=trial, training_config=training_config)
         replay_memory_capacity = params[HP.REPLAY_MEMORY_CAPACITY]
         trial_seed = (
@@ -194,21 +199,24 @@ def create_objective(
         finally:
             env.close()
 
-        ctx.q_net = hooks.q_net_for_evaluation(ctx)
+        if ctx.training_result.early_stopped:
+            ctx.score = ctx.training_result.early_stopping_score
+        else:
+            ctx.q_net = hooks.q_net_for_evaluation(ctx)
 
-        # evaluate DQN
-        ctx.world_scores = {
-            name: evaluate_greedy_q_net(
-                q_net=ctx.q_net,
-                device=ctx.trainer.device,
-                make_env=make_env,
-                episodes=config.eval_episodes,
-                max_steps=config.eval_max_steps,
-                seed=config.eval_seed,
-            )
-            for name, make_env in config.environment_factory.evaluation_envs().items()
-        }
-        ctx.score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
+            # evaluate DQN
+            ctx.world_scores = {
+                name: evaluate_greedy_q_net(
+                    q_net=ctx.q_net,
+                    device=ctx.trainer.device,
+                    make_env=make_env,
+                    episodes=config.eval_episodes,
+                    max_steps=config.eval_max_steps,
+                    seed=config.eval_seed,
+                )
+                for name, make_env in config.environment_factory.evaluation_envs().items()
+            }
+            ctx.score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
         
         set_user_attrs(ctx)
         hooks.finalize_trial(ctx)
@@ -228,6 +236,9 @@ def set_user_attrs(ctx: ObjectiveContext) -> None:
     save("env_steps", result.env_steps)
     save("optimizer_updates", result.optimizer_updates)
     save("trained_episodes", len(result.episode_returns))
+    save("early_stopped", result.early_stopped)
+    if result.early_stopping_score is not None:
+        save("early_stopping_score", result.early_stopping_score)
     save("trial_seed", ctx.trial_seed)
     save("wall_time_seconds", ctx.wall_time_seconds)
     save(
@@ -239,7 +250,11 @@ def set_user_attrs(ctx: ObjectiveContext) -> None:
     )
 
 
-def vector_training_config(params: dict[str, Any]) -> VectorTrainingConfig:
+def vector_training_config(
+    params: dict[str, Any],
+    *,
+    early_stopping_score: float | None = None,
+) -> VectorTrainingConfig:
     return VectorTrainingConfig(
         num_episodes=params[HP.NUM_EPISODES],
         batch_size=params[HP.BATCH_SIZE],
@@ -252,6 +267,7 @@ def vector_training_config(params: dict[str, Any]) -> VectorTrainingConfig:
         learning_starts=params[HP.LEARNING_STARTS],
         optimize_every=params[HP.OPTIMIZE_EVERY],
         adaptive_extension_window=50,
+        early_stopping_score=early_stopping_score,
     )
 
 

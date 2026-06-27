@@ -9,6 +9,7 @@ from dqn.vector_training import (
     VectorTrainer,
     VectorTrainingConfig,
     VectorTrainingResult,
+    _early_stopping_score,
     _should_extend_training,
 )
 
@@ -127,6 +128,34 @@ def test_vector_training_updates_plotter_target_when_training_extends(
     assert any(length >= 2 and target == 4 for length, target in plot_calls)
 
 
+def test_vector_training_stops_early_when_midpoint_mean_is_too_low(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "dqn.vector_training._early_stopping_score",
+        lambda episode_returns, **_kwargs: (
+            -300.0 if len(episode_returns) >= 2 else None
+        ),
+    )
+    env = vector_env(num_envs=2)
+
+    try:
+        trainer = VectorTrainer(env, seed=42)
+        result = trainer.train(
+            vector_training_config(
+                num_episodes=4,
+                adaptive_extension_window=1,
+                early_stopping_score=-250.0,
+            ),
+        )
+    finally:
+        env.close()
+
+    assert len(result.episode_returns) == 2
+    assert result.early_stopped
+    assert result.early_stopping_score == -300.0
+
+
 def test_vector_training_calls_after_episode_hook() -> None:
     env = vector_env(num_envs=2)
     hook_calls = []
@@ -186,6 +215,21 @@ def test_adaptive_training_extension_detects_armstrong_momentum() -> None:
         window=50,
         base_num_episodes=100,
     )
+
+
+def test_early_stopping_score_uses_trailing_window_at_midpoint() -> None:
+    assert _early_stopping_score(
+        [-100.0, -300.0],
+        window=2,
+        base_num_episodes=4,
+        threshold=-250.0,
+    ) is None
+    assert _early_stopping_score(
+        [-300.0, -300.0],
+        window=2,
+        base_num_episodes=4,
+        threshold=-250.0,
+    ) == -300.0
 
 
 def test_vector_trainer_optimizes_for_each_crossed_interval() -> None:

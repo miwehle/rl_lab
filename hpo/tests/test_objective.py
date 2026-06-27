@@ -158,9 +158,54 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert calls[0].env.closed
     assert calls[0].training_config.num_episodes == 12
     assert calls[0].training_config.adaptive_extension_window == 50
+    assert calls[0].training_config.early_stopping_score == pytest.approx(-250.0)
     assert calls[0].training_config.learning_rate == 5e-4
     assert len(eval_calls) == 2
     assert all(call["episodes"] == 20 for call in eval_calls)
+
+
+def test_objective_returns_early_stopping_score_without_evaluation(
+    monkeypatch,
+) -> None:
+    class FakeTrainer:
+        device = "cpu"
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def train(self, training_config, *, plotter=None):
+            assert training_config.early_stopping_score == pytest.approx(-250.0)
+            assert plotter is None
+            return VectorTrainingResult(
+                q_net="fake-q-net",
+                episode_returns=[-300.0] * 6,
+                episode_lengths=[1] * 6,
+                episode_epsilons=[0.1] * 6,
+                env_steps=6,
+                optimizer_updates=1,
+                early_stopped=True,
+                early_stopping_score=-300.0,
+            )
+
+    monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
+    monkeypatch.setattr(
+        objective_module,
+        "evaluate_greedy_q_net",
+        lambda **_kwargs: pytest.fail("early-stopped trials are not evaluated"),
+    )
+
+    objective = objective_module.create_objective(
+        suggest_parameter_values=FakeSuggestParameterValues(),
+        incumbent_params=BASELINE_PARAMS,
+        config=objective_config(environment_factory=FakeEnvironmentFactory()),
+    )
+    trial = FakeTrial()
+
+    assert objective(trial) == pytest.approx(-300.0)
+    assert trial.user_attrs["early_stopped"] is True
+    assert trial.user_attrs["early_stopping_score"] == pytest.approx(-300.0)
+    assert trial.user_attrs["trained_episodes"] == 6
+    assert "world_scores" not in trial.user_attrs
 
 
 def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:

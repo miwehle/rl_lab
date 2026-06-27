@@ -26,6 +26,7 @@ class VectorTrainingConfig(TrainingConfig):
     learning_starts: int = 0
     optimize_every: int = 1
     adaptive_extension_window: int | None = None
+    early_stopping_score: float | None = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -46,6 +47,8 @@ class VectorTrainingResult(TrainingResult):
     episode_epsilons: list[float]
     env_steps: int
     optimizer_updates: int
+    early_stopped: bool = False
+    early_stopping_score: float | None = None
 
 
 @dataclass
@@ -186,6 +189,8 @@ class VectorTrainer:
         episode_epsilons: list[float] = []
         base_num_episodes = config.num_episodes
         target_num_episodes = base_num_episodes
+        early_stopping_score: float | None = None
+        early_stopping_checked = False
 
         while len(episode_returns) < target_num_episodes:
             states = observations
@@ -228,8 +233,29 @@ class VectorTrainer:
                 new_epsilons = [self._exploration_rate(config)] * new_episode_count
                 episode_epsilons.extend(new_epsilons)
                 self.epsilons.extend(new_epsilons)
-                if len(episode_returns) >= target_num_episodes and (
-                    _should_extend_training(
+                early_stopping_ready = (
+                    config.adaptive_extension_window is not None
+                    and config.early_stopping_score is not None
+                    and len(episode_returns)
+                    >= max(
+                        config.adaptive_extension_window,
+                        math.ceil(base_num_episodes / 2),
+                    )
+                )
+                if not early_stopping_checked and early_stopping_ready:
+                    early_stopping_checked = True
+                    early_stopping_score = _early_stopping_score(
+                        episode_returns,
+                        window=config.adaptive_extension_window,
+                        base_num_episodes=base_num_episodes,
+                        threshold=config.early_stopping_score,
+                    )
+                    if early_stopping_score is not None:
+                        target_num_episodes = len(episode_returns)
+                if (
+                    early_stopping_score is None
+                    and len(episode_returns) >= target_num_episodes
+                    and _should_extend_training(
                         episode_returns,
                         window=config.adaptive_extension_window,
                         base_num_episodes=base_num_episodes,
@@ -257,6 +283,8 @@ class VectorTrainer:
             episode_epsilons,
             self.steps_done,
             self.optimizer_updates,
+            early_stopped=early_stopping_score is not None,
+            early_stopping_score=early_stopping_score,
         )
 
     def _after_episode(
@@ -381,6 +409,24 @@ def _should_extend_training(
     armstrong_factor = lm50 / 100
     learning_momentum = diff * armstrong_factor
     return learning_momentum > 10
+
+
+def _early_stopping_score(
+    episode_returns: list[float],
+    *,
+    window: int | None,
+    base_num_episodes: int,
+    threshold: float | None,
+) -> float | None:
+    if threshold is None or window is None:
+        return None
+    if len(episode_returns) < max(window, math.ceil(base_num_episodes / 2)):
+        return None
+
+    mean_score = _mean(episode_returns[-window:])
+    if mean_score < threshold:
+        return mean_score
+    return None
 
 
 def _mean(values: list[float]) -> float:
