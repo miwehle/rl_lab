@@ -528,6 +528,7 @@ def _add_training_progress(
         if means:
             mean_label = (
                 f"Mean ({progress.checkpoint_window} episodes): {means[-1]:.1f}"
+                f" · Best Mean: {max(means):.1f}"
             )
             figure.add_trace(
                 go.Scatter(

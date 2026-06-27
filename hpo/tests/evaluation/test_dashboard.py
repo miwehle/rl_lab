@@ -276,7 +276,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert figure.layout.yaxis4.title.text == "Gym score"
     assert any(
         annotation.text
-        == "Current Trial Training - Trial 3 - Mean (2 episodes): 4.0"
+        == "Current Trial Training - Trial 3 - Mean (2 episodes): 4.0 · Best Mean: 4.0"
         for annotation in figure.layout.annotations
     )
 
