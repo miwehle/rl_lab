@@ -139,6 +139,7 @@ class CheckpointingTrainer(VectorTrainer):
         episode_returns: list[float],
         episode_lengths: list[int],
         episode_epsilons: list[float],
+        episode_env_indices: list[int],
         config: VectorTrainingConfig,
         plotter=None,
     ) -> None:
@@ -147,6 +148,7 @@ class CheckpointingTrainer(VectorTrainer):
             episode_returns,
             episode_lengths,
             episode_epsilons,
+            episode_env_indices,
             config,
             plotter,
         )
@@ -231,6 +233,7 @@ class ObjectiveHooks:
     trial_number: int
     target_episodes: int
     training_progress_fn: TrainingProgressFn | None = None
+    env_labels: list[str | None] | None = None
 
     @property
     def checkpoint_window(self) -> int:
@@ -256,6 +259,7 @@ class ObjectiveHooks:
             checkpoint_window=self.recorder.window,
             checkpoint_min_score=self.recorder.min_score,
             best_checkpoint_score=lambda: self.best_checkpoint_score,
+            env_labels=self.env_labels,
         )
 
     def make_trainer(
@@ -266,6 +270,7 @@ class ObjectiveHooks:
         device: Any,
         replay_memory_capacity: int,
     ) -> CheckpointingTrainer:
+        self.env_labels = _env_labels(env)
         return CheckpointingTrainer(
             env,
             seed=seed,
@@ -303,6 +308,16 @@ class ObjectiveHooks:
             )
             save("evaluation_checkpoint_score", metadata["score"])
             save("evaluation_checkpoint_episode", metadata["episode"])
+
+
+def _env_labels(env: Any) -> list[str | None] | None:
+    envs = getattr(env, "envs", None)
+    if envs is None:
+        return None
+    return [
+        getattr(getattr(sub_env, "world", None), "name", None)
+        for sub_env in envs
+    ]
 
 
 def save_checkpoint(

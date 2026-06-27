@@ -21,6 +21,23 @@ from hpo.study_reporting import (
 
 
 DashboardRenderMode = Literal["safe"]
+_ENV_LABEL_COLORS = {
+    "moon": "#1f77b4",
+    "mercury": "#ff7f0e",
+    "mars": "#d62728",
+    "earth": "#2ca02c",
+    "venus": "#9467bd",
+}
+_FALLBACK_COLORS = (
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+)
 
 
 def build_dashboard(
@@ -507,21 +524,66 @@ def _add_training_progress(
     returns = [float(value) for value in progress.episode_returns]
     episodes = list(range(1, len(returns) + 1))
     x_range = [1, max(progress.target_episodes, len(returns), 1)]
+    has_env_labels = bool(progress.episode_env_labels)
     figure.add_trace(
         go.Scatter(
             x=episodes,
             y=returns,
-            mode="lines+markers",
+            mode="lines" if has_env_labels else "lines+markers",
             name="Episode return",
             showlegend=False,
             marker=dict(color="#1f77b4", size=5),
-            line=dict(color="#1f77b4"),
+            line=dict(color="#9a9a9a" if has_env_labels else "#1f77b4", width=1),
             hovertemplate="Episode: %{x}<br>Return: %{y:.1f}<extra></extra>",
         ),
         row=3,
         col=1,
         secondary_y=False,
     )
+    if has_env_labels:
+        labels = list(dict.fromkeys(progress.episode_env_labels))
+        fallback_colors = {
+            label: _FALLBACK_COLORS[index % len(_FALLBACK_COLORS)]
+            for index, label in enumerate(labels)
+        }
+        for label in labels:
+            label_episodes = [
+                episode
+                for episode, episode_label in zip(
+                    episodes,
+                    progress.episode_env_labels,
+                )
+                if episode_label == label
+            ]
+            label_returns = [
+                episode_return
+                for episode_return, episode_label in zip(
+                    returns,
+                    progress.episode_env_labels,
+                )
+                if episode_label == label
+            ]
+            label_name = label if label is not None else "unknown"
+            figure.add_trace(
+                go.Scatter(
+                    x=label_episodes,
+                    y=label_returns,
+                    mode="markers",
+                    name=label_name,
+                    showlegend=True,
+                    marker=dict(
+                        color=_ENV_LABEL_COLORS.get(label_name, fallback_colors[label]),
+                        size=6,
+                    ),
+                    hovertemplate=(
+                        f"{label_name}<br>"
+                        "Episode: %{x}<br>Return: %{y:.1f}<extra></extra>"
+                    ),
+                ),
+                row=3,
+                col=1,
+                secondary_y=False,
+            )
     if progress.episode_epsilons:
         epsilon_count = min(len(episodes), len(progress.episode_epsilons))
         figure.add_trace(

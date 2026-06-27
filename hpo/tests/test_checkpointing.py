@@ -86,6 +86,7 @@ def objective_context(
             episode_returns=episode_returns,
             episode_lengths=[1] * len(episode_returns),
             episode_epsilons=[0.1] * len(episode_returns),
+            episode_env_indices=[0] * len(episode_returns),
             env_steps=len(episode_returns),
             optimizer_updates=0,
         )

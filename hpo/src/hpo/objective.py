@@ -246,6 +246,7 @@ def set_user_attrs(ctx: ObjectiveContext) -> None:
         {
             "episode_returns": result.episode_returns,
             "episode_epsilons": result.episode_epsilons,
+            "episode_env_indices": result.episode_env_indices,
         },
     )
 

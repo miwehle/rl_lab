@@ -122,6 +122,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
                 episode_returns=[10.0, 50.0],
                 episode_lengths=[1, 1],
                 episode_epsilons=[0.7, 0.6],
+                episode_env_indices=[0, 1],
                 env_steps=80,
                 optimizer_updates=2,
             )
@@ -181,6 +182,7 @@ def test_objective_returns_early_stopping_score_without_evaluation(
                 episode_returns=[-300.0] * 6,
                 episode_lengths=[1] * 6,
                 episode_epsilons=[0.1] * 6,
+                episode_env_indices=[0] * 6,
                 env_steps=6,
                 optimizer_updates=1,
                 early_stopped=True,
@@ -226,6 +228,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
                 episode_returns=[1.0],
                 episode_lengths=[1],
                 episode_epsilons=[0.1],
+                episode_env_indices=[0],
                 env_steps=1,
                 optimizer_updates=1,
             )
@@ -280,6 +283,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
                 episode_returns=[1.0],
                 episode_lengths=[1],
                 episode_epsilons=[0.1],
+                episode_env_indices=[0],
                 env_steps=1,
                 optimizer_updates=1,
             )
@@ -343,14 +347,19 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
             self.hooks = hooks
 
         def train(self, _training_config, *, plotter):
-            plotter.plot_returns([1.0], epsilons=[0.9])
+            plotter.plot_returns([1.0], epsilons=[0.9], env_indices=[0])
             self.hooks.best_checkpoint_score = 4.0
-            plotter.plot_returns([1.0, 5.0], epsilons=[0.9, 0.8])
+            plotter.plot_returns(
+                [1.0, 5.0],
+                epsilons=[0.9, 0.8],
+                env_indices=[0, 1],
+            )
             return VectorTrainingResult(
                 q_net="fake-q-net",
                 episode_returns=[1.0, 5.0],
                 episode_lengths=[1, 1],
                 episode_epsilons=[0.1, 0.1],
+                episode_env_indices=[0, 1],
                 env_steps=2,
                 optimizer_updates=1,
             )
@@ -372,6 +381,7 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
                 checkpoint_window=2,
                 checkpoint_min_score=3.0,
                 best_checkpoint_score=lambda: self.best_checkpoint_score,
+                env_labels=["moon", "mars"],
             )
 
         def finalize_trial(self, _ctx):
@@ -409,6 +419,10 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
     assert [progress.episode_epsilons for progress in progress_calls] == [
         [0.9],
         [0.9, 0.8],
+    ]
+    assert [progress.episode_env_labels for progress in progress_calls] == [
+        ["moon"],
+        ["moon", "mars"],
     ]
     assert progress_calls[0].checkpoint_window == 2
     assert progress_calls[0].checkpoint_min_score == pytest.approx(3.0)

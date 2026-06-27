@@ -254,6 +254,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
             target_episodes=5,
             episode_returns=[1.0, 3.0, 5.0],
             episode_epsilons=[0.9, 0.8, 0.7],
+            episode_env_labels=["moon", "mars", "moon"],
             checkpoint_window=2,
             checkpoint_min_score=2.5,
             best_checkpoint_score=4.0,
@@ -268,9 +269,17 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
         trace for trace in figure.data if trace.name == "Best checkpoint score"
     )
     epsilon = next(trace for trace in figure.data if trace.name == "Epsilon")
+    moon = next(trace for trace in figure.data if trace.name == "moon")
+    mars = next(trace for trace in figure.data if trace.name == "mars")
 
     assert list(returns.x) == [1, 2, 3]
     assert list(returns.y) == [1.0, 3.0, 5.0]
+    assert returns.mode == "lines"
+    assert returns.line.color == "#9a9a9a"
+    assert list(moon.x) == [1, 3]
+    assert list(moon.y) == [1.0, 5.0]
+    assert list(mars.x) == [2]
+    assert list(mars.y) == [3.0]
     assert list(epsilon.x) == [1, 2, 3]
     assert list(epsilon.y) == [0.9, 0.8, 0.7]
     assert list(trailing_mean.x) == [2, 3]

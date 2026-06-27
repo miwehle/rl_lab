@@ -69,6 +69,8 @@ def test_vector_training_smoke() -> None:
     assert len(result.episode_returns) == 4
     assert len(result.episode_lengths) == 4
     assert len(result.episode_epsilons) == 4
+    assert len(result.episode_env_indices) == 4
+    assert set(result.episode_env_indices) <= {0, 1}
     assert result.env_steps > 0
     assert result.optimizer_updates > 0
     assert all(length > 0 for length in result.episode_lengths)
@@ -82,8 +84,14 @@ def test_vector_training_accepts_plotter() -> None:
     plot_calls = []
 
     class Plotter:
-        def plot_returns(self, returns, show_result=False, epsilons=None) -> None:
-            plot_calls.append((list(returns), show_result, epsilons))
+        def plot_returns(
+            self,
+            returns,
+            show_result=False,
+            epsilons=None,
+            env_indices=None,
+        ) -> None:
+            plot_calls.append((list(returns), show_result, epsilons, env_indices))
 
     try:
         trainer = VectorTrainer(env, seed=42)
@@ -94,6 +102,7 @@ def test_vector_training_accepts_plotter() -> None:
     assert plot_calls
     assert len(plot_calls[-1][0]) == 2
     assert plot_calls[-1][2] is not None
+    assert plot_calls[-1][3] is not None
 
 
 def test_vector_training_updates_plotter_target_when_training_extends(
@@ -166,6 +175,7 @@ def test_vector_training_calls_after_episode_hook() -> None:
             episode_returns,
             episode_lengths,
             episode_epsilons,
+            episode_env_indices,
             config,
             plotter=None,
         ) -> None:
@@ -173,6 +183,7 @@ def test_vector_training_calls_after_episode_hook() -> None:
                 episode_returns,
                 episode_lengths,
                 episode_epsilons,
+                episode_env_indices,
                 config,
                 plotter,
             )
@@ -181,6 +192,7 @@ def test_vector_training_calls_after_episode_hook() -> None:
                     list(episode_returns),
                     list(episode_lengths),
                     list(episode_epsilons),
+                    list(episode_env_indices),
                 )
             )
 
@@ -194,6 +206,7 @@ def test_vector_training_calls_after_episode_hook() -> None:
     assert len(hook_calls[-1][0]) == 2
     assert len(hook_calls[-1][1]) == 2
     assert len(hook_calls[-1][2]) == 2
+    assert len(hook_calls[-1][3]) == 2
 
 
 def test_adaptive_training_extension_detects_armstrong_momentum() -> None:

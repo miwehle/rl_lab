@@ -45,6 +45,7 @@ class VectorTrainingConfig(TrainingConfig):
 @dataclass
 class VectorTrainingResult(TrainingResult):
     episode_epsilons: list[float]
+    episode_env_indices: list[int]
     env_steps: int
     optimizer_updates: int
     early_stopped: bool = False
@@ -187,6 +188,7 @@ class VectorTrainer:
         episode_returns: list[float] = []
         episode_lengths: list[int] = []
         episode_epsilons: list[float] = []
+        episode_env_indices: list[int] = []
         base_num_episodes = config.num_episodes
         extension_num_episodes = math.ceil(base_num_episodes / 2)
         target_num_episodes = base_num_episodes
@@ -226,6 +228,7 @@ class VectorTrainer:
                     break
                 episode_returns.append(float(running_returns[env_index]))
                 episode_lengths.append(int(running_lengths[env_index]))
+                episode_env_indices.append(int(env_index))
                 running_returns[env_index] = 0.0
                 running_lengths[env_index] = 0
 
@@ -269,6 +272,7 @@ class VectorTrainer:
                     episode_returns,
                     episode_lengths,
                     episode_epsilons,
+                    episode_env_indices,
                     config,
                     plotter,
                 )
@@ -282,6 +286,7 @@ class VectorTrainer:
             episode_returns,
             episode_lengths,
             episode_epsilons,
+            episode_env_indices,
             self.steps_done,
             self.optimizer_updates,
             early_stopped=early_stopping_score is not None,
@@ -293,12 +298,17 @@ class VectorTrainer:
         episode_returns: list[float],
         episode_lengths: list[int],
         episode_epsilons: list[float],
+        episode_env_indices: list[int],
         config: VectorTrainingConfig,
         plotter=None,
     ) -> None:
         """Hook used by train() after one or more episodes have finished."""
         if plotter is not None:
-            plotter.plot_returns(episode_returns, epsilons=episode_epsilons)
+            plotter.plot_returns(
+                episode_returns,
+                epsilons=episode_epsilons,
+                env_indices=episode_env_indices,
+            )
 
     def _select_actions(
         self,

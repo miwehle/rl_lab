@@ -95,6 +95,8 @@ Dashboard panels: Study Series, Best HPs, current Study, HP Robustness Evaluatio
 
 Current Trial Training plots raw episode returns, trailing mean over the checkpoint window, epsilon on a secondary axis, and a horizontal reference line from the current best checkpoint score or initial checkpoint threshold.
 
+For SolarSystemLander, Current Trial Training colors episode-return dots by env label/world while keeping the chronological return line thin and gray; labels are extracted in the HPO hook from `env.envs[*].world.name`, not hard-coded into `VectorTrainer`.
+
 `Dashboard(render_mode="safe")` clears and redisplays the whole dashboard; this is robust in notebooks/Colab but can flicker.
 
 Training progress updates are throttled by `training_update_interval_seconds=5.0` by default so live training does not redraw on every episode.
