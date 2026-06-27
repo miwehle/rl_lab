@@ -137,10 +137,11 @@ pm50 = mean(previous 50 episode returns)
 diff = lm50 - pm50
 armstrong_factor = lm50 / 100
 learning_momentum = diff * armstrong_factor
-should_extend = learning_momentum > 10
+is_new_best_mean = lm50 > previous_best_mean
+should_extend = learning_momentum > 10 and is_new_best_mean
 ```
 
-The "Armstrong factor" intentionally favors candidates that are both still improving and already in a promising score region.
+The "Armstrong factor" intentionally favors candidates that are both still improving and already in a promising score region; `is_new_best_mean` prevents long score waves from extending unless the current trailing mean reaches a new trial-best level.
 
 The user likes the German name "Adaptive Verlaengerung" for this feature; in English docs and code use "adaptive training extension".
 

@@ -212,6 +212,7 @@ def test_vector_training_calls_after_episode_hook() -> None:
 def test_adaptive_training_extension_detects_armstrong_momentum() -> None:
     late_bloomer = [80.0] * 50 + [120.0] * 50
     exhausted = [110.0] * 50 + [112.0] * 50
+    wave_without_new_best = [200.0] * 50 + [100.0] * 50 + [150.0] * 50
 
     assert _should_extend_training(
         late_bloomer,
@@ -220,6 +221,11 @@ def test_adaptive_training_extension_detects_armstrong_momentum() -> None:
     )
     assert not _should_extend_training(
         exhausted,
+        window=50,
+        base_num_episodes=100,
+    )
+    assert not _should_extend_training(
+        wave_without_new_best,
         window=50,
         base_num_episodes=100,
     )

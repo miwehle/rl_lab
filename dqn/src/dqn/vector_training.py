@@ -419,7 +419,12 @@ def _should_extend_training(
     diff = lm50 - pm50
     armstrong_factor = lm50 / 100
     learning_momentum = diff * armstrong_factor
-    return learning_momentum > 10
+    previous_best_mean = max(
+        _mean(episode_returns[end - window:end])
+        for end in range(window, len(episode_returns) - window + 1)
+    )
+    is_new_best_mean = lm50 > previous_best_mean
+    return learning_momentum > 10 and is_new_best_mean
 
 
 def _early_stopping_score(
