@@ -33,6 +33,12 @@ class FakeStudy:
         self.user_attrs[name] = value
 
 
+@dataclass
+class FakeStudySummary:
+    study_name: str
+    user_attrs: dict = field(default_factory=dict)
+
+
 class FakeEnvironmentFactory:
     pass
 
@@ -142,6 +148,46 @@ def test_study_runner_reuses_context_and_previous_studies(
     assert len(sync_calls) == 2
     assert studies[-1].user_attrs["incumbent_params"] == {"x": 3}
     assert studies[-1].user_attrs["incumbent_score"] == 2.0
+
+
+def test_study_runner_loads_finished_study_series_for_dashboard(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    database_path = tmp_path / "series.db"
+    database_path.touch()
+    previous = FakeStudy([], {"incumbent_score": 5.0})
+    current = FakeStudy([], {
+        "robust_best_params": {"x": 2},
+        "robust_best_score": 9.0,
+    })
+    monkeypatch.setattr(
+        study_module,
+        "_all_study_summaries",
+        lambda **_kwargs: [
+            FakeStudySummary("s2", {"incumbent_score": 5.0}),
+            FakeStudySummary("s3", {}),
+        ],
+    )
+    monkeypatch.setattr(study_module, "_load_study", lambda **_kwargs: previous)
+    monkeypatch.setattr(
+        study_module,
+        "_create_or_load_study",
+        lambda **_kwargs: current,
+    )
+    monkeypatch.setattr(study_module, "run_study", lambda **kwargs: kwargs["study"])
+    monkeypatch.setattr(study_module, "select_robust_best", lambda **_kwargs: {"x": 2})
+    reporter = FakeReporter()
+    runner = StudyRunner(
+        database_path=lambda _name: database_path,
+        objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
+        reporter=reporter,
+    )
+
+    runner.run("s3", suggest_parameter_values=object(), n_trials=1)
+
+    assert reporter.context_calls[0][1]["studies"] == [previous, current]
+    assert runner.studies == [previous, current]
 
 
 def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:

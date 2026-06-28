@@ -85,6 +85,7 @@ class StudyRunner:
         suggest_parameter_values: Any,
         n_trials: int,
     ) -> None:
+        database_path = self.database_path(study_name)
         objective_cfg = self.objective_cfg
         if self.incumbent_score is not None:
             objective_cfg = _with_checkpoint_min_score(
@@ -98,8 +99,10 @@ class StudyRunner:
 
         study = _create_or_load_study(
             study_name=study_name,
-            database_path=self.database_path(study_name),
+            database_path=database_path,
         )
+        if not self.studies:
+            self.studies = _load_finished_study_series(database_path, exclude=study_name)
         if _study_already_finished(study, n_trials):
             print("Study already finished.")
             return
@@ -206,6 +209,25 @@ def _create_or_load_study(
     )
 
 
+def _load_finished_study_series(
+    database_path: str | Path,
+    *,
+    exclude: str,
+) -> list[Any]:
+    if not Path(database_path).exists():
+        return []
+    storage = f"sqlite:///{Path(database_path)}"
+    return [
+        _load_study(study_name=summary.study_name, storage=storage)
+        for summary in sorted(
+            _all_study_summaries(storage=storage),
+            key=lambda summary: summary.study_name,
+        )
+        if summary.study_name != exclude
+        and "incumbent_score" in summary.user_attrs
+    ]
+
+
 def _with_checkpoint_min_score(
     objective_cfg: ObjectiveConfig,
     min_score: float,
@@ -237,6 +259,12 @@ def _load_study(**kwargs) -> Any:
     import optuna
 
     return optuna.load_study(**kwargs)
+
+
+def _all_study_summaries(**kwargs) -> Any:
+    import optuna
+
+    return optuna.study.get_all_study_summaries(**kwargs)
 
 
 def _set_or_check_study_attrs(study: Any, attrs: dict[str, Any]) -> None:
