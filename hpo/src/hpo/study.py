@@ -26,11 +26,11 @@ SyncFn = Callable[[], None]
 
 
 @dataclass(frozen=True)
-class Incumbent:
-    """Best known params and score that may seed a study series."""
+class Baseline:
+    """Complete starting params for a study series, optionally with score."""
 
     params: dict[str, Any]
-    score: float
+    score: float | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "params", dict(self.params))
@@ -40,7 +40,7 @@ class Incumbent:
         cls,
         database_path: str | Path,
         study_name: str,
-    ) -> "Incumbent":
+    ) -> "Baseline":
         study = _load_study(
             study_name=study_name,
             storage=f"sqlite:///{Path(database_path)}",
@@ -48,7 +48,7 @@ class Incumbent:
         return cls.from_study(study)
 
     @classmethod
-    def from_study(cls, study: Any) -> "Incumbent":
+    def from_study(cls, study: Any) -> "Baseline":
         return cls(
             params=study.user_attrs["incumbent_params"],
             score=study.user_attrs["incumbent_score"],
@@ -62,7 +62,7 @@ class StudyRunner:
     database_path: DatabasePathFn
     objective_cfg: ObjectiveConfig
     reporter: StudySeriesReporter
-    baseline: Incumbent | None = None
+    baseline: Baseline
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     extra_seeds: tuple[int, ...] = (1001, 1002)
@@ -72,10 +72,6 @@ class StudyRunner:
     incumbent_score: float | None = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.baseline is None:
-            self.incumbent_params = {}
-            self.incumbent_score = None
-            return
         self.incumbent_params = dict(self.baseline.params)
         self.incumbent_score = self.baseline.score
 
