@@ -5,13 +5,21 @@ from pathlib import Path
 from typing import Any
 
 
-def neighbors(value: Any, choices: Sequence[Any]) -> list[Any]:
-    """Return value plus its direct neighbors in choices."""
-    index = choices.index(value)
-    return list(choices[max(0, index - 1):index + 2])
+def hpo_db_path(
+    name: str | Path,
+    *,
+    google_drive: bool = False,
+    folder: str | Path = "rl_lab/hpo",
+) -> Path:
+    """Return a local or Google Drive path for an HPO SQLite database."""
+    root = Path("/content/drive/MyDrive") if google_drive else Path("/content")
+    name = str(name)
+    if not name.endswith(".db"):
+        name = f"{name}.db"
+    return root / folder / name
 
 
-def optuna_db_summary(db_path: str | Path):
+def db_summary(db_path: str | Path):
     """Return one row per study in an Optuna SQLite DB."""
     import optuna
     import pandas as pd
@@ -33,3 +41,12 @@ def optuna_db_summary(db_path: str | Path):
         })
 
     return pd.DataFrame(rows)
+
+
+def neighbors(value: Any, choices: Sequence[Any]) -> list[Any]:
+    """Return value plus its direct neighbors in choices.
+    
+    Sometimes useful when defining Optuna searchspaces.
+    """
+    index = choices.index(value)
+    return list(choices[max(0, index - 1):index + 2])

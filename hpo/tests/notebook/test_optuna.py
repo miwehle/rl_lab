@@ -1,6 +1,17 @@
+from pathlib import Path
+
 import optuna
 
-from hpo.notebook.optuna import neighbors, optuna_db_summary
+from hpo.notebook.optuna import db_summary, hpo_db_path, neighbors
+
+
+def test_hpo_db_path_returns_colab_paths() -> None:
+    assert hpo_db_path("study", google_drive=True) == (
+        Path("/content/drive/MyDrive/rl_lab/hpo/study.db")
+    )
+    assert hpo_db_path("study.db", folder="rl_lab/hpo/runs") == (
+        Path("/content/rl_lab/hpo/runs/study.db")
+    )
 
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
@@ -20,7 +31,7 @@ def test_optuna_db_summary_returns_study_attrs(tmp_path) -> None:
     study.set_user_attr("incumbent_score", 120.0)
     study.set_user_attr("incumbent_params", {"eps_end": 0.04})
 
-    summary = optuna_db_summary(db_path)
+    summary = db_summary(db_path)
 
     assert summary.to_dict("records") == [{
         "study": "s1",
