@@ -9,9 +9,6 @@ import sqlite3
 from hpo.lunar_lander.logging import configure_file_logging
 
 
-logger = logging.getLogger(__name__)
-
-
 @dataclass(frozen=True)
 class ColabSetup:
     """Shared local and Drive directories for Colab HPO notebooks."""
@@ -72,7 +69,7 @@ def prepare_storage(setup: ColabSetup, storage_name: str) -> Storage:
 
 
 def restore_from_drive(drive_path: str | Path, local_path: str | Path) -> None:
-    """Restore a local artifact when a backup exists."""
+    """Restore a missing local artifact from Drive."""
     drive_path = Path(drive_path)
     local_path = Path(local_path)
     local_path.parent.mkdir(parents=True, exist_ok=True)
@@ -87,7 +84,11 @@ def backup_to_drive(
     local_log: str | Path,
     drive_log: str | Path,
 ) -> None:
-    """Back up the local database and log without interrupting training."""
+    """Back up the local database.
+
+    Log without interrupting training if an error occurs.
+    """
+    logger = logging.getLogger(__name__)
     try:
         _backup_sqlite(local_database, drive_database)
     except (OSError, sqlite3.Error) as error:
