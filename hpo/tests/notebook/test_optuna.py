@@ -2,14 +2,18 @@ from pathlib import Path
 
 import optuna
 
-from hpo.notebook.optuna import db_summary, hpo_db_path, neighbors
+from hpo.notebook.optuna import db_path, db_summary, neighbors
 
 
-def test_hpo_db_path_returns_colab_paths() -> None:
-    assert hpo_db_path("study", google_drive=True) == (
+def test_db_path_returns_colab_paths() -> None:
+    assert db_path("study", True) == (
         Path("/content/drive/MyDrive/rl_lab/hpo/study.db")
     )
-    assert hpo_db_path("study.db", folder="rl_lab/hpo/runs") == (
+    assert db_path("study", google_drive=True) == (
+        Path("/content/drive/MyDrive/rl_lab/hpo/study.db")
+    )
+    assert db_path("study.db") == Path("/content/rl_lab/hpo/study.db")
+    assert db_path("study", folder="rl_lab/hpo/runs") == (
         Path("/content/rl_lab/hpo/runs/study.db")
     )
 
@@ -22,7 +26,7 @@ def test_neighbors_returns_value_plus_direct_neighbors() -> None:
     ]
 
 
-def test_optuna_db_summary_returns_study_attrs(tmp_path) -> None:
+def test_db_summary_returns_study_attrs(tmp_path) -> None:
     db_path = tmp_path / "studies.db"
     storage = f"sqlite:///{db_path}"
     study = optuna.create_study(study_name="s1", storage=storage)

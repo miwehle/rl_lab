@@ -5,18 +5,17 @@ from pathlib import Path
 from typing import Any
 
 
-def hpo_db_path(
-    name: str | Path,
-    *,
+def db_path(
+    db_name: str | Path,
     google_drive: bool = False,
     folder: str | Path = "rl_lab/hpo",
 ) -> Path:
     """Return a local or Google Drive path for an HPO SQLite database."""
     root = Path("/content/drive/MyDrive") if google_drive else Path("/content")
-    name = str(name)
-    if not name.endswith(".db"):
-        name = f"{name}.db"
-    return root / folder / name
+    db_name = str(db_name)
+    if not db_name.endswith(".db"):
+        db_name = f"{db_name}.db"
+    return root / folder / db_name
 
 
 def db_summary(db_path: str | Path):
@@ -45,8 +44,8 @@ def db_summary(db_path: str | Path):
 
 def neighbors(value: Any, choices: Sequence[Any]) -> list[Any]:
     """Return value plus its direct neighbors in choices.
-    
-    Sometimes useful when defining Optuna searchspaces.
+
+    Sometimes useful when defining Optuna search spaces.
     """
     index = choices.index(value)
     return list(choices[max(0, index - 1):index + 2])
