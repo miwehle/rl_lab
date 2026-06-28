@@ -27,8 +27,15 @@ SyncFn = Callable[[], None]
 
 @dataclass(frozen=True)
 class Baseline:
-    """Complete starting params for a study series, optionally with score."""
+    """Complete HP starting point for a study.
 
+    At the start of a study series, score is typically omitted.
+    Later in a series, build the baseline with from_database; then score is included.
+
+    Purpose of this class: HPs are required for training, the DQN, and related configuration.
+    We provide them through the baseline. HPs optimized by Optuna are provided via
+    trial.suggest_* and can be omitted in the baseline; else Optuna overrides.
+    """
     params: dict[str, Any]
     score: float | None = None
 
