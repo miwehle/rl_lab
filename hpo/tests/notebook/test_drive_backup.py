@@ -1,7 +1,7 @@
 import sqlite3
 
-from hpo.notebook import drive_backup
-from hpo.notebook.drive_backup import backup_to_drive, restore_from_drive
+from hpo.notebook import colab
+from hpo.notebook.colab import backup_to_drive, restore_from_drive
 
 
 def test_backup_to_and_restore_from_drive(tmp_path) -> None:
@@ -45,7 +45,7 @@ def test_database_backup_failure_does_not_stop_log_backup(
     def fail_database_backup(*_args) -> None:
         raise OSError("drive unavailable")
 
-    monkeypatch.setattr(drive_backup, "_backup_sqlite", fail_database_backup)
+    monkeypatch.setattr(colab, "_backup_sqlite", fail_database_backup)
 
     backup_to_drive(
         local_database=tmp_path / "study.db",

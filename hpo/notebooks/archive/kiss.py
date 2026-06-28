@@ -85,7 +85,7 @@ study_runner.run("kiss_study", SearchSpace(), 25, scoring_cfg)
 # copy db to Google drive
 
 from google.colab import drive
-from hpo.notebook.drive_backup import backup_to_drive
+from hpo.notebook.colab import backup_to_drive
 
 drive.mount("/content/drive")
 DRIVE_DIR = Path("/content/drive/MyDrive/rl_lab/hpo")
