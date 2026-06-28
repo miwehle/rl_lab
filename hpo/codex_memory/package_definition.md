@@ -109,7 +109,7 @@ Only training progress is throttled; optimization and robustness updates render 
 
 Current notebook storage backup does not automatically save model checkpoints to Drive.
 
-`hpo/src/hpo/notebook/studies.py` owns small notebook helpers for inspecting Optuna study databases, plus `neighbors(...)` for local categorical search around an incumbent value.
+`hpo/src/hpo/notebook/optuna.py` owns small notebook helpers for inspecting Optuna study databases, plus `neighbors(...)` for local categorical search around an incumbent value.
 
 ## DQN Vector Trainer
 

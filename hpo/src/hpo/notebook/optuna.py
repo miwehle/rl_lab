@@ -1,4 +1,4 @@
-"""Small study helpers for HPO notebooks."""
+"""Small Optuna helpers for HPO notebooks."""
 
 from collections.abc import Sequence
 from pathlib import Path

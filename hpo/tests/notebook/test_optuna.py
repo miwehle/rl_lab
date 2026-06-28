@@ -1,6 +1,6 @@
 import optuna
 
-from hpo.notebook.studies import neighbors, optuna_db_summary
+from hpo.notebook.optuna import neighbors, optuna_db_summary
 
 
 def test_neighbors_returns_value_plus_direct_neighbors() -> None:
