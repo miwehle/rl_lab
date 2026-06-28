@@ -37,7 +37,7 @@ KISS does not mean avoiding good libraries or future reuse; it means avoiding co
 
 `hpo/src/hpo/study.py` owns study-series orchestration.
 
-Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
+Important objects in `study.py`: `Incumbent`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
 
 `StudyRunner.run(...)` loads or creates the current study, briefs the reporter with series context, runs Optuna until the target finished trial count, runs robust selection, updates incumbent attrs, syncs DB/log if configured, updates the dashboard, and appends the study to its in-memory series.
 
@@ -217,9 +217,9 @@ The SSL notebook must use `ObjectiveHookFactory` in `ObjectiveConfig`; without i
 
 Checkpoint window `window` is used both for trailing checkpoint mean and the training plot's trailing mean.
 
-Baseline score is passed through StudyRunner into checkpoint min score so initial checkpoint threshold starts at the baseline.
+Incumbent score is passed through StudyRunner into checkpoint min score so initial checkpoint threshold starts at the baseline.
 
-`Baseline.score` is also relevant to checkpointing, not merely dashboard display.
+`Incumbent.score` is also relevant to checkpointing, not merely dashboard display.
 
 ## Testing Notes
 

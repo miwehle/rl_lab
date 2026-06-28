@@ -26,8 +26,8 @@ SyncFn = Callable[[], None]
 
 
 @dataclass(frozen=True)
-class Baseline:
-    """Starting point for a study series."""
+class Incumbent:
+    """Best known params and score that may seed a study series."""
 
     params: dict[str, Any]
     score: float
@@ -40,11 +40,15 @@ class Baseline:
         cls,
         database_path: str | Path,
         study_name: str,
-    ) -> "Baseline":
+    ) -> "Incumbent":
         study = _load_study(
             study_name=study_name,
             storage=f"sqlite:///{Path(database_path)}",
         )
+        return cls.from_study(study)
+
+    @classmethod
+    def from_study(cls, study: Any) -> "Incumbent":
         return cls(
             params=study.user_attrs["incumbent_params"],
             score=study.user_attrs["incumbent_score"],
@@ -57,17 +61,21 @@ class StudyRunner:
 
     database_path: DatabasePathFn
     objective_cfg: ObjectiveConfig
-    baseline: Baseline
     reporter: StudySeriesReporter
+    baseline: Incumbent | None = None
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     extra_seeds: tuple[int, ...] = (1001, 1002)
     sync_fn: SyncFn | None = None
     studies: list[Any] = field(default_factory=list, init=False)
     incumbent_params: dict[str, Any] = field(init=False)
-    incumbent_score: float = field(init=False)
+    incumbent_score: float | None = field(init=False)
 
     def __post_init__(self) -> None:
+        if self.baseline is None:
+            self.incumbent_params = {}
+            self.incumbent_score = None
+            return
         self.incumbent_params = dict(self.baseline.params)
         self.incumbent_score = self.baseline.score
 
@@ -77,10 +85,12 @@ class StudyRunner:
         suggest_parameter_values: Any,
         n_trials: int,
     ) -> None:
-        objective_cfg = _with_checkpoint_min_score(
-            self.objective_cfg,
-            self.incumbent_score,
-        )
+        objective_cfg = self.objective_cfg
+        if self.incumbent_score is not None:
+            objective_cfg = _with_checkpoint_min_score(
+                objective_cfg,
+                self.incumbent_score,
+            )
         objective_cfg = _with_training_progress(
             objective_cfg,
             self.reporter.report_training_progress,
@@ -119,7 +129,7 @@ class StudyRunner:
             progress_fn=self.reporter.report_robustness_evaluation,
         )
         selected_score = study.user_attrs["robust_best_score"]
-        if selected_score > self.incumbent_score:
+        if self.incumbent_score is None or selected_score > self.incumbent_score:
             self.incumbent_params.update(selected_params)
             self.incumbent_score = selected_score
 

@@ -5,7 +5,7 @@ import pytest
 
 from hpo import study as study_module
 from hpo.checkpointing import ObjectiveHookFactory
-from hpo.study import Baseline, StudyRunner, run_study
+from hpo.study import Incumbent, StudyRunner, run_study
 from hpo.study_reporting import RobustnessProgress
 from common import objective_config
 
@@ -99,7 +99,7 @@ def test_study_runner_reuses_context_and_previous_studies(
     runner = StudyRunner(
         database_path=lambda name: Path("runs") / f"{name}.db",
         objective_cfg=objective_cfg,
-        baseline=Baseline(params={"x": 1}, score=0.0),
+        baseline=Incumbent(params={"x": 1}, score=0.0),
         reporter=reporter,
         study_attrs={"mode": "8d"},
         robust_candidates=5,
@@ -161,7 +161,7 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
         objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(),
         ),
-        baseline=Baseline(params={"x": 1}, score=10.0),
+        baseline=Incumbent(params={"x": 1}, score=10.0),
         reporter=FakeReporter(),
     )
 
@@ -177,6 +177,49 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     assert current.user_attrs["robust_best_score"] == 9.0
     assert current.user_attrs["incumbent_params"] == {"x": 1}
     assert current.user_attrs["incumbent_score"] == 10.0
+
+
+def test_study_runner_can_start_without_baseline(monkeypatch, tmp_path) -> None:
+    current = FakeStudy([], {
+        "robust_best_params": {"x": 2},
+        "robust_best_score": 9.0,
+    })
+    run_calls = []
+    robust_calls = []
+    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
+    monkeypatch.setattr(
+        study_module,
+        "run_study",
+        lambda **kwargs: run_calls.append(
+            kwargs | {"incumbent_params": dict(kwargs["incumbent_params"])}
+        ) or kwargs["study"],
+    )
+    monkeypatch.setattr(
+        study_module,
+        "select_robust_best",
+        lambda **kwargs: robust_calls.append(
+            kwargs | {"incumbent_params": dict(kwargs["incumbent_params"])}
+        ) or {"x": 2},
+    )
+    runner = StudyRunner(
+        database_path=lambda _name: Path("runs/study.db"),
+        objective_cfg=objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+            hooks=ObjectiveHookFactory(tmp_path, window=2),
+        ),
+        reporter=FakeReporter(),
+    )
+
+    runner.run("s1", suggest_parameter_values=object(), n_trials=1)
+
+    assert run_calls[0]["incumbent_params"] == {}
+    assert run_calls[0]["objective_cfg"].hooks.min_score is None
+    assert robust_calls[0]["incumbent_params"] == {}
+    assert robust_calls[0]["objective_cfg"].hooks.min_score is None
+    assert runner.incumbent_params == {"x": 2}
+    assert runner.incumbent_score == 9.0
+    assert current.user_attrs["incumbent_params"] == {"x": 2}
+    assert current.user_attrs["incumbent_score"] == 9.0
 
 
 def test_study_runner_skips_already_finished_study(monkeypatch, capsys) -> None:
@@ -201,7 +244,7 @@ def test_study_runner_skips_already_finished_study(monkeypatch, capsys) -> None:
         objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(),
         ),
-        baseline=Baseline(params={"x": 1}, score=0.0),
+        baseline=Incumbent(params={"x": 1}, score=0.0),
         reporter=reporter,
     )
 
@@ -244,7 +287,7 @@ def test_study_runner_uses_incumbent_as_checkpoint_min_score(
     runner = StudyRunner(
         database_path=lambda _name: Path("runs/study.db"),
         objective_cfg=cfg,
-        baseline=Baseline(params={"x": 1}, score=10.0),
+        baseline=Incumbent(params={"x": 1}, score=10.0),
         reporter=FakeReporter(),
     )
 
@@ -312,7 +355,18 @@ def test_run_study_uses_task_attrs_and_reports_progress(monkeypatch) -> None:
     assert progress_trial_counts == [0, 1, 2]
 
 
-def test_baseline_loads_incumbent_from_database(monkeypatch) -> None:
+def test_incumbent_loads_from_study() -> None:
+    study = FakeStudy([], {
+        "incumbent_params": {"x": 2},
+        "incumbent_score": 123.0,
+    })
+
+    incumbent = Incumbent.from_study(study)
+
+    assert incumbent == Incumbent(params={"x": 2}, score=123.0)
+
+
+def test_incumbent_loads_from_database(monkeypatch) -> None:
     study = FakeStudy([], {
         "incumbent_params": {"x": 2},
         "incumbent_score": 123.0,
@@ -324,8 +378,8 @@ def test_baseline_loads_incumbent_from_database(monkeypatch) -> None:
         lambda **kwargs: load_calls.append(kwargs) or study,
     )
 
-    baseline = Baseline.from_database(Path("runs/previous.db"), "s4")
+    baseline = Incumbent.from_database(Path("runs/previous.db"), "s4")
 
-    assert baseline == Baseline(params={"x": 2}, score=123.0)
+    assert baseline == Incumbent(params={"x": 2}, score=123.0)
     assert load_calls[0]["study_name"] == "s4"
     assert "previous.db" in load_calls[0]["storage"]
