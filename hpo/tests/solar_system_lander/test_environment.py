@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from hpo.solar_system_lander.environment import EnvFactory, WorldConfig
+from hpo.solar_system_lander.environment import (
+    EnvFactory,
+    World,
+    WorldConfig,
+    worlds_by_name,
+)
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:
@@ -37,6 +42,18 @@ def test_solar_system_lander_factory_accepts_custom_worlds() -> None:
     assert names == ["calm_venus", "calm_venus", "calm_venus"]
     assert list(factory.evaluation_envs()) == ["calm_venus"]
     assert factory.metadata()["worlds"][0]["wind_power"] == [0.0, 0.0]
+
+
+def test_worlds_by_name_returns_requested_worlds() -> None:
+    assert [world.name for world in worlds_by_name(World.EARTH, World.VENUS)] == [
+        World.EARTH,
+        World.VENUS,
+    ]
+
+
+def test_worlds_by_name_rejects_unknown_world() -> None:
+    with pytest.raises(ValueError, match="unknown world: pluto"):
+        worlds_by_name("pluto")
 
 
 def test_solar_system_lander_factory_rejects_empty_worlds() -> None:

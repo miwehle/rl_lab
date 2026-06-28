@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 from typing import Any
 
 import gymnasium as gym
@@ -18,13 +19,29 @@ class WorldConfig:
     turbulence_power: tuple[float, float]
 
 
+class World(StrEnum):
+    MOON = "moon"
+    MERCURY = "mercury"
+    MARS = "mars"
+    EARTH = "earth"
+    VENUS = "venus"
+
 WORLDS = (
-    WorldConfig("moon", -1.65, (0.0, 0.0), (0.0, 0.0)),
-    WorldConfig("mercury", -3.7, (0.0, 0.0), (0.0, 0.0)),
-    WorldConfig("mars", -3.8, (0.0, 4.0), (0.0, 1.0)),
-    WorldConfig("earth", -10.0, (5.0, 15.0), (0.0, 2.0)),
-    WorldConfig("venus", -9.0, (15.0, 20.0), (0.0, 2.0)),
+    WorldConfig(World.MOON, -1.65, (0.0, 0.0), (0.0, 0.0)),
+    WorldConfig(World.MERCURY, -3.7, (0.0, 0.0), (0.0, 0.0)),
+    WorldConfig(World.MARS, -3.8, (0.0, 4.0), (0.0, 1.0)),
+    WorldConfig(World.EARTH, -10.0, (5.0, 15.0), (0.0, 2.0)),
+    WorldConfig(World.VENUS, -9.0, (15.0, 20.0), (0.0, 2.0)),
 )
+
+
+def worlds_by_name(*names: str) -> tuple[WorldConfig, ...]:
+    """Return worlds in the requested order."""
+    worlds = {world.name: world for world in WORLDS}
+    try:
+        return tuple(worlds[name] for name in names)
+    except KeyError as error:
+        raise ValueError(f"unknown world: {error.args[0]}") from None
 
 
 class EnvWrapper(gym.Wrapper):
