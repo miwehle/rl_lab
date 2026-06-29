@@ -8,11 +8,13 @@ For the immediate next HPO steps, check `hpo/NEXT.md`.
 
 The package orchestrates hyperparameter optimization for DQN lander agents, with Optuna studies, vectorized training, checkpointing, robust candidate re-evaluation, Colab persistence, and a notebook dashboard for the human running the HPO.
 
+The HPO package is the executable model: research updates both hypotheses and code.
+
 The package's first practical goal is to produce and preserve the best possible model checkpoints by evaluation Gym score.
 
 The second practical goal is to grow the dashboard as the central HPO tool: it should make the optimization understandable to the human and may later become a more general deep-learning dashboard.
 
-Research knowledge lives in `hpo/research`; start with `hpo/research/README.md` for the roles of lab journal, insights, hypotheses, facts, ideas, and assets.
+Research knowledge lives in `hpo/research`; start with `hpo/research/README.md` for the roles of observations, aha moments, hypotheses, questions, ideas, and assets.
 
 Related sequence diagrams:
 
