@@ -1,4 +1,4 @@
-# Key HPO Insights
+# HPO Hypotheses
 
 ## 1. Earth Is Learnable
 
