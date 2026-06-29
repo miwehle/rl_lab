@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any
 
+from hpo.checkpointing import trial_best_checkpoint_score
 from hpo.objective import ObjectiveConfig, create_objective
 from hpo.study_reporting import RobustnessProgress
 
@@ -34,7 +35,7 @@ def select_robust_best(
     best_mean = float("-inf")
     robustness_checkpoints = []
     candidate_seed_scores = [
-        [float(trial.value)]
+        [trial_best_checkpoint_score(trial)]
         for trial in candidates
     ]
 
@@ -45,7 +46,7 @@ def select_robust_best(
         trial: Any,
         candidate_index: int,
     ) -> tuple[dict[str, Any], float]:
-        scores = [float(trial.value)]
+        scores = [trial_best_checkpoint_score(trial)]
 
         for seed_index, seed_offset in enumerate(extra_seeds, start=1):
             progress = _robustness_progress(
@@ -137,7 +138,7 @@ def _top_complete_trials(study: Any, top_n: int) -> list[Any]:
         trial for trial in study.trials
         if trial.state.name == "COMPLETE" and trial.value is not None
     ]
-    trials.sort(key=lambda trial: trial.value, reverse=True)
+    trials.sort(key=trial_best_checkpoint_score, reverse=True)
     return trials[:top_n]
 
 

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Literal
 
+from hpo.checkpointing import trial_best_checkpoint_score
 from hpo.study_reporting import (
     RobustnessProgress,
     StudySeriesReporter,
@@ -466,7 +467,7 @@ def _current_study_points(study: Any) -> list[dict[str, Any]]:
     points = []
     best = float("-inf")
     for trial in trials:
-        score = float(trial.value)
+        score = trial_best_checkpoint_score(trial)
         best = max(best, score)
         points.append({
             "trial_number": trial.number,

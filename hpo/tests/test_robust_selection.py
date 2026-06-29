@@ -132,6 +132,54 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
     ]
 
 
+def test_select_robust_best_ranks_by_evaluation_checkpoint_score(
+    monkeypatch,
+) -> None:
+    study = FakeStudy(
+        trials=[
+            FakeTrial(
+                0,
+                200.0,
+                {"x": 1},
+                user_attrs={"evaluation_checkpoint_score": 50.0},
+            ),
+            FakeTrial(
+                1,
+                100.0,
+                {"x": 2},
+                user_attrs={"evaluation_checkpoint_score": 180.0},
+            ),
+        ],
+    )
+    fixed_trials = []
+
+    def fake_create_objective(**_kwargs):
+        def objective(trial):
+            fixed_trials.append(trial)
+            return 0.0
+
+        return objective
+
+    monkeypatch.setattr(
+        robust_selection_module,
+        "create_objective",
+        fake_create_objective,
+    )
+
+    select_robust_best(
+        study=study,
+        suggest_parameter_values=object(),
+        incumbent_params={},
+        objective_cfg=objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+        ),
+        top_n=1,
+        extra_seeds=(1,),
+    )
+
+    assert fixed_trials[0].number == 1
+
+
 def test_select_robust_best_reports_training_progress(monkeypatch, tmp_path) -> None:
     study = FakeStudy(
         trials=[FakeTrial(0, 100.0, {"x": 1})],

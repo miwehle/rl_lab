@@ -32,6 +32,20 @@ class BestCheckpoint:
     source: str
 
 
+def trial_best_checkpoint_score(trial: Any) -> float:
+    """Score used to carry a trial into the Study plot and robustness selection.
+
+    Prefer the greedy evaluation score of the trial's best checkpoint, falling
+    back to the Optuna trial value for older studies or trials without one.
+    """
+    return float(
+        getattr(trial, "user_attrs", {}).get(
+            "evaluation_checkpoint_score",
+            trial.value,
+        )
+    )
+
+
 class BestCheckpointRecorder:
     """Save q_net whenever the trailing return window reaches a new best score."""
 

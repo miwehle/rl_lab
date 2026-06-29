@@ -202,6 +202,44 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     } == {"Score", "Best score"}
 
 
+def test_study_plot_uses_evaluation_checkpoint_score() -> None:
+    study = FakeStudy(
+        trials=[
+            FakeTrial(
+                number=0,
+                value=50.0,
+                user_attrs={"evaluation_checkpoint_score": 120.0},
+            ),
+            FakeTrial(
+                number=1,
+                value=80.0,
+                user_attrs={},
+            ),
+        ],
+    )
+
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=2,
+        studies=[],
+        incumbent_params={},
+    )
+
+    score_trace = next(
+        trace
+        for trace in figure.data
+        if trace.name == "Score" and trace.xaxis == "x2"
+    )
+    best_trace = next(
+        trace
+        for trace in figure.data
+        if trace.name == "Best score" and trace.xaxis == "x2"
+    )
+
+    assert list(score_trace.y) == [120.0, 80.0]
+    assert list(best_trace.y) == [120.0, 120.0]
+
+
 def test_current_hps_use_live_trial_params_during_training() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
 
