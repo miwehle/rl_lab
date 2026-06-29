@@ -4,11 +4,13 @@ This folder keeps research knowledge separate from code and package documentatio
 
 Research is cyclic: observations update hypotheses, and updated hypotheses guide the next questions and tests.
 
-The HPO package is the executable model. Research updates both hypotheses and code.
+==The HPO package is the executable model.== Research updates both hypotheses and code.
 
 The practical truth test is whether a change robustly increases checkpoint and HP scores, and preserves the good checkpoints it discovers.
 
-> Motto: ==Correct is what robustly improves the Gym score.==
+> Motto: ==Correct is what==
+> 1. ==robustly improves the Gym score and==
+> 2. ==keeps the code simple.==
 
 Short research loop:
 
