@@ -1,4 +1,4 @@
-"""Robust selection of HPO study candidates."""
+"""HP robustness evaluation for HPO study candidates."""
 
 from collections.abc import Callable, Iterable
 from dataclasses import replace

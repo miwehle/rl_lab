@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from hpo import robust_selection as robust_selection_module
+from hpo import hp_robustness as hp_robustness_module
 from hpo.checkpointing import ObjectiveHookFactory
-from hpo.robust_selection import select_robust_best
+from hpo.hp_robustness import select_robust_best
 from hpo.study_reporting import RobustnessProgress, TrainingProgress
 from common import objective_config
 
@@ -67,7 +67,7 @@ def test_select_robust_best_uses_shared_objective(monkeypatch) -> None:
         return objective
 
     monkeypatch.setattr(
-        robust_selection_module,
+        hp_robustness_module,
         "create_objective",
         fake_create_objective,
     )
@@ -161,7 +161,7 @@ def test_select_robust_best_ranks_by_evaluation_checkpoint_score(
         return objective
 
     monkeypatch.setattr(
-        robust_selection_module,
+        hp_robustness_module,
         "create_objective",
         fake_create_objective,
     )
@@ -201,7 +201,7 @@ def test_select_robust_best_reports_training_progress(monkeypatch, tmp_path) -> 
         return objective
 
     monkeypatch.setattr(
-        robust_selection_module,
+        hp_robustness_module,
         "create_objective",
         fake_create_objective,
     )

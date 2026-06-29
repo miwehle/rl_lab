@@ -107,12 +107,14 @@ def build_dashboard(
             figure,
             candidate_seed_scores=robustness_progress.candidate_seed_scores,
             candidate_index=robustness_progress.candidate_index,
+            first_score_label=robustness_progress.first_score_label,
+            extra_score_label=robustness_progress.extra_score_label,
         )
         figure.layout.annotations[3].text = (
-            "HP Robustness Evaluation · "
+            f"{robustness_progress.title} · "
             f"Candidate {robustness_progress.candidate_index}/"
             f"{robustness_progress.candidate_count} · "
-            f"Seed {robustness_progress.seed_index}/"
+            f"{robustness_progress.step_label} {robustness_progress.seed_index}/"
             f"{robustness_progress.seed_count}"
         )
 
@@ -485,6 +487,8 @@ def _add_robustness_evaluation(
     *,
     candidate_seed_scores: list[list[float]],
     candidate_index: int | None,
+    first_score_label: str = "Optimize trial",
+    extra_score_label: str = "Extra seed",
 ) -> None:
     import plotly.graph_objects as go
 
@@ -499,7 +503,7 @@ def _add_robustness_evaluation(
             point_x.append(candidate + offset)
             point_y.append(score)
             point_labels.append(
-                "Optimize trial" if seed == 0 else f"Extra seed {seed}"
+                first_score_label if seed == 0 else f"{extra_score_label} {seed}"
             )
             point_colors.append(
                 "#1f77b4" if candidate < candidate_index else

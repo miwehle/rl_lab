@@ -12,6 +12,10 @@ class RobustnessProgress:
     seed_index: int
     seed_count: int
     candidate_seed_scores: list[list[float]]
+    title: str = "HP Robustness Evaluation"
+    step_label: str = "Seed"
+    first_score_label: str = "Optimize trial"
+    extra_score_label: str = "Extra seed"
 
 
 @dataclass(frozen=True)
