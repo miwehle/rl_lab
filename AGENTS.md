@@ -15,6 +15,8 @@ It is the compact package definition meant to restore context at the start of a
 new session, with supporting PlantUML diagrams in the same folder.
 For established shorthand in this collaboration, also read
 `hpo/codex_memory/interaction_protocol.md`.
+For HPO research notes, current hypotheses, and experiment lessons, start with
+`hpo/research/README.md`.
 
 ## Working Style
 

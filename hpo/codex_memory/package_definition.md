@@ -10,6 +10,8 @@ The package's first practical goal is to produce and preserve the best possible 
 
 The second practical goal is to grow the dashboard as the central HPO tool: it should make the optimization understandable to the human and may later become a more general deep-learning dashboard.
 
+Research knowledge lives in `hpo/research`; start with `hpo/research/README.md` for the roles of lab journal, insights, hypotheses, facts, ideas, and assets.
+
 Related sequence diagrams:
 
 - `hpo_study_flow.puml`: StudyRunner, dashboard, objective, trainer, and robust selection.
