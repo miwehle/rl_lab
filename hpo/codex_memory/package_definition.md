@@ -4,6 +4,8 @@ Purpose: this file is the compact startup context for future Codex sessions work
 
 Read this before making design or implementation changes in `hpo`, especially after a context reset.
 
+For the immediate next HPO steps, check `hpo/NEXT.md`.
+
 The package orchestrates hyperparameter optimization for DQN lander agents, with Optuna studies, vectorized training, checkpointing, robust candidate re-evaluation, Colab persistence, and a notebook dashboard for the human running the HPO.
 
 The package's first practical goal is to produce and preserve the best possible model checkpoints by evaluation Gym score.
