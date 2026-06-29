@@ -10,6 +10,14 @@
 
 ==**Next:** Implement automatic best-checkpoint preservation to Drive, then implement BI11 and try five-world training with world-weighted sampling for Earth/Venus.==
 
+## 2026-06-28
+
+**Observation:** The 8D Elise-bunt study produced a preserved five-world pilot around `180` Gym score.
+
+**Interpretation:** This was an important historical milestone. It showed that a small shared SolarSystemLander for the inner worlds is plausible and gave confidence that the HPO path is worth pursuing, even though later 9D Earth-only results became the stronger current signal.
+
+**Next:** Treat early strong individual models as directional evidence, but preserve their checkpoints immediately and keep separating concrete model quality from HP quality.
+
 ## YYYY-MM-DD
 
 **Observation:** 

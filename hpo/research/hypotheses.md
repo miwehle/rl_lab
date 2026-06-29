@@ -4,7 +4,7 @@
 
 **These:** Earth is learnable with 9D observations and suitable HPs.
 
-**Evidence:** The Earth-only `s7_exploration` found several trials above `200` Gym score early, and later an incumbent around `230`.
+**Evidence:** The Earth-only `s7_exploration` found several trials above `200` Gym score, with the best observed optimize trial around `242` and the best preserved checkpoint around `206`. The useful HP region currently points to `num_episodes=1000`, `batch_size=512`, `eps_end≈0.02..0.04`, and `eps_decay≈31k..43k`; `learning_rate` and `replay_memory_capacity` are less clearly pinned down.
 
 **Consequence:** Earth is not a physical no-go for the small DQN; the earlier five-world weakness likely comes from the training setup.
 
