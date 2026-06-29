@@ -36,6 +36,6 @@
 
 **These:** Good HPs do not guarantee a good concrete model.
 
-**Evidence:** Model quality varies strongly by training seed, and training-checkpoint score can diverge from greedy evaluation score.
+**Evidence:** Model quality varies strongly by training seed, and training-checkpoint score can diverge from greedy evaluation score. In Earth-only `s7_exploration`, an optimize trial reached about `242` greedy eval score, but the concrete checkpoint was not preserved; the best currently saved Earth checkpoint from that run is around `206`.
 
-**Consequence:** Save and evaluate concrete good checkpoints; BI11 remains central: the Study score should use the best trial checkpoint, not blindly the final model.
+**Consequence:** Save and evaluate concrete good checkpoints immediately; BI11 remains central, and automatic Drive preservation of new best eval checkpoints is a core requirement.

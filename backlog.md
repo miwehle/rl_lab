@@ -7,6 +7,7 @@
 | 11 | HPO-Piloten besser auswählen und weitertrainieren |  |  | S | High |  |
 | 13 | Weltabhängige Sampling-Raten im Mehrwelt-Training |  |  | S | High |  |
 | 14 | Checkpoint-Robustness Evaluation | 11 |  | M | High |  |
+| 15 | Curriculum Learning als eigenes Folgeprojekt | 13 |  | M | Med |  |
 | 3 | The KISS SolarSystemLander – Quest II | 1 |  | S | High |  |
 | 12 | Dashboard-Zoom auf einzelne Landeversuche |  |  | M | Med |  |
 | 5 | Inside the SolarSystemLander | 1 |  | M | Med | 😎 |
@@ -173,6 +174,25 @@ Ansätze:
 **Nutzen:** Die HPO bewertet nicht nur, ob HPs gute Piloten produzieren können, sondern auch, wie gut ein konkret gefundener und gespeicherter Pilot wirklich fliegt.
 
 **KISS-Ansatz:** Die besten Checkpoints aus dem Study-Plot als Kandidaten nehmen und in einer separaten Checkpoint-Robustness Evaluation prüfen.
+
+## 15. Curriculum Learning als eigenes Folgeprojekt
+
+**Idee:** Die Trainingsaufgaben über die Zeit so steuern, dass der kleine gemeinsame Pilot effizienter lernt.
+
+**Einordnung:** Curriculum Learning ist ein eigenes großes Thema und sollte wahrscheinlich nicht in `hpo` hineinwachsen. Innerhalb von `hpo` ist BI13 der pragmatische KISS-Schritt: statisch weltgewichtetes Sampling, damit Erde/Venus genug Trainingsanteil bekommen und wir hier noch einen SolarSystemLander für alle fünf Welten mit stabilem Gym Score `200+` schaffen.
+
+**Zusammenhang mit BI13:** BI13 ist die einfache Vorstufe. BI15 wäre ein separates Folgeprojekt, in dem die Trainingsaufgaben oder Sampling-Gewichte dynamisch vom Lernstand abhängen.
+
+Mögliche Curricula mit hohem Potential:
+
+- Difficulty-weighted sampling: Mehr Training auf Welten, deren Score noch schwach ist.
+- Easy-to-hard schedule: Erst stabile Fluggrundlagen auf Mond/Merkur/Mars, dann zunehmend Erde/Venus.
+- Remedial training: Nachhilfe-Blöcke für die aktuell schwächste Welt, danach wieder gemischtes Training gegen Vergessen.
+- Weather curriculum: Bei Erde/Venus erst mildere Wind-/Turbulenzbereiche, dann schwierigere Wetterlagen.
+
+**Nutzen:** Trainingszeit wandert gezielter zu den Aufgaben, an denen der Pilot gerade wirklich lernt, statt gleichmäßig auf schon einfache und noch zu schwere Situationen verteilt zu werden.
+
+**Risiko:** Mehr Steuerlogik und mehr Gefahr von Vergessen. Erst BI13 ausprobieren, dann entscheiden, ob dynamisches Curriculum den zusätzlichen Aufwand verdient.
 
 ## Über dieses Backlog
 
