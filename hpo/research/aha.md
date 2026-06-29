@@ -39,3 +39,11 @@ The Earth breakthrough came after letting Optuna search several HPs at once in a
 ## Back Up Immediately
 
 The observed `211` and `242` pilots showed what was possible, but their concrete checkpoints were not saved in time. A good checkpoint only counts once it is preserved.
+
+## Code Complexity Is Part Of The Experiment
+
+This follows from the [HPO research motto](README.md): correct HPO work improves the Gym score and keeps the code simple.
+
+A better HPO algorithm is not only one that improves the Gym score. It must also stay understandable enough to keep the research loop alive and fast; otherwise software aging slows the experiment down.
+
+LOC is a cheap first proxy for code complexity. It is imperfect, especially in Python formatting, but it gives high bang for the buck as an early warning signal when small ideas become large code.
