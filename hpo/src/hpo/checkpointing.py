@@ -1,5 +1,7 @@
 """Checkpoint the best concrete model produced during an HPO trial."""
 
+import json
+import shutil
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -122,6 +124,42 @@ class EvaluationBestCheckpointRecorder:
         self.best_checkpoint = ModelCheckpoint(self.path, metadata)
 
 
+class BestEvalCheckpointArchive:
+    """Keep the best evaluation checkpoint in a durable archive directory."""
+
+    checkpoint_name = "best_eval_checkpoint.pt"
+    metadata_name = "best_eval_checkpoint.json"
+
+    def __init__(self, archive_dir: str | Path) -> None:
+        self.archive_dir = Path(archive_dir)
+        self.checkpoint_path = self.archive_dir / self.checkpoint_name
+        self.metadata_path = self.archive_dir / self.metadata_name
+
+    def archive(self, checkpoint: ModelCheckpoint) -> Path | None:
+        if checkpoint.metadata["score"] <= self._best_score():
+            return None
+
+        self.archive_dir.mkdir(parents=True, exist_ok=True)
+        _replace_with_copy(checkpoint.path, self.checkpoint_path)
+        self._write_metadata(
+            checkpoint.metadata | {"source_path": str(checkpoint.path)}
+        )
+        return self.checkpoint_path
+
+    def _best_score(self) -> float:
+        if self.metadata_path.exists():
+            return json.loads(self.metadata_path.read_text(encoding="utf-8"))["score"]
+        return float("-inf")
+
+    def _write_metadata(self, metadata: dict[str, Any]) -> None:
+        temporary = self.metadata_path.with_suffix(self.metadata_path.suffix + ".tmp")
+        temporary.write_text(
+            json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(self.metadata_path)
+
+
 class CheckpointingTrainer(VectorTrainer):
     """VectorTrainer variant that records the best model seen during training."""
 
@@ -161,6 +199,7 @@ class ObjectiveHookFactory:
     min_score: float | None = None
     min_score_delta: float = 0.0
     training_progress_fn: TrainingProgressFn | None = None
+    best_eval_archive_dir: str | Path | None = None
 
     def __post_init__(self) -> None:
         if self.window < 1:
@@ -209,9 +248,15 @@ class ObjectiveHookFactory:
             min_score=self.min_score,
             min_score_delta=self.min_score_delta,
         )
+        archive = (
+            None
+            if self.best_eval_archive_dir is None
+            else BestEvalCheckpointArchive(self.best_eval_archive_dir)
+        )
         return ObjectiveHooks(
             recorder=recorder,
             evaluation_recorder=evaluation_recorder,
+            best_eval_archive=archive,
             trial_number=trial.number,
             target_episodes=ctx.training_config.num_episodes,
             training_progress_fn=self.training_progress_fn,
@@ -220,18 +265,22 @@ class ObjectiveHookFactory:
         )
 
     def study_attrs(self) -> dict[str, Any]:
-        return {
+        attrs = {
             "checkpoint_dir": str(self.checkpoint_dir),
             "checkpoint_window": self.window,
             "checkpoint_min_score": self.min_score,
             "checkpoint_min_score_delta": self.min_score_delta,
         }
+        if self.best_eval_archive_dir is not None:
+            attrs["best_eval_archive_dir"] = str(self.best_eval_archive_dir)
+        return attrs
 
 
 @dataclass
 class ObjectiveHooks:
     recorder: BestCheckpointRecorder
     evaluation_recorder: EvaluationBestCheckpointRecorder
+    best_eval_archive: BestEvalCheckpointArchive | None
     trial_number: int
     target_episodes: int
     training_progress_fn: TrainingProgressFn | None = None
@@ -314,6 +363,12 @@ class ObjectiveHooks:
             )
             save("evaluation_checkpoint_score", metadata["score"])
             save("evaluation_checkpoint_episode", metadata["episode"])
+            if self.best_eval_archive is not None:
+                archived_path = self.best_eval_archive.archive(
+                    self.evaluation_recorder.best_checkpoint,
+                )
+                if archived_path is not None:
+                    save("evaluation_checkpoint_archive_path", str(archived_path))
 
 
 def _env_labels(env: Any) -> list[str | None] | None:
@@ -341,6 +396,19 @@ def save_checkpoint(
         },
         path,
     )
+
+
+def _replace_with_copy(source: str | Path, destination: str | Path) -> None:
+    source = Path(source)
+    destination = Path(destination)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.unlink(missing_ok=True)
+
+    try:
+        shutil.copy2(source, temporary)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def best_checkpoint(study: Any) -> BestCheckpoint:

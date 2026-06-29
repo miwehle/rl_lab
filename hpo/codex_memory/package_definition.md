@@ -181,7 +181,7 @@ Evaluation-best checkpointing has been added so future Armstrong-level models sh
 
 Current design: after each objective evaluation, `ObjectiveHooks.finalize_trial(...)` can save exactly the evaluated Q-net as an `*_eval_best.pt` checkpoint and write `evaluation_checkpoint_*` attrs.
 
-Drive policy should stay intentional: local runtime may keep all trial and robustness checkpoints, but Google Drive should ideally receive the selected incumbent/evaluation-best checkpoint rather than every transient file.
+Drive policy stays intentional: local runtime may keep all trial and robustness checkpoints, while Google Drive receives only the current best evaluation checkpoint through `ObjectiveHookFactory(best_eval_archive_dir=...)`.
 
 For emergency preservation, copying the whole local checkpoint directory to Drive is acceptable when it is tiny.
 
@@ -191,9 +191,9 @@ Colab can disconnect during long studies; the package is intended to resume stud
 
 Drive mount authorization prompts cannot be fully hidden reliably from notebook code; Colab requires user consent for Drive access.
 
-The notebook currently uses local checkpoint directories to avoid filling Drive with transient trial checkpoints.
+The notebook uses local checkpoint directories to avoid filling Drive with transient trial checkpoints, and archives the current best eval checkpoint to Drive via `best_eval_archive_dir`.
 
-DB and log are backed up through `Storage.backup`; checkpoints need separate handling.
+DB and log are backed up through `Storage.backup`; the selected eval-best checkpoint is archived separately by the checkpointing hook.
 
 If a checkpoint directory is tiny, directly copy the whole directory to Drive; zip compression is usually not worth it for PyTorch `.pt` checkpoints.
 
