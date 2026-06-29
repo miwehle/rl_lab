@@ -4,7 +4,11 @@
 
 | Nr. | Item | Voraus-<br>setzungen | Nutzen | Aufwand | Prio | Cool |
 |---:|---|---|---|---|---|---:|
+| 11 | HPO-Piloten besser auswählen und weitertrainieren |  |  | S | High |  |
+| 13 | Weltabhängige Sampling-Raten im Mehrwelt-Training |  |  | S | High |  |
+| 14 | Checkpoint-Robustness Evaluation | 11 |  | M | High |  |
 | 3 | The KISS SolarSystemLander – Quest II | 1 |  | S | High |  |
+| 12 | Dashboard-Zoom auf einzelne Landeversuche |  |  | M | Med |  |
 | 5 | Inside the SolarSystemLander | 1 |  | M | Med | 😎 |
 | 1 | Study Series 2 |  |  | M | Med | 😎 |
 | 7 | The High-Performance SolarSystemLander | 1 |  | M | Med |  |
@@ -142,6 +146,33 @@ Ansätze:
 - Curriculum Learning: Heißt bei uns: Nachhilfe auf dem Mond
 - 1 Modell pro Welt
 
+
+## 11. HPO-Piloten besser auswählen und weitertrainieren
+
+- Adaptive Verlängerung darf bei guten Trends auch Epsilon wieder anheben; wer Extra-Flugstunden bekommt, soll nicht mit fast leerem Entdeckergeist weiterkreisen.
+- Study-Score aus dem besten Trial-Checkpoint bewerten, nicht aus dem letzten Modell; Optuna soll den besten Piloten sehen, nicht den, der nach Feierabend noch müde ins Cockpit gefallen ist.
+
+## 12. Dashboard-Zoom auf einzelne HPO-Läufe
+
+**Idee:** Unterhalb von Study Series, Study und Trial-Training eine weitere Zoom-Stufe anbieten: einzelne Läufe, Episoden, Beispiele oder Traces ansehen und analysieren.
+
+**Nutzen:** Wenn Score und Trainingsplot nicht erklären, warum ein Kandidat scheitert, sollen domänenspezifische Detailansichten zeigen, was wirklich passiert. Für Gym-Lander wären Videos besonders anschaulich: zu wenig Schub, falsche Lagekontrolle, Drift, Panik kurz vor Bodenkontakt oder einfach ein sehr kreativer Umgang mit Gravitation.
+
+## 13. Weltabhängige Sampling-Raten im Mehrwelt-Training
+
+**Idee:** Die Trainingswelt-Liste gewichten, damit schwere Welten wie Erde und Venus häufiger vorkommen als die leichteren Welten.
+
+**Nutzen:** Erde und Venus bekommen mehr eigene Trainings-Episoden, ohne `num_episodes` auf unpraktische Werte wie `5000` zu erhöhen.
+
+**KISS-Ansatz:** Keine neue Replay-Sampling-Strategie; zunächst Welten mehrfach in `EnvFactory(worlds=...)` erlauben und nutzen.
+
+## 14. Checkpoint-Robustness Evaluation
+
+**Idee:** Neben der HP-Robustness konkrete Trial-Checkpoints ausführlich greedy evaluieren, z. B. mit 20 Flügen pro Welt bei `epsilon=0`.
+
+**Nutzen:** Die HPO bewertet nicht nur, ob HPs gute Piloten produzieren können, sondern auch, wie gut ein konkret gefundener und gespeicherter Pilot wirklich fliegt.
+
+**KISS-Ansatz:** Die besten Checkpoints aus dem Study-Plot als Kandidaten nehmen und in einer separaten Checkpoint-Robustness Evaluation prüfen.
 
 ## Über dieses Backlog
 
