@@ -8,6 +8,7 @@
 | 13 | Weltabhängige Sampling-Raten im Mehrwelt-Training |  |  | S | High |  |
 | 14 | Checkpoint-Robustness Evaluation | 11 |  | M | High |  |
 | 15 | Curriculum Learning als eigenes Folgeprojekt | 13 |  | M | Med |  |
+| 16 | Suchraum nach Studien automatisch vorschlagen |  |  | S | Med |  |
 | 3 | The KISS SolarSystemLander – Quest II | 1 |  | S | High |  |
 | 12 | Dashboard-Zoom auf einzelne Landeversuche |  |  | M | Med |  |
 | 5 | Inside the SolarSystemLander | 1 |  | M | Med | 😎 |
@@ -193,6 +194,14 @@ Mögliche Curricula mit hohem Potential:
 **Nutzen:** Trainingszeit wandert gezielter zu den Aufgaben, an denen der Pilot gerade wirklich lernt, statt gleichmäßig auf schon einfache und noch zu schwere Situationen verteilt zu werden.
 
 **Risiko:** Mehr Steuerlogik und mehr Gefahr von Vergessen. Erst BI13 ausprobieren, dann entscheiden, ob dynamisches Curriculum den zusätzlichen Aufwand verdient.
+
+## 16. Suchraum nach Studien automatisch vorschlagen
+
+**Idee:** Nach einer Study die besten Trials analysieren und daraus einen Suchraum-Vorschlag für die nächste Study ableiten.
+
+**Nutzen:** Der Mensch bleibt Studienleiter, bekommt aber schnell Hinweise: numerische HP-Bereiche enger ziehen oder erweitern, gute Kategorien bevorzugen, Randtreffer erkennen.
+
+**KISS-Ansatz:** Erst als Notebook-/Optuna-Helper, der nur Vorschläge ausgibt. Keine automatische Übernahme in `StudyRunner`.
 
 ## Über dieses Backlog
 
