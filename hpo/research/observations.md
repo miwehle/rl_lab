@@ -24,6 +24,53 @@
 
 **Next:** Try a slightly stronger static sampling mix such as `Mercury 1x, Mars 1x, Moon 2x, Earth 5x, Venus 5x` and use `num_envs=28`.
 
+### Gute HPs
+
+Bei 9D-Go-Optuna-Go-DB sah mit Stand Trial 26 grob so aus (laut Codex):
+- gute Werte: `learning_rate` etwa `0.0006..0.0008`
+- `eps_decay` eher `~28k..45k`
+- `eps_end` grob `0.03..0.04`
+- `replay_memory_capacity` eher frisch/klein: `30k..75k`
+- `learning_starts=5000` oft gut
+- `optimize_every=2` besser als `4`
+- `gamma=0.995` und `tau=0.002` beim besten Trial stark, aber noch mit kleiner Evidenz
+
+#### Codex:
+Ja, das war aus den bisherigen **Top-Trials** der aktuellen 9D-Go-Optuna-Go-DB abgeleitet, vor allem aus den besten ca. 6 Trials von damals 26 completed Trials.
+
+Konkret die Top-Region war ungefähr:
+
+```
+learning_rate:            0.00058 .. 0.00080
+eps_end:                  0.029 .. 0.044
+eps_decay:                27_776 .. 60_585
+replay_memory_capacity:   28_968 .. 96_222
+learning_starts:          meist 5_000
+optimize_every:           meist 2
+gamma:                    0.99 oder 0.995, bester Trial 0.995
+tau:                      0.002 oder 0.01, bester Trial 0.002
+num_episodes:             2000
+batch_size:               512
+```
+
+Der Spitzenplatz Trial 9 war:
+
+```
+score: 176.4
+learning_rate: 0.000759
+eps_end: 0.034586
+eps_decay: 32323
+gamma: 0.995
+tau: 0.002
+learning_starts: 5000
+optimize_every: 2
+replay_memory_capacity: 40628
+num_episodes: 2000
+batch_size: 512
+```
+
+Also ja: Die groben Bereiche sind aus den Spitzenplätzen gelesen, nicht nur geraten.
+
 ## 2026-06-29
 
 **Observation:** ==Breakthrough on Earth: 9D SSL reaches 200+.== In `solar_system_lander_9d_earth.db`, study `s7_exploration` found multiple candidates above `200` Gym score, with the best optimize trial around `242`. The best checkpoint that was actually preserved from the run is currently the robustness checkpoint around `206`.
