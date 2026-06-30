@@ -1,0 +1,38 @@
+@startuml
+
+title HPO Package Use Cases
+
+left to right direction
+
+actor Human
+
+rectangle "hpo package" {
+    usecase "Start study series" as StartSeries
+    usecase "Run Optuna study" as RunStudy
+    usecase "Resume study series" as ResumeSeries
+    usecase "Inspect live HPO dashboard" as InspectDashboard
+    usecase "Evaluate HP robustness" as EvaluateHPRobustness
+    usecase "Evaluate checkpoint robustness" as EvaluateCheckpointRobustness
+    usecase "Preserve best checkpoint" as PreserveCheckpoint
+    usecase "Load incumbent from database" as LoadIncumbent
+    usecase "Analyze study database" as AnalyzeDatabase
+}
+
+Human --> StartSeries
+Human --> RunStudy
+Human --> ResumeSeries
+Human --> InspectDashboard
+Human --> EvaluateCheckpointRobustness
+Human --> LoadIncumbent
+Human --> AnalyzeDatabase
+
+RunStudy ..> EvaluateHPRobustness : includes
+RunStudy ..> PreserveCheckpoint : includes
+ResumeSeries ..> LoadIncumbent : includes
+
+note right of RunStudy
+    Uses Optuna, DQN, Gymnasium,
+    Colab Runtime, and Google Drive.
+end note
+
+@enduml
