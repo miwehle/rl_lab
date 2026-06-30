@@ -5,7 +5,11 @@
 - Low-epsilon guard: once `epsilon < 0.05`, continue only if new best means still appear; otherwise stop, reduce learning rate, or deliberately raise epsilon before further training.
 
 
+## Video vom Training
+
+
 ## Dashboard liest aus DB
+
 
 
 ## Begriffe aus dem Apollo-Programm

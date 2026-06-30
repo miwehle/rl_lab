@@ -10,13 +10,13 @@ Possible factors:
 - interaction of gravity and weather
 
 | Gravity | Weather off | Weather on |
-|---|---|---|
-| Earth |  |  |
-| Venus |  |  |
+| ------- | ----------- | ---------- |
+| Earth   |             |            |
+| Venus   |             |            |
 
 
-## Kein Trainingsnutzen bei epsilon < 1?
+## Kein Trainingsnutzen bei epsilon < 0.05?
 
 Lohnt sich bei epsilon < 0.05 Weitertrainieren überhaupt noch?
 
-In dem Beispiel ja: Study "Go, Optuna, go": Trial 24
+Beispiel: Study "Go, Optuna, go", Trial 24. Da lohnte es sich.

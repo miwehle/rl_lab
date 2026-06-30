@@ -2,6 +2,8 @@
 
 ## 2026-06-30
 
+### 5-World-Score: 176
+
 **Observation:** In a 9D five-world SSL study with weighted Earth/Venus sampling, Optuna found a candidate around `176.4` Gym score in study `s1_go_optuna_go`.
 
 **Context:** The run used `num_episodes=2000` and let Optuna search several HPs at once instead of manually tuning one or two parameters.
@@ -11,6 +13,16 @@
 **Interpretation:** The result is close to the historical preserved five-world `180` pilot and shows that wide Optuna search plus Earth/Venus flight hours can recover strong five-world behavior. The combination suggests a useful region: small fresh replay buffer, Earth-like epsilon corridor, moderate learning rate, longer-horizon `gamma`, slower target update `tau`, and later learning start.
 
 **Next:** Let the study continue, then compare whether `gamma=0.995`, `tau=0.002`, and `learning_starts=5000` remain common among the best candidates.
+
+### Einfluss vom Sampling Mix auf die Scores
+
+**Observation:** In the same 9D five-world study, the sampling mix was `Mercury 1x, Venus 4x, Earth 4x, Moon 1x, Mars 1x`. After 27 trials with `world_scores`, Mars and Mercury were usually the strongest worlds, while Moon, Earth, and Venus most often pulled the mean down.
+
+**Evidence:** Mean world scores were roughly `Mars 124.5`, `Mercury 116.0`, `Moon 36.4`, `Earth 8.1`, `Venus 7.3`. The weakest world per trial was Venus 9 times, Moon 9 times, Earth 8 times, and Mercury once.
+
+**Interpretation:** Mars appears close to the middle of the five-world flight regime and is therefore easiest for the shared SSL. ==Earth/Venus still need more own flight hours; Moon also needs more preservation== because tuning toward high-g/weather regimes can hurt low-g landing quality.
+
+**Next:** Try a slightly stronger static sampling mix such as `Mercury 1x, Mars 1x, Moon 2x, Earth 5x, Venus 5x` and use `num_envs=28`.
 
 ## 2026-06-29
 
