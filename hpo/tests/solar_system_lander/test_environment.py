@@ -5,6 +5,7 @@ from hpo.solar_system_lander.environment import (
     EnvFactory,
     World,
     WorldConfig,
+    acceleration_vector,
     worlds_by_name,
 )
 
@@ -56,6 +57,16 @@ def test_worlds_by_name_rejects_unknown_world() -> None:
         worlds_by_name("pluto")
 
 
+def test_acceleration_vector_uses_velocity_delta_and_clips() -> None:
+    previous = np.array([0.0, 0.0, -0.7, 0.2], dtype=np.float32)
+    current = np.array([0.0, 0.0, 0.6, -0.1], dtype=np.float32)
+
+    acceleration = acceleration_vector(previous, current)
+
+    assert acceleration.dtype == np.float32
+    assert acceleration.tolist() == pytest.approx([1.0, -0.3])
+
+
 def test_solar_system_lander_factory_rejects_empty_worlds() -> None:
     with pytest.raises(ValueError, match="worlds must not be empty"):
         EnvFactory("8d", worlds=())
@@ -88,6 +99,17 @@ def test_solar_system_lander_9d_exposes_gravity() -> None:
 
     assert observation.shape == (9,)
     assert observation[-1] == pytest.approx(-3.8 / 12)
+
+
+def test_solar_system_lander_10d_exposes_acceleration() -> None:
+    env = EnvFactory("10d").evaluation_envs()["earth"]()
+    try:
+        observation, _ = env.reset(seed=42)
+    finally:
+        env.close()
+
+    assert observation.shape == (10,)
+    assert observation[-2:].tolist() == [0.0, 0.0]
 
 
 def test_solar_system_lander_8d_hides_world_parameters() -> None:

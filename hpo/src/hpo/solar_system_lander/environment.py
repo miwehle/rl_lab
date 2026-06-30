@@ -35,6 +35,16 @@ WORLDS = (
 )
 
 
+def acceleration_vector(
+    previous_observation: np.ndarray,
+    observation: np.ndarray,
+) -> np.ndarray:
+    """Return clipped velocity delta from two LunarLander observations."""
+    previous_velocity = previous_observation[2:4]
+    velocity = observation[2:4]
+    return np.clip(velocity - previous_velocity, -1.0, 1.0).astype(np.float32)
+
+
 def worlds_by_name(*names: str) -> tuple[WorldConfig, ...]:
     """Return worlds in the requested order."""
     worlds = {world.name: world for world in WORLDS}
@@ -49,26 +59,19 @@ class EnvWrapper(gym.Wrapper):
 
     def __init__(self, env, world: WorldConfig, observation_mode: str) -> None:
         super().__init__(env)
-        if observation_mode not in {"8d", "9d", "11d"}:
-            raise ValueError("observation_mode must be '8d', '9d', or '11d'")
+        if observation_mode not in {"8d", "9d", "10d", "11d"}:
+            raise ValueError("observation_mode must be '8d', '9d', '10d', or '11d'")
 
         self.world = world
         self.observation_mode = observation_mode
         self._weather_rng = np.random.default_rng()
         self._weather = (0.0, 0.0)
+        self._previous_observation: np.ndarray | None = None
+        self._acceleration = np.zeros(2, dtype=np.float32)
 
-        if observation_mode in {"9d", "11d"}:
+        if observation_mode in {"9d", "10d", "11d"}:
             base = env.observation_space
-            extra_low = (
-                np.array([-1.0], dtype=np.float32)
-                if observation_mode == "9d"
-                else np.array([-1.0, 0.0, 0.0], dtype=np.float32)
-            )
-            extra_high = (
-                np.array([0.0], dtype=np.float32)
-                if observation_mode == "9d"
-                else np.array([0.0, 1.0, 1.0], dtype=np.float32)
-            )
+            extra_low, extra_high = _extra_bounds(observation_mode)
             self.observation_space = Box(
                 low=np.concatenate((base.low, extra_low)),
                 high=np.concatenate((base.high, extra_high)),
@@ -87,15 +90,28 @@ class EnvWrapper(gym.Wrapper):
         base.wind_power = float(wind)
         base.turbulence_power = float(turbulence)
         observation, info = self.env.reset(seed=seed, options=options)
+        self._previous_observation = observation
+        self._acceleration = np.zeros(2, dtype=np.float32)
         return self._observation(observation), info
 
     def step(self, action):
         observation, reward, terminated, truncated, info = self.env.step(action)
+        if self._previous_observation is not None:
+            self._acceleration = acceleration_vector(
+                self._previous_observation,
+                observation,
+            )
+        self._previous_observation = observation
         return self._observation(observation), reward, terminated, truncated, info
 
     def _observation(self, observation):
         if self.observation_mode == "8d":
             return observation
+        if self.observation_mode == "10d":
+            return np.concatenate((observation, self._acceleration)).astype(
+                np.float32,
+                copy=False,
+            )
         wind, turbulence = self._weather
         values = [self.world.gravity / 12]
         if self.observation_mode == "11d":
@@ -111,8 +127,8 @@ class EnvFactory:
         *,
         worlds: Sequence[WorldConfig] = WORLDS,
     ) -> None:
-        if observation_mode not in {"8d", "9d", "11d"}:
-            raise ValueError("observation_mode must be '8d', '9d', or '11d'")
+        if observation_mode not in {"8d", "9d", "10d", "11d"}:
+            raise ValueError("observation_mode must be '8d', '9d', '10d', or '11d'")
         if not worlds:
             raise ValueError("worlds must not be empty")
         self.observation_mode = observation_mode
@@ -156,3 +172,20 @@ class EnvFactory:
             world,
             self.observation_mode,
         )
+
+
+def _extra_bounds(observation_mode: str) -> tuple[np.ndarray, np.ndarray]:
+    if observation_mode == "9d":
+        return (
+            np.array([-1.0], dtype=np.float32),
+            np.array([0.0], dtype=np.float32),
+        )
+    if observation_mode == "10d":
+        return (
+            np.array([-1.0, -1.0], dtype=np.float32),
+            np.array([1.0, 1.0], dtype=np.float32),
+        )
+    return (
+        np.array([-1.0, 0.0, 0.0], dtype=np.float32),
+        np.array([0.0, 1.0, 1.0], dtype=np.float32),
+    )
