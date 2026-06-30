@@ -79,6 +79,18 @@ def test_vector_training_smoke() -> None:
     assert len(trainer.memory) > 0
 
 
+def test_vector_trainer_accepts_hidden_size() -> None:
+    env = vector_env(num_envs=2)
+
+    try:
+        trainer = VectorTrainer(env, seed=42, hidden_size=256)
+    finally:
+        env.close()
+
+    assert trainer.q_net.layer1.out_features == 256
+    assert trainer.q_net.layer2.in_features == 256
+
+
 def test_vector_training_accepts_plotter() -> None:
     env = vector_env(num_envs=2)
     plot_calls = []

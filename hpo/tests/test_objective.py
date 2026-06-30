@@ -110,6 +110,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
             seed,
             device,
             replay_memory_capacity,
+            hidden_size,
         ) -> None:
             self.device = "trainer-device"
             calls.append(TrainerCall(env, seed, device, replay_memory_capacity))
@@ -160,6 +161,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert calls[0].training_config.num_episodes == 12
     assert calls[0].training_config.adaptive_extension_window == 50
     assert calls[0].training_config.early_stopping_score == pytest.approx(-250.0)
+    assert calls[0].training_config.hidden_size == 128
     assert calls[0].training_config.learning_rate == 5e-4
     assert len(eval_calls) == 2
     assert all(call["episodes"] == 20 for call in eval_calls)
@@ -273,8 +275,9 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
             seed,
             device,
             replay_memory_capacity,
+            hidden_size,
         ) -> None:
-            hook_calls.append((seed, device, replay_memory_capacity))
+            hook_calls.append((seed, device, replay_memory_capacity, hidden_size))
 
         def train(self, _training_config, *, plotter=None):
             assert plotter is None
@@ -333,7 +336,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
     assert objective(trial) == pytest.approx(10.0)
     assert hook_calls[0][0] is trial
     assert isinstance(hook_calls[0][1], VectorTrainingConfig)
-    assert hook_calls[1] == (45, None, 12_345)
+    assert hook_calls[1] == (45, None, 12_345, 128)
     assert trial.user_attrs["hook_attr"] == "yes"
 
 

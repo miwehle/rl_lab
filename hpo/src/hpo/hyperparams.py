@@ -6,6 +6,7 @@ class HP:
     EPS_DECAY = "eps_decay"
     EPS_END = "eps_end"
     GAMMA = "gamma"
+    HIDDEN_SIZE = "hidden_size"
     LEARNING_RATE = "learning_rate"
     LEARNING_STARTS = "learning_starts"
     NUM_EPISODES = "num_episodes"

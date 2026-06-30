@@ -25,6 +25,7 @@ class VectorTrainingConfig(TrainingConfig):
 
     learning_starts: int = 0
     optimize_every: int = 1
+    hidden_size: int = 128
     adaptive_extension_window: int | None = None
     early_stopping_score: float | None = None
 
@@ -35,6 +36,8 @@ class VectorTrainingConfig(TrainingConfig):
             raise ValueError("learning_starts must be >= 0")
         if self.optimize_every < 1:
             raise ValueError("optimize_every must be >= 1")
+        if self.hidden_size < 1:
+            raise ValueError("hidden_size must be >= 1")
         if (
             self.adaptive_extension_window is not None
             and self.adaptive_extension_window < 1
@@ -144,6 +147,7 @@ class VectorTrainer:
         device=None,
         replay_memory_capacity: int = 100_000,
         model_factory: ModelFactory = DQN,
+        hidden_size: int = 128,
     ) -> None:
         self.env = env
         self.steps_done = 0
@@ -161,8 +165,18 @@ class VectorTrainer:
         n_observations = math.prod(self.observation_shape)
         n_actions = env.single_action_space.n
 
-        self.q_net = model_factory(n_observations, n_actions).to(self.device)
-        self.target_net = model_factory(n_observations, n_actions).to(self.device)
+        self.q_net = _make_model(
+            model_factory,
+            n_observations,
+            n_actions,
+            hidden_size,
+        ).to(self.device)
+        self.target_net = _make_model(
+            model_factory,
+            n_observations,
+            n_actions,
+            hidden_size,
+        ).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = optim.AdamW(
             self.q_net.parameters(),
@@ -399,6 +413,17 @@ def set_vector_seeds(env, seed: int) -> None:
     env.action_space.seed(seed)
     env.single_action_space.seed(seed)
     env.single_observation_space.seed(seed)
+
+
+def _make_model(
+    model_factory: ModelFactory,
+    n_observations: int,
+    n_actions: int,
+    hidden_size: int,
+) -> nn.Module:
+    if model_factory is DQN:
+        return DQN(n_observations, n_actions, hidden_size)
+    return model_factory(n_observations, n_actions)
 
 
 def _should_extend_training(

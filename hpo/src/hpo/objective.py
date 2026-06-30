@@ -62,6 +62,7 @@ class Hooks(Protocol):
         seed: int | None,
         device: Any,
         replay_memory_capacity: int,
+        hidden_size: int,
     ) -> Any: ...
 
     def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any: ...
@@ -85,12 +86,14 @@ class DefaultHooks:
         seed: int | None,
         device: Any,
         replay_memory_capacity: int,
+        hidden_size: int,
     ) -> Any:
         return VectorTrainer(
             env,
             seed=seed,
             device=device,
             replay_memory_capacity=replay_memory_capacity,
+            hidden_size=hidden_size,
         )
 
     def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any:
@@ -194,6 +197,7 @@ def create_objective(
                 seed=trial_seed,
                 device=config.device,
                 replay_memory_capacity=replay_memory_capacity,
+                hidden_size=training_config.hidden_size,
             )
 
             # train DQN
@@ -272,6 +276,7 @@ def vector_training_config(
         learning_rate=params[HP.LEARNING_RATE],
         learning_starts=params[HP.LEARNING_STARTS],
         optimize_every=params[HP.OPTIMIZE_EVERY],
+        hidden_size=params.get(HP.HIDDEN_SIZE, 128),
         adaptive_extension_window=50,
         early_stopping_score=early_stopping_score,
     )

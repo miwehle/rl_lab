@@ -338,6 +338,7 @@ class ObjectiveHooks:
         seed: int | None,
         device: Any,
         replay_memory_capacity: int,
+        hidden_size: int,
     ) -> CheckpointingTrainer:
         self.env_labels = _env_labels(env)
         return CheckpointingTrainer(
@@ -345,6 +346,7 @@ class ObjectiveHooks:
             seed=seed,
             device=device,
             replay_memory_capacity=replay_memory_capacity,
+            hidden_size=hidden_size,
             checkpoint_recorder=self.recorder,
         )
 

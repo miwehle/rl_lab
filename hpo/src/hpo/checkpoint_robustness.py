@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import torch
+
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.checkpointing import load_checkpoint, trial_best_checkpoint_score
@@ -95,17 +97,28 @@ def q_net_from_checkpoint(
 ):
     """Build a Q-net from env dimensions and load checkpoint weights into it."""
     device = resolve_device(device)
+    hidden_size = _checkpoint_hidden_size(path)
     env = make_env()
     try:
         observation, _ = env.reset()
-        q_net = model_factory(
-            math.prod(tuple(observation.shape)),
-            env.action_space.n,
+        n_observations = math.prod(tuple(observation.shape))
+        n_actions = env.action_space.n
+        q_net = (
+            DQN(n_observations, n_actions, hidden_size)
+            if model_factory is DQN
+            else model_factory(n_observations, n_actions)
         ).to(device)
         load_checkpoint(q_net, path, device)
         return q_net
     finally:
         env.close()
+
+
+def _checkpoint_hidden_size(path: str | Path) -> int:
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    metadata = checkpoint.get("metadata", {})
+    training_config = metadata.get("training_config", {})
+    return int(training_config.get("hidden_size", 128))
 
 
 def _top_checkpoint_candidates(study: Any, top_n: int) -> list[CheckpointCandidate]:
