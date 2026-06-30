@@ -13,3 +13,10 @@ Possible factors:
 |---|---|---|
 | Earth |  |  |
 | Venus |  |  |
+
+
+## Kein Trainingsnutzen bei epsilon < 1?
+
+Lohnt sich bei epsilon < 0.05 Weitertrainieren überhaupt noch?
+
+In dem Beispiel ja: Study "Go, Optuna, go": Trial 24

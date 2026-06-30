@@ -1,3 +1,13 @@
+## Pilot Preservation Ideas
+
+- ==Stop on Kelly-Bundy effect:== if `best_mean` was strong and the current trailing mean falls far below it, stop training and evaluate the preserved best checkpoint instead of the damaged final model.
+- ==Roll back to local max:== when a promising pilot starts collapsing, restore the checkpoint from the previous local maximum and continue with gentler HPs, e.g. lower learning rate, epsilon bump, or slower update schedule.
+- Low-epsilon guard: once `epsilon < 0.05`, continue only if new best means still appear; otherwise stop, reduce learning rate, or deliberately raise epsilon before further training.
+
+
+## Dashboard liest aus DB
+
+
 ## Begriffe aus dem Apollo-Programm
 
 Apollo-Programm
@@ -14,8 +24,6 @@ SSL-Entwicklungsprogramm
 ├── Testkampagnen             → HPO- und Trainingsfolgen
 ├── Qualifikationstests       → feste Evaluation über fünf Welten
 └── Flugerprobung             → robuste Prüfung mit neuen Seeds
-
-
 
 
 Raumfahrt ist organisierte Paranoia mit Checklisten.
@@ -35,31 +43,4 @@ Bei uns:
 Damit wird nichts doppelt geprüft: erst entwickeln, dann Anforderung nachweisen, dann der Realität eine Gelegenheit geben, uns zu demütigen. Murphy bekommt keinen Sitzplatz, reist aber erfahrungsgemäß trotzdem mit.
 
 
-https://www.nasa.gov/the-apollo-program
-
-
-# Vereinfachung der Objective
-
-        # Idee:
-        # - Folgendes in einem neuen hook evaluate_model machen.
-        # - Danach den Hook q_net_for_evaluation entfernen.
-        # - Also folgende Zeile statt "# { ... # }":
-        # world_scores = hook.evaluate_model(ctx)
-        # {
-        ctx.q_net = ctx.training_result.q_net
-        ctx.q_net = hooks.q_net_for_evaluation(ctx, ctx.trainer.device)
-
-        ctx.world_scores = {
-            name: evaluate_greedy_q_net(
-                q_net=ctx.q_net,
-                device=ctx.trainer.device,
-                make_env=make_env,
-                episodes=config.eval_episodes,
-                max_steps=config.eval_max_steps,
-                seed=config.eval_seed,
-            )
-            for name, make_env in config.environment_factory.evaluation_envs().items()
-        }
-        score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
-        ctx.score = score
-        # }
+nasa.gov/the-apollo-program
