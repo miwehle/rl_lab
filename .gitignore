@@ -8,3 +8,4 @@ __pycache__/
 pytest-cache-files-*/
 hpo/runs/
 hpo/tmp/
+.obsidian/
