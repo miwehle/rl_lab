@@ -4,12 +4,13 @@
 
 ### 9D-Top10, 10D-Top5:
 
-Zwischenstand:
+**Observation:** Zwischenstand:
 
->`gamma=0.995` und `tau=0.002` sind jetzt brutal klar.
+>==`gamma=0.995` und `tau=0.002` sind jetzt brutal klar.==
 In beiden Top-Listen haben alle Top-Trials genau diese Kombination.
 ### 10D, current Highscore
-Observation: 10D, 193.5:
+
+**Observation:** 10D, 193.5:
 - `gamma=0.995`
 - `tau=0.002`
 - `optimize_every=2`
