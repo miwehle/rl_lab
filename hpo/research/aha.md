@@ -56,9 +56,7 @@ A better HPO algorithm is not only one that improves the Gym score. It must also
 LOC is a cheap first proxy for code complexity. It is imperfect, especially in Python formatting, but it gives high bang for the buck as an early warning signal when small ideas become large code.
 
 # Anhang
-
 <a id="erklaerung-von-codex-zu-gamma-und-tau"></a>
-
 ### Erklärung von Codex zu Gamma und Tau
 
 [...] `gamma` und `tau` sitzen beide im Herz der DQN-Lernmechanik, also bei TD-Target, TD-Error und Target-Netz-Update.
