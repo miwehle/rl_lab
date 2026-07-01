@@ -2,6 +2,8 @@
 
 ## 2026-07-01
 
+Details: [O2026-07-01a](_details/O2026-07-01a.md)
+
 ### HPs of best models
 
 Top-3  models have these HPs:
