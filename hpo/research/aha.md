@@ -2,6 +2,7 @@
 
 | Nr                                                  | Aha                                       | Topics                 |
 | --------------------------------------------------- | ----------------------------------------- | ---------------------- |
+| [[#A10 10D Gives The SSL A Popometer\|A10]]          | 10D Gives The SSL A Popometer             | SSL, RL                |
 | [[#A9 Earth Is Learnable\|A9]]                        | Earth Is Learnable                        | SSL, RL                |
 | [[#A8 Hard Worlds Need Their Own Flight Hours\|A8]]   | Hard Worlds Need Their Own Flight Hours   | SSL, Sampling          |
 | [[#A7 Good HPs Are Not Enough\|A7]]                   | Good HPs Are Not Enough                   | RL, Checkpointing, LL  |
@@ -15,6 +16,18 @@
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned.
 
 
+## A10 10D Gives The SSL A Popometer
+
+10D gives the SSL a seat-of-the-pants sensor.
+
+Ergebnis: 5-Welten-Gym-Score: 253
+
+> [!quote] Codex:
+> Vorher wusste der SSL eher: Wo bin ich? Wie schnell bin ich? Mit `dv_x/dt` und `dv_y/dt` spürt er zusätzlich: Was macht die Luft, Schwerkraft oder Steuerung gerade mit mir? Werde ich gerade beschleunigt oder abgebremst?
+>
+> Gerade bei fünf Welten ist das vermutlich Gold wert, weil die gleiche Geschwindigkeit je nach Welt etwas anderes bedeutet. Auf Mond, Erde und Venus fühlt sich "ich sinke mit `v_y`" dynamisch anders an. Die Beschleunigung sagt ihm etwas über das aktuelle Flugregime.
+
+Das Popometer ist das anschauliche Bild; technisch bekommt der SSL eine Näherung für den aktuell wirkenden Kraftvektor.
 ## A9 Earth Is Learnable
 
 The 9D SolarSystemLander can learn Earth. The Earth-only `s7_exploration` produced several `200+` candidates and showed that the earlier Earth weakness was not a physical impossibility, but a training setup problem.

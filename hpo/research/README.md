@@ -34,6 +34,9 @@ Three levels:
 - `assets/`: Screenshots and other evidence linked from the notes.
 - `_details/`: Supporting detail files for observations, aha items, hypotheses, or questions. The leading `_` marks supporting material, not the main entry point.
 
+> [!quote] Codex:
+> Periodisch destillieren: Alle paar Tage oder nach einer groesseren Studie durch den Forschungstrichter gehen: `observations -> aha -> hypotheses`. Nicht jede Observation muss ein Aha werden. Nicht jedes Aha muss eine Hypothese werden. Aber die wichtigsten sollten wandern.
+
 ## File Schema
 
 Main research files use short stable item IDs plus an overview table at the top, for example `O7`, `A3`, `H5`, or `Q2`.
@@ -45,3 +48,6 @@ Use Obsidian-friendly links in overview tables:
 ```
 
 Keep the main item concise. Put long tables, raw DB analyses, screenshots, or detailed reasoning in `_details/` and link to them from the item when useful. Detail files do not need a strict 1:1 relationship with items; one detail file may support several observations.
+
+> [!quote] Codex:
+> Keep the looseness. The structure is only the suspension, not the car.
