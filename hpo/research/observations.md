@@ -1,15 +1,34 @@
 # HPO Observations
 
-## 2026-07-01
+| Nr | Observation | Topics |
+|---|---|---|
+| [[#O8 Five-World 10D Reaches 210\|O8]] | Five-World 10D Reaches 210 | SSL, HP |
+| [[#O7 Top HP Corridor Emerges\|O7]] | Top HP Corridor Emerges | SSL, HP, Optuna |
+| [[#O6 Five-World 9D Reaches 176\|O6]] | Five-World 9D Reaches 176 | SSL, HP, Optuna |
+| [[#O5 Sampling Mix Shapes World Scores\|O5]] | Sampling Mix Shapes World Scores | SSL, Sampling |
+| [[#O4 Early Good HP Corridor In 9D\|O4]] | Early Good HP Corridor In 9D | SSL, HP |
+| [[#O3 Earth Breakthrough\|O3]] | Earth Breakthrough | SSL, Checkpointing |
+| [[#O2 8D Elise-Bunt Produces 180 Pilot\|O2]] | 8D Elise-Bunt Produces 180 Pilot | SSL, LL |
+| [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF |
 
-Details: [O2026-07-01a](_details/O2026-07-01a.md)
+Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
 
-### HPs of best models
+## O8 Five-World 10D Reaches 210
 
-Top-3  models have these HPs:
+**Observation:** In `solar_system_lander_10d_elise_accel.db`, study `s3_10d_better_space`, 10D reached about `210` average Gym score over five worlds.
 
-```
-gamma: 0.995  
+**Context:** This used the 10D acceleration observation mode and a narrowed HP region after 9D/10D exploration.
+
+**Interpretation:** 10D is a serious candidate, not just an experiment. The best observed 10D pilot is currently slightly ahead of the best observed 9D five-world pilot.
+
+**Details:** [[_details/O7|O7]]
+
+## O7 Top HP Corridor Emerges
+
+**Observation:** Top models currently share a clear HP core:
+
+```text
+gamma: 0.995
 tau: 0.002
 
 lr: ~0.001
@@ -20,18 +39,12 @@ replay: unclear
   9D: 20k..50k
   10D: ~85k
 ```
-### Highest scores
 
-Avg in 5 worlds:
+**Interpretation:** `gamma` and `tau` are now strong fixed candidates. Replay size remains interaction-heavy and deserves a more focused follow-up.
 
-```
-9D: 204
-10D: 210
-```
+**Details:** [[_details/O7|O7]]
 
-## 2026-06-30
-
-### 5-World-Score: 176
+## O6 Five-World 9D Reaches 176
 
 **Observation:** In a 9D five-world SSL study with weighted Earth/Venus sampling, Optuna found a candidate around `176.4` Gym score in study `s1_go_optuna_go`.
 
@@ -43,7 +56,7 @@ Avg in 5 worlds:
 
 **Next:** Let the study continue, then compare whether `gamma=0.995`, `tau=0.002`, and `learning_starts=5000` remain common among the best candidates.
 
-### Einfluss vom Sampling Mix auf die Scores
+## O5 Sampling Mix Shapes World Scores
 
 **Observation:** In the same 9D five-world study, the sampling mix was `Mercury 1x, Venus 4x, Earth 4x, Moon 1x, Mars 1x`. After 27 trials with `world_scores`, Mars and Mercury were usually the strongest worlds, while Moon, Earth, and Venus most often pulled the mean down.
 
@@ -53,38 +66,26 @@ Avg in 5 worlds:
 
 **Next:** Try a slightly stronger static sampling mix such as `Mercury 1x, Mars 1x, Moon 2x, Earth 5x, Venus 5x` and use `num_envs=28`.
 
-### Gute HPs
+## O4 Early Good HP Corridor In 9D
 
-Bei 9D-Go-Optuna-Go-DB sah mit Stand Trial 26 grob so aus (laut Codex):
-- gute Werte: `learning_rate` etwa `0.0006..0.0008`
-- `eps_decay` eher `~28k..45k`
-- `eps_end` grob `0.03..0.04`
-- `replay_memory_capacity` eher frisch/klein: `30k..75k`
-- `learning_starts=5000` oft gut
-- `optimize_every=2` besser als `4`
-- `gamma=0.995` und `tau=0.002` beim besten Trial stark, aber noch mit kleiner Evidenz
+**Observation:** In the 9D Go-Optuna-Go DB around trial 26, good early values looked roughly like this:
 
-#### Codex:
-Ja, das war aus den bisherigen **Top-Trials** der aktuellen 9D-Go-Optuna-Go-DB abgeleitet, vor allem aus den besten ca. 6 Trials von damals 26 completed Trials.
-
-Konkret die Top-Region war ungefähr:
-
-```
+```text
 learning_rate:            0.00058 .. 0.00080
 eps_end:                  0.029 .. 0.044
 eps_decay:                27_776 .. 60_585
 replay_memory_capacity:   28_968 .. 96_222
-learning_starts:          meist 5_000
-optimize_every:           meist 2
-gamma:                    0.99 oder 0.995, bester Trial 0.995
-tau:                      0.002 oder 0.01, bester Trial 0.002
+learning_starts:          mostly 5_000
+optimize_every:           mostly 2
+gamma:                    0.99 or 0.995, best trial 0.995
+tau:                      0.002 or 0.01, best trial 0.002
 num_episodes:             2000
 batch_size:               512
 ```
 
-Der Spitzenplatz Trial 9 war:
+The leading trial at that point was:
 
-```
+```text
 score: 176.4
 learning_rate: 0.000759
 eps_end: 0.034586
@@ -98,9 +99,9 @@ num_episodes: 2000
 batch_size: 512
 ```
 
-Also ja: Die groben Bereiche sind aus den Spitzenplätzen gelesen, nicht nur geraten.
+**Interpretation:** These ranges came from top trials, not guessing. Later results refined the corridor, especially around `gamma=0.995` and `tau=0.002`.
 
-## 2026-06-29
+## O3 Earth Breakthrough
 
 **Observation:** ==Breakthrough on Earth: 9D SSL reaches 200+.== In `solar_system_lander_9d_earth.db`, study `s7_exploration` found multiple candidates above `200` Gym score, with the best optimize trial around `242`. The best checkpoint that was actually preserved from the run is currently the robustness checkpoint around `206`.
 
@@ -110,7 +111,7 @@ Also ja: Die groben Bereiche sind aus den Spitzenplätzen gelesen, nicht nur ger
 
 ==**Next:** Implement automatic best-checkpoint preservation to Drive, then implement BI11 and try five-world training with world-weighted sampling for Earth/Venus.==
 
-## 2026-06-28
+## O2 8D Elise-Bunt Produces 180 Pilot
 
 **Observation:** The 8D Elise-bunt study produced a preserved five-world pilot around `180` Gym score.
 
@@ -118,15 +119,7 @@ Also ja: Die groben Bereiche sind aus den Spitzenplätzen gelesen, nicht nur ger
 
 **Next:** Treat early strong individual models as directional evidence, but preserve their checkpoints immediately and keep separating concrete model quality from HP quality.
 
-## YYYY-MM-DD
-
-**Observation:** 
-
-**Interpretation:** 
-
-**Next:** 
-
-## VectorTrainer Throughput
+## O1 VectorTrainer Throughput Depends Mostly On optimize_every
 
 **Context:** Empirical measurements from 103 trials on a Colab L4 with 20 parallel environments.
 
