@@ -2,21 +2,31 @@
 
 ## 2026-07-01
 
-### 9D-Top10, 10D-Top5:
+### HPs of best models
 
-**Observation:** Zwischenstand:
+Top-3  models have these HPs:
 
->==`gamma=0.995` und `tau=0.002` sind jetzt brutal klar.==
-In beiden Top-Listen haben alle Top-Trials genau diese Kombination.
-### 10D, current Highscore
+```
+gamma: 0.995  
+tau: 0.002
 
-**Observation:** 10D, 193.5:
-- `gamma=0.995`
-- `tau=0.002`
-- `optimize_every=2`
-- 2000 Episoden
-- Replay nicht riesig, aber auch nicht winzig
-- 10D ist definitiv nicht tot, eher sehr lebendig
+lr: ~0.001
+eps_end: 0.03..0.04
+eps_decay: 30k..50k; ~100k can work with eps_end ~0.04
+
+replay: unclear
+  9D: 20k..50k
+  10D: ~85k
+```
+### Highest scores
+
+Avg in 5 worlds:
+
+```
+9D: 204
+10D: 210
+```
+
 ## 2026-06-30
 
 ### 5-World-Score: 176
