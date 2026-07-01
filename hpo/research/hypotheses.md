@@ -2,7 +2,17 @@
 
 Each hypothesis should stay attackable: what should happen if it is true, and what would make us update or drop it?
 
-## 1. Earth Is Learnable
+| Nr | Hypothesis | Topics |
+|---|---|---|
+| [[#H1 Earth Is Learnable\|H1]] | Earth Is Learnable | SSL |
+| [[#H2 Hard Worlds Need Flight Hours\|H2]] | Hard Worlds Need Flight Hours | SSL |
+| [[#H3 Sampling Should Favor Hard Worlds\|H3]] | Sampling Should Favor Hard Worlds | SSL, Sampling |
+| [[#H4 Observation Mode Is Still Open\|H4]] | Observation Mode Is Still Open | SSL |
+| [[#H5 Good HPs Are Not Enough\|H5]] | Good HPs Are Not Enough | RL, Checkpointing |
+
+Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
+
+## H1 Earth Is Learnable
 
 **These:** Earth is learnable with 9D observations and suitable HPs.
 
@@ -14,7 +24,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 
 **Consequence:** Earth is not a physical no-go for the small DQN; the earlier five-world weakness likely comes from the training setup.
 
-## 2. Hard Worlds Need Flight Hours
+## H2 Hard Worlds Need Flight Hours
 
 **These:** Hard worlds need many own training episodes.
 
@@ -26,7 +36,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 
 **Consequence:** Five-world training with `1000` total episodes is too short for Earth and Venus if worlds are sampled uniformly.
 
-## 3. Sampling Should Favor Hard Worlds
+## H3 Sampling Should Favor Hard Worlds
 
 **These:** Multi-world training needs world-dependent sampling rates.
 
@@ -38,7 +48,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 
 **Consequence:** Earth and Venus should appear more often in the training world list instead of only increasing `num_episodes`.
 
-## 4. Observation Mode Is Still Open
+## H4 Observation Mode Is Still Open
 
 **These:** 9D is the strongest current path, but 8D, 9D, and 11D are not fairly settled yet.
 
@@ -50,7 +60,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 
 **Consequence:** Continue with 9D pragmatically, then compare 8D, 9D, and 11D again with stronger HPs.
 
-## 5. Good HPs Are Not Enough
+## H5 Good HPs Are Not Enough
 
 **These:** Good HPs do not guarantee a good concrete model.
 
