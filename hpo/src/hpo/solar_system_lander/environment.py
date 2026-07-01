@@ -148,6 +148,13 @@ class EnvFactory:
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]:
         return {world.name: self._factory(world) for world in self.worlds}
 
+    def make_env(self, world_name: str, *, render_mode: str | None = None):
+        """Create one environment for the requested world."""
+        for world in self.worlds:
+            if world.name == world_name:
+                return self._factory(world, render_mode=render_mode)()
+        raise ValueError(f"unknown world: {world_name}")
+
     def metadata(self) -> dict[str, Any]:
         return {
             "observation_mode": self.observation_mode,
@@ -161,13 +168,19 @@ class EnvFactory:
             ],
         }
 
-    def _factory(self, world: WorldConfig) -> Callable[[], Any]:
+    def _factory(
+        self,
+        world: WorldConfig,
+        *,
+        render_mode: str | None = None,
+    ) -> Callable[[], Any]:
         return lambda: EnvWrapper(
             gym.make(
                 "LunarLander-v3",
                 gravity=world.gravity,
                 enable_wind=world.wind_power[1] > 0
                 or world.turbulence_power[1] > 0,
+                render_mode=render_mode,
             ),
             world,
             self.observation_mode,

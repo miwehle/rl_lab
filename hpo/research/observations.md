@@ -1,5 +1,21 @@
 # HPO Observations
 
+## 2026-07-01
+
+### 9D-Top10, 10D-Top5:
+
+Zwischenstand:
+
+>`gamma=0.995` und `tau=0.002` sind jetzt brutal klar.
+In beiden Top-Listen haben alle Top-Trials genau diese Kombination.
+### 10D, current Highscore
+Observation: 10D, 193.5:
+- `gamma=0.995`
+- `tau=0.002`
+- `optimize_every=2`
+- 2000 Episoden
+- Replay nicht riesig, aber auch nicht winzig
+- 10D ist definitiv nicht tot, eher sehr lebendig
 ## 2026-06-30
 
 ### 5-World-Score: 176
