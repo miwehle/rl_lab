@@ -2,6 +2,7 @@
 
 | Nr                                                  | Aha                                       | Topics                 |
 | --------------------------------------------------- | ----------------------------------------- | ---------------------- |
+| [[#A12 How To Build A Small Good Five-World Lander\|A12]] | How To Build A Small Good Five-World Lander | SSL, RL, HP, OTO       |
 | [[#A11 Preserve Good Pilots Immediately\|A11]]       | Preserve Good Pilots Immediately          | OTO, Checkpointing, LL |
 | [[#A10 10D Gives The SSL A Popometer\|A10]]          | 10D Gives The SSL A Popometer             | SSL, RL                |
 | [[#A9 Earth Is Learnable\|A9]]                        | Earth Is Learnable                        | SSL, RL                |
@@ -14,8 +15,23 @@
 | [[#A2 Back Up Immediately\|A2]]                       | Back Up Immediately                       | OTO, Checkpointing, LL |
 | [[#A1 Code Complexity Is Part Of The Experiment\|A1]] | Code Complexity Is Part Of The Experiment | OTO, LL                |
 
-Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned.
+Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters.
 
+
+## A12 How To Build A Small Good Five-World Lander
+
+Ein kleiner guter 5-Welten-Lander braucht nicht zuerst ein riesiges Gehirn, sondern die richtigen Sinne, genug passende Flugstunden und fein abgestimmte Lernmechanik. Der 253er hat nur `10` Inputs, zwei Hidden Layers mit je `128` Neuronen, also `256` Hidden-Neuronen, und `4` Actions.
+
+Mental model: kleines Gehirn, gute Hebel, gutes Popometer, viele Flugstunden, fein getrimmtes Fahrwerk.
+
+Praktisch hieß das: 10D mit `dv_x/dt` und `dv_y/dt`, stark weltgewichtetes Training, `num_episodes=2000`, `batch_size=512`, `optimize_every=2`, `learning_starts=2500`, und: "ich lass jetzt Optuna mal sein Ding machen." Optuna durfte ziemlich viele HPs gleichzeitig anfassen und fand durch Fummeln an `gamma=0.995` und `tau=0.002` den empfindlichen HP-Korridor. Ergebnis: ein konserviertes Elise-Modell mit `252.6` Gym Score und allen fünf Welten über `200`.
+
+Das Dashboard war der Wegweiser: die farbigen Training-Dots zeigten früh, dass Earth und Venus als blaue/gelbe Punkte mit niedrigem Score entlang der x-Achse hängen blieben. Ohne diese Sicht wäre die richtige Gegenmaßnahme - mehr eigene Flugstunden und später das Popometer - viel schwerer zu erkennen gewesen.
+
+> **Essenz:** Nutze Hebel und entwickle Spezialwerkzeug. Dann ergänze ein Popometer.
+
+* Die Hebel: Codex zum Denken und Modellieren, Optuna zum Suchen im empfindlichen HP-Raum.
+* Das selbstentwickelte Spezialwerkzeug: Das Dashboard, um in der gewaltigen Datenmenge Wesentliches zu sehen.
 
 ## A11 Preserve Good Pilots Immediately
 
