@@ -2,6 +2,7 @@
 
 | Nr                                                  | Aha                                       | Topics                 |
 | --------------------------------------------------- | ----------------------------------------- | ---------------------- |
+| [[#A11 Preserve Good Pilots Immediately\|A11]]       | Preserve Good Pilots Immediately          | OTO, Checkpointing, LL |
 | [[#A10 10D Gives The SSL A Popometer\|A10]]          | 10D Gives The SSL A Popometer             | SSL, RL                |
 | [[#A9 Earth Is Learnable\|A9]]                        | Earth Is Learnable                        | SSL, RL                |
 | [[#A8 Hard Worlds Need Their Own Flight Hours\|A8]]   | Hard Worlds Need Their Own Flight Hours   | SSL, Sampling          |
@@ -15,6 +16,12 @@
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned.
 
+
+## A11 Preserve Good Pilots Immediately
+
+The 211 and 242 pilots were lost because good checkpoints were not preserved durably in time. After adding automatic best-eval checkpoint archiving to Drive, the 253 five-world 10D pilot survived a Colab runtime crash.
+
+==Mental model: Do not trust the runtime. Bring the good pilot into the hangar.==
 
 ## A10 10D Gives The SSL A Popometer
 

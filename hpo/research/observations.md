@@ -1,17 +1,41 @@
 # HPO Observations
 
-| Nr | Observation | Topics |
-|---|---|---|
-| [[#O8 Five-World 10D Reaches 210\|O8]] | Five-World 10D Reaches 210 | SSL, HP |
-| [[#O7 Top HP Corridor Emerges\|O7]] | Top HP Corridor Emerges | SSL, HP, Optuna |
-| [[#O6 Five-World 9D Reaches 176\|O6]] | Five-World 9D Reaches 176 | SSL, HP, Optuna |
-| [[#O5 Sampling Mix Shapes World Scores\|O5]] | Sampling Mix Shapes World Scores | SSL, Sampling |
-| [[#O4 Early Good HP Corridor In 9D\|O4]] | Early Good HP Corridor In 9D | SSL, HP |
-| [[#O3 Earth Breakthrough\|O3]] | Earth Breakthrough | SSL, Checkpointing |
-| [[#O2 8D Elise-Bunt Produces 180 Pilot\|O2]] | 8D Elise-Bunt Produces 180 Pilot | SSL, LL |
-| [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF |
+| Nr                                                                    | Observation                                               | Topics             |
+| --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O10 Five-World 10D Reaches 253\|O10]]                              | Five-World 10D Reaches 253                                | SSL, HP            |
+| [[#O9 Colab Runtime Ended After 8.5 Hours\|O9]]                       | Colab Runtime Ended After 8.5 Hours                       | OTO, PERF          |
+| [[#O8 Five-World 10D Reaches 210\|O8]]                                | Five-World 10D Reaches 210                                | SSL, HP            |
+| [[#O7 Top HP Corridor Emerges\|O7]]                                   | Top HP Corridor Emerges                                   | SSL, HP, Optuna    |
+| [[#O6 Five-World 9D Reaches 176\|O6]]                                 | Five-World 9D Reaches 176                                 | SSL, HP, Optuna    |
+| [[#O5 Sampling Mix Shapes World Scores\|O5]]                          | Sampling Mix Shapes World Scores                          | SSL, Sampling      |
+| [[#O4 Early Good HP Corridor In 9D\|O4]]                              | Early Good HP Corridor In 9D                              | SSL, HP            |
+| [[#O3 Earth Breakthrough\|O3]]                                        | Earth Breakthrough                                        | SSL, Checkpointing |
+| [[#O2 8D Elise-Bunt Produces 180 Pilot\|O2]]                          | 8D Elise-Bunt Produces 180 Pilot                          | SSL, LL            |
+| [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O10 Five-World 10D Reaches 253
+
+**Observation:** In `solar_system_lander_10d_elise_accel.db`, study `s3_10d_better_space`, 10D reached `252.6` average Gym score over five worlds in trial 35.
+
+**When:** 2026-07-01 morning.
+
+**Context:** This used the 10D acceleration observation mode and the refined HP region. The checkpoint was preserved in Drive as `best_checkpoints/solar_system_lander_10d_elise_accel/best_eval_checkpoint.pt`.
+
+**World scores:** Earth `218.8`, Mars `281.2`, Mercury `266.7`, Moon `256.9`, Venus `239.3`.
+
+**Interpretation:** ==10D is now the leading SSL path. The 253 pilot scores above `200` on every world, so this is not a single-world spike but a true five-world pilot.==
+
+## O9 Colab Runtime Ended After 8.5 Hours
+
+**Observation:** Colab ended the 10D SSL study cell after about `8 h 30 min 33 s` of execution. The notebook showed `Wieder verbinden`, and the study had not reached its target yet.
+
+**When:** 2026-07-01 05:25, after `30633 s` runtime.
+
+**Evidence:** Screenshot: [Beweisfoto Runtime Crash](assets/Beweisfoto%20Runtime%20Crash.png).
+
+**Interpretation:** This does not prove the exact cause, but it records a concrete Colab reliability event. Repeated entries may reveal whether Colab tends to interrupt long runs around certain wall-clock times or durations.
 
 ## O8 Five-World 10D Reaches 210
 
