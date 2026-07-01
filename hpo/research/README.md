@@ -32,3 +32,16 @@ Three levels:
 - `questions.md`: Open research questions before they become hypotheses.
 - `ideas.md`: Loose ideas, future directions, and not-yet-prioritized research thoughts.
 - `assets/`: Screenshots and other evidence linked from the notes.
+- `_details/`: Supporting detail files for observations, aha items, hypotheses, or questions. The leading `_` marks supporting material, not the main entry point.
+
+## File Schema
+
+Main research files use short stable item IDs plus an overview table at the top, for example `O7`, `A3`, `H5`, or `Q2`.
+
+Use Obsidian-friendly links in overview tables:
+
+```markdown
+[[#A3 Gamma And Tau Shape Learning Dynamics\|A3]]
+```
+
+Keep the main item concise. Put long tables, raw DB analyses, screenshots, or detailed reasoning in `_details/` and link to them from the item when useful. Detail files do not need a strict 1:1 relationship with items; one detail file may support several observations.
