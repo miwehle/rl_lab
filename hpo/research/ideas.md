@@ -1,16 +1,21 @@
 ## Pilot Preservation Ideas
 
 - ==Early talent signal:== if the trailing mean-100 does not rise clearly within the first ~300-400 episodes, the trial is probably not a late Armstrong; validate this against Top- and Flop-Trials in the DB before turning it into an early stopping rule.
+	- ==Aber: Manche der besten Modelle fingen nicht auffällig gut an.== Erst in einer späteren Lernwelle wurden sie gut.
 - ==Stop on Kelly-Bundy effect:== if `best_mean` was strong and the current trailing mean falls far below it, stop training and evaluate the preserved best checkpoint instead of the damaged final model.
+	- ==Aber: Lernen passiert öfter in Wellen.== Manchmal sieht es erst aus wie ein Kelly-Bundy-Effekt. Aber es ist Anlauf nehmen und dann neuen Highscore aufstellen.
 - ==Roll back to local max:== when a promising pilot starts collapsing, restore the checkpoint from the previous local maximum and continue with gentler HPs, e.g. lower learning rate, epsilon bump, or slower update schedule.
+	- ==Aber: Kein voreiliges Rollback== (wegen *Lernen in Wellen*).
+	- ==Wohl besser:== Versuchen, ==Highscorer== mit modifizierten HPs oder anderen Environment-Häufigkeiten ==noch weiter zu verbessern==.
 - Low-epsilon guard: once `epsilon < 0.05`, continue only if new best means still appear; otherwise stop, reduce learning rate, or deliberately raise epsilon before further training.
 
 ## Video vom Training
 
-- Videos sollten optional weltabhaengige, realistischere Farben bekommen, z. B. blauer Himmel und gruener Boden fuer Earth, gelbliche Venus, roetlicher Mars, grauer Moon/Mercury. Das macht Videos intuitiver lesbar und hilft, Landungen pro Welt schneller einzuordnen.
+- Videos sollten optional ==weltabhaengige, realistischere Farben== bekommen, z. B. blauer Himmel und gruener Boden fuer Earth, gelbliche Venus, roetlicher Mars, grauer Moon/Mercury. Das macht Videos intuitiver lesbar und hilft, Landungen pro Welt schneller einzuordnen.
 
 ## Dashboard liest aus DB
 
+- Damit man die Dashboard-Daten nicht durch die halbe Implementierung durchreichen muss. Das könnte die Impl. deutlich vereinfachen.
 
 ## Begriffe aus dem Apollo-Programm
 
