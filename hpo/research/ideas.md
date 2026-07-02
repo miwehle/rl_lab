@@ -1,5 +1,6 @@
 ## Pilot Preservation Ideas
 
+- ==Early talent signal:== if the trailing mean-100 does not rise clearly within the first ~300-400 episodes, the trial is probably not a late Armstrong; validate this against Top- and Flop-Trials in the DB before turning it into an early stopping rule.
 - ==Stop on Kelly-Bundy effect:== if `best_mean` was strong and the current trailing mean falls far below it, stop training and evaluate the preserved best checkpoint instead of the damaged final model.
 - ==Roll back to local max:== when a promising pilot starts collapsing, restore the checkpoint from the previous local maximum and continue with gentler HPs, e.g. lower learning rate, epsilon bump, or slower update schedule.
 - Low-epsilon guard: once `epsilon < 0.05`, continue only if new best means still appear; otherwise stop, reduce learning rate, or deliberately raise epsilon before further training.

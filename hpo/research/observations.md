@@ -2,6 +2,7 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O11 Trial-Cluster Confirms 10D HP Corridor\|O11]]                  | Trial-Cluster Confirms 10D HP Corridor                   | SSL, HP, Optuna    |
 | [[#O10 Five-World 10D Reaches 253\|O10]]                              | Five-World 10D Reaches 253                                | SSL, HP            |
 | [[#O9 Colab Runtime Ended After 8.5 Hours\|O9]]                       | Colab Runtime Ended After 8.5 Hours                       | OTO, PERF          |
 | [[#O8 Five-World 10D Reaches 210\|O8]]                                | Five-World 10D Reaches 210                                | SSL, HP            |
@@ -14,6 +15,14 @@
 | [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O11 Trial-Cluster Confirms 10D HP Corridor
+
+**Observation:** In `s3_10d_better_space`, trials `10..15` form a compact HP cluster, and every second trial in that cluster produced a good pilot: trial 10 scored `160.0`, trial 12 scored `193.5`, trial 13 scored `210.1`, and trial 15 scored `178.0`.
+
+**Evidence:** The cluster shares `gamma=0.995`, `tau=0.002`, `batch_size=512`, `learning_starts=2500`, `num_episodes=2000`, `eps_end≈0.040..0.044`, `eps_decay≈32k..47k`, and replay roughly `82k..116k`. The later 253 pilot in trial 35 is similar: `gamma=0.995`, `tau=0.002`, `eps_end=0.044`, `eps_decay=38793`, replay `76754`, and learning rate `0.000623`.
+
+**Interpretation:** This is evidence that Optuna found a genuinely useful HP corridor. It is not a robust factory, because nearby trial 11 still scored only `7.6`; but it is a better pilot lottery, with clearly elevated probability of producing quality checkpoints.
 
 ## O10 Five-World 10D Reaches 253
 
@@ -38,6 +47,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 **When:** 2026-07-01 05:25, after `30633 s` runtime.
 
 **Evidence:** Screenshot: [Beweisfoto Runtime Crash](assets/Beweisfoto%20Runtime%20Crash.png).
+
+**Related observation:** Two trials with extremely poor Gym score (< 1280) at transfer from the training plot into the study plot appeared near Colab runtime-loss events. These trials were not resource-heavy compared with normal trials, so resource load is unlikely as the direct cause. The temporal coincidence remains suspicious but unexplained.
 
 **Interpretation:** This does not prove the exact cause, but it records a concrete Colab reliability event. Repeated entries may reveal whether Colab tends to interrupt long runs around certain wall-clock times or durations.
 

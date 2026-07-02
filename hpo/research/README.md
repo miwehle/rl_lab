@@ -31,6 +31,7 @@ Three levels:
 - `hypotheses.md`: Testable, action-guiding working hypotheses.
 - `questions.md`: Open research questions before they become hypotheses.
 - `ideas.md`: Loose ideas, future directions, and not-yet-prioritized research thoughts.
+- `ouch.md`: Painful lessons, systematic mistakes, biases, and failure modes. The goal is learning, not blame.
 - `assets/`: Screenshots and other evidence linked from the notes.
 - `_details/`: Supporting detail files for observations, aha items, hypotheses, or questions. The leading `_` marks supporting material, not the main entry point.
 
