@@ -24,11 +24,11 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Interpretation:** This is evidence that Optuna found a genuinely useful HP corridor. It is not a robust factory, because nearby trial 11 still scored only `7.6`; but it is a better pilot lottery, with clearly elevated probability of producing quality checkpoints.
 
+**When:** 2026-07-02.
+
 ## O10 Five-World 10D Reaches 253
 
 **Observation:** In `solar_system_lander_10d_elise_accel.db`, study `s3_10d_better_space`, 10D reached `252.6` average Gym score over five worlds in trial 35.
-
-**When:** 2026-07-01 morning.
 
 **Context:** This used the 10D acceleration observation mode and the refined HP region. The checkpoint was preserved in Drive as `best_checkpoints/solar_system_lander_10d_elise_accel/best_eval_checkpoint.pt`.
 
@@ -40,17 +40,21 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Details:** [[_details/O10|HPs]]
 
+**When:**
+- 2026-07-01 morning: 253 pilot observed.
+- 2026-07-02: extended with 9D-vs-10D search-budget evidence.
+
 ## O9 Colab Runtime Ended After 8.5 Hours
 
 **Observation:** Colab ended the 10D SSL study cell after about `8 h 30 min 33 s` of execution. The notebook showed `Wieder verbinden`, and the study had not reached its target yet.
-
-**When:** 2026-07-01 05:25, after `30633 s` runtime.
 
 **Evidence:** Screenshot: [Beweisfoto Runtime Crash](assets/Beweisfoto%20Runtime%20Crash.png).
 
 **Related observation:** Two trials with extremely poor Gym score (< 1280) at transfer from the training plot into the study plot appeared near Colab runtime-loss events. These trials were not resource-heavy compared with normal trials, so resource load is unlikely as the direct cause. The temporal coincidence remains suspicious but unexplained.
 
 **Interpretation:** This does not prove the exact cause, but it records a concrete Colab reliability event. Repeated entries may reveal whether Colab tends to interrupt long runs around certain wall-clock times or durations.
+
+**When:** 2026-07-01 05:25, after `30633 s` runtime.
 
 ## O8 Five-World 10D Reaches 210
 
@@ -61,6 +65,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 **Interpretation:** 10D is a serious candidate, not just an experiment. The best observed 10D pilot is currently slightly ahead of the best observed 9D five-world pilot.
 
 **Details:** [[_details/O7|O7]]
+
+**When:** 2026-07-01.
 
 ## O7 Top HP Corridor Emerges
 
@@ -83,6 +89,8 @@ replay: unclear
 
 **Details:** [[_details/O7|O7]]
 
+**When:** 2026-07-01.
+
 ## O6 Five-World 9D Reaches 176
 
 **Observation:** In a 9D five-world SSL study with weighted Earth/Venus sampling, Optuna found a candidate around `176.4` Gym score in study `s1_go_optuna_go`.
@@ -95,6 +103,8 @@ replay: unclear
 
 **Next:** Let the study continue, then compare whether `gamma=0.995`, `tau=0.002`, and `learning_starts=5000` remain common among the best candidates.
 
+**When:** 2026-07-01.
+
 ## O5 Sampling Mix Shapes World Scores
 
 **Observation:** In the same 9D five-world study, the sampling mix was `Mercury 1x, Venus 4x, Earth 4x, Moon 1x, Mars 1x`. After 27 trials with `world_scores`, Mars and Mercury were usually the strongest worlds, while Moon, Earth, and Venus most often pulled the mean down.
@@ -104,6 +114,8 @@ replay: unclear
 **Interpretation:** Mars appears close to the middle of the five-world flight regime and is therefore easiest for the shared SSL. ==Earth/Venus still need more own flight hours; Moon also needs more preservation== because tuning toward high-g/weather regimes can hurt low-g landing quality.
 
 **Next:** Try a slightly stronger static sampling mix such as `Mercury 1x, Mars 1x, Moon 2x, Earth 5x, Venus 5x` and use `num_envs=28`.
+
+**When:** 2026-07-01.
 
 ## O4 Early Good HP Corridor In 9D
 
@@ -140,6 +152,8 @@ batch_size: 512
 
 **Interpretation:** These ranges came from top trials, not guessing. Later results refined the corridor, especially around `gamma=0.995` and `tau=0.002`.
 
+**When:** 2026-07-01.
+
 ## O3 Earth Breakthrough
 
 **Observation:** ==Breakthrough on Earth: 9D SSL reaches 200+.== In `solar_system_lander_9d_earth.db`, study `s7_exploration` found multiple candidates above `200` Gym score, with the best optimize trial around `242`. The best checkpoint that was actually preserved from the run is currently the robustness checkpoint around `206`.
@@ -150,6 +164,8 @@ batch_size: 512
 
 ==**Next:** Implement automatic best-checkpoint preservation to Drive, then implement BI11 and try five-world training with world-weighted sampling for Earth/Venus.==
 
+**When:** 2026-06-29.
+
 ## O2 8D Elise-Bunt Produces 180 Pilot
 
 **Observation:** The 8D Elise-bunt study produced a preserved five-world pilot around `180` Gym score.
@@ -157,6 +173,8 @@ batch_size: 512
 **Interpretation:** This was an important historical milestone. It showed that a small shared SolarSystemLander for the inner worlds is plausible and gave confidence that the HPO path is worth pursuing, even though later 9D Earth-only results became the stronger current signal.
 
 **Next:** Treat early strong individual models as directional evidence, but preserve their checkpoints immediately and keep separating concrete model quality from HP quality.
+
+**When:** 2026-06-29.
 
 ## O1 VectorTrainer Throughput Depends Mostly On optimize_every
 
@@ -180,3 +198,5 @@ batch_size: 512
 **Cost model:** An environment step costs about `0.15 ms`; backpropagation plus optimizer update costs about `2.03 ms`. One optimizer update therefore costs about 14 environment steps.
 
 **Interpretation:** The full four-HP regression reached about `1.1 %` mean relative error, but `batch_size`, `num_episodes`, and `learning_starts` added little explanatory value. The simple `optimize_every` formula is preferable.
+
+**When:** 2026-06-29.

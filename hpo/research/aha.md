@@ -36,11 +36,17 @@ Das Dashboard war der Wegweiser: die farbigen Training-Dots zeigten früh, dass 
 > [!quote] Codex:
 > Das Dashboard ist ein Natural-Intelligence-Fokussierer: Es macht die HPO-Geschichte sichtbar genug, damit menschliche Intuition daran arbeiten kann.
 
+**When:**
+- 2026-07-01: initial synthesis.
+- 2026-07-02: extended after the 253 pilot and Popometer/dashboard synthesis.
+
 ## A11 Preserve Good Pilots Immediately
 
 The 211 and 242 pilots were lost because good checkpoints were not preserved durably in time. After adding automatic best-eval checkpoint archiving to Drive, the 253 five-world 10D pilot survived a Colab runtime crash.
 
 ==Mental model: Do not trust the runtime. Bring the good pilot into the hangar.==
+
+**When:** 2026-07-01.
 
 ## A10 10D Gives The SSL A Popometer
 
@@ -54,15 +60,22 @@ Ergebnis: 5-Welten-Gym-Score: 253
 > Gerade bei fünf Welten ist das vermutlich Gold wert, weil die gleiche Geschwindigkeit je nach Welt etwas anderes bedeutet. Auf Mond, Erde und Venus fühlt sich "ich sinke mit `v_y`" dynamisch anders an. Die Beschleunigung sagt ihm etwas über das aktuelle Flugregime.
 
 Das Popometer ist das anschauliche Bild; technisch bekommt der SSL eine Näherung für den aktuell wirkenden Kraftvektor.
+
+**When:** 2026-07-01.
+
 ## A9 Earth Is Learnable
 
 The 9D SolarSystemLander can learn Earth. The Earth-only `s7_exploration` produced several `200+` candidates and showed that the earlier Earth weakness was not a physical impossibility, but a training setup problem.
 
 ==Mental model: Earth and Venus do not need pity; they need flight hours.==
 
+**When:** 2026-07-01.
+
 ## A8 Hard Worlds Need Their Own Flight Hours
 
 Earth and Venus are hard because they need many own training episodes. In uniform five-world training, `1000` total episodes mean only about `200` per world, which is far below the Earth-only exposure that produced strong pilots.
+
+**When:** 2026-07-01.
 
 ## A7 Good HPs Are Not Enough
 
@@ -72,9 +85,13 @@ Good HPs are stochastic producers, not concrete models. Training seed and checkp
 
 **Model quality depends strongly on the training seed.** Earlier Elise studies already showed this: one seed reached about `167` mean score over five worlds, while robust re-evaluation of the same HPs fell to about `113` or `92`.
 
+**When:** 2026-07-01.
+
 ## A6 Observation Mode Is Not Settled
 
 9D is the strongest current path because gravity helped on Earth without the questionable 11D wind/turbulence signals. But old 8D/11D comparisons used weaker HPs and shorter training, so 8D, 9D, and 11D still deserve a fair comparison later.
+
+**When:** 2026-07-01.
 
 ## A5 Visualize Early
 
@@ -82,12 +99,16 @@ The dashboard's colored training plot made the real problem visible: Earth and V
 
 ==Mental model: The dashboard is our microscope.==
 
+**When:** 2026-07-01.
+
 ## A4 Let Optuna Explore
 
 The Earth breakthrough came after letting Optuna search several HPs at once in a wider space. When the situation is unclear, narrowing too early can hide the path.
 
 > Tagelang manuell gefummelt und kaum weitergekommen. Optuna in vielen Dimensionen suchen lassen und: Schwupps, gute HPs gefunden.
 > -- angehender KI-Jedi-Schueler aus dem Maschinenraum
+
+**When:** 2026-07-01.
 
 ## A3 Gamma And Tau Shape Learning Dynamics
 
@@ -150,9 +171,13 @@ In RL, the third decimal place of parameters such as `gamma` and `tau` can matte
 >
 > ==Und beide wirken nicht einmalig, sondern tausende Male in der TD-Lernschleife. Deshalb ist die dritte Nachkommastelle hier kein Schmuck, sondern Fahrwerksgeometrie.==
 
+**When:** 2026-07-01.
+
 ## A2 Back Up Immediately
 
 The observed `211` and `242` pilots showed what was possible, but their concrete checkpoints were not saved in time. A good checkpoint only counts once it is preserved.
+
+**When:** 2026-07-01.
 
 ## A1 Code Complexity Is Part Of The Experiment
 
@@ -161,3 +186,5 @@ This follows from the [HPO research motto](README.md): correct HPO work improves
 A better HPO algorithm is not only one that improves the Gym score. It must also stay understandable enough to keep the research loop alive and fast; otherwise software aging slows the experiment down.
 
 LOC is a cheap first proxy for code complexity. It is imperfect, especially in Python formatting, but it gives high bang for the buck as an early warning signal when small ideas become large code.
+
+**When:** 2026-06-29.

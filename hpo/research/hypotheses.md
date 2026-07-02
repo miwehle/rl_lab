@@ -24,6 +24,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 **Consequence:** Earth is not a physical no-go for the small DQN; the earlier five-world weakness likely comes from the training setup.
 
+**When:** 2026-07-01.
+
 ## H2 Hard Worlds Need Flight Hours
 
 **These:** Hard worlds need many own training episodes.
@@ -35,6 +37,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 **Could be wrong if:** Longer training does not improve Earth/Venus, or failures come mainly from model capacity, reward dynamics, or weather rather than exposure.
 
 **Consequence:** Five-world training with `1000` total episodes is too short for Earth and Venus if worlds are sampled uniformly.
+
+**When:** 2026-07-01.
 
 ## H3 Sampling Should Favor Hard Worlds
 
@@ -48,6 +52,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 **Consequence:** Earth and Venus should appear more often in the training world list instead of only increasing `num_episodes`.
 
+**When:** 2026-07-01.
+
 ## H4 Observation Mode Is Still Open
 
 **These:** 9D is the strongest current path, but 8D, 9D, and 11D are not fairly settled yet.
@@ -60,6 +66,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 **Consequence:** Continue with 9D pragmatically, then compare 8D, 9D, and 11D again with stronger HPs.
 
+**When:** 2026-07-01.
+
 ## H5 Good HPs Are Not Enough
 
 **These:** Good HPs do not guarantee a good concrete model.
@@ -71,3 +79,5 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 **Could be wrong if:** Stronger evaluation and training settings make repeated runs with the same HPs consistently similar.
 
 **Consequence:** Save and evaluate concrete good checkpoints immediately; BI11 remains central, and automatic Drive preservation of new best eval checkpoints is a core requirement.
+
+**When:** 2026-07-01.
