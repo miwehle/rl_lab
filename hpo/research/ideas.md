@@ -5,17 +5,9 @@
 - ==Roll back to local max:== when a promising pilot starts collapsing, restore the checkpoint from the previous local maximum and continue with gentler HPs, e.g. lower learning rate, epsilon bump, or slower update schedule.
 - Low-epsilon guard: once `epsilon < 0.05`, continue only if new best means still appear; otherwise stop, reduce learning rate, or deliberately raise epsilon before further training.
 
-**When:**
-- 2026-06-30: initial pilot preservation ideas.
-- 2026-07-02: added early talent signal.
-
 ## Video vom Training
 
-**When:** 2026-06-30.
-
 ## Dashboard liest aus DB
-
-**When:** 2026-06-30.
 
 
 ## Begriffe aus dem Apollo-Programm
@@ -54,5 +46,3 @@ Damit wird nichts doppelt geprüft: erst entwickeln, dann Anforderung nachweisen
 
 
 nasa.gov/the-apollo-program
-
-**When:** 2026-06-29.

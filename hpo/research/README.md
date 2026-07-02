@@ -50,5 +50,7 @@ Use Obsidian-friendly links in overview tables:
 
 Keep the main item concise. Put long tables, raw DB analyses, screenshots, or detailed reasoning in `_details/` and link to them from the item when useful. Detail files do not need a strict 1:1 relationship with items; one detail file may support several observations.
 
+Observation items keep `When` inline. Dates for other research items are tracked in `_details/whens.md` when useful, so the main files stay light.
+
 > [!quote] Codex:
 > Keep the looseness. The structure is only the suspension, not the car.

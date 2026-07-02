@@ -17,5 +17,3 @@ Topics: `HP` = Hyperparameters.
 **Fix:** Treat the original winner score as a reference only. Judge HP robustness from fresh retrainings/seeds that were not used for selecting the candidate.
 
 **Keywords:** selection bias, winner's curse, regression to the mean, double dipping.
-
-**When:** 2026-07-02.

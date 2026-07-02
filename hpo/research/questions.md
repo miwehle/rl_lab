@@ -13,8 +13,6 @@ Lohnt sich bei `epsilon < 0.05` Weitertrainieren überhaupt noch?
 
 Beispiel: Study "Go, Optuna, go", Trial 24. Da lohnte es sich.
 
-**When:** 2026-07-01.
-
 ## Q1 SolarSystemLander Difficulty
 
 What makes Earth and Venus hard for the small SSL DQN?
@@ -28,5 +26,3 @@ Possible factors:
 | ------- | ----------- | ---------- |
 | Earth   |             |            |
 | Venus   |             |            |
-
-**When:** 2026-07-01.
