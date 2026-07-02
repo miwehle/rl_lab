@@ -1,29 +1,6 @@
 # Research Item Dates
 
-Purpose: Investigation state for research item dates. Main files stay readable; this file keeps the reconstructed timeline for items where the date is not part of the research content itself.
-
-Observation dates stay inline in `observations.md`, because time is usually part of the observation.
-
-## Investigation State
-
-Last checked Git commit: `66c1374`
-
-Last checked at: `2026-07-02`
-
-Scope:
-- `aha.md`
-- `hypotheses.md`
-- `questions.md`
-- `ideas.md`
-- `ouch.md`
-
-Future updates only need to inspect commits after `66c1374`, for example:
-
-```powershell
-git log 66c1374..HEAD -- hpo/research
-```
-
-Evidence method: dates were reconstructed with `git log -S "<item heading>"`, unless stated otherwise in `Change in short`.
+Purpose: Reconstructed dates for research items whose dates are not kept inline. Observation dates stay inline in `observations.md`.
 
 | Item Nr. | Date | Change in short |
 |---|---|---|
@@ -53,3 +30,24 @@ Evidence method: dates were reconstructed with `git log -S "<item heading>"`, un
 | [[../aha#A12 How To Build A Small Good Five-World Lander\|A12]] | 2026-07-02 | Extended after the 253 pilot and Popometer/dashboard synthesis. |
 | [[../ideas#Pilot Preservation Ideas\|ideas/Pilot Preservation]] | 2026-07-02 | Added early talent signal idea. |
 | [[../ouch#E1 Selection Bias In HP Robustness\|E1]] | 2026-07-02 | Recorded HP robustness selection-bias error. |
+
+## Hints For Detective Codex
+
+Last checked Git commit: `66c1374`
+
+Last checked at: `2026-07-02`
+
+Scope:
+- `aha.md`
+- `hypotheses.md`
+- `questions.md`
+- `ideas.md`
+- `ouch.md`
+
+Future updates only need to inspect commits after `66c1374`, for example:
+
+```powershell
+git log 66c1374..HEAD -- hpo/research
+```
+
+Evidence method: dates were reconstructed with `git log -S "<item heading>"`, unless stated otherwise in `Change in short`.
