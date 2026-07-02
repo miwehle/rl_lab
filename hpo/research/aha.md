@@ -30,8 +30,11 @@ Das Dashboard war der Wegweiser: die farbigen Training-Dots zeigten früh, dass 
 
 > **Essenz:** Nutze Hebel und entwickle Spezialwerkzeug. Dann ergänze ein Popometer.
 
-* Die Hebel: Codex zum Denken und Modellieren, Optuna zum Suchen im empfindlichen HP-Raum.
+* Die Hebel: Codex zum Denken und Modellieren, Optuna zum Suchen im empfindlichen und hochkomplexen HP-Raum.
 * Das selbstentwickelte Spezialwerkzeug: Das Dashboard, um in der gewaltigen Datenmenge Wesentliches zu sehen.
+
+> [!quote] Codex:
+> Das Dashboard ist ein Natural-Intelligence-Fokussierer: Es macht die HPO-Geschichte sichtbar genug, damit menschliche Intuition daran arbeiten kann.
 
 ## A11 Preserve Good Pilots Immediately
 

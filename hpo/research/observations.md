@@ -25,7 +25,11 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **World scores:** Earth `218.8`, Mars `281.2`, Mercury `266.7`, Moon `256.9`, Venus `239.3`.
 
+**Evidence:** 9D had more search budget without producing such a pilot: about `93` trials with `2000` episodes each, and the best observed 9D pilot reached only about `204`. 10D had about `45` trials with `2000` episodes each, and the `253` pilot appeared in trial 35.
+
 **Interpretation:** ==10D is now the leading SSL path. The 253 pilot scores above `200` on every world, so this is not a single-world spike but a true five-world pilot.==
+
+**Details:** [[_details/O10|HPs]]
 
 ## O9 Colab Runtime Ended After 8.5 Hours
 

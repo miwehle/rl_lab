@@ -2,6 +2,9 @@
 
 *Elise, the simple and light planet lander.*
 
+*Elise flies by feel.*
+
+
 ## Normal Operation
 
 ## Checkpointing
@@ -29,3 +32,9 @@ Then each trial writes one file, for example `trial_0003_best.pt`. If a better w
 ## Resumability
 
 ## Dashboard
+
+
+## Misc
+
+"Popometer Mode
+Elise flies by feel: 10D adds acceleration-like signals so the lander can sense the current force regime, not only position and velocity."
