@@ -15,8 +15,8 @@ Dieses LLD beschreibt die Implementierung von `hpo/designs/design3.md`. Series 2
 ```text
 hpo/
 ├── notebooks/
-│   ├── HPO_LunarLander.ipynb
-│   └── HPO_SolarSystemLander.ipynb       +
+│   ├── lunar_lander/HPO_LunarLander.ipynb
+│   └── solar_system_lander/Train Elise.ipynb    +
 └── src/hpo/
     ├── objective.py                      +  gemeinsame Objective
     ├── study.py                          +  gemeinsame Study-Orchestrierung
@@ -136,7 +136,7 @@ S0 wird in jeder Series mit den Gewinner-HPs aus Study Series 1 neu ausgeführt.
 
 ## Notebook
 
-`HPO_SolarSystemLander.ipynb` enthält eine zentrale Auswahl:
+`hpo/notebooks/solar_system_lander/Train Elise.ipynb` enthält eine zentrale Auswahl:
 
 ```python
 OBSERVATION_MODE = "8d"   # Series 2A
@@ -145,7 +145,7 @@ OBSERVATION_MODE = "8d"   # Series 2A
 
 Daraus werden Environment-Fabrik und Datenbankpfad abgeleitet. Beide Colab-Runtimes führen dasselbe Notebook mit unterschiedlichem Modus aus. Studienfolge, Seeds, Search Spaces und Analyse bleiben identisch.
 
-Das vorhandene `HPO_LunarLander.ipynb` wird nur auf die gemeinsamen Imports und Schnittstellen angepasst. Inhalt, Ausführung und bisherige Ergebnisse bleiben funktional kompatibel.
+Das vorhandene `hpo/notebooks/lunar_lander/HPO_LunarLander.ipynb` wird nur auf die gemeinsamen Imports und Schnittstellen angepasst. Inhalt, Ausführung und bisherige Ergebnisse bleiben funktional kompatibel.
 
 ## Tests
 
@@ -157,6 +157,6 @@ Gezielte Tests sichern:
 - `num_episodes` aus dem Search Space,
 - gemeinsame SQLite-Datei mit getrennten Study-Namen,
 - unveränderte LunarLander-HPO über die gemeinsame Objective,
-- weiterhin vollständig ausführbares `HPO_LunarLander.ipynb`.
+- weiterhin vollständig ausführbares `hpo/notebooks/lunar_lander/HPO_LunarLander.ipynb`.
 
 Nicht Teil dieser Umsetzung sind PER, Teacher-Student-Training, neue DQN-Architekturen oder Reward-Anpassungen.

@@ -7,8 +7,8 @@ Dieses LLD beschreibt die Umsetzung von `hpo/designs/design3.md` für die Studie
 ```text
 hpo/
 ├── notebooks/
-│   ├── HPO_LunarLander.ipynb       ~
-│   └── HPO_SolarSystemLander.ipynb +
+│   ├── lunar_lander/HPO_LunarLander.ipynb      ~
+│   └── solar_system_lander/Train Elise.ipynb    +
 └── src/hpo/
     ├── objective.py                →
     ├── study.py                    →
@@ -71,7 +71,7 @@ Damit verwenden LunarLander und SolarSystemLander dieselbe Optuna-Steuerung, Bas
 
 ## Notebook und Studienreihen
 
-Das neue `HPO_SolarSystemLander.ipynb` steuert beide Studienreihen. Eine zentrale Einstellung wählt den Observation-Modus:
+Das neue `hpo/notebooks/solar_system_lander/Train Elise.ipynb` steuert beide Studienreihen. Eine zentrale Einstellung wählt den Observation-Modus:
 
 ```python
 OBSERVATION_MODE = "8d"   # Series 2A
