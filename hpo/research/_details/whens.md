@@ -4,6 +4,25 @@ Purpose: Investigation state for research item dates. Main files stay readable; 
 
 Observation dates stay inline in `observations.md`, because time is usually part of the observation.
 
+## Investigation State
+
+Last checked Git commit: `66c1374`
+
+Last checked at: `2026-07-02`
+
+Scope:
+- `aha.md`
+- `hypotheses.md`
+- `questions.md`
+- `ideas.md`
+- `ouch.md`
+
+Future updates only need to inspect commits after `66c1374`, for example:
+
+```powershell
+git log 66c1374..HEAD -- hpo/research
+```
+
 | Item | Date | Evidence |
 |---|---|---|
 | A12 | 2026-07-01; 2026-07-02 | `git log -S "A12 How To Build"`; extended during 253/Popometer/dashboard synthesis |
