@@ -2,6 +2,7 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O12 253 Pilot Lands Safely In Videos\|O12]]                        | 253 Pilot Lands Safely In Videos                          | SSL, Checkpointing |
 | [[#O11 Trial-Cluster Confirms 10D HP Corridor\|O11]]                  | Trial-Cluster Confirms 10D HP Corridor                   | SSL, HP, Optuna    |
 | [[#O10 Five-World 10D Reaches 253\|O10]]                              | Five-World 10D Reaches 253                                | SSL, HP            |
 | [[#O9 Colab Runtime Ended After 8.5 Hours\|O9]]                       | Colab Runtime Ended After 8.5 Hours                       | OTO, PERF          |
@@ -15,6 +16,26 @@
 | [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O12 253 Pilot Lands Safely In Videos
+
+**Observation:** Video inspection of the preserved 253 checkpoint shows Elise landing safely in all five worlds.
+
+**When:** 2026-07-02.
+
+**Evidence:** The landings look controlled and quick rather than fuel-wasting hovering. The score therefore looks visually plausible, not just like a numerical evaluation artifact.
+
+**Checkpoint robustness:** A larger greedy checkpoint evaluation with `1000` episodes per world (`5000` landings total) scored `242.7` overall, with robust score `232.9`. World scores: Mercury `268.1`, Venus `183.5`, Earth `199.8`, Moon `246.3`, Mars `266.8`.
+
+| World | Mean | Std | Min | Q05 | Median | Q95 | Max |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Earth | 199.8 | 109.5 | -257.1 | -8.5 | 250.9 | 302.7 | 320.7 |
+| Mars | 266.8 | 42.8 | 39.3 | 167.5 | 277.4 | 311.8 | 331.6 |
+| Mercury | 268.1 | 42.2 | 81.9 | 167.1 | 278.1 | 312.6 | 329.4 |
+| Moon | 246.3 | 79.1 | -216.0 | 124.3 | 272.4 | 315.1 | 336.9 |
+| Venus | 183.5 | 118.7 | -358.1 | -34.6 | 236.9 | 298.3 | 320.4 |
+
+**Interpretation:** The concrete checkpoint is a genuinely useful five-world pilot. The videos strengthen the checkpoint view: this pilot is not only a DB high score, it behaves like a capable lander. The large evaluation confirms this, while also showing that Venus remains the weakest world and Earth is just around the `200` threshold.
 
 ## O11 Trial-Cluster Confirms 10D HP Corridor
 

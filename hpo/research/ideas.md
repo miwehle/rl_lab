@@ -7,6 +7,8 @@
 
 ## Video vom Training
 
+- Videos sollten optional weltabhaengige, realistischere Farben bekommen, z. B. blauer Himmel und gruener Boden fuer Earth, gelbliche Venus, roetlicher Mars, grauer Moon/Mercury. Das macht Videos intuitiver lesbar und hilft, Landungen pro Welt schneller einzuordnen.
+
 ## Dashboard liest aus DB
 
 
