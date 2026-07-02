@@ -1,4 +1,5 @@
-## Pilot Preservation Ideas
+# HPO Ideas
+## Pilot Preservation
 
 - ==Early talent signal:== if the trailing mean-100 does not rise clearly within the first ~300-400 episodes, the trial is probably not a late Armstrong; validate this against Top- and Flop-Trials in the DB before turning it into an early stopping rule.
 	- ==Aber: Manche der besten Modelle fingen nicht auffällig gut an.== Erst in einer späteren Lernwelle wurden sie gut.
@@ -13,9 +14,13 @@
 
 - Videos sollten optional ==weltabhaengige, realistischere Farben== bekommen, z. B. blauer Himmel und gruener Boden fuer Earth, gelbliche Venus, roetlicher Mars, grauer Moon/Mercury. Das macht Videos intuitiver lesbar und hilft, Landungen pro Welt schneller einzuordnen.
 
-## Dashboard liest aus DB
+## Dashboard
+### Daten aus DB lesen
 
-- Damit man die Dashboard-Daten nicht durch die halbe Implementierung durchreichen muss. Das könnte die Impl. deutlich vereinfachen.
+- Damit man die Dashboard-Daten nicht durch die halbe Implementierung durchreichen muss. ==Das könnte die Impl. deutlich vereinfachen.==
+	- Wobei: Das verwendete ==Hook-Pattern== hilft wohl schon.
+### Robustness Evaluation
+- in RL oder Q-Learning zumindest aber ==bei SSL: Checkpoint Robustness ist wichtiger als HP Robustness==
 
 ## Begriffe aus dem Apollo-Programm
 
