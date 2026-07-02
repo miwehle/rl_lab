@@ -178,7 +178,7 @@ batch_size: 512
 
 ## O1 VectorTrainer Throughput Depends Mostly On optimize_every
 
-**Observation:** Empirical measurements from 103 trials on a Colab L4 with 20 parallel environments.
+**Observation:** Empirical measurements from 103 trials on a Colab L4 with 20 parallel environments:
 
 | `optimize_every` | Measured Median Env-Steps/s |
 | ---------------: | --------------------------: |
@@ -192,10 +192,10 @@ batch_size: 512
 
 **Formula:**
 
-\[
+$$
 \text{Env-Steps/s} \approx 851
 \left(\frac{\text{optimize\_every}}{2}\right)^{0.854}
-\]
+$$
 
 **Cost model:** An environment step costs about `0.15 ms`; backpropagation plus optimizer update costs about `2.03 ms`. One optimizer update therefore costs about 14 environment steps.
 
