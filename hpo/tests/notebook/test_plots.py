@@ -26,6 +26,7 @@ def test_heatmap_returns_figure_and_axes_with_requested_world_order() -> None:
 
 def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
     drawn_worlds = []
+    alphas = []
 
     original_add_subplot = plt.Figure.add_subplot
 
@@ -34,6 +35,7 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
 
         def bar3d(_x, y, *_args, **bar_kwargs):
             drawn_worlds.append((bar_kwargs["label"], y))
+            alphas.append(bar_kwargs["alpha"])
 
         monkeypatch.setattr(ax, "bar3d", bar3d)
         return ax
@@ -41,10 +43,16 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
     monkeypatch.setattr(plt.Figure, "add_subplot", add_subplot)
     monkeypatch.setattr(plt, "tight_layout", lambda: None)
 
-    fig, ax = plots.histogram_3d(_scores(), worlds=["earth", "mars", "venus"], bins=5)
+    fig, ax = plots.histogram_3d(
+        _scores(),
+        worlds=["earth", "mars", "venus"],
+        bins=5,
+        alpha=0.3,
+    )
 
     assert fig is ax.figure
     assert drawn_worlds == [("venus", 2), ("mars", 1), ("earth", 0)]
+    assert alphas == [0.3, 0.3, 0.3]
     plt.close(fig)
 
 

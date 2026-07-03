@@ -66,6 +66,7 @@ def histogram_3d(
     *,
     bins: int = 30,
     reverse_draw_order: bool = True,
+    alpha: float = 0.45,
 ):
     import matplotlib.pyplot as plt
 
@@ -90,7 +91,7 @@ def histogram_3d(
             width * 0.9,
             0.45,
             counts,
-            alpha=0.6,
+            alpha=alpha,
             zsort="max",
             label=world,
         )
