@@ -1,10 +1,15 @@
 from dataclasses import dataclass, field
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from dqn.model import DQN
-from hpo.checkpoint_robustness import evaluate_checkpoint_robustness
+from hpo.checkpoint_robustness import (
+    checkpoint_scores,
+    evaluate_checkpoint_robustness,
+    score_summary,
+)
 from hpo.checkpointing import save_checkpoint
 from common import objective_config
 
@@ -110,3 +115,54 @@ def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
     assert study.user_attrs["checkpoint_robustness"] == results
     assert progress_calls[-1].title == "Checkpoint Robustness Evaluation"
     assert progress_calls[-1].candidate_seed_scores == [[200.0, 15.0]]
+
+
+def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
+    checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
+    save_checkpoint(
+        DQN(1, 2),
+        checkpoint_path,
+        {"score": 200.0, "episode": 1000, "window": None},
+    )
+
+    scores = checkpoint_scores(
+        checkpoint_path,
+        objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+            device="cpu",
+        ),
+        episodes=2,
+    )
+
+    assert scores.to_dict("records") == [
+        {"world": "earth", "episode": 0, "score": 10.0},
+        {"world": "earth", "episode": 1, "score": 10.0},
+        {"world": "venus", "episode": 0, "score": 20.0},
+        {"world": "venus", "episode": 1, "score": 20.0},
+    ]
+
+
+def test_score_summary_returns_notebook_quantiles() -> None:
+    scores = pd.DataFrame({
+        "world": ["earth", "earth", "earth", "venus", "venus", "venus"],
+        "score": [0.0, 10.0, 20.0, 100.0, 110.0, 120.0],
+    })
+
+    summary = score_summary(scores)
+
+    assert list(summary.columns) == [
+        "episodes",
+        "mean",
+        "std",
+        "min",
+        "q05",
+        "q25",
+        "median",
+        "q75",
+        "q95",
+        "max",
+    ]
+    assert summary.loc["earth", "episodes"] == 3
+    assert summary.loc["earth", "mean"] == pytest.approx(10.0)
+    assert summary.loc["earth", "q05"] == pytest.approx(1.0)
+    assert summary.loc["venus", "median"] == pytest.approx(110.0)

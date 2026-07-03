@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import torch
 
 from dqn.model import DQN
@@ -88,6 +89,67 @@ def evaluate_checkpoint_robustness(
     return results
 
 
+def checkpoint_scores(
+    checkpoint_path: str | Path,
+    objective_cfg: ObjectiveConfig,
+    *,
+    episodes: int = 100,
+    model_factory: ModelFactory = DQN,
+) -> pd.DataFrame:
+    """Return greedy episode scores for each evaluation world."""
+    if episodes < 1:
+        raise ValueError("episodes must be >= 1")
+
+    device = resolve_device(objective_cfg.device)
+    make_envs = objective_cfg.environment_factory.evaluation_envs()
+    q_net_env = next(iter(make_envs.values()))
+    q_net = q_net_from_checkpoint(
+        checkpoint_path,
+        make_env=q_net_env,
+        device=device,
+        model_factory=model_factory,
+    )
+    q_net.eval()
+
+    rows = []
+    for world, make_env in make_envs.items():
+        for episode in range(episodes):
+            seed = (
+                None
+                if objective_cfg.eval_seed is None
+                else objective_cfg.eval_seed + episode
+            )
+            rows.append({
+                "world": world,
+                "episode": episode,
+                "score": _episode_return(
+                    q_net,
+                    make_env,
+                    device,
+                    max_steps=objective_cfg.eval_max_steps,
+                    seed=seed,
+                ),
+            })
+
+    return pd.DataFrame(rows)
+
+
+def score_summary(scores: pd.DataFrame) -> pd.DataFrame:
+    """Return the checkpoint score summary used by the notebook plots."""
+    return scores.groupby("world")["score"].agg(
+        episodes="count",
+        mean="mean",
+        std="std",
+        min="min",
+        q05=lambda score: score.quantile(0.05),
+        q25=lambda score: score.quantile(0.25),
+        median="median",
+        q75=lambda score: score.quantile(0.75),
+        q95=lambda score: score.quantile(0.95),
+        max="max",
+    )
+
+
 def q_net_from_checkpoint(
     path: str | Path,
     *,
@@ -110,6 +172,31 @@ def q_net_from_checkpoint(
         ).to(device)
         load_checkpoint(q_net, path, device)
         return q_net
+    finally:
+        env.close()
+
+
+def _episode_return(q_net, make_env, device, *, max_steps: int, seed: int | None) -> float:
+    env = make_env()
+    try:
+        observation, _ = env.reset(seed=seed)
+        episode_return = 0.0
+
+        for _ in range(max_steps):
+            state = torch.as_tensor(
+                observation,
+                dtype=torch.float32,
+                device=device,
+            ).unsqueeze(0)
+            with torch.no_grad():
+                action = int(q_net(state).argmax(dim=1).item())
+
+            observation, reward, terminated, truncated, _ = env.step(action)
+            episode_return += float(reward)
+            if terminated or truncated:
+                break
+
+        return episode_return
     finally:
         env.close()
 
