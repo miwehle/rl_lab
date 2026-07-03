@@ -98,7 +98,6 @@ def histogram_3d(
     ax.xaxis.set_major_locator(MultipleLocator(50))
     ax.view_init(elev=24, azim=-45)
     ax.legend(title="world")
-    plt.tight_layout()
     return fig, ax
 
 
