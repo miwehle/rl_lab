@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
-from matplotlib.ticker import MaxNLocator, MultipleLocator
+from matplotlib.ticker import MultipleLocator
 
 
 def heatmap(
@@ -78,9 +78,11 @@ def histogram_3d(
     fig = plt.figure(figsize=(13, 7))
     ax = fig.add_subplot(projection="3d", computed_zorder=False)
 
+    max_count = 0
     for world in draw_worlds:
         y = worlds.index(world)
         counts, _ = np.histogram(_scores_for_world(scores, world), bins=bin_edges)
+        max_count = max(max_count, int(counts.max()))
         ax.bar3d(
             left_edges,
             y,
@@ -96,7 +98,7 @@ def histogram_3d(
     ax.set(xlabel="score", ylabel="world", zlabel="episodes")
     ax.set_yticks(range(len(worlds)), worlds)
     ax.xaxis.set_major_locator(MultipleLocator(_tick_step(scores["score"])))
-    ax.zaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.zaxis.set_major_locator(MultipleLocator(_count_tick_step(max_count)))
     ax.set_zlabel("episodes", labelpad=4)
     ax.view_init(elev=24, azim=-45)
     fig.subplots_adjust(left=0.02, right=0.90, bottom=0.05, top=0.98)
@@ -195,7 +197,16 @@ def _tick_step(values: pd.Series, target_ticks: int = 6) -> float:
     if span <= 0:
         return 1.0
 
-    raw_step = span / target_ticks
+    return float(_nice_step(span / target_ticks))
+
+
+def _count_tick_step(max_count: int, target_ticks: int = 5) -> int:
+    if max_count <= 5:
+        return 1
+    return int(_nice_step(max_count / target_ticks))
+
+
+def _nice_step(raw_step: float) -> float:
     magnitude = 10 ** np.floor(np.log10(raw_step))
     normalized = raw_step / magnitude
 
@@ -206,7 +217,7 @@ def _tick_step(values: pd.Series, target_ticks: int = 6) -> float:
     else:
         nice = 10
 
-    return float(nice * magnitude)
+    return nice * magnitude
 
 
 def _summary(scores: pd.DataFrame) -> pd.DataFrame:

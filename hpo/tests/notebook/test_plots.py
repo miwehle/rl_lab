@@ -4,7 +4,7 @@ import pandas as pd
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator, MultipleLocator
+from matplotlib.ticker import MultipleLocator
 
 from hpo.notebook import plots
 
@@ -48,19 +48,20 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
     plt.close(fig)
 
 
-def test_histogram_3d_uses_adaptive_score_tick_step() -> None:
+def test_histogram_3d_uses_adaptive_axis_tick_steps() -> None:
     scores = pd.DataFrame({
-        "world": ["earth", "earth"],
-        "score": [-200.0, 350.0],
+        "world": ["earth"] * 22 + ["earth"],
+        "score": [350.0] * 22 + [-200.0],
     })
 
     fig, ax = plots.histogram_3d(scores, bins=5)
 
-    locator = ax.xaxis.get_major_locator()
-    assert isinstance(locator, MultipleLocator)
-    assert locator._edge.step == 100
-    assert isinstance(ax.zaxis.get_major_locator(), MaxNLocator)
-    assert ax.zaxis.get_major_locator()._integer
+    x_locator = ax.xaxis.get_major_locator()
+    z_locator = ax.zaxis.get_major_locator()
+    assert isinstance(x_locator, MultipleLocator)
+    assert isinstance(z_locator, MultipleLocator)
+    assert x_locator._edge.step == 100
+    assert z_locator._edge.step == 5
     plt.close(fig)
 
 
