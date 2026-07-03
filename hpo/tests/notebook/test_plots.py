@@ -35,7 +35,6 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
             drawn_worlds.append((bar_kwargs["label"], y))
 
         monkeypatch.setattr(ax, "bar3d", bar3d)
-        monkeypatch.setattr(ax, "legend", lambda **_kwargs: None)
         return ax
 
     monkeypatch.setattr(plt.Figure, "add_subplot", add_subplot)

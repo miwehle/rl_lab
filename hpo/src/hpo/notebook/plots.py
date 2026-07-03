@@ -97,7 +97,6 @@ def histogram_3d(
     ax.set_yticks(range(len(worlds)), worlds)
     ax.xaxis.set_major_locator(MultipleLocator(50))
     ax.view_init(elev=24, azim=-45)
-    ax.legend(title="world")
     return fig, ax
 
 
@@ -156,7 +155,12 @@ def quantiles(scores: pd.DataFrame, worlds: Sequence[str] | None = None):
     ax.set_yticks(y, worlds)
     ax.xaxis.set_major_locator(MultipleLocator(50))
     ax.grid(axis="x", alpha=0.25)
-    ax.legend(loc="lower right")
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.16),
+        ncol=5,
+        borderaxespad=0,
+    )
     plt.tight_layout()
     return fig, ax
 
