@@ -66,7 +66,7 @@ def histogram_3d(
     *,
     bins: int = 30,
     reverse_draw_order: bool = True,
-    alpha: float = 0.45,
+    alpha: float = 1.0,
 ):
     import matplotlib.pyplot as plt
 
@@ -77,7 +77,7 @@ def histogram_3d(
     width = bin_edges[1] - bin_edges[0]
 
     fig = plt.figure(figsize=(13, 7))
-    ax = fig.add_subplot(projection="3d", computed_zorder=False)
+    ax = fig.add_subplot(projection="3d", computed_zorder=True)
 
     max_count = 0
     for world in draw_worlds:

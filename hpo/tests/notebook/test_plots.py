@@ -27,10 +27,12 @@ def test_heatmap_returns_figure_and_axes_with_requested_world_order() -> None:
 def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
     drawn_worlds = []
     alphas = []
+    add_subplot_kwargs = []
 
     original_add_subplot = plt.Figure.add_subplot
 
     def add_subplot(self, *args, **kwargs):
+        add_subplot_kwargs.append(kwargs)
         ax = original_add_subplot(self, *args, **kwargs)
 
         def bar3d(_x, y, *_args, **bar_kwargs):
@@ -51,6 +53,7 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
     )
 
     assert fig is ax.figure
+    assert add_subplot_kwargs == [{"projection": "3d", "computed_zorder": True}]
     assert drawn_worlds == [("venus", 2), ("mars", 1), ("earth", 0)]
     assert alphas == [0.3, 0.3, 0.3]
     plt.close(fig)
