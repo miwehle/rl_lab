@@ -1,9 +1,13 @@
-"""Record videos for saved HPO checkpoints."""
+"""Record and inspect videos for saved HPO checkpoints."""
 
+import math
 from collections.abc import Iterable
 from pathlib import Path
 
+import pandas as pd
 import torch
+from gymnasium.envs.box2d import lunar_lander
+from gymnasium.utils import seeding
 from gymnasium.wrappers import RecordVideo
 
 from dqn.model import DQN
@@ -91,6 +95,72 @@ def record_checkpoint_videos(
         for world in worlds
         for seed in seeds
     ]
+
+
+def video_conditions_table(environment_factory, worlds: Iterable[str], seeds: Iterable[int]):
+    """Return weather and initial-force conditions in record-video order."""
+    rows = []
+    for world in worlds:
+        for seed in seeds:
+            env = environment_factory.make_env(world)
+            try:
+                env.reset(seed=seed)
+                wind, turbulence = env._weather
+                fx, fy = initial_force(seed)
+                rows.append(
+                    {
+                        "world": env.world.name,
+                        "seed": seed,
+                        "gravity": env.world.gravity,
+                        "wind": wind,
+                        "turbulence": turbulence,
+                        "initial_force_x": fx,
+                        "initial_force_y": fy,
+                        "initial_force_abs": math.hypot(fx, fy),
+                    }
+                )
+            finally:
+                env.close()
+
+    table = pd.DataFrame(rows).round(2)
+    table.insert(0, "nr", range(len(table)))
+    return table
+
+
+def display_video_conditions_table(
+    environment_factory,
+    worlds: Iterable[str],
+    seeds: Iterable[int],
+):
+    """Display and return the video conditions table."""
+    from IPython.display import display
+
+    table = video_conditions_table(environment_factory, worlds, seeds)
+    display(table.style.hide(axis="index"))
+    return table
+
+
+def initial_force(seed: int) -> tuple[float, float]:
+    """Reconstruct LunarLander's reset-time random initial force for a seed."""
+    rng, _ = seeding.np_random(seed)
+    viewport_height = lunar_lander.VIEWPORT_H / lunar_lander.SCALE
+    chunks = 11
+
+    # LunarLander.reset draws terrain heights before drawing the initial force.
+    rng.uniform(0, viewport_height / 2, size=(chunks + 1,))
+
+    fx = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
+    fy = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
+    return float(fx), float(fy)
+
+
+def display_video(video_paths: Iterable[str | Path], nr: int, *, width: int = 720) -> None:
+    """Display one recorded video by the table number."""
+    from IPython.display import Markdown, Video, display
+
+    path = Path(tuple(video_paths)[nr])
+    display(Markdown(f"### {path.name}"))
+    display(Video(str(path), embed=True, width=width))
 
 
 def _greedy_action(q_net, observation, device) -> int:
