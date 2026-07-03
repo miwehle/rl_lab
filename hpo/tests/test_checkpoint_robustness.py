@@ -132,6 +132,7 @@ def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
             device="cpu",
         ),
         episodes=2,
+        progress=False,
     )
 
     assert scores.to_dict("records") == [
@@ -140,6 +141,36 @@ def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
         {"world": "venus", "episode": 0, "score": 20.0},
         {"world": "venus", "episode": 1, "score": 20.0},
     ]
+
+
+def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path) -> None:
+    checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
+    save_checkpoint(
+        DQN(1, 2),
+        checkpoint_path,
+        {"score": 200.0, "episode": 1000, "window": None},
+    )
+    progress_calls = []
+
+    def fake_tqdm(items, *, total, desc):
+        progress_calls.append({"total": total, "desc": desc})
+        return items
+
+    monkeypatch.setattr(
+        "hpo.checkpoint_robustness._tqdm",
+        lambda: fake_tqdm,
+    )
+
+    checkpoint_scores(
+        checkpoint_path,
+        objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+            device="cpu",
+        ),
+        episodes=2,
+    )
+
+    assert progress_calls == [{"total": 4, "desc": "Evaluating checkpoint"}]
 
 
 def test_score_summary_returns_notebook_quantiles() -> None:

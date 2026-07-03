@@ -94,6 +94,7 @@ def checkpoint_scores(
     objective_cfg: ObjectiveConfig,
     *,
     episodes: int = 100,
+    progress: bool = True,
     model_factory: ModelFactory = DQN,
 ) -> pd.DataFrame:
     """Return greedy episode scores for each evaluation world."""
@@ -112,24 +113,33 @@ def checkpoint_scores(
     q_net.eval()
 
     rows = []
-    for world, make_env in make_envs.items():
-        for episode in range(episodes):
-            seed = (
-                None
-                if objective_cfg.eval_seed is None
-                else objective_cfg.eval_seed + episode
-            )
-            rows.append({
-                "world": world,
-                "episode": episode,
-                "score": _episode_return(
-                    q_net,
-                    make_env,
-                    device,
-                    max_steps=objective_cfg.eval_max_steps,
-                    seed=seed,
-                ),
-            })
+    work_items = (
+        (world, make_env, episode)
+        for world, make_env in make_envs.items()
+        for episode in range(episodes)
+    )
+    for world, make_env, episode in _with_progress(
+        work_items,
+        enabled=progress,
+        total=len(make_envs) * episodes,
+        desc="Evaluating checkpoint",
+    ):
+        seed = (
+            None
+            if objective_cfg.eval_seed is None
+            else objective_cfg.eval_seed + episode
+        )
+        rows.append({
+            "world": world,
+            "episode": episode,
+            "score": _episode_return(
+                q_net,
+                make_env,
+                device,
+                max_steps=objective_cfg.eval_max_steps,
+                seed=seed,
+            ),
+        })
 
     return pd.DataFrame(rows)
 
@@ -199,6 +209,23 @@ def _episode_return(q_net, make_env, device, *, max_steps: int, seed: int | None
         return episode_return
     finally:
         env.close()
+
+
+def _with_progress(items, *, enabled: bool, total: int, desc: str):
+    if not enabled:
+        return items
+    tqdm = _tqdm()
+    if tqdm is None:
+        return items
+    return tqdm(items, total=total, desc=desc)
+
+
+def _tqdm():
+    try:
+        from tqdm.auto import tqdm
+    except ImportError:
+        return None
+    return tqdm
 
 
 def _checkpoint_hidden_size(path: str | Path) -> int:
