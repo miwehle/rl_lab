@@ -16,9 +16,9 @@ dqn\.venv\Scripts\python.exe -m pip install -r hpo\requirements.txt
 Useful notebooks:
 
 - `hpo/notebooks/lunar_lander/HPO_LunarLander.ipynb` for LunarLander.
-- `hpo/notebooks/solar_system_lander/Train Elise.ipynb` for SolarSystemLander HPO studies.
-- `hpo/notebooks/solar_system_lander/Videos.ipynb` for checkpoint landing videos.
-- `hpo/notebooks/solar_system_lander/TÜV.ipynb` for checkpoint checks.
+- `hpo/notebooks/solar_system_lander/train_elise.ipynb` for SolarSystemLander HPO studies.
+- `hpo/notebooks/solar_system_lander/integration_tests.ipynb` for SolarSystemLander integration smoke tests.
+- `hpo/notebooks/solar_system_lander/videos.ipynb` for checkpoint landing videos.
 - `hpo/notebooks/basics/basics.ipynb` for small notebook basics.
 
 Recommended Colab runtime:

@@ -20,7 +20,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 ## O13 Checkpoint Distribution Cell Is Not Faster On L4
 
-**Observation:** The `# cell: checkpoint-world-distributions` cell in `Train Elise V2.ipynb` took `54 s` and `34 s` on Google Colab CPU, but `87 s` on Colab L4.
+**Observation:** The `# cell: checkpoint-world-distributions` cell in `train_elise.ipynb` took `54 s` and `34 s` on Google Colab CPU, but `87 s` on Colab L4.
 
 **When:** 2026-07-03
 

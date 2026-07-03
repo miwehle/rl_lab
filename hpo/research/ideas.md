@@ -58,3 +58,21 @@ Damit wird nichts doppelt geprüft: erst entwickeln, dann Anforderung nachweisen
 
 
 nasa.gov/the-apollo-program
+
+## DQN Trainer Playground
+
+Ein einfaches Notebook unter `hpo/notebooks/lunar_lander/playground.ipynb` koennte helfen, mit dem einfachen `dqn.training.Trainer` und echten Komponenten vertraut zu werden. Es soll kein Test-Runner sein, sondern ein kleiner Spielplatz mit Prints, Tabellen und Plots.
+
+```text
+# DQN Trainer Playground
+
+## Setup
+## Make Environment
+## Random Episode
+## Create Trainer
+## Train 100 Episodes
+## Inspect Learning
+## Continue Training
+## Greedy Episode / Animation
+## Things To Try
+```
