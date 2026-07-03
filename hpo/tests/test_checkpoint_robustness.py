@@ -175,12 +175,13 @@ def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path)
 
 def test_score_summary_returns_notebook_quantiles() -> None:
     scores = pd.DataFrame({
-        "world": ["earth", "earth", "earth", "venus", "venus", "venus"],
-        "score": [0.0, 10.0, 20.0, 100.0, 110.0, 120.0],
+        "world": ["venus", "venus", "venus", "earth", "earth", "earth"],
+        "score": [100.0, 110.0, 120.0, 0.0, 10.0, 20.0],
     })
 
     summary = score_summary(scores)
 
+    assert list(summary.index) == ["venus", "earth"]
     assert list(summary.columns) == [
         "episodes",
         "mean",

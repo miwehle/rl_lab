@@ -146,7 +146,7 @@ def checkpoint_scores(
 
 def score_summary(scores: pd.DataFrame) -> pd.DataFrame:
     """Return the checkpoint score summary used by the notebook plots."""
-    return scores.groupby("world")["score"].agg(
+    return scores.groupby("world", sort=False)["score"].agg(
         episodes="count",
         mean="mean",
         std="std",
