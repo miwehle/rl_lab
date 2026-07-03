@@ -138,3 +138,14 @@ def _replace_with_copy(source: str | Path, destination: str | Path) -> None:
         temporary.replace(destination)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def path(
+    name: str | Path,
+    google_drive: bool = False,
+    folder: str | Path = "rl_lab/hpo",
+) -> Path:
+    """Return a local or Google Drive path."""
+    root = Path("/content/drive/MyDrive") if google_drive else Path("/content")
+    name = str(name)
+    return root / folder / name
