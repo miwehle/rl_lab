@@ -127,17 +127,16 @@ def video_conditions_table(environment_factory, worlds: Iterable[str], seeds: It
     return table
 
 
-def display_video_conditions_table(
+def show_video_conditions(
     environment_factory,
     worlds: Iterable[str],
     seeds: Iterable[int],
-):
-    """Display and return the video conditions table."""
+) -> None:
+    """Display the video conditions table."""
     from IPython.display import display
 
     table = video_conditions_table(environment_factory, worlds, seeds)
     display(table.style.hide(axis="index"))
-    return table
 
 
 def initial_force(seed: int) -> tuple[float, float]:
