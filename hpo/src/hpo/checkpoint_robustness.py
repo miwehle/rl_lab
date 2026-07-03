@@ -222,7 +222,7 @@ def _with_progress(items, *, enabled: bool, total: int, desc: str):
 
 def _tqdm():
     try:
-        from tqdm.auto import tqdm
+        from tqdm import tqdm
     except ImportError:
         return None
     return tqdm
