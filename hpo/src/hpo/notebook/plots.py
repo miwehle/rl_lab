@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 
 def heatmap(
@@ -96,7 +96,10 @@ def histogram_3d(
     ax.set(xlabel="score", ylabel="world", zlabel="episodes")
     ax.set_yticks(range(len(worlds)), worlds)
     ax.xaxis.set_major_locator(MultipleLocator(_tick_step(scores["score"])))
+    ax.zaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_zlabel("episodes", labelpad=4)
     ax.view_init(elev=24, azim=-45)
+    fig.subplots_adjust(left=0.02, right=0.90, bottom=0.05, top=0.98)
     return fig, ax
 
 

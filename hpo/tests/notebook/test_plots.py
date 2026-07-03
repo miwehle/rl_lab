@@ -4,7 +4,7 @@ import pandas as pd
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from hpo.notebook import plots
 
@@ -59,6 +59,8 @@ def test_histogram_3d_uses_adaptive_score_tick_step() -> None:
     locator = ax.xaxis.get_major_locator()
     assert isinstance(locator, MultipleLocator)
     assert locator._edge.step == 100
+    assert isinstance(ax.zaxis.get_major_locator(), MaxNLocator)
+    assert ax.zaxis.get_major_locator()._integer
     plt.close(fig)
 
 
