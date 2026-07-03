@@ -77,7 +77,7 @@ def histogram_3d(
     width = bin_edges[1] - bin_edges[0]
 
     fig = plt.figure(figsize=(13, 7))
-    ax = fig.add_subplot(projection="3d", computed_zorder=True)
+    ax = fig.add_subplot(projection="3d", computed_zorder=False)
 
     max_count = 0
     for world in draw_worlds:
