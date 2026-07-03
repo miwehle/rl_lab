@@ -95,7 +95,7 @@ def histogram_3d(
 
     ax.set(xlabel="score", ylabel="world", zlabel="episodes")
     ax.set_yticks(range(len(worlds)), worlds)
-    ax.xaxis.set_major_locator(MultipleLocator(50))
+    ax.xaxis.set_major_locator(MultipleLocator(_tick_step(scores["score"])))
     ax.view_init(elev=24, azim=-45)
     return fig, ax
 
@@ -184,6 +184,26 @@ def _bin_edges(scores: pd.DataFrame, bins: int) -> np.ndarray:
         score_min -= 1.0
         score_max += 1.0
     return np.linspace(score_min, score_max, bins + 1)
+
+
+def _tick_step(values: pd.Series, target_ticks: int = 6) -> float:
+    values = values.dropna()
+    span = float(values.max() - values.min())
+    if span <= 0:
+        return 1.0
+
+    raw_step = span / target_ticks
+    magnitude = 10 ** np.floor(np.log10(raw_step))
+    normalized = raw_step / magnitude
+
+    if normalized <= 2:
+        nice = 2
+    elif normalized <= 5:
+        nice = 5
+    else:
+        nice = 10
+
+    return float(nice * magnitude)
 
 
 def _summary(scores: pd.DataFrame) -> pd.DataFrame:
