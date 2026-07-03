@@ -2,6 +2,7 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O13 Checkpoint Distribution Cell Is Not Faster On L4\|O13]]        | Checkpoint Distribution Cell Is Not Faster On L4          | PERF, Colab        |
 | [[#O12 253 Pilot Lands Safely In Videos\|O12]]                        | 253 Pilot Lands Safely In Videos                          | SSL, Checkpointing |
 | [[#O11 Trial-Cluster Confirms 10D HP Corridor\|O11]]                  | Trial-Cluster Confirms 10D HP Corridor                   | SSL, HP, Optuna    |
 | [[#O10 Five-World 10D Reaches 253\|O10]]                              | Five-World 10D Reaches 253                                | SSL, HP            |
@@ -17,11 +18,19 @@
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
 
+## O13 Checkpoint Distribution Cell Is Not Faster On L4
+
+**Observation:** The `# cell: checkpoint-world-distributions` cell in `Train Elise V2.ipynb` took `54 s` and `34 s` on Google Colab CPU, but `87 s` on Colab L4.
+
+**When:** 2026-07-03
+
+**Interpretation:** This checkpoint score-distribution evaluation is not obviously GPU-bound. For this notebook cell, CPU runtime can be competitive or faster than L4 runtime, likely because environment stepping and Python overhead dominate.
+
 ## O12 253 Pilot Lands Safely In Videos
 
 **Observation:** Video inspection of the preserved 253 checkpoint shows Elise landing safely in all five worlds.
 
-**When:** 2026-07-02.
+**When:** 2026-07-02
 
 **Evidence:** The landings look controlled and quick rather than fuel-wasting hovering. The score therefore looks visually plausible, not just like a numerical evaluation artifact.
 
@@ -41,7 +50,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Observation:** In `s3_10d_better_space`, trials `10..15` form a compact HP cluster, and every second trial in that cluster produced a good pilot: trial 10 scored `160.0`, trial 12 scored `193.5`, trial 13 scored `210.1`, and trial 15 scored `178.0`.
 
-**When:** 2026-07-02.
+**When:** 2026-07-02
 
 **Evidence:** The cluster shares `gamma=0.995`, `tau=0.002`, `batch_size=512`, `learning_starts=2500`, `num_episodes=2000`, `eps_end≈0.040..0.044`, `eps_decay≈32k..47k`, and replay roughly `82k..116k`. The later 253 pilot in trial 35 is similar: `gamma=0.995`, `tau=0.002`, `eps_end=0.044`, `eps_decay=38793`, replay `76754`, and learning rate `0.000623`.
 
@@ -69,7 +78,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Observation:** Colab ended the 10D SSL study cell after about `8 h 30 min 33 s` of execution. The notebook showed `Wieder verbinden`, and the study had not reached its target yet.
 
-**When:** 2026-07-01 05:25, after `30633 s` runtime.
+**When:** 2026-07-01 05:25, after `30633 s` runtime
 
 **Evidence:** Screenshot: [Beweisfoto Runtime Crash](assets/Beweisfoto%20Runtime%20Crash.png).
 
@@ -81,7 +90,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Observation:** In `solar_system_lander_10d_elise_accel.db`, study `s3_10d_better_space`, 10D reached about `210` average Gym score over five worlds.
 
-**When:** 2026-07-01.
+**When:** 2026-07-01
 
 **Context:** This used the 10D acceleration observation mode and a narrowed HP region after 9D/10D exploration.
 
@@ -93,7 +102,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Observation:** Top models currently share a clear HP core:
 
-**When:** 2026-07-01.
+**When:** 2026-07-01
 
 ```text
 gamma: 0.995
@@ -116,7 +125,7 @@ replay: unclear
 
 **Observation:** In a 9D five-world SSL study with weighted Earth/Venus sampling, Optuna found a candidate around `176.4` Gym score in study `s1_go_optuna_go`.
 
-**When:** 2026-07-01.
+**When:** 2026-07-01
 
 **Context:** The run used `num_episodes=2000` and let Optuna search several HPs at once instead of manually tuning one or two parameters.
 
@@ -130,7 +139,7 @@ replay: unclear
 
 **Observation:** In the same 9D five-world study, the sampling mix was `Mercury 1x, Venus 4x, Earth 4x, Moon 1x, Mars 1x`. After 27 trials with `world_scores`, Mars and Mercury were usually the strongest worlds, while Moon, Earth, and Venus most often pulled the mean down.
 
-**When:** 2026-07-01.
+**When:** 2026-07-01
 
 **Evidence:** Mean world scores were roughly `Mars 124.5`, `Mercury 116.0`, `Moon 36.4`, `Earth 8.1`, `Venus 7.3`. The weakest world per trial was Venus 9 times, Moon 9 times, Earth 8 times, and Mercury once.
 
@@ -142,7 +151,7 @@ replay: unclear
 
 **Observation:** In the 9D Go-Optuna-Go DB around trial 26, good early values looked roughly like this:
 
-**When:** 2026-07-01.
+**When:** 2026-07-01
 
 ```text
 learning_rate:            0.00058 .. 0.00080
@@ -179,7 +188,7 @@ batch_size: 512
 
 **Observation:** ==Breakthrough on Earth: 9D SSL reaches 200+.== In `solar_system_lander_9d_earth.db`, study `s7_exploration` found multiple candidates above `200` Gym score, with the best optimize trial around `242`. The best checkpoint that was actually preserved from the run is currently the robustness checkpoint around `206`.
 
-**When:** 2026-06-29.
+**When:** 2026-06-29
 
 ![HP robustness evaluation for the 9D Earth breakthrough](assets/Durchbruch%20auf%20der%20Erde.png)
 
@@ -191,7 +200,7 @@ batch_size: 512
 
 **Observation:** The 8D Elise-bunt study produced a preserved five-world pilot around `180` Gym score.
 
-**When:** 2026-06-29.
+**When:** 2026-06-29
 
 **Interpretation:** This was an important historical milestone. It showed that a small shared SolarSystemLander for the inner worlds is plausible and gave confidence that the HPO path is worth pursuing, even though later 9D Earth-only results became the stronger current signal.
 
@@ -207,7 +216,7 @@ batch_size: 512
 |                4 |                       1.483 |
 |                8 |                       2.666 |
 
-**When:** 2026-06-29.
+**When:** 2026-06-29
 
 **Finding:** `optimize_every` explains nearly all observed throughput variation. Larger values mean fewer optimizer updates and therefore more environment steps per second.
 
