@@ -14,7 +14,8 @@ Notebook cell metadata: when the user asks to "ueberarbeite das Notebook nach de
 
 ```python
 # cell: short-stable-label
-# requires: dependency-label-or-public-name
+# cell: dependent-label; requires: dependency-label-or-public-name
+# cell: multi-dependent-label; requires: first-dependency, second-dependency
 ```
 
-Use `# cell:` for cells worth finding, referring to, or selectively rerunning. Add `# requires:` only when the dependency is not obvious from the notebook order. Do not use `# export:`; top-level names without a leading `_` are public by convention, while temporary names should use a leading `_`. Keep labels short, self-explanatory, and easy to find with text search.
+Use `# cell:` for cells worth finding, referring to, or selectively rerunning. Add `; requires:` on the same line only when the dependency is not obvious from the notebook order. Separate multiple dependencies with `, `. Do not use `# export:`; top-level names without a leading `_` are public by convention, while temporary names should use a leading `_`. Keep labels short, self-explanatory, and easy to find with text search.
