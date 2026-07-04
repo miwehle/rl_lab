@@ -21,18 +21,40 @@ class LanderColors:
     flag: RGB = (204, 204, 0)
 
 
+@dataclass(frozen=True)
+class LanderOverlay:
+    text_color: RGB = (255, 255, 255)
+    shadow_color: RGB = (0, 0, 0)
+
+
 class LanderRenderWrapper(gym.Wrapper):
     """Render a LunarLander-compatible environment with custom colors."""
 
-    def __init__(self, env, colors: LanderColors) -> None:
+    def __init__(
+        self,
+        env,
+        colors: LanderColors | None = None,
+        overlay: LanderOverlay | None = None,
+    ) -> None:
         super().__init__(env)
-        self.colors = colors
+        self.colors = colors or LanderColors()
+        self.overlay = overlay
 
     def render(self):
-        return _render_lunar_lander(self.env.unwrapped, self.colors)
+        return _render_lunar_lander(
+            self.env.unwrapped,
+            self.env,
+            self.colors,
+            self.overlay,
+        )
 
 
-def _render_lunar_lander(env, colors: LanderColors):
+def _render_lunar_lander(
+    env,
+    source_env,
+    colors: LanderColors,
+    overlay: LanderOverlay | None,
+):
     if env.render_mode is None:
         assert env.spec is not None
         gym.logger.warn(
@@ -139,6 +161,8 @@ def _render_lunar_lander(env, colors: LanderColors):
                 gfxdraw.aapolygon(env.surf, flag_points, colors.flag)
 
     env.surf = pygame.transform.flip(env.surf, False, True)
+    if overlay is not None:
+        _draw_overlay(env.surf, source_env, overlay)
 
     if env.render_mode == "human":
         assert env.screen is not None
@@ -159,3 +183,43 @@ def _object_colors(obj, env, colors: LanderColors) -> tuple[RGB, RGB]:
     if obj is env.lander or any(obj is leg for leg in env.legs):
         return colors.lander_fill, colors.lander_outline
     return obj.color1, obj.color2
+
+
+def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
+    import pygame
+
+    lines = _overlay_lines(source_env)
+    if not lines:
+        return
+
+    if not pygame.font.get_init():
+        pygame.font.init()
+    font = pygame.font.Font(None, 18)
+    x, y = 8, 8
+    line_height = font.get_linesize()
+    for index, line in enumerate(lines):
+        position = (x, y + index * line_height)
+        shadow = font.render(line, True, overlay.shadow_color)
+        text = font.render(line, True, overlay.text_color)
+        surface.blit(shadow, (position[0] + 1, position[1] + 1))
+        surface.blit(text, position)
+
+
+def _overlay_lines(source_env) -> list[str]:
+    lines = []
+    world = getattr(source_env, "world", None)
+    if world is not None:
+        name = getattr(world, "name", None)
+        gravity = getattr(world, "gravity", None)
+        if name is not None:
+            lines.append(str(name).title())
+        if gravity is not None:
+            lines.append(f"g: {abs(float(gravity)):.1f} m/s²")
+
+    weather = getattr(source_env, "_weather", None)
+    if weather is not None:
+        wind, turbulence = weather
+        lines.append(f"wind: {float(wind):.1f}")
+        lines.append(f"turb: {float(turbulence):.1f}")
+
+    return lines

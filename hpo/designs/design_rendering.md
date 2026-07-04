@@ -12,12 +12,14 @@ Die Aenderung betrifft nur die Darstellung aufgezeichneter Videos. Training, Eva
 
 ```python
 render_colors: LanderColors | None = None
+render_overlay: LanderOverlay | None = None
 ```
 
 `record_checkpoint_videos(...)` bekommt einen optionalen Parameter:
 
 ```python
 colors_by_world: Iterable[LanderColors | None] | None = None
+render_overlay: LanderOverlay | None = None
 ```
 
 Wenn `colors_by_world` gesetzt ist, gehoert `colors_by_world[i]` zu `worlds[i]`. Die Laenge muss der Laenge von `worlds` entsprechen; sonst wird ein `ValueError` geworfen.
@@ -44,9 +46,16 @@ class LanderColors:
     lander_outline: RGB = (77, 77, 128)
     flag_pole: RGB = (255, 255, 255)
     flag: RGB = (204, 204, 0)
+
+@dataclass(frozen=True)
+class LanderOverlay:
+    text_color: RGB = (255, 255, 255)
+    shadow_color: RGB = (0, 0, 0)
 ```
 
 Die Defaults sind die aktuellen Gymnasium-Farben. Konkrete Weltpaletten wie Earth, Venus, Mars, Moon oder Mercury werden nicht in `video.py` definiert, sondern vom Caller uebergeben, zum Beispiel im Notebook.
+
+Wenn `render_overlay` gesetzt ist, zeigt das Video links oben die verfuegbaren statischen Werte: Weltname, Betrag der Gravitation mit einer Nachkommastelle und `m/s²`, Wind und Turbulenz mit je einer Nachkommastelle ohne Einheit.
 
 ## Umsetzung
 

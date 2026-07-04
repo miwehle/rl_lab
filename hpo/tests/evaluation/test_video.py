@@ -46,9 +46,10 @@ class FakeRecordVideo:
 
 
 class FakeRenderWrapper:
-    def __init__(self, env, colors):
+    def __init__(self, env, *, colors=None, overlay=None):
         self.env = env
         self.colors = colors
+        self.overlay = overlay
 
     def reset(self, *, seed=None):
         return self.env.reset(seed=seed)
@@ -113,18 +114,62 @@ def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(
 
     assert isinstance(recorded_envs[0], FakeRenderWrapper)
     assert recorded_envs[0].colors == colors
+    assert recorded_envs[0].overlay is None
+
+
+def test_record_checkpoint_video_wraps_env_when_render_overlay_is_given(
+    monkeypatch,
+    tmp_path,
+):
+    recorded_envs = []
+
+    class RecordingRecordVideo(FakeRecordVideo):
+        def __init__(self, env, *, video_folder, name_prefix, **kwargs):
+            recorded_envs.append(env)
+            super().__init__(
+                env,
+                video_folder=video_folder,
+                name_prefix=name_prefix,
+                **kwargs,
+            )
+
+    monkeypatch.setattr(video, "RecordVideo", RecordingRecordVideo)
+    monkeypatch.setattr(video, "LanderRenderWrapper", FakeRenderWrapper)
+    monkeypatch.setattr(video, "q_net_from_checkpoint", lambda *_args, **_kwargs: FakeQNet())
+    overlay = video.LanderOverlay()
+
+    video.record_checkpoint_video(
+        checkpoint_path="trial_0009_eval_best.pt",
+        environment_factory=FakeFactory(),
+        world="venus",
+        seed=10_000,
+        output_dir=tmp_path,
+        render_overlay=overlay,
+    )
+
+    assert isinstance(recorded_envs[0], FakeRenderWrapper)
+    assert recorded_envs[0].colors is None
+    assert recorded_envs[0].overlay == overlay
 
 
 def test_record_checkpoint_videos_records_world_seed_product(monkeypatch, tmp_path):
     calls = []
 
     def record(**kwargs):
-        calls.append((kwargs["world"], kwargs["seed"], kwargs["render_colors"]))
+        calls.append(
+            (
+                kwargs["world"],
+                kwargs["seed"],
+                kwargs["render_colors"],
+                kwargs["render_overlay"],
+            )
+        )
         return tmp_path / f"{kwargs['world']}_{kwargs['seed']}.mp4"
 
     monkeypatch.setattr(video, "record_checkpoint_video", record)
     earth_colors = video.LanderColors(sky=(1, 2, 3))
     venus_colors = video.LanderColors(sky=(4, 5, 6))
+    overlay = video.LanderOverlay()
 
     paths = video.record_checkpoint_videos(
         checkpoint_path="checkpoint.pt",
@@ -133,13 +178,14 @@ def test_record_checkpoint_videos_records_world_seed_product(monkeypatch, tmp_pa
         seeds=(seed for seed in [1, 2]),
         output_dir=tmp_path,
         colors_by_world=[earth_colors, venus_colors],
+        render_overlay=overlay,
     )
 
     assert calls == [
-        ("earth", 1, earth_colors),
-        ("earth", 2, earth_colors),
-        ("venus", 1, venus_colors),
-        ("venus", 2, venus_colors),
+        ("earth", 1, earth_colors, overlay),
+        ("earth", 2, earth_colors, overlay),
+        ("venus", 1, venus_colors, overlay),
+        ("venus", 2, venus_colors, overlay),
     ]
     assert paths == [
         tmp_path / "earth_1.mp4",
