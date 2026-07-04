@@ -19,6 +19,8 @@ from hpo.evaluation.lander_rendering import (
     LanderRenderWrapper,
 )
 
+_FINAL_HOLD_FRAMES = 30
+
 
 def record_checkpoint_video(
     *,
@@ -74,6 +76,7 @@ def record_checkpoint_video(
             action = _greedy_action(q_net, observation, device)
             observation, _, terminated, truncated, _ = env.step(action)
             if terminated or truncated:
+                _hold_final_frame(env)
                 break
     finally:
         env.close()
@@ -223,6 +226,11 @@ def _greedy_action(q_net, observation, device) -> int:
     state = torch.as_tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
     with torch.no_grad():
         return int(q_net(state).argmax(dim=1).item())
+
+
+def _hold_final_frame(env) -> None:
+    for _ in range(_FINAL_HOLD_FRAMES):
+        env._capture_frame()
 
 
 def _video_name(checkpoint_path: Path, world: str, seed: int) -> str:

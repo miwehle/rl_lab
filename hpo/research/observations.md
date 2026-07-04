@@ -2,6 +2,7 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O14 Ground Side-Thrust Can Hide Landing Reward\|O14]]              | Ground Side-Thrust Can Hide Landing Reward                | SSL, RL            |
 | [[#O13 Checkpoint Distribution Cell Is Not Faster On L4\|O13]]        | Checkpoint Distribution Cell Is Not Faster On L4          | PERF, Colab        |
 | [[#O12 253 Pilot Lands Safely In Videos\|O12]]                        | 253 Pilot Lands Safely In Videos                          | SSL, Checkpointing |
 | [[#O11 Trial-Cluster Confirms 10D HP Corridor\|O11]]                  | Trial-Cluster Confirms 10D HP Corridor                   | SSL, HP, Optuna    |
@@ -17,6 +18,16 @@
 | [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O14 Ground Side-Thrust Can Hide Landing Reward
+
+**Observation:** A visually landed pilot can miss the final `+100` landing reward if it keeps firing a side thruster on the ground and therefore never lets the Box2D lander body fall asleep.
+
+**When:** 2026-07-05
+
+**Evidence:** For the preserved 10D Elise checkpoint on `earth`, `seed=1911`, both legs first touched the ground at step `227` (`4.54 s`), but the policy continued to use side-thruster action `3` up to step `1000`. The episode ended by truncation at `20.00 s` with score `168.8`, `terminated=False`, `truncated=True`, `awake=True`, and both legs still in contact.
+
+**Interpretation:** This is not a trainer or Gym early-stop bug. Gym awards the terminal landing reward only when `not lander.awake`; a policy that keeps correcting its horizontal position after touchdown can prevent that sleep state. The cost is much larger than the small per-step fuel penalty because the episode loses the terminal `+100` reward entirely.
 
 ## O13 Checkpoint Distribution Cell Is Not Faster On L4
 

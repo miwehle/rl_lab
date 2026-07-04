@@ -41,6 +41,9 @@ class FakeRecordVideo:
     def step(self, action):
         return self.env.step(action)
 
+    def _capture_frame(self):
+        pass
+
     def close(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_bytes(b"video")
@@ -82,6 +85,28 @@ def test_record_checkpoint_video_records_one_greedy_episode(monkeypatch, tmp_pat
 
     assert path == tmp_path / "trial_0009_eval_best_venus_seed_10000.mp4"
     assert path.read_bytes() == b"video"
+
+
+def test_record_checkpoint_video_holds_terminal_frame(monkeypatch, tmp_path):
+    captured = []
+
+    class CapturingRecordVideo(FakeRecordVideo):
+        def _capture_frame(self):
+            captured.append("frame")
+
+    monkeypatch.setattr(video, "RecordVideo", CapturingRecordVideo)
+    monkeypatch.setattr(video, "q_net_from_checkpoint", lambda *_args, **_kwargs: FakeQNet())
+    monkeypatch.setattr(video, "_FINAL_HOLD_FRAMES", 3)
+
+    video.record_checkpoint_video(
+        checkpoint_path="trial_0009_eval_best.pt",
+        environment_factory=FakeFactory(),
+        world="venus",
+        seed=10_000,
+        output_dir=tmp_path,
+    )
+
+    assert captured == ["frame", "frame", "frame"]
 
 
 def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(
