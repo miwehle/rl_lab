@@ -69,6 +69,6 @@ def test_overlay_lines_include_static_world_conditions():
     assert _overlay_lines(Env()) == [
         "Earth",
         "g: 10.0 m/s²",
-        "wind a: 2.6 m/s²",
-        "turb a: 1.4 rad/s²",
+        "wind: 2.6 m/s²",
+        "turb: 1.4 rad/s²",
     ]

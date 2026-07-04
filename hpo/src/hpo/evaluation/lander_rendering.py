@@ -223,10 +223,10 @@ def _overlay_lines(source_env) -> list[str]:
         mass = getattr(lander, "mass", None)
         inertia = getattr(lander, "inertia", None)
         if mass:
-            lines.append(f"wind a: {abs(float(wind)) / float(mass):.1f} m/s²")
+            lines.append(f"wind: {abs(float(wind)) / float(mass):.1f} m/s²")
         if inertia:
             lines.append(
-                f"turb a: {abs(float(turbulence)) / float(inertia):.1f} rad/s²"
+                f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²"
             )
 
     return lines

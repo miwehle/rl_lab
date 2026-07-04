@@ -55,7 +55,7 @@ class LanderOverlay:
 
 Die Defaults sind die aktuellen Gymnasium-Farben. Konkrete Weltpaletten wie Earth, Venus, Mars, Moon oder Mercury werden nicht in `video.py` definiert, sondern vom Caller uebergeben, zum Beispiel im Notebook.
 
-Wenn `render_overlay` gesetzt ist, zeigt das Video links oben die verfuegbaren statischen Werte: Weltname, Betrag der Gravitation mit einer Nachkommastelle und `m/s²`, den maximalen Wind-Effekt als seitliche Beschleunigung mit `m/s²`, und den maximalen Turbulenz-Effekt als Winkelbeschleunigung mit `rad/s²`.
+Wenn `render_overlay` gesetzt ist, zeigt das Video links oben die verfuegbaren statischen Werte: Weltname, Betrag der Gravitation mit einer Nachkommastelle und `m/s²`, `wind` als maximale seitliche Beschleunigung mit `m/s²`, und `turb` als maximale Winkelbeschleunigung mit `rad/s²`.
 
 ## Umsetzung
 
