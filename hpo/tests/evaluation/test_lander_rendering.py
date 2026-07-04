@@ -11,6 +11,20 @@ from hpo.evaluation.lander_rendering import (
 from hpo.solar_system_lander.environment import World
 
 
+class ScoreEnv(gym.Env):
+    metadata = {"render_modes": []}
+
+    def __init__(self):
+        self.action_space = gym.spaces.Discrete(1)
+        self.observation_space = gym.spaces.Box(-1.0, 1.0, shape=(1,))
+
+    def reset(self, *, seed=None, options=None):
+        return [0.0], {}
+
+    def step(self, action):
+        return [0.0], 1.25, False, False, {}
+
+
 def test_lander_render_wrapper_uses_custom_sky_and_ground_colors():
     colors = LanderColors(
         sky=(10, 20, 30),
@@ -70,6 +84,7 @@ def test_overlay_lines_include_static_world_conditions():
         _weather = (12.36, 1.14)
         unwrapped = Unwrapped()
         reset_seed = 123
+        score = 12.34
 
     assert _overlay_lines(Env()) == [
         ("Earth", None),
@@ -77,7 +92,22 @@ def test_overlay_lines_include_static_world_conditions():
         ("wind: 2.6 m/s²", None),
         ("turb: 1.4 rad/s²", None),
         ("kick: 3.6 m/s", (1.0, -1.0)),
+        ("score: 12.3", None),
     ]
+
+
+def test_lander_render_wrapper_accumulates_score_and_resets_it():
+    env = LanderRenderWrapper(ScoreEnv())
+
+    env.reset(seed=123)
+    env.step(0)
+    env.step(0)
+
+    assert env.score == 2.5
+
+    env.reset(seed=123)
+
+    assert env.score == 0.0
 
 
 def test_kick_direction_uses_eight_directions():

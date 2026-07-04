@@ -94,10 +94,17 @@ class LanderRenderWrapper(gym.Wrapper):
         self.colors = colors or LanderColors()
         self.overlay = overlay
         self.reset_seed: int | None = None
+        self.score = 0.0
 
     def reset(self, *, seed: int | None = None, options=None):
         self.reset_seed = seed
+        self.score = 0.0
         return self.env.reset(seed=seed, options=options)
+
+    def step(self, action):
+        observation, reward, terminated, truncated, info = self.env.step(action)
+        self.score += float(reward)
+        return observation, reward, terminated, truncated, info
 
     def render(self):
         return _render_lunar_lander(
@@ -302,6 +309,10 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
     if kick is not None:
         delta_v, direction = kick
         lines.append((f"kick: {delta_v:.1f} m/s", direction))
+
+    score = getattr(source_env, "score", None)
+    if score is not None:
+        lines.append((f"score: {float(score):.1f}", None))
 
     return lines
 
