@@ -268,7 +268,7 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
             surface,
             font,
             score_text,
-            (surface.get_width() - font.size(score_text)[0] - 8, 8),
+            (surface.get_width() - 116, 8),
             overlay,
         )
 
