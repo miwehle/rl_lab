@@ -4,6 +4,7 @@ import pytest
 from hpo.evaluation.lander_rendering import (
     LanderColors,
     LanderRenderWrapper,
+    _kick_arrow,
     _overlay_lines,
     world_colors,
 )
@@ -75,8 +76,15 @@ def test_overlay_lines_include_static_world_conditions():
         "g: 10.0 m/s²",
         "wind: 2.6 m/s²",
         "turb: 1.4 rad/s²",
-        "kick: 3.6 m/s",
+        "kick: 3.6 m/s ↘",
     ]
+
+
+def test_kick_arrow_uses_eight_directions():
+    assert _kick_arrow(1.0, 0.0) == "→"
+    assert _kick_arrow(1.0, 1.0) == "↗"
+    assert _kick_arrow(0.0, 1.0) == "↑"
+    assert _kick_arrow(-1.0, -1.0) == "↙"
 
 
 def test_world_colors_returns_colors_in_world_order():

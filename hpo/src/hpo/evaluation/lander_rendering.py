@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+import math
 
 import gymnasium as gym
 import numpy as np
@@ -10,6 +11,7 @@ from gymnasium.error import DependencyNotInstalled
 from gymnasium.utils import seeding
 
 RGB = tuple[int, int, int]
+_KICK_ARROWS = ("→", "↗", "↑", "↖", "←", "↙", "↓", "↘")
 
 
 @dataclass(frozen=True)
@@ -278,18 +280,25 @@ def _overlay_lines(source_env) -> list[str]:
                 f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²"
             )
 
-    kick = _initial_kick_delta_v(getattr(source_env, "reset_seed", None), mass)
+    kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     if kick is not None:
-        lines.append(f"kick: {kick:.1f} m/s")
+        delta_v, arrow = kick
+        lines.append(f"kick: {delta_v:.1f} m/s {arrow}")
 
     return lines
 
 
-def _initial_kick_delta_v(seed: int | None, mass) -> float | None:
+def _initial_kick(seed: int | None, mass) -> tuple[float, str] | None:
     if seed is None or not mass:
         return None
     fx, fy = _initial_force(seed)
-    return float(np.hypot(fx, fy)) * (1.0 / lunar_lander.FPS) / float(mass)
+    delta_v = float(np.hypot(fx, fy)) * (1.0 / lunar_lander.FPS) / float(mass)
+    return delta_v, _kick_arrow(fx, fy)
+
+
+def _kick_arrow(fx: float, fy: float) -> str:
+    index = round(math.atan2(fy, fx) / (math.pi / 4)) % len(_KICK_ARROWS)
+    return _KICK_ARROWS[index]
 
 
 def _initial_force(seed: int) -> tuple[float, float]:
