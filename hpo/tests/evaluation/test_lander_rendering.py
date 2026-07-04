@@ -21,5 +21,5 @@ def test_lander_render_wrapper_uses_custom_sky_and_ground_colors():
         env.close()
 
     assert frame.shape == (400, 600, 3)
-    assert ((frame == colors.sky).all(axis=2)).any()
-    assert ((frame == colors.ground).all(axis=2)).any()
+    assert tuple(frame[10, 10]) == colors.sky
+    assert tuple(frame[390, 10]) == colors.ground

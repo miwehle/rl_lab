@@ -37,8 +37,8 @@ RGB = tuple[int, int, int]
 
 @dataclass(frozen=True)
 class LanderColors:
-    sky: RGB = (255, 255, 255)
-    ground: RGB = (0, 0, 0)
+    sky: RGB = (0, 0, 0)
+    ground: RGB = (255, 255, 255)
     ground_outline: RGB = (0, 0, 0)
     lander_fill: RGB = (128, 102, 230)
     lander_outline: RGB = (77, 77, 128)

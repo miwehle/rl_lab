@@ -12,8 +12,8 @@ RGB = tuple[int, int, int]
 
 @dataclass(frozen=True)
 class LanderColors:
-    sky: RGB = (255, 255, 255)
-    ground: RGB = (0, 0, 0)
+    sky: RGB = (0, 0, 0)
+    ground: RGB = (255, 255, 255)
     ground_outline: RGB = (0, 0, 0)
     lander_fill: RGB = (128, 102, 230)
     lander_outline: RGB = (77, 77, 128)
@@ -62,7 +62,7 @@ def _render_lunar_lander(env, colors: LanderColors):
     env.surf = pygame.Surface((lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H))
 
     pygame.transform.scale(env.surf, (lunar_lander.SCALE, lunar_lander.SCALE))
-    pygame.draw.rect(env.surf, colors.sky, env.surf.get_rect())
+    pygame.draw.rect(env.surf, colors.ground, env.surf.get_rect())
 
     for obj in env.particles:
         obj.ttl -= 0.15
@@ -85,7 +85,7 @@ def _render_lunar_lander(env, colors: LanderColors):
             scaled_poly.append(
                 (coord[0] * lunar_lander.SCALE, coord[1] * lunar_lander.SCALE)
             )
-        pygame.draw.polygon(env.surf, colors.ground, scaled_poly)
+        pygame.draw.polygon(env.surf, colors.sky, scaled_poly)
         gfxdraw.aapolygon(env.surf, scaled_poly, colors.ground_outline)
 
     for obj in env.particles + env.drawlist:
