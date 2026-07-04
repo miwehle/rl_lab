@@ -86,7 +86,13 @@ def _render_lunar_lander(env, colors: LanderColors):
                 (coord[0] * lunar_lander.SCALE, coord[1] * lunar_lander.SCALE)
             )
         pygame.draw.polygon(env.surf, colors.sky, scaled_poly)
-        gfxdraw.aapolygon(env.surf, scaled_poly, colors.ground_outline)
+        gfxdraw.aapolygon(env.surf, scaled_poly, colors.sky)
+        pygame.draw.aaline(
+            env.surf,
+            colors.ground_outline,
+            scaled_poly[0],
+            scaled_poly[1],
+        )
 
     for obj in env.particles + env.drawlist:
         for f in obj.fixtures:
