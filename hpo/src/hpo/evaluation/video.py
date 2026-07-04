@@ -13,6 +13,7 @@ from gymnasium.wrappers import RecordVideo
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.checkpoint_robustness import q_net_from_checkpoint
+from hpo.evaluation.lander_rendering import LanderColors, LanderRenderWrapper
 
 
 def record_checkpoint_video(
@@ -25,6 +26,7 @@ def record_checkpoint_video(
     device=None,
     model_factory: ModelFactory = DQN,
     max_steps: int = 1_000,
+    render_colors: LanderColors | None = None,
 ) -> Path:
     """Record one greedy episode for a saved checkpoint."""
     if max_steps < 1:
@@ -34,10 +36,13 @@ def record_checkpoint_video(
     output_dir = Path(output_dir)
     device = resolve_device(device)
     world_name = str(world)
-    make_env = lambda: environment_factory.make_env(
-        world_name,
-        render_mode="rgb_array",
-    )
+
+    def make_env():
+        env = environment_factory.make_env(world_name, render_mode="rgb_array")
+        if render_colors is not None:
+            env = LanderRenderWrapper(env, render_colors)
+        return env
+
     q_net = q_net_from_checkpoint(
         checkpoint_path,
         make_env=make_env,
@@ -77,10 +82,18 @@ def record_checkpoint_videos(
     device=None,
     model_factory: ModelFactory = DQN,
     max_steps: int = 1_000,
+    colors_by_world: Iterable[LanderColors | None] | None = None,
 ) -> list[Path]:
     """Record one greedy episode for each world/seed pair."""
     worlds = tuple(worlds)
     seeds = tuple(seeds)
+    if colors_by_world is None:
+        colors_by_world = (None,) * len(worlds)
+    else:
+        colors_by_world = tuple(colors_by_world)
+        if len(colors_by_world) != len(worlds):
+            raise ValueError("colors_by_world must have the same length as worlds")
+
     return [
         record_checkpoint_video(
             checkpoint_path=checkpoint_path,
@@ -91,8 +104,9 @@ def record_checkpoint_videos(
             device=device,
             model_factory=model_factory,
             max_steps=max_steps,
+            render_colors=render_colors,
         )
-        for world in worlds
+        for world, render_colors in zip(worlds, colors_by_world)
         for seed in seeds
     ]
 
