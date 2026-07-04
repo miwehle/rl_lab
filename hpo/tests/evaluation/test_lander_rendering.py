@@ -65,10 +65,12 @@ def test_overlay_lines_include_static_world_conditions():
         world = World()
         _weather = (12.36, 1.14)
         unwrapped = Unwrapped()
+        reset_seed = 123
 
     assert _overlay_lines(Env()) == [
         "Earth",
         "g: 10.0 m/s²",
         "wind: 2.6 m/s²",
         "turb: 1.4 rad/s²",
+        "kick: 3.6 m/s",
     ]

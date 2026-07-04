@@ -6,6 +6,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.envs.box2d import lunar_lander
 from gymnasium.error import DependencyNotInstalled
+from gymnasium.utils import seeding
 
 RGB = tuple[int, int, int]
 
@@ -39,11 +40,16 @@ class LanderRenderWrapper(gym.Wrapper):
         super().__init__(env)
         self.colors = colors or LanderColors()
         self.overlay = overlay
+        self.reset_seed: int | None = None
+
+    def reset(self, *, seed: int | None = None, options=None):
+        self.reset_seed = seed
+        return self.env.reset(seed=seed, options=options)
 
     def render(self):
         return _render_lunar_lander(
             self.env.unwrapped,
-            self.env,
+            self,
             self.colors,
             self.overlay,
         )
@@ -207,7 +213,8 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
 
 def _overlay_lines(source_env) -> list[str]:
     lines = []
-    world = getattr(source_env, "world", None)
+    env = getattr(source_env, "env", source_env)
+    world = getattr(env, "world", None)
     if world is not None:
         name = getattr(world, "name", None)
         gravity = getattr(world, "gravity", None)
@@ -216,12 +223,12 @@ def _overlay_lines(source_env) -> list[str]:
         if gravity is not None:
             lines.append(f"g: {abs(float(gravity)):.1f} m/s²")
 
-    weather = getattr(source_env, "_weather", None)
+    lander = getattr(env.unwrapped, "lander", None)
+    mass = getattr(lander, "mass", None)
+    inertia = getattr(lander, "inertia", None)
+    weather = getattr(env, "_weather", None)
     if weather is not None:
         wind, turbulence = weather
-        lander = getattr(source_env.unwrapped, "lander", None)
-        mass = getattr(lander, "mass", None)
-        inertia = getattr(lander, "inertia", None)
         if mass:
             lines.append(f"wind: {abs(float(wind)) / float(mass):.1f} m/s²")
         if inertia:
@@ -229,4 +236,25 @@ def _overlay_lines(source_env) -> list[str]:
                 f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²"
             )
 
+    kick = _initial_kick_delta_v(getattr(source_env, "reset_seed", None), mass)
+    if kick is not None:
+        lines.append(f"kick: {kick:.1f} m/s")
+
     return lines
+
+
+def _initial_kick_delta_v(seed: int | None, mass) -> float | None:
+    if seed is None or not mass:
+        return None
+    fx, fy = _initial_force(seed)
+    return float(np.hypot(fx, fy)) * (1.0 / lunar_lander.FPS) / float(mass)
+
+
+def _initial_force(seed: int) -> tuple[float, float]:
+    rng, _ = seeding.np_random(seed)
+    viewport_height = lunar_lander.VIEWPORT_H / lunar_lander.SCALE
+    chunks = 11
+    rng.uniform(0, viewport_height / 2, size=(chunks + 1,))
+    fx = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
+    fy = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
+    return float(fx), float(fy)
