@@ -181,6 +181,7 @@ def test_record_checkpoint_videos_records_world_seed_product(monkeypatch, tmp_pa
         output_dir=tmp_path,
         colors_by_world=[earth_colors, venus_colors],
         render_overlay=overlay,
+        progress=False,
     )
 
     assert calls == [
@@ -207,6 +208,41 @@ def test_record_checkpoint_videos_rejects_mismatched_colors_by_world(tmp_path):
             output_dir=tmp_path,
             colors_by_world=[video.LanderColors()],
         )
+
+
+def test_record_checkpoint_videos_uses_progress_bar(monkeypatch, tmp_path):
+    progress_calls = []
+
+    def record(**kwargs):
+        return tmp_path / f"{kwargs['world']}_{kwargs['seed']}.mp4"
+
+    def fake_tqdm(items, *, total, desc):
+        progress_calls.append({"items": list(items), "total": total, "desc": desc})
+        return progress_calls[-1]["items"]
+
+    monkeypatch.setattr(video, "record_checkpoint_video", record)
+    monkeypatch.setattr(video, "_tqdm", lambda: fake_tqdm)
+
+    video.record_checkpoint_videos(
+        checkpoint_path="checkpoint.pt",
+        environment_factory=object(),
+        worlds=["earth", "venus"],
+        seeds=[1, 2],
+        output_dir=tmp_path,
+    )
+
+    assert progress_calls == [
+        {
+            "items": [
+                ("earth", 1, None),
+                ("earth", 2, None),
+                ("venus", 1, None),
+                ("venus", 2, None),
+            ],
+            "total": 4,
+            "desc": "Recording videos",
+        }
+    ]
 
 
 def test_show_video_conditions_formats_floats_with_two_decimals(monkeypatch):

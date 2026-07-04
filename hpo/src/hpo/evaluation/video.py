@@ -93,6 +93,7 @@ def record_checkpoint_videos(
     max_steps: int = 1_000,
     colors_by_world: Iterable[LanderColors | None] | None = None,
     render_overlay: LanderOverlay | None = None,
+    progress: bool = True,
 ) -> list[Path]:
     """Record one greedy episode for each world/seed pair."""
     worlds = tuple(worlds)
@@ -104,6 +105,11 @@ def record_checkpoint_videos(
         if len(colors_by_world) != len(worlds):
             raise ValueError("colors_by_world must have the same length as worlds")
 
+    jobs = [
+        (world, seed, render_colors)
+        for world, render_colors in zip(worlds, colors_by_world)
+        for seed in seeds
+    ]
     return [
         record_checkpoint_video(
             checkpoint_path=checkpoint_path,
@@ -117,8 +123,12 @@ def record_checkpoint_videos(
             render_colors=render_colors,
             render_overlay=render_overlay,
         )
-        for world, render_colors in zip(worlds, colors_by_world)
-        for seed in seeds
+        for world, seed, render_colors in _with_progress(
+            jobs,
+            enabled=progress,
+            total=len(jobs),
+            desc="Recording videos",
+        )
     ]
 
 
@@ -190,6 +200,23 @@ def display_video(video_paths: Iterable[str | Path], nr: int, *, width: int = 72
 def _video_conditions_style(table: pd.DataFrame):
     float_columns = table.select_dtypes(include="floating").columns
     return table.style.hide(axis="index").format("{:.2f}", subset=float_columns)
+
+
+def _with_progress(items, *, enabled: bool, total: int, desc: str):
+    if not enabled:
+        return items
+    tqdm = _tqdm()
+    if tqdm is None:
+        return items
+    return tqdm(items, total=total, desc=desc)
+
+
+def _tqdm():
+    try:
+        from tqdm.auto import tqdm
+    except ImportError:
+        return None
+    return tqdm
 
 
 def _greedy_action(q_net, observation, device) -> int:
