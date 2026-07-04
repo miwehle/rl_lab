@@ -10,7 +10,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `HP` = Hyperpa
 
 ## Q3 Verpasst Elise manchmal ohne Not gute Scores?
 
-1. Wird das Training manchmal zu früh abgebrochen (vom Trainer, vom Gym?), so dass der Reward 100 für die Landung nicht addiert wird? Oder ist nur das Video zu kurz, so dass der Lande-Reward nich gefilmt wird?
+1. ~~Wird das Training manchmal zu früh abgebrochen (vom Trainer, vom Gym?), so dass der Reward 100 für die Landung nicht addiert wird? Oder ist nur das Video zu kurz, so dass der Lande-Reward nich gefilmt wird?~~  *erledigt*
 2. Manchmal hält Elise nach der Landung eine Seitendüse betätigt. Wieviel Score kostet das?
 
 ## Q2 Training Nutzen Bei Epsilon Unter 0.05

@@ -9,6 +9,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 | [[#H3 Sampling Should Favor Hard Worlds\|H3]] | Sampling Should Favor Hard Worlds | SSL, Sampling |
 | [[#H4 Observation Mode Is Still Open\|H4]] | Observation Mode Is Still Open | SSL |
 | [[#H5 Good HPs Are Not Enough\|H5]] | Good HPs Are Not Enough | RL, Checkpointing |
+| [[#H6 Ground Side-Thrust Penalty Can Recover Landing Rewards\|H6]] | Ground Side-Thrust Penalty Can Recover Landing Rewards | RL, SSL |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
@@ -71,3 +72,15 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 **Could be wrong if:** Stronger evaluation and training settings make repeated runs with the same HPs consistently similar.
 
 **Consequence:** Save and evaluate concrete good checkpoints immediately; BI11 remains central, and automatic Drive preservation of new best eval checkpoints is a core requirement.
+
+## H6 Ground Side-Thrust Penalty Can Recover Landing Rewards
+
+**These:** A small negative training reward for side-thrust while both legs are on the ground can raise the true Gym score by helping Elise stop after touchdown and receive the terminal `+100` landing reward.
+
+**Evidence:** In [[observations#O14 Ground Side-Thrust Can Hide Landing Reward|O14]], `earth`, `seed=1911` had both legs on the ground from step `227`, but continued side-thrusting until truncation at step `1000`, ending with score `168.8` and no landing reward.
+
+**Prediction:** Shaped training should reduce `both_contact + awake + side_thruster` tails, reduce landed-but-truncated episodes, and increase true unshaped Gym score across evaluation seeds.
+
+**Could be wrong if:** The penalty harms approach control, reduces exploration, or merely shifts failures from side-thrusting on the ground to other low-score behaviors.
+
+**Consequence:** Test this as a small reward-shaping experiment before making it part of larger HPO runs.
