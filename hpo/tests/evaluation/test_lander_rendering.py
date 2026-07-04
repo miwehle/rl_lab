@@ -92,7 +92,6 @@ def test_overlay_lines_include_static_world_conditions():
         ("wind: 2.6 m/s²", None),
         ("turb: 1.4 rad/s²", None),
         ("kick: 3.6 m/s", (1.0, -1.0)),
-        ("score: 12.3", None),
     ]
 
 

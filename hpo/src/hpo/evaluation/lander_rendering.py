@@ -261,14 +261,22 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
     if not pygame.font.get_init():
         pygame.font.init()
     font = pygame.font.Font(None, 18)
+    score = getattr(source_env, "score", None)
+    if score is not None:
+        score_text = f"score: {float(score):.1f}"
+        _draw_text(
+            surface,
+            font,
+            score_text,
+            (surface.get_width() - font.size(score_text)[0] - 8, 8),
+            overlay,
+        )
+
     x, y = 8, 8
     line_height = font.get_linesize()
     for index, (line, direction) in enumerate(lines):
         position = (x, y + index * line_height)
-        shadow = font.render(line, True, overlay.shadow_color)
-        text = font.render(line, True, overlay.text_color)
-        surface.blit(shadow, (position[0] + 1, position[1] + 1))
-        surface.blit(text, position)
+        text = _draw_text(surface, font, line, position, overlay)
         if direction is not None:
             arrow_center = (
                 position[0] + text.get_width() + 12,
@@ -310,11 +318,15 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
         delta_v, direction = kick
         lines.append((f"kick: {delta_v:.1f} m/s", direction))
 
-    score = getattr(source_env, "score", None)
-    if score is not None:
-        lines.append((f"score: {float(score):.1f}", None))
-
     return lines
+
+
+def _draw_text(surface, font, line: str, position: tuple[int, int], overlay: LanderOverlay):
+    shadow = font.render(line, True, overlay.shadow_color)
+    text = font.render(line, True, overlay.text_color)
+    surface.blit(shadow, (position[0] + 1, position[1] + 1))
+    surface.blit(text, position)
+    return text
 
 
 def _initial_kick(seed: int | None, mass) -> tuple[float, tuple[float, float]] | None:
