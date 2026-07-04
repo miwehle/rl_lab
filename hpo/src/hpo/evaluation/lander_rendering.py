@@ -219,7 +219,14 @@ def _overlay_lines(source_env) -> list[str]:
     weather = getattr(source_env, "_weather", None)
     if weather is not None:
         wind, turbulence = weather
-        lines.append(f"wind: {float(wind):.1f}")
-        lines.append(f"turb: {float(turbulence):.1f}")
+        lander = getattr(source_env.unwrapped, "lander", None)
+        mass = getattr(lander, "mass", None)
+        inertia = getattr(lander, "inertia", None)
+        if mass:
+            lines.append(f"wind a: {abs(float(wind)) / float(mass):.1f} m/s²")
+        if inertia:
+            lines.append(
+                f"turb a: {abs(float(turbulence)) / float(inertia):.1f} rad/s²"
+            )
 
     return lines
