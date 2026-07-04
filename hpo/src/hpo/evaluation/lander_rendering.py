@@ -11,7 +11,16 @@ from gymnasium.error import DependencyNotInstalled
 from gymnasium.utils import seeding
 
 RGB = tuple[int, int, int]
-_KICK_ARROWS = ("→", "↗", "↑", "↖", "←", "↙", "↓", "↘")
+_KICK_DIRECTIONS = (
+    (1.0, 0.0),
+    (1.0, 1.0),
+    (0.0, 1.0),
+    (-1.0, 1.0),
+    (-1.0, 0.0),
+    (-1.0, -1.0),
+    (0.0, -1.0),
+    (1.0, -1.0),
+)
 
 
 @dataclass(frozen=True)
@@ -247,15 +256,21 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
     font = pygame.font.Font(None, 18)
     x, y = 8, 8
     line_height = font.get_linesize()
-    for index, line in enumerate(lines):
+    for index, (line, direction) in enumerate(lines):
         position = (x, y + index * line_height)
         shadow = font.render(line, True, overlay.shadow_color)
         text = font.render(line, True, overlay.text_color)
         surface.blit(shadow, (position[0] + 1, position[1] + 1))
         surface.blit(text, position)
+        if direction is not None:
+            arrow_center = (
+                position[0] + text.get_width() + 12,
+                position[1] + line_height // 2,
+            )
+            _draw_arrow(surface, arrow_center, direction, overlay)
 
 
-def _overlay_lines(source_env) -> list[str]:
+def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
     lines = []
     env = getattr(source_env, "env", source_env)
     world = getattr(env, "world", None)
@@ -263,9 +278,9 @@ def _overlay_lines(source_env) -> list[str]:
         name = getattr(world, "name", None)
         gravity = getattr(world, "gravity", None)
         if name is not None:
-            lines.append(str(name).title())
+            lines.append((str(name).title(), None))
         if gravity is not None:
-            lines.append(f"g: {abs(float(gravity)):.1f} m/s²")
+            lines.append((f"g: {abs(float(gravity)):.1f} m/s²", None))
 
     lander = getattr(env.unwrapped, "lander", None)
     mass = getattr(lander, "mass", None)
@@ -274,31 +289,34 @@ def _overlay_lines(source_env) -> list[str]:
     if weather is not None:
         wind, turbulence = weather
         if mass:
-            lines.append(f"wind: {abs(float(wind)) / float(mass):.1f} m/s²")
+            lines.append((f"wind: {abs(float(wind)) / float(mass):.1f} m/s²", None))
         if inertia:
             lines.append(
-                f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²"
+                (
+                    f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²",
+                    None,
+                )
             )
 
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     if kick is not None:
-        delta_v, arrow = kick
-        lines.append(f"kick: {delta_v:.1f} m/s {arrow}")
+        delta_v, direction = kick
+        lines.append((f"kick: {delta_v:.1f} m/s", direction))
 
     return lines
 
 
-def _initial_kick(seed: int | None, mass) -> tuple[float, str] | None:
+def _initial_kick(seed: int | None, mass) -> tuple[float, tuple[float, float]] | None:
     if seed is None or not mass:
         return None
     fx, fy = _initial_force(seed)
     delta_v = float(np.hypot(fx, fy)) * (1.0 / lunar_lander.FPS) / float(mass)
-    return delta_v, _kick_arrow(fx, fy)
+    return delta_v, _kick_direction(fx, fy)
 
 
-def _kick_arrow(fx: float, fy: float) -> str:
-    index = round(math.atan2(fy, fx) / (math.pi / 4)) % len(_KICK_ARROWS)
-    return _KICK_ARROWS[index]
+def _kick_direction(fx: float, fy: float) -> tuple[float, float]:
+    index = round(math.atan2(fy, fx) / (math.pi / 4)) % len(_KICK_DIRECTIONS)
+    return _KICK_DIRECTIONS[index]
 
 
 def _initial_force(seed: int) -> tuple[float, float]:
@@ -309,3 +327,45 @@ def _initial_force(seed: int) -> tuple[float, float]:
     fx = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
     fy = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
     return float(fx), float(fy)
+
+
+def _draw_arrow(
+    surface,
+    center: tuple[int, int],
+    direction: tuple[float, float],
+    overlay: LanderOverlay,
+) -> None:
+    shadow_center = (center[0] + 1, center[1] + 1)
+    _draw_arrow_shape(surface, shadow_center, direction, overlay.shadow_color)
+    _draw_arrow_shape(surface, center, direction, overlay.text_color)
+
+
+def _draw_arrow_shape(
+    surface,
+    center: tuple[int, int],
+    direction: tuple[float, float],
+    color: RGB,
+) -> None:
+    import pygame
+
+    dx, dy = direction
+    length = math.hypot(dx, dy)
+    if not length:
+        return
+    dx /= length
+    dy = -dy / length
+    arrow_length = 12
+    head_length = 4
+    start = (center[0] - dx * arrow_length / 2, center[1] - dy * arrow_length / 2)
+    end = (center[0] + dx * arrow_length / 2, center[1] + dy * arrow_length / 2)
+    angle = math.atan2(dy, dx)
+    left = (
+        end[0] - head_length * math.cos(angle - math.pi / 6),
+        end[1] - head_length * math.sin(angle - math.pi / 6),
+    )
+    right = (
+        end[0] - head_length * math.cos(angle + math.pi / 6),
+        end[1] - head_length * math.sin(angle + math.pi / 6),
+    )
+    pygame.draw.line(surface, color, start, end, 2)
+    pygame.draw.polygon(surface, color, [end, left, right])
