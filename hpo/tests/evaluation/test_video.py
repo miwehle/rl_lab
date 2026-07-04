@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import torch
+from IPython import display as ipython_display
 
 from hpo.evaluation import video
 
@@ -205,3 +207,25 @@ def test_record_checkpoint_videos_rejects_mismatched_colors_by_world(tmp_path):
             output_dir=tmp_path,
             colors_by_world=[video.LanderColors()],
         )
+
+
+def test_show_video_conditions_formats_floats_with_two_decimals(monkeypatch):
+    displayed = []
+    table = pd.DataFrame(
+        {
+            "nr": [0],
+            "world": ["earth"],
+            "seed": [7],
+            "gravity": [-10.0],
+            "wind": [1.2],
+        }
+    )
+
+    monkeypatch.setattr(video, "video_conditions_table", lambda *_args: table)
+    monkeypatch.setattr(ipython_display, "display", displayed.append)
+
+    video.show_video_conditions(object(), ["earth"], [7])
+
+    html = displayed[0].to_html()
+    assert "-10.00" in html
+    assert "1.20" in html

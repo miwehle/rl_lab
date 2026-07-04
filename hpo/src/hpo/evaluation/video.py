@@ -161,7 +161,7 @@ def show_video_conditions(
     from IPython.display import display
 
     table = video_conditions_table(environment_factory, worlds, seeds)
-    display(table.style.hide(axis="index"))
+    display(_video_conditions_style(table))
 
 
 def initial_force(seed: int) -> tuple[float, float]:
@@ -185,6 +185,11 @@ def display_video(video_paths: Iterable[str | Path], nr: int, *, width: int = 72
     path = Path(tuple(video_paths)[nr])
     display(Markdown(f"### {path.name}"))
     display(Video(str(path), embed=True, width=width))
+
+
+def _video_conditions_style(table: pd.DataFrame):
+    float_columns = table.select_dtypes(include="floating").columns
+    return table.style.hide(axis="index").format("{:.2f}", subset=float_columns)
 
 
 def _greedy_action(q_net, observation, device) -> int:
