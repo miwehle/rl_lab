@@ -144,6 +144,42 @@ def checkpoint_scores(
     return pd.DataFrame(rows)
 
 
+def robustness_over_all_worlds(
+    checkpoint_path: str | Path,
+    objective_cfg: ObjectiveConfig,
+    *,
+    episodes: int = 100,
+    progress: bool = True,
+    model_factory: ModelFactory = DQN,
+) -> dict[str, Any]:
+    """Return one checkpoint's robustness summary over all evaluation worlds."""
+    scores = checkpoint_scores(
+        checkpoint_path,
+        objective_cfg,
+        episodes=episodes,
+        progress=progress,
+        model_factory=model_factory,
+    )
+    values = scores["score"]
+    world_scores = scores.groupby("world", sort=False)["score"].mean()
+    return {
+        "checkpoint_path": str(checkpoint_path),
+        "episodes_per_world": episodes,
+        "episodes": int(values.count()),
+        "mean": float(values.mean()),
+        "median": float(values.median()),
+        "min": float(values.min()),
+        "q05": float(values.quantile(0.05)),
+        "q25": float(values.quantile(0.25)),
+        "q75": float(values.quantile(0.75)),
+        "q95": float(values.quantile(0.95)),
+        "max": float(values.max()),
+        "world_scores": {
+            str(world): float(score) for world, score in world_scores.items()
+        },
+    }
+
+
 def score_summary(scores: pd.DataFrame) -> pd.DataFrame:
     """Return the checkpoint score summary used by the notebook plots."""
     return scores.groupby("world", sort=False)["score"].agg(

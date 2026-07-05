@@ -8,6 +8,7 @@ from dqn.model import DQN
 from hpo.checkpoint_robustness import (
     checkpoint_scores,
     evaluate_checkpoint_robustness,
+    robustness_over_all_worlds,
     score_summary,
 )
 from hpo.checkpointing import save_checkpoint
@@ -171,6 +172,40 @@ def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path)
     )
 
     assert progress_calls == [{"total": 4, "desc": "Evaluating checkpoint"}]
+
+
+def test_robustness_over_all_worlds_returns_candidate_summary(tmp_path) -> None:
+    checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
+    save_checkpoint(
+        DQN(1, 2),
+        checkpoint_path,
+        {"score": 200.0, "episode": 1000, "window": None},
+    )
+
+    summary = robustness_over_all_worlds(
+        checkpoint_path,
+        objective_config(
+            environment_factory=FakeEnvironmentFactory(),
+            device="cpu",
+        ),
+        episodes=2,
+        progress=False,
+    )
+
+    assert summary == {
+        "checkpoint_path": str(checkpoint_path),
+        "episodes_per_world": 2,
+        "episodes": 4,
+        "mean": pytest.approx(15.0),
+        "median": pytest.approx(15.0),
+        "min": pytest.approx(10.0),
+        "q05": pytest.approx(10.0),
+        "q25": pytest.approx(10.0),
+        "q75": pytest.approx(20.0),
+        "q95": pytest.approx(20.0),
+        "max": pytest.approx(20.0),
+        "world_scores": {"earth": pytest.approx(10.0), "venus": pytest.approx(20.0)},
+    }
 
 
 def test_score_summary_returns_notebook_quantiles() -> None:
