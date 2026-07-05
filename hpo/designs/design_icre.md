@@ -127,7 +127,7 @@ Das Dashboard erkennt am `RobustnessProgress.title == "Checkpoint Robustness Eva
 4. `evaluate_checkpoint_robustness(...)` im Notebook standardmaessig mit `top_n=3` verwenden.
 5. Tests fuer Titel, Traces und Kandidatenquantile ergaenzen.
 
-Der Panel-Titel darf nicht mehr fest `HP Robustness Evaluation` heissen, wenn im Panel tatsaechlich Checkpoint Robustness angezeigt wird; er soll die aktuell erzaehlte Robustness-Story korrekt benennen.
+Der Panel-Titel darf nicht mehr fest `HP Robustness Evaluation` heissen, wenn im Panel tatsaechlich Checkpoint Robustness angezeigt wird; er soll die aktuell erzaehlte Robustness-Story korrekt benennen, zum Beispiel `Checkpoint Robustness Evaluation - Candidate 2/3`.
 
 ## Nichtziele
 
