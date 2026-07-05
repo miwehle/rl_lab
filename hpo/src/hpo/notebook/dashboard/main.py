@@ -115,6 +115,8 @@ def build_dashboard(
         add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
+    if robustness_progress is None:
+        _hide_waiting_panel_axes(figure, row=2, col=2)
     return figure
 
 
@@ -122,18 +124,35 @@ def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
         height=850,
-        margin=dict(l=70, r=70, t=55, b=55),
+        margin=dict(l=70, r=70, t=55, b=85),
         legend=dict(
             orientation="h",
             x=0.01,
-            y=1.04,
+            y=-0.09,
             xanchor="left",
-            yanchor="bottom",
+            yanchor="top",
         ),
         plot_bgcolor="white",
     )
     figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
     figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
+
+
+def _hide_waiting_panel_axes(figure: Any, *, row: int, col: int) -> None:
+    figure.update_xaxes(
+        showticklabels=False,
+        showgrid=False,
+        zeroline=False,
+        row=row,
+        col=col,
+    )
+    figure.update_yaxes(
+        showticklabels=False,
+        showgrid=False,
+        zeroline=False,
+        row=row,
+        col=col,
+    )
 
 
 def _study_title(study: Any) -> str:

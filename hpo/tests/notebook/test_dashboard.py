@@ -182,10 +182,17 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     )
     assert list(study_score_trace.y) == [50.0]
     assert list(figure.layout.yaxis2.range) == [-10, 260]
+    assert figure.layout.legend.y < 0
+    assert figure.layout.legend.yanchor == "top"
+    assert figure.layout.margin.b >= 85
     assert any(
         annotation.text == "Waiting for robustness evaluation"
         for annotation in figure.layout.annotations
     )
+    assert figure.layout.xaxis3.showticklabels is False
+    assert figure.layout.yaxis3.showticklabels is False
+    assert figure.layout.xaxis3.showgrid is False
+    assert figure.layout.yaxis3.showgrid is False
     assert any(
         annotation.text == "Waiting for trial training"
         for annotation in figure.layout.annotations
