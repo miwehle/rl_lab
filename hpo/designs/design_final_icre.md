@@ -112,6 +112,18 @@ Es gibt keinen Margin-Parameter. Ein Kandidat muss sich zuerst in der schnellen 
 
 Wenn keine Herausforderer-Checkpoints gespeichert wurden, gibt es keine CRE-Kandidaten. Dann wird `checkpoint_robustness = []` gespeichert, der Incumbent bleibt unveraendert, und die Study gilt als fertig.
 
+Dieser Randfall ist wichtig, weil sich dort Resume-Bugs leicht absetzen koennen.
+
+Die Semantik des Study-Attrs ist:
+
+```text
+checkpoint_robustness fehlt   -> CRE ist noch nicht erledigt
+checkpoint_robustness == []    -> CRE ist erledigt, aber es gab keine Kandidaten
+checkpoint_robustness hat Werte -> CRE ist erledigt und hat Kandidaten bewertet
+```
+
+Die Implementierung darf den leeren Fall daher nicht nur "still ueberspringen", sondern muss die leere Liste explizit speichern.
+
 ## Siegerregel
 
 KISS-Regel: Unter den CRE-Kandidaten gewinnt der Checkpoint mit dem hoechsten `robust_score`.
