@@ -4,7 +4,7 @@
 
 Das Dashboard soll Checkpoint Robustness Evaluation als kompaktes Overview-Panel integrieren.
 
-Naechster Schritt: Das bisherige HP-Robustness-Panel wird durch Checkpoint Robustness ersetzt, weil fuer uns der konkrete gespeicherte Pilot wichtiger ist als die HP-Robustheit.
+Erste Implementierungsstufe: Das bisherige HP-Robustness-Panel wird durch Checkpoint Robustness ersetzt, weil fuer uns der konkrete gespeicherte Pilot wichtiger ist als die HP-Robustheit.
 
 Die bestehende HP-Robustness-Implementierung bleibt erhalten; sie tritt nur im Dashboard-Overview vorerst in den Hintergrund.
 
@@ -56,7 +56,7 @@ Die Quantile werden ueber die gesammelten Evaluationsscores des Kandidaten gebil
 
 KISS-Regel: Der Checkpoint mit dem hoechsten Mean Gym Score gewinnt.
 
-Alle weiteren Werte werden berichtet und im Plot sichtbar gemacht, gehen aber im naechsten Schritt nicht in die Auswahl ein:
+Alle weiteren Werte werden berichtet und im Plot sichtbar gemacht, gehen aber in dieser Implementierungsstufe nicht in die Auswahl ein:
 
 - `median`
 - `min..max`
@@ -67,7 +67,7 @@ Damit bleibt die Auswahl konsistent mit dem bisherigen Gym-Score-Ziel und vermei
 
 ## Evaluation
 
-Default fuer den naechsten Schritt:
+Default fuer die erste Implementierungsstufe:
 
 ```text
 top_n = 3
@@ -76,9 +76,9 @@ eval_episodes = bestehender Notebook-/Call-Wert
 
 Das Dashboard-Panel wird auf Kandidatenebene aktualisiert: nach Kandidat 1, nach Kandidat 2 und nach Kandidat 3.
 
-Es gibt im naechsten Schritt keine Zwischenupdates innerhalb eines Kandidaten. Das passt zum bestehenden `evaluate_checkpoint_robustness(...)`, bleibt uebersichtlich und vermeidet neue Progress-Datenstrukturen.
+Es gibt in dieser Implementierungsstufe keine Zwischenupdates innerhalb eines Kandidaten. Das passt zum bestehenden `evaluate_checkpoint_robustness(...)`, bleibt uebersichtlich und vermeidet neue Progress-Datenstrukturen.
 
-KISS-Vorteil: Die bestehende Implementierung berichtet bereits auf Kandidatenebene; dadurch braucht der naechste Schritt kaum Aenderungen an `evaluate_checkpoint_robustness(...)`.
+KISS-Vorteil: Die bestehende Implementierung berichtet bereits auf Kandidatenebene; dadurch braucht diese Implementierungsstufe kaum Aenderungen an `evaluate_checkpoint_robustness(...)`.
 
 Falls ein Kandidat spaeter messbar lange dauert, kann granularerer Fortschritt als eigener Ausbauschritt folgen.
 
@@ -127,6 +127,8 @@ Das Dashboard erkennt am `RobustnessProgress.title == "Checkpoint Robustness Eva
 4. `evaluate_checkpoint_robustness(...)` im Notebook standardmaessig mit `top_n=3` verwenden.
 5. Tests fuer Titel, Traces und Kandidatenquantile ergaenzen.
 
+Der Panel-Titel darf nicht mehr fest `HP Robustness Evaluation` heissen, wenn im Panel tatsaechlich Checkpoint Robustness angezeigt wird; er soll die aktuell erzaehlte Robustness-Story korrekt benennen.
+
 ## Nichtziele
 
 - Keine Detailansicht.
@@ -134,4 +136,4 @@ Das Dashboard erkennt am `RobustnessProgress.title == "Checkpoint Robustness Eva
 - Keine Heatmap.
 - Keine per-Welt-Quantile im Dashboard-Overview.
 - Keine neue Colab-Interaktivitaet.
-- Keine Vermischung mit HP Robustness im ersten Schritt.
+- Keine Vermischung mit HP Robustness in dieser Implementierungsstufe.
