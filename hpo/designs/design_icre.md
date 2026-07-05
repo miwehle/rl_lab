@@ -86,6 +86,10 @@ Falls ein Kandidat spaeter messbar lange dauert, kann granularerer Fortschritt a
 
 Der Overview braucht pro Kandidat eine kleine Summary.
 
+Nuetzliche Voraussetzung ist ein kleiner Helper in `checkpoint_robustness.py`, zum Beispiel `robustness_over_all_worlds(checkpoint_path, objective_cfg, ...)`.
+
+Der Helper evaluiert einen Checkpoint ueber alle Evaluationswelten und liefert die fuer den Kandidatenplot benoetigten Werte: `mean`, `median`, `min`, `max`, `q05`, `q25`, `q75` und `q95`.
+
 Moegliche Datenstruktur:
 
 ```python
