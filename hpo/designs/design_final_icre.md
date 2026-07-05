@@ -19,8 +19,8 @@ Der normale Ablauf wird:
 ```text
 StudyRunner.run(...)
   -> Optuna-Trials trainieren
-  -> eval-best Checkpoints der Trials sammeln
-  -> Top-N Checkpoints robust evaluieren
+  -> eval-best Herausforderer-Checkpoints der Trials sammeln
+  -> Top-N Herausforderer robust evaluieren
   -> besten robusten Checkpoint als Study-Ergebnis speichern
   -> Incumbent aktualisieren
   -> Dashboard zeigt alles live
@@ -61,7 +61,7 @@ runner = StudyRunner(
 )
 ```
 
-`robust_candidates=3` waehlt die drei besten eval-best Checkpoints nach Source Score aus.
+`robust_candidates=3` waehlt die drei besten gespeicherten eval-best Herausforderer-Checkpoints nach Source Score aus.
 
 `robust_eval_episodes=50` evaluiert jeden dieser Checkpoints mit 50 Episoden pro Welt.
 
@@ -91,9 +91,30 @@ checkpoint_results = evaluate_checkpoint_robustness(
 
 Die bestehende Kandidatenebenen-Granularitaet reicht erstmal: Das Panel aktualisiert sich nach Kandidat 1, Kandidat 2 und Kandidat 3.
 
+## Herausforderer-Qualifikation
+
+Checkpoint-Speicherung bleibt hart an den bisherigen Incumbent Score gekoppelt.
+
+Wenn `self.incumbent_score` gesetzt ist, bleibt die bestehende Logik erhalten:
+
+```python
+objective_cfg = _with_checkpoint_min_score(
+    objective_cfg,
+    self.incumbent_score,
+)
+```
+
+Dadurch werden nur Checkpoints gespeichert, die den bisherigen Incumbent bereits in der schnellen Trial-Evaluation schlagen.
+
+Diese gespeicherten Checkpoints sind die Herausforderer fuer CRE.
+
+Es gibt keinen Margin-Parameter. Ein Kandidat muss sich zuerst in der schnellen Trial-Evaluation qualifizieren und danach in CRE robust genug sein, um Incumbent zu werden.
+
+Wenn keine Herausforderer-Checkpoints gespeichert wurden, gibt es keine CRE-Kandidaten. Dann wird `checkpoint_robustness = []` gespeichert, der Incumbent bleibt unveraendert, und die Study gilt als fertig.
+
 ## Siegerregel
 
-KISS-Regel: Der Checkpoint mit dem hoechsten `robust_score` gewinnt.
+KISS-Regel: Unter den CRE-Kandidaten gewinnt der Checkpoint mit dem hoechsten `robust_score`.
 
 `evaluate_checkpoint_robustness(...)` setzt `robust_score` bereits auf den Mean ueber alle gesammelten Checkpoint-Evaluationsscores.
 
@@ -124,6 +145,13 @@ Dafuer muss der Runner den Trial des Gewinner-Checkpoints ueber `trial_number` f
 
 Wenn der robuste Sieger den bisherigen Incumbent Score nicht schlaegt, bleibt der bisherige Incumbent erhalten.
 
+Das ist die zweite Stufe der Herausforderung:
+
+```text
+1. Qualifikation: schneller Trial-Score > Incumbent Score
+2. Titelgewinn: CRE robust_score > Incumbent Score
+```
+
 ## Study Attrs
 
 `evaluate_checkpoint_robustness(...)` speichert bereits:
@@ -152,6 +180,8 @@ and "incumbent_score" in study.user_attrs
 ```
 
 Damit wird eine nach Optuna abgeschlossene, aber noch nicht robust gepruefte Study nicht faelschlich als fertig betrachtet.
+
+Eine Study ohne gespeicherte Herausforderer-Checkpoints gilt erst dann als fertig, wenn `checkpoint_robustness` explizit als leere Liste gespeichert wurde.
 
 ## Notebook
 
