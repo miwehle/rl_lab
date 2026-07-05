@@ -16,6 +16,7 @@ class RobustnessProgress:
     step_label: str = "Seed"
     first_score_label: str = "Optimize trial"
     extra_score_label: str = "Extra seed"
+    checkpoint_summaries: list[dict[str, Any]] | None = None
 
 
 @dataclass(frozen=True)

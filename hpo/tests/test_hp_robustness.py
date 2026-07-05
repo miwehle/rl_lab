@@ -235,6 +235,19 @@ def test_select_robust_best_reports_training_progress(monkeypatch, tmp_path) -> 
     assert training_calls[0].episode_returns == [1.0]
 
 
+def test_robustness_progress_accepts_checkpoint_summaries() -> None:
+    progress = RobustnessProgress(
+        candidate_index=1,
+        candidate_count=1,
+        seed_index=1,
+        seed_count=1,
+        candidate_seed_scores=[[200.0]],
+        checkpoint_summaries=[{"mean": 250.0}],
+    )
+
+    assert progress.checkpoint_summaries == [{"mean": 250.0}]
+
+
 def test_select_robust_best_rejects_empty_study() -> None:
     with pytest.raises(ValueError, match="no complete trials"):
         select_robust_best(
