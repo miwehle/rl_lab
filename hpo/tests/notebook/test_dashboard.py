@@ -185,18 +185,22 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     assert figure.layout.legend.y < 0
     assert figure.layout.legend.yanchor == "top"
     assert figure.layout.margin.b >= 85
-    assert any(
-        annotation.text == "Waiting for robustness evaluation"
+    no_data_annotations = [
+        annotation
         for annotation in figure.layout.annotations
-    )
+        if annotation.text == "No data yet"
+    ]
+    assert len(no_data_annotations) == 2
     assert figure.layout.xaxis3.showticklabels is False
     assert figure.layout.yaxis3.showticklabels is False
     assert figure.layout.xaxis3.showgrid is False
     assert figure.layout.yaxis3.showgrid is False
-    assert any(
-        annotation.text == "Waiting for trial training"
-        for annotation in figure.layout.annotations
-    )
+    assert figure.layout.xaxis4.showticklabels is False
+    assert figure.layout.yaxis4.showticklabels is False
+    assert figure.layout.yaxis5.showticklabels is False
+    assert figure.layout.xaxis4.showgrid is False
+    assert figure.layout.yaxis4.showgrid is False
+    assert figure.layout.yaxis5.showgrid is False
     assert {trace.name for trace in figure.data} >= {
         "Score",
         "Best score",
@@ -207,7 +211,7 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
         trace.name for trace in figure.data
         if getattr(trace, "showlegend", False) is not False
         and trace.name is not None
-    } == {"Score", "Best score"}
+    } == set()
 
 
 def test_study_plot_uses_evaluation_checkpoint_score() -> None:
@@ -362,16 +366,22 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     )
 
     min_max = [trace for trace in figure.data if trace.name == "min..max"]
-    median = next(trace for trace in figure.data if trace.name == "median")
     mean = next(trace for trace in figure.data if trace.name == "mean")
 
     assert list(min_max[0].x) == [100.0, 320.0]
     assert list(min_max[0].y) == ["C1 trial 35", "C1 trial 35"]
-    assert list(median.x) == [245.0, 248.0]
     assert list(mean.x) == [240.0, 250.0]
     assert list(mean.y) == ["C1 trial 35", "C2 trial 42"]
+    assert mean.marker.color == "white"
+    assert mean.marker.line.color == "black"
+    assert not any(trace.name == "median" for trace in figure.data)
     assert figure.layout.xaxis3.title.text == "Gym score"
     assert figure.layout.yaxis3.title.text == "Checkpoint"
+    assert {
+        trace.name for trace in figure.data
+        if getattr(trace, "showlegend", False) is not False
+        and trace.name is not None
+    } == set()
     assert figure.layout.annotations[3].text.startswith(
         "Checkpoint Robustness Evaluation"
     )
@@ -434,10 +444,7 @@ def test_empty_stored_checkpoint_robustness_hides_panel_axes() -> None:
         incumbent_params={},
     )
 
-    assert any(
-        annotation.text == "No checkpoint robustness candidates"
-        for annotation in figure.layout.annotations
-    )
+    assert any(annotation.text == "No data yet" for annotation in figure.layout.annotations)
     assert figure.layout.xaxis3.showticklabels is False
     assert figure.layout.yaxis3.showticklabels is False
     assert figure.layout.xaxis3.showgrid is False
@@ -484,6 +491,11 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert returns.mode == "lines"
     assert returns.line.color == "#9a9a9a"
     assert env_traces == ["mercury", "earth", "moon", "mars"]
+    assert {
+        trace.name for trace in figure.data
+        if getattr(trace, "showlegend", False) is not False
+        and trace.name is not None
+    } == {"mercury", "earth", "moon", "mars"}
     assert list(moon.x) == [1]
     assert list(moon.y) == [1.0]
     assert list(mars.x) == [2]

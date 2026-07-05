@@ -105,7 +105,7 @@ def add_checkpoint_robustness_evaluation(
                     y=[label, label],
                     mode="lines",
                     name=name,
-                    showlegend=index == 0,
+                    showlegend=False,
                     line=dict(color=color, width=width),
                     hovertemplate=(
                         f"{label}<br>{name}: "
@@ -119,23 +119,12 @@ def add_checkpoint_robustness_evaluation(
 
     figure.add_trace(
         go.Scatter(
-            x=[summary["median"] for summary in checkpoint_summaries],
-            y=labels,
-            mode="markers",
-            name="median",
-            marker=dict(color="white", line=dict(color="black", width=1), size=8),
-            hovertemplate="%{y}<br>Median: %{x:.1f}<extra></extra>",
-        ),
-        row=2,
-        col=2,
-    )
-    figure.add_trace(
-        go.Scatter(
             x=[summary["mean"] for summary in checkpoint_summaries],
             y=labels,
             mode="markers",
             name="mean",
-            marker=dict(color="red", symbol="x", size=9),
+            showlegend=False,
+            marker=dict(color="white", line=dict(color="black", width=1), size=8),
             hovertemplate="%{y}<br>Mean: %{x:.1f}<extra></extra>",
         ),
         row=2,

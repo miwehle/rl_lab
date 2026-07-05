@@ -38,6 +38,7 @@ def add_current_study(
             y=best_scores,
             mode="lines",
             name="Best score",
+            showlegend=False,
             line=dict(color="red"),
         ),
         row=2,

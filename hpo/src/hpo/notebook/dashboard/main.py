@@ -21,6 +21,7 @@ from hpo.study_reporting import (
 
 
 DashboardRenderMode = Literal["safe"]
+NO_DATA_TEXT = "No data yet"
 
 
 def build_dashboard(
@@ -77,11 +78,7 @@ def build_dashboard(
             )
         else:
             figure.add_annotation(
-                text=(
-                    "Waiting for robustness evaluation"
-                    if stored_checkpoint_summaries is None
-                    else "No checkpoint robustness candidates"
-                ),
+                text=NO_DATA_TEXT,
                 row=2,
                 col=2,
                 showarrow=False,
@@ -119,7 +116,7 @@ def build_dashboard(
 
     if training_progress is None:
         figure.add_annotation(
-            text="Waiting for trial training",
+            text=NO_DATA_TEXT,
             row=3,
             col=1,
             showarrow=False,
@@ -131,6 +128,8 @@ def build_dashboard(
     _style_dashboard(figure)
     if hide_robustness_axes:
         _hide_waiting_panel_axes(figure, row=2, col=2)
+    if training_progress is None:
+        _hide_waiting_panel_axes(figure, row=3, col=1, secondary_y=True)
     return figure
 
 
@@ -152,7 +151,13 @@ def _style_dashboard(figure: Any) -> None:
     figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
 
 
-def _hide_waiting_panel_axes(figure: Any, *, row: int, col: int) -> None:
+def _hide_waiting_panel_axes(
+    figure: Any,
+    *,
+    row: int,
+    col: int,
+    secondary_y: bool = False,
+) -> None:
     figure.update_xaxes(
         showticklabels=False,
         showgrid=False,
@@ -160,12 +165,25 @@ def _hide_waiting_panel_axes(figure: Any, *, row: int, col: int) -> None:
         row=row,
         col=col,
     )
+    _hide_waiting_panel_yaxis(figure, row=row, col=col, secondary_y=False)
+    if secondary_y:
+        _hide_waiting_panel_yaxis(figure, row=row, col=col, secondary_y=True)
+
+
+def _hide_waiting_panel_yaxis(
+    figure: Any,
+    *,
+    row: int,
+    col: int,
+    secondary_y: bool,
+) -> None:
     figure.update_yaxes(
         showticklabels=False,
         showgrid=False,
         zeroline=False,
         row=row,
         col=col,
+        secondary_y=secondary_y,
     )
 
 

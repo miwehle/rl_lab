@@ -18,6 +18,7 @@ def add_study_series(figure: Any, studies: Any) -> None:
             text=labels,
             textposition="top right",
             name="Score",
+            showlegend=False,
             line=dict(color="red"),
             marker=dict(color="black"),
         ),
