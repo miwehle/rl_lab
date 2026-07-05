@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from hpo.evaluation import dashboard
-from hpo.evaluation.dashboard import Dashboard
-from hpo.evaluation.dashboard import main as dashboard_main
+from hpo.notebook import dashboard
+from hpo.notebook.dashboard import Dashboard
+from hpo.notebook.dashboard import main as dashboard_main
 from hpo.study_reporting import RobustnessProgress, TrainingProgress
 
 

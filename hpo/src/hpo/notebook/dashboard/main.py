@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Literal
 
-from hpo.evaluation.dashboard.current_hps import add_current_hps, current_params
-from hpo.evaluation.dashboard.current_study import add_current_study
-from hpo.evaluation.dashboard.robustness import (
+from hpo.notebook.dashboard.current_hps import add_current_hps, current_params
+from hpo.notebook.dashboard.current_study import add_current_study
+from hpo.notebook.dashboard.robustness import (
     add_checkpoint_robustness_evaluation,
     add_robustness_evaluation,
 )
-from hpo.evaluation.dashboard.study_series import add_study_series
-from hpo.evaluation.dashboard.training_progress import add_training_progress
+from hpo.notebook.dashboard.study_series import add_study_series
+from hpo.notebook.dashboard.training_progress import add_training_progress
 from hpo.study_reporting import (
     RobustnessProgress,
     StudySeriesReporter,

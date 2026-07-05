@@ -128,7 +128,7 @@ OBJECTIVE_CFG = ObjectiveConfig(
 
 # cell: study-runner # requires: hpo-setup, baseline, objective-config
 
-from hpo.evaluation.dashboard import Dashboard
+from hpo.notebook.dashboard import Dashboard
 from hpo.study import StudyRunner
 
 _TRAINING_SCORE_MIN = -500.0  # optional; default: -500.0; disable: None
