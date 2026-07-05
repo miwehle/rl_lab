@@ -4,6 +4,7 @@ import pytest
 
 from hpo.evaluation import dashboard
 from hpo.evaluation.dashboard import Dashboard
+from hpo.evaluation.dashboard import main as dashboard_main
 from hpo.study_reporting import RobustnessProgress, TrainingProgress
 
 
@@ -45,13 +46,13 @@ def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) 
     displayed = []
     cleared = []
     monkeypatch.setattr(
-        dashboard,
+        dashboard_main,
         "build_dashboard",
         lambda **kwargs: ("dashboard", kwargs),
     )
-    monkeypatch.setattr(dashboard, "_display", displayed.append)
+    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
     monkeypatch.setattr(
-        dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
+        dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
     reporter = Dashboard()
     reporter.set_study_series_context(
@@ -86,12 +87,12 @@ def test_show_dashboard_during_training_reuses_current_context(monkeypatch) -> N
     study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
     displayed = []
     monkeypatch.setattr(
-        dashboard,
+        dashboard_main,
         "build_dashboard",
         lambda **kwargs: ("dashboard", kwargs),
     )
-    monkeypatch.setattr(dashboard, "_display", displayed.append)
-    monkeypatch.setattr(dashboard, "_clear_output", lambda **_kwargs: None)
+    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
+    monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
     reporter = Dashboard()
     reporter.set_study_series_context(
         studies=[study],
@@ -118,10 +119,10 @@ def test_dashboard_throttles_training_updates_but_shows_final(monkeypatch) -> No
     study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
     displayed = []
     times = iter([10.0, 11.0, 12.0])
-    monkeypatch.setattr(dashboard, "perf_counter", lambda: next(times))
-    monkeypatch.setattr(dashboard, "build_dashboard", lambda **kwargs: kwargs)
-    monkeypatch.setattr(dashboard, "_display", displayed.append)
-    monkeypatch.setattr(dashboard, "_clear_output", lambda **_kwargs: None)
+    monkeypatch.setattr(dashboard_main, "perf_counter", lambda: next(times))
+    monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: kwargs)
+    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
+    monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
     reporter = Dashboard(training_update_interval_seconds=5.0)
     reporter.set_study_series_context(studies=[study], incumbent_params={})
     reporter.report_optimization(study, target_trials=40)
@@ -423,7 +424,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert figure.layout.yaxis5.title.text == "Epsilon"
     assert any(
         annotation.text
-        == "Current Trial Training - Trial 3 - Mean (2 episodes): 6.0 · Best Mean: 6.0"
+        == "Current Trial Training - Trial 3 - Mean (2 episodes): 6.0 - Best Mean: 6.0"
         for annotation in figure.layout.annotations
     )
 
@@ -484,13 +485,13 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
     displayed = []
     cleared = []
     monkeypatch.setattr(
-        dashboard,
+        dashboard_main,
         "build_dashboard",
         lambda **kwargs: ("dashboard", kwargs),
     )
-    monkeypatch.setattr(dashboard, "_display", displayed.append)
+    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
     monkeypatch.setattr(
-        dashboard, "_clear_output", lambda **kwargs: cleared.append(kwargs)
+        dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs)
     )
     reporter = Dashboard()
     reporter.set_study_series_context(
