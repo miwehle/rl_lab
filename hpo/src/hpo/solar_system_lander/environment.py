@@ -108,6 +108,7 @@ class EnvWrapper(gym.Wrapper):
         if self.observation_mode == "8d":
             return observation
         if self.observation_mode == "10d":
+            # append seat-of-the-pants input to observation for 10d Elise
             return np.concatenate((observation, self._acceleration)).astype(
                 np.float32,
                 copy=False,
