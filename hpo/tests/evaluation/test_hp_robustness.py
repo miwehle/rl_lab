@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from hpo import hp_robustness as hp_robustness_module
 from hpo.checkpointing import ObjectiveHookFactory
-from hpo.hp_robustness import select_robust_best
+from hpo.evaluation import hp_robustness as hp_robustness_module
+from hpo.evaluation.hp_robustness import select_robust_best
 from hpo.study_reporting import RobustnessProgress, TrainingProgress
 from common import objective_config
 

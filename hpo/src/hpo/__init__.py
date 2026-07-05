@@ -5,8 +5,8 @@ Main characters:
 - Use-case modules:
   - study: run one named Optuna study within a study series.
   - objective: run one Optuna trial.
-  - hp_robustness: re-evaluate HP candidates with extra training seeds.
-  - checkpoint_robustness: re-evaluate saved checkpoints as concrete pilots.
+- Evaluation:
+  - evaluation: videos, rendering, and robustness evaluation helpers.
 - Notebook:
   - notebook.dashboard: notebook dashboard for the running HPO.
 - Games:

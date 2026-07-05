@@ -79,11 +79,11 @@ Training checkpoint score is the trailing training mean, not the final evaluatio
 
 `best_checkpoint(study)` scans both `trials` and `robustness` checkpoint subdirectories; it prefers `*_eval_best.pt` evaluation checkpoints, and only falls back to training-window `*_best.pt` checkpoints when no evaluation checkpoints exist.
 
-`hpo/src/hpo/hp_robustness.py` owns HP robustness evaluation.
+`hpo/src/hpo/evaluation/hp_robustness.py` owns HP robustness evaluation.
 
 `select_robust_best(...)` sorts complete trials by best checkpoint score, re-runs the top candidates with extra training seeds, reports progress, stores robustness checkpoint metadata when the objective saved it, and writes `robust_best_params`, `robust_best_score`, and `robustness_checkpoints`.
 
-`hpo/src/hpo/checkpoint_robustness.py` owns BI14 checkpoint robustness evaluation for concrete saved pilots.
+`hpo/src/hpo/evaluation/checkpoint_robustness.py` owns BI14 checkpoint robustness evaluation for concrete saved pilots.
 
 `evaluate_checkpoint_robustness(...)` selects top saved eval checkpoints, builds a fresh DQN from evaluation-env dimensions, loads the checkpoint, evaluates greedily, reports through the existing robustness panel shape, and stores `checkpoint_robustness` study attrs.
 

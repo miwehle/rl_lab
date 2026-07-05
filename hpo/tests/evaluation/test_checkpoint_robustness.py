@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from dqn.model import DQN
-from hpo.checkpoint_robustness import (
+from hpo.evaluation.checkpoint_robustness import (
     checkpoint_scores,
     evaluate_checkpoint_robustness,
     robustness_over_all_worlds,
@@ -174,7 +174,7 @@ def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path)
         return items
 
     monkeypatch.setattr(
-        "hpo.checkpoint_robustness._tqdm",
+        "hpo.evaluation.checkpoint_robustness._tqdm",
         lambda: fake_tqdm,
     )
 

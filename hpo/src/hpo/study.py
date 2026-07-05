@@ -11,7 +11,7 @@ from hpo.objective import (
     ObjectiveConfig,
     create_objective,
 )
-from hpo.hp_robustness import select_robust_best
+from hpo.evaluation.hp_robustness import select_robust_best
 from hpo.study_reporting import (
     StudySeriesReporter,
     TrainingProgressFn,
