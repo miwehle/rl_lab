@@ -18,12 +18,12 @@ Research knowledge lives in `hpo/research`; start with `hpo/research/README.md` 
 
 Related sequence diagrams:
 
-- `hpo_study_flow.puml`: StudyRunner, dashboard, objective, trainer, and HP robustness.
+- `hpo_study_flow.puml`: StudyRunner, dashboard, objective, trainer, and robustness.
 - `hpo_training_checkpointing.puml`: training progress, training checkpoints, evaluation-best checkpoints, and adaptive training extension.
 
 ## Mental Model
 
-The core story is: a human starts a study series in a notebook, `StudyRunner` runs one named Optuna study at a time, each trial trains a DQN with `VectorTrainer`, the objective evaluates the trained model across one or more worlds, HP robustness re-checks the best candidates with extra seeds, and the dashboard tells the live story of the study series.
+The core story is: a human starts a study series in a notebook, `StudyRunner` runs one named Optuna study at a time, each trial trains a DQN with `VectorTrainer`, the objective evaluates the trained model across one or more worlds, checkpoint robustness re-checks saved challenger checkpoints, and the dashboard tells the live story of the study series.
 
 A study series is the long-running HPO campaign; in this project, one SQLite database is assumed to represent one study series.
 
@@ -45,11 +45,11 @@ KISS does not mean avoiding good libraries or future reuse; it means avoiding co
 
 Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
 
-`StudyRunner.run(...)` loads or creates the current study, briefs the reporter with series context, runs Optuna until the target finished trial count, runs HP robustness, updates incumbent attrs, syncs DB/log if configured, updates the dashboard, and appends the study to its in-memory series.
+`StudyRunner.run(...)` loads or creates the current study, briefs the reporter with series context, runs Optuna until the target finished trial count, runs checkpoint robustness on saved challenger checkpoints, updates incumbent attrs, syncs DB/log if configured, updates the dashboard, and appends the study to its in-memory series.
 
 `run_study(...)` treats `n_trials` as target total finished trials, not additional trials; this is what makes Optuna resume safely after Colab reconnects.
 
-If a study is already fully finished, `StudyRunner.run(...)` prints `Study already finished.` and returns before HP robustness; the finished criterion is enough finished trials plus `robust_best_score` and `incumbent_score` attrs.
+If a study is already fully finished, `StudyRunner.run(...)` prints `Study already finished.` and returns before checkpoint robustness; the finished criterion is enough finished trials plus `checkpoint_robustness` and `incumbent_score` attrs. `checkpoint_robustness=[]` means robustness was completed but no challenger checkpoints qualified.
 
 `hpo/src/hpo/objective.py` owns the Optuna objective.
 
@@ -83,11 +83,13 @@ Training checkpoint score is the trailing training mean, not the final evaluatio
 
 `select_robust_best(...)` sorts complete trials by best checkpoint score, re-runs the top candidates with extra training seeds, reports progress, stores robustness checkpoint metadata when the objective saved it, and writes `robust_best_params`, `robust_best_score`, and `robustness_checkpoints`.
 
+HP robustness remains available as a tool, but it is no longer the normal `StudyRunner.run(...)` winner path.
+
 `hpo/src/hpo/evaluation/checkpoint_robustness.py` owns BI14 checkpoint robustness evaluation for concrete saved pilots.
 
 `evaluate_checkpoint_robustness(...)` selects top saved eval checkpoints, builds a fresh DQN from evaluation-env dimensions, loads the checkpoint, evaluates greedily, reports through the existing robustness panel shape, and stores `checkpoint_robustness` study attrs.
 
-Robustness currently optimizes for mean score across candidate seeds; this favors reproducible producers, not necessarily the single highest-potential pilot.
+Checkpoint robustness currently optimizes for mean score across evaluation episodes and worlds; this favors robust concrete pilots, not necessarily the single highest-source-score checkpoint.
 
 The user may prefer "class over mass": a future selection policy might consider `max` or top-k mean across seeds, but this is not implemented yet.
 
@@ -97,7 +99,7 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 `TrainingProgressPlotter` adapts the DQN trainer plotter protocol into `TrainingProgress` reports.
 
-`hpo/src/hpo/evaluation/dashboard.py` owns the notebook dashboard and is a central HPO tool, not merely a reporting afterthought.
+`hpo/src/hpo/notebook/dashboard/` owns the notebook dashboard and is a central HPO tool, not merely a reporting afterthought.
 
 The dashboard is the visual interface between the human and the running HPO, and it should make the study series feel readable while it runs.
 
@@ -256,7 +258,7 @@ For changes touching adaptive training extension, at minimum run:
 For dashboard changes, run:
 
 ```powershell
-.\dqn\.venv\Scripts\python.exe -m pytest hpo\tests\evaluation\test_dashboard.py
+.\dqn\.venv\Scripts\python.exe -m pytest hpo\tests\notebook\test_dashboard.py
 ```
 
 ## Open Next Steps

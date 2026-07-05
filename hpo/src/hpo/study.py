@@ -11,7 +11,7 @@ from hpo.objective import (
     ObjectiveConfig,
     create_objective,
 )
-from hpo.evaluation.hp_robustness import select_robust_best
+from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
 from hpo.study_reporting import (
     StudySeriesReporter,
     TrainingProgressFn,
@@ -72,7 +72,7 @@ class StudyRunner:
     baseline: Baseline
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
-    extra_seeds: tuple[int, ...] = (1001, 1002)
+    robust_eval_episodes: int = 50
     sync_fn: SyncFn | None = None
     studies: list[Any] = field(default_factory=list, init=False)
     incumbent_params: dict[str, Any] = field(init=False)
@@ -125,19 +125,21 @@ class StudyRunner:
             progress_fn=self.reporter.report_optimization,
             sync_fn=self.sync_fn,
         )
-        selected_params = select_robust_best(
+        checkpoint_results = _evaluate_checkpoint_robustness(
             study=study,
-            suggest_parameter_values=suggest_parameter_values,
-            incumbent_params=self.incumbent_params,
             objective_cfg=objective_cfg,
             top_n=self.robust_candidates,
-            extra_seeds=self.extra_seeds,
+            eval_episodes=self.robust_eval_episodes,
             progress_fn=self.reporter.report_robustness_evaluation,
         )
-        selected_score = study.user_attrs["robust_best_score"]
-        if self.incumbent_score is None or selected_score > self.incumbent_score:
-            self.incumbent_params.update(selected_params)
-            self.incumbent_score = selected_score
+        if checkpoint_results:
+            winner = max(checkpoint_results, key=lambda result: result["robust_score"])
+            selected_score = winner["robust_score"]
+            if self.incumbent_score is None or selected_score > self.incumbent_score:
+                self.incumbent_params.update(
+                    _trial_params(study, winner["trial_number"])
+                )
+                self.incumbent_score = selected_score
 
         study.set_user_attr("incumbent_params", self.incumbent_params)
         study.set_user_attr("incumbent_score", self.incumbent_score)
@@ -251,6 +253,36 @@ def _with_training_progress(
     return replace(objective_cfg, hooks=with_progress(progress_fn))
 
 
+def _evaluate_checkpoint_robustness(
+    *,
+    study: Any,
+    objective_cfg: ObjectiveConfig,
+    top_n: int,
+    eval_episodes: int,
+    progress_fn: ProgressFn | None,
+) -> list[dict[str, Any]]:
+    try:
+        return evaluate_checkpoint_robustness(
+            study=study,
+            objective_cfg=objective_cfg,
+            top_n=top_n,
+            eval_episodes=eval_episodes,
+            progress_fn=progress_fn,
+        )
+    except ValueError as error:
+        if str(error) != "study has no evaluation checkpoints":
+            raise
+        study.set_user_attr("checkpoint_robustness", [])
+        return []
+
+
+def _trial_params(study: Any, trial_number: int) -> dict[str, Any]:
+    for trial in study.trials:
+        if trial.number == trial_number:
+            return dict(trial.params)
+    raise ValueError(f"study has no trial {trial_number}")
+
+
 @log_call
 def _create_study(**kwargs) -> Any:
     import optuna
@@ -289,7 +321,7 @@ def _study_already_finished(study: Any, n_trials: int) -> bool:
     return (
         n_trials >= 1
         and _finished_trial_count(study) >= n_trials
-        and "robust_best_score" in study.user_attrs
+        and "checkpoint_robustness" in study.user_attrs
         and "incumbent_score" in study.user_attrs
     )
 
