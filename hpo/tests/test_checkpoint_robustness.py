@@ -102,20 +102,36 @@ def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
         progress_fn=progress_calls.append,
     )
 
-    assert results == [
-        {
-            "trial_number": 1,
-            "checkpoint_path": str(checkpoint_path),
-            "source_score": 200.0,
-            "robust_score": 15.0,
-            "score": 107.5,
-            "world_scores": {"earth": 10.0, "venus": 20.0},
-            "eval_episodes": 3,
-        }
-    ]
+    assert len(results) == 1
+    result = results[0]
+    assert result["trial_number"] == 1
+    assert result["checkpoint_path"] == str(checkpoint_path)
+    assert result["source_score"] == pytest.approx(200.0)
+    assert result["robust_score"] == pytest.approx(15.0)
+    assert result["score"] == pytest.approx(15.0)
+    assert result["world_scores"] == {"earth": pytest.approx(10.0), "venus": pytest.approx(20.0)}
+    assert result["eval_episodes"] == 3
+    assert result["checkpoint_summary"] == {
+        "candidate": 1,
+        "trial_number": 1,
+        "source_score": pytest.approx(200.0),
+        "checkpoint_path": str(checkpoint_path),
+        "episodes_per_world": 3,
+        "episodes": 6,
+        "mean": pytest.approx(15.0),
+        "median": pytest.approx(15.0),
+        "min": pytest.approx(10.0),
+        "q05": pytest.approx(10.0),
+        "q25": pytest.approx(10.0),
+        "q75": pytest.approx(20.0),
+        "q95": pytest.approx(20.0),
+        "max": pytest.approx(20.0),
+        "world_scores": {"earth": pytest.approx(10.0), "venus": pytest.approx(20.0)},
+    }
     assert study.user_attrs["checkpoint_robustness"] == results
     assert progress_calls[-1].title == "Checkpoint Robustness Evaluation"
     assert progress_calls[-1].candidate_seed_scores == [[200.0, 15.0]]
+    assert progress_calls[-1].checkpoint_summaries == [result["checkpoint_summary"]]
 
 
 def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:

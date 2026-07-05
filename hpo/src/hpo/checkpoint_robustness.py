@@ -11,7 +11,7 @@ import torch
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.checkpointing import load_checkpoint, trial_best_checkpoint_score
-from hpo.objective import ObjectiveConfig, evaluate_greedy_q_net
+from hpo.objective import ObjectiveConfig
 from hpo.study_reporting import RobustnessProgress
 
 
@@ -41,49 +41,49 @@ def evaluate_checkpoint_robustness(
     if not candidates:
         raise ValueError("study has no evaluation checkpoints")
 
-    device = resolve_device(objective_cfg.device)
-    make_envs = objective_cfg.environment_factory.evaluation_envs()
-    q_net_env = next(iter(make_envs.values()))
     candidate_scores: list[list[float]] = [
         [candidate.score] for candidate in candidates
     ]
+    checkpoint_summaries: list[dict[str, Any]] = []
     results = []
 
     for candidate_index, candidate in enumerate(candidates, start=1):
-        q_net = q_net_from_checkpoint(
+        summary = robustness_over_all_worlds(
             candidate.path,
-            make_env=q_net_env,
-            device=device,
+            objective_cfg,
+            episodes=eval_episodes,
+            progress=False,
             model_factory=model_factory,
         )
-        world_scores = {
-            name: evaluate_greedy_q_net(
-                q_net=q_net,
-                device=device,
-                make_env=make_env,
-                episodes=eval_episodes,
-                max_steps=objective_cfg.eval_max_steps,
-                seed=objective_cfg.eval_seed,
-            )
-            for name, make_env in make_envs.items()
+        summary = {
+            "candidate": candidate_index,
+            "trial_number": candidate.trial_number,
+            "source_score": candidate.score,
+            **summary,
         }
-        robust_score = sum(world_scores.values()) / len(world_scores)
+        checkpoint_summaries.append(summary)
+        robust_score = summary["mean"]
         candidate_scores[candidate_index - 1].append(robust_score)
-        mean_score = sum(candidate_scores[candidate_index - 1]) / len(
-            candidate_scores[candidate_index - 1]
-        )
         result = {
             "trial_number": candidate.trial_number,
             "checkpoint_path": str(candidate.path),
             "source_score": candidate.score,
             "robust_score": robust_score,
-            "score": mean_score,
-            "world_scores": world_scores,
+            "score": robust_score,
+            "world_scores": summary["world_scores"],
+            "checkpoint_summary": summary,
             "eval_episodes": eval_episodes,
         }
         results.append(result)
         if progress_fn is not None:
-            progress_fn(_progress(candidate_index, len(candidates), candidate_scores))
+            progress_fn(
+                _progress(
+                    candidate_index,
+                    len(candidates),
+                    candidate_scores,
+                    checkpoint_summaries,
+                )
+            )
 
     study.set_user_attr("checkpoint_robustness", results)
     return results
@@ -291,6 +291,7 @@ def _progress(
     candidate_index: int,
     candidate_count: int,
     candidate_scores: list[list[float]],
+    checkpoint_summaries: list[dict[str, Any]] | None = None,
 ) -> RobustnessProgress:
     return RobustnessProgress(
         candidate_index=candidate_index,
@@ -302,4 +303,5 @@ def _progress(
         step_label="Eval",
         first_score_label="Source score",
         extra_score_label="Robust eval",
+        checkpoint_summaries=checkpoint_summaries,
     )

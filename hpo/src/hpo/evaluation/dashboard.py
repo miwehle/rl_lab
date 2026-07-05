@@ -71,7 +71,7 @@ def build_dashboard(
             "Study Series",
             "Current HPs",
             f"Study: {_study_title(study)}",
-            "HP Robustness Evaluation",
+            _robustness_panel_title(robustness_progress),
             "Current Trial Training",
         ),
     )
@@ -103,13 +103,19 @@ def build_dashboard(
             showarrow=False,
             font=dict(color="gray"),
         )
-        _add_robustness_evaluation(
-            figure,
-            candidate_seed_scores=robustness_progress.candidate_seed_scores,
-            candidate_index=robustness_progress.candidate_index,
-            first_score_label=robustness_progress.first_score_label,
-            extra_score_label=robustness_progress.extra_score_label,
-        )
+        if robustness_progress.checkpoint_summaries is None:
+            _add_robustness_evaluation(
+                figure,
+                candidate_seed_scores=robustness_progress.candidate_seed_scores,
+                candidate_index=robustness_progress.candidate_index,
+                first_score_label=robustness_progress.first_score_label,
+                extra_score_label=robustness_progress.extra_score_label,
+            )
+        else:
+            _add_checkpoint_robustness_evaluation(
+                figure,
+                checkpoint_summaries=robustness_progress.checkpoint_summaries,
+            )
         figure.layout.annotations[3].text = (
             f"{robustness_progress.title} · "
             f"Candidate {robustness_progress.candidate_index}/"
@@ -156,6 +162,12 @@ def _study_title(study: Any) -> str:
     if not parts or not parts[0]:
         return "Unnamed"
     return " ".join([parts[0].upper(), *parts[1:]]).replace("_", " ").title()
+
+
+def _robustness_panel_title(progress: RobustnessProgress | None) -> str:
+    if progress is None:
+        return "Checkpoint Robustness"
+    return progress.title
 
 
 @dataclass
@@ -547,6 +559,99 @@ def _add_robustness_evaluation(
         col=2,
     )
     figure.update_yaxes(title_text="Score", row=2, col=2)
+
+
+def _add_checkpoint_robustness_evaluation(
+    figure: Any,
+    *,
+    checkpoint_summaries: list[dict[str, Any]],
+) -> None:
+    import plotly.graph_objects as go
+
+    if not checkpoint_summaries:
+        figure.add_annotation(
+            text="Waiting for checkpoint robustness",
+            row=2,
+            col=2,
+            showarrow=False,
+            font=dict(color="gray"),
+        )
+        return
+
+    labels = [_checkpoint_candidate_label(summary) for summary in checkpoint_summaries]
+    intervals = [
+        ("min..max", "min", "max", "lightgray", 2),
+        ("q05..q95", "q05", "q95", "rgba(31, 119, 180, 0.35)", 6),
+        ("q25..q75", "q25", "q75", "rgba(31, 119, 180, 0.85)", 12),
+    ]
+    for name, low_key, high_key, color, width in intervals:
+        for index, (label, summary) in enumerate(
+            zip(labels, checkpoint_summaries, strict=True)
+        ):
+            figure.add_trace(
+                go.Scatter(
+                    x=[summary[low_key], summary[high_key]],
+                    y=[label, label],
+                    mode="lines",
+                    name=name,
+                    showlegend=index == 0,
+                    line=dict(color=color, width=width),
+                    hovertemplate=(
+                        f"{label}<br>{name}: "
+                        f"{summary[low_key]:.1f}..{summary[high_key]:.1f}"
+                        "<extra></extra>"
+                    ),
+                ),
+                row=2,
+                col=2,
+            )
+
+    figure.add_trace(
+        go.Scatter(
+            x=[summary["median"] for summary in checkpoint_summaries],
+            y=labels,
+            mode="markers",
+            name="median",
+            marker=dict(color="white", line=dict(color="black", width=1), size=8),
+            hovertemplate="%{y}<br>Median: %{x:.1f}<extra></extra>",
+        ),
+        row=2,
+        col=2,
+    )
+    figure.add_trace(
+        go.Scatter(
+            x=[summary["mean"] for summary in checkpoint_summaries],
+            y=labels,
+            mode="markers",
+            name="mean",
+            marker=dict(color="red", symbol="x", size=9),
+            hovertemplate="%{y}<br>Mean: %{x:.1f}<extra></extra>",
+        ),
+        row=2,
+        col=2,
+    )
+    score_values = [
+        float(summary[key])
+        for summary in checkpoint_summaries
+        for key in ("min", "max")
+    ]
+    figure.update_xaxes(
+        title_text="Gym score",
+        range=[min(score_values) - 10, max(score_values) + 10],
+        row=2,
+        col=2,
+    )
+    figure.update_yaxes(title_text="Checkpoint", row=2, col=2)
+
+
+def _checkpoint_candidate_label(summary: dict[str, Any]) -> str:
+    candidate = summary.get("candidate")
+    trial_number = summary.get("trial_number")
+    if candidate is None:
+        return str(trial_number) if trial_number is not None else "checkpoint"
+    if trial_number is None:
+        return f"C{candidate}"
+    return f"C{candidate} trial {trial_number}"
 
 
 def _add_training_progress(

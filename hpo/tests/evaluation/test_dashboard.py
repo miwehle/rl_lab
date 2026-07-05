@@ -168,7 +168,7 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
         "Study Series",
         "Current HPs",
         "Study: S1 Update Economy",
-        "HP Robustness Evaluation",
+        "Checkpoint Robustness",
     ]
     table = next(trace for trace in figure.data if trace.type == "table")
     assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
@@ -304,6 +304,68 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     assert any(
         annotation.text == "Waiting for optimization"
         for annotation in figure.layout.annotations
+    )
+
+
+def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
+    study = FakeStudy(trials=[], study_name="s1_update_economy")
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=40,
+        studies=[],
+        incumbent_params={},
+        robustness_progress=RobustnessProgress(
+            candidate_index=2,
+            candidate_count=3,
+            seed_index=1,
+            seed_count=1,
+            candidate_seed_scores=[[200.0, 240.0], [210.0, 250.0], [190.0]],
+            title="Checkpoint Robustness Evaluation",
+            step_label="Eval",
+            first_score_label="Source score",
+            extra_score_label="Robust eval",
+            checkpoint_summaries=[
+                {
+                    "candidate": 1,
+                    "trial_number": 35,
+                    "mean": 240.0,
+                    "median": 245.0,
+                    "min": 100.0,
+                    "q05": 180.0,
+                    "q25": 220.0,
+                    "q75": 260.0,
+                    "q95": 300.0,
+                    "max": 320.0,
+                },
+                {
+                    "candidate": 2,
+                    "trial_number": 42,
+                    "mean": 250.0,
+                    "median": 248.0,
+                    "min": 150.0,
+                    "q05": 200.0,
+                    "q25": 230.0,
+                    "q75": 270.0,
+                    "q95": 310.0,
+                    "max": 330.0,
+                },
+            ],
+        ),
+    )
+
+    min_max = [trace for trace in figure.data if trace.name == "min..max"]
+    median = next(trace for trace in figure.data if trace.name == "median")
+    mean = next(trace for trace in figure.data if trace.name == "mean")
+
+    assert list(min_max[0].x) == [100.0, 320.0]
+    assert list(min_max[0].y) == ["C1 trial 35", "C1 trial 35"]
+    assert list(median.x) == [245.0, 248.0]
+    assert list(mean.x) == [240.0, 250.0]
+    assert list(mean.y) == ["C1 trial 35", "C2 trial 42"]
+    assert figure.layout.xaxis3.title.text == "Gym score"
+    assert figure.layout.yaxis3.title.text == "Checkpoint"
+    assert figure.layout.annotations[3].text.startswith(
+        "Checkpoint Robustness Evaluation"
     )
 
 
