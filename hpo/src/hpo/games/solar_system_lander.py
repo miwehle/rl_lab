@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from gymnasium.envs.box2d import lunar_lander
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "dqn" / "src"))
 sys.path.insert(0, str(ROOT / "hpo" / "src"))
 

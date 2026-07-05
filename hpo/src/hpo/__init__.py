@@ -9,6 +9,8 @@ Main characters:
   - checkpoint_robustness: re-evaluate saved checkpoints as concrete pilots.
 - Notebook:
   - notebook.dashboard: notebook dashboard for the running HPO.
+- Games:
+  - games: playable demos for understanding environments by hand.
 - Reporting port:
   - study_reporting: reporter protocol and progress DTOs.
 - Infrastructure:

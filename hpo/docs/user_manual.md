@@ -5,7 +5,7 @@ Purpose: a short handout for using the `hpo` package from notebooks or small Pyt
 
 Spiel starten:
 
-`.\dqn\.venv\Scripts\python.exe hpo\tools\play_solar_system_lander.py`
+`.\dqn\.venv\Scripts\python.exe -m hpo.games.solar_system_lander`
 
 ↑        Haupttriebwerk
 ← / →    Seitendüsen
