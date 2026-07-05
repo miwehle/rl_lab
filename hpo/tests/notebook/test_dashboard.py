@@ -377,6 +377,73 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     )
 
 
+def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
+    study = FakeStudy(
+        trials=[],
+        study_name="s1_update_economy",
+        user_attrs={
+            "checkpoint_robustness": [
+                {
+                    "trial_number": 3,
+                    "checkpoint_summary": {
+                        "candidate": 1,
+                        "trial_number": 3,
+                        "mean": 145.4,
+                        "median": 150.0,
+                        "min": 80.0,
+                        "q05": 90.0,
+                        "q25": 120.0,
+                        "q75": 170.0,
+                        "q95": 210.0,
+                        "max": 220.0,
+                    },
+                }
+            ],
+        },
+    )
+
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=10,
+        studies=[study],
+        incumbent_params={},
+    )
+
+    mean = next(trace for trace in figure.data if trace.name == "mean")
+
+    assert list(mean.x) == [145.4]
+    assert list(mean.y) == ["C1 trial 3"]
+    assert figure.layout.xaxis3.title.text == "Gym score"
+    assert not any(
+        annotation.text == "Waiting for robustness evaluation"
+        for annotation in figure.layout.annotations
+    )
+
+
+def test_empty_stored_checkpoint_robustness_hides_panel_axes() -> None:
+    study = FakeStudy(
+        trials=[],
+        study_name="s1_update_economy",
+        user_attrs={"checkpoint_robustness": []},
+    )
+
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=10,
+        studies=[study],
+        incumbent_params={},
+    )
+
+    assert any(
+        annotation.text == "No checkpoint robustness candidates"
+        for annotation in figure.layout.annotations
+    )
+    assert figure.layout.xaxis3.showticklabels is False
+    assert figure.layout.yaxis3.showticklabels is False
+    assert figure.layout.xaxis3.showgrid is False
+    assert figure.layout.yaxis3.showgrid is False
+
+
 def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
     figure = dashboard.build_dashboard(

@@ -1,6 +1,7 @@
 """Tell the story of an HPO study series in one notebook dashboard."""
 
 from dataclasses import dataclass
+import json
 from time import perf_counter
 from typing import Any, Literal
 
@@ -65,15 +66,28 @@ def build_dashboard(
             else None
         ),
     )
+    hide_robustness_axes = False
+    stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
     if robustness_progress is None:
         add_current_study(figure, study, target_trials)
-        figure.add_annotation(
-            text="Waiting for robustness evaluation",
-            row=2,
-            col=2,
-            showarrow=False,
-            font=dict(color="gray"),
-        )
+        if stored_checkpoint_summaries:
+            add_checkpoint_robustness_evaluation(
+                figure,
+                checkpoint_summaries=stored_checkpoint_summaries,
+            )
+        else:
+            figure.add_annotation(
+                text=(
+                    "Waiting for robustness evaluation"
+                    if stored_checkpoint_summaries is None
+                    else "No checkpoint robustness candidates"
+                ),
+                row=2,
+                col=2,
+                showarrow=False,
+                font=dict(color="gray"),
+            )
+            hide_robustness_axes = True
     else:
         figure.add_annotation(
             text="Waiting for optimization",
@@ -115,7 +129,7 @@ def build_dashboard(
         add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
-    if robustness_progress is None:
+    if hide_robustness_axes:
         _hide_waiting_panel_axes(figure, row=2, col=2)
     return figure
 
@@ -166,6 +180,19 @@ def _robustness_panel_title(progress: RobustnessProgress | None) -> str:
     if progress is None:
         return "Checkpoint Robustness"
     return progress.title
+
+
+def _stored_checkpoint_summaries(study: Any) -> list[dict[str, Any]] | None:
+    results = getattr(study, "user_attrs", {}).get("checkpoint_robustness")
+    if results is None:
+        return None
+    if isinstance(results, str):
+        results = json.loads(results)
+    return [
+        result["checkpoint_summary"]
+        for result in results
+        if "checkpoint_summary" in result
+    ]
 
 
 @dataclass
