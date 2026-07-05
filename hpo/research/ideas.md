@@ -76,3 +76,17 @@ Ein einfaches Notebook unter `hpo/notebooks/lunar_lander/playground.ipynb` koenn
 ## Greedy Episode / Animation
 ## Things To Try
 ```
+
+## Tool-Assisted RL Agent Development
+
+Das HPO-Dashboard koennte zu einem allgemeineren RL-Entwicklungstool wachsen: HPO, Checkpoint-Erhaltung, robuste Evaluation, Videos, interaktives Spielen und tool-assistierte Failure-Analyse werden zu einem kurzen Entwicklungsloop.
+
+Case Study: SolarSystemLander / Elise.
+
+Zielbild: Mit wenigen manuellen Entscheidungen und guter Dashboard-Auswertung purzeln spezialisierte Agenten oder Werkzeuge heraus, z. B. eine robuste Multi-World-Elise, Reward-Shaping-Varianten oder eine Safety-Elise als Retterin/Shield.
+
+Demo-Idee: ein auf Knopfdruck installierbares Multi-Planet-Lander-Spiel, in dem Menschen selbst landen und Elise als Autopilot/Retterin zuschalten koennen. Das ist vor allem Cool-Faktor und Intuitionsanker, aber es nutzt dieselbe Physik, dieselben Welten und dieselben Seeds wie die harte Evaluation.
+
+Harte Evidenz darf nicht zu kurz kommen: Score-Verteilungen ueber Welten und Seeds, Robustness-Tabellen, HPO-Verlaeufe, Checkpoint-Vergleiche, Failure-Mode-Metriken wie `landed-but-awake`, sowie Diagramme fuer Recoverability/Safety-Shielding.
+
+Paper-Winkel: Tool-assisted RL agent development ueber Environment-Familien hinweg. Elise waere die anschauliche Case Study, nicht die Grenze des Tools.
