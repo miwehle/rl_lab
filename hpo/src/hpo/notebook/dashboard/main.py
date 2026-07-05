@@ -136,7 +136,7 @@ def build_dashboard(
 def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
-        height=850,
+        height=900,
         margin=dict(l=70, r=70, t=55, b=85),
         legend=dict(
             orientation="h",

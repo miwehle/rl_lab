@@ -164,7 +164,7 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     )
 
     assert figure.layout.width == 1200
-    assert figure.layout.height == 850
+    assert figure.layout.height == 900
     assert [annotation.text for annotation in figure.layout.annotations[:4]] == [
         "Study Series",
         "Current HPs",

@@ -31,11 +31,6 @@ def add_current_hps(
     figure.add_trace(
         go.Table(
             columnwidth=[1.5, 1.0],
-            header=dict(
-                values=["HP", "Value"],
-                align=["left", "right"],
-                fill_color="#e8eef7",
-            ),
             cells=dict(
                 values=[
                     names,
