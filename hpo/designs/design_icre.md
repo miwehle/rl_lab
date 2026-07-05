@@ -2,17 +2,13 @@
 
 ## Ziel
 
-Das Dashboard soll Checkpoint Robustness Evaluation als eigenes HPO-Kapitel erzaehlen: Ist der konkrete gespeicherte Pilot wirklich robust, auf welchen Welten ist er stark, und wo ist er verletzlich?
+Das Dashboard soll Checkpoint Robustness Evaluation als kompaktes Overview-Panel integrieren.
 
-ICRE ersetzt nicht HP Robustness. HP Robustness fragt nach guten Hyperparametern, ICRE fragt nach Vertrauen in einen konkreten Checkpoint.
+Naechster Schritt: Das bisherige HP-Robustness-Panel wird durch Checkpoint Robustness ersetzt, weil fuer uns der konkrete gespeicherte Pilot wichtiger ist als die HP-Robustheit.
 
-## Ausgangslage
+Die bestehende HP-Robustness-Implementierung bleibt erhalten; sie tritt nur im Dashboard-Overview vorerst in den Hintergrund.
 
-`evaluate_checkpoint_robustness(...)` ist bereits live ins Dashboard anschliessbar, nutzt dort aber nur den generischen Robustness-Plot: Candidate, Source Score, Robust Eval und Mittelwert.
-
-Die aussagekraeftigen Checkpoint-Qualifikationsplots liegen bisher in separaten Notebook-Zellen: `checkpoint_scores(...)`, `score_summary(...)`, `plots.heatmap(...)` und `plots.quantiles(...)`.
-
-Das ist fuer Colab unguenstig: Waehrend die HPO-Zelle laeuft, kann keine zweite Codezelle ausgefuehrt werden. Umschalten zwischen Overview und Detailansicht muss daher innerhalb der laufenden Dashboard-Ausgabe interaktiv gehen.
+Spaeter kann das Panel optional zwischen HP Robustness und Checkpoint Robustness umschaltbar werden, je nach Optimierungsschwerpunkt.
 
 ## Dashboard Story
 
@@ -22,20 +18,31 @@ Das Dashboard bleibt der HPO-Geschichtenerzaehler:
 Study Series                 Wo steht die Serie?
 Current HPs                  Welche Parameter gelten gerade?
 Study                        Was passiert in der aktuellen Study?
-HP Robustness                Welche HP-Kandidaten wirken belastbar?
-Checkpoint Qualification     Ist der konkrete Pilot robust?
+Checkpoint Robustness        Welcher konkrete Checkpoint ist robust?
 Current Trial Training       Wie lernt der laufende Trial?
 ```
 
-Im Uebersichtsmodus sollen alle Panels sichtbar bleiben. ICRE soll dort kompakt zeigen, ob der Pilot ueber alle Welten qualifiziert wirkt.
+Checkpoint Robustness erzaehlt nicht zuerst einzelne Welten, sondern die Kandidatenentscheidung: Ist der nominell beste Checkpoint wirklich der beste konkrete Pilot, oder ist ein anderer Kandidat robuster?
 
-Im Fokusmodus darf ein Panel die ganze Figure einnehmen. Fuer ICRE kann der Fokusmodus zwischen Varianten umschalten.
+## Plot im Overview
 
-## Plotwahl
+Im Dashboard-Overview zeigt ICRE einen Quantile-/Interval-Plot ueber die Checkpoint-Kandidaten.
 
-Default fuer ICRE ist der Quantile-Plot pro Welt.
+Y-Achse:
 
-Er zeigt kompakt:
+```text
+C1 trial ...
+C2 trial ...
+C3 trial ...
+```
+
+X-Achse:
+
+```text
+Gym score
+```
+
+Pro Kandidat werden gezeigt:
 
 - `min..max`
 - `q05..q95`
@@ -43,90 +50,88 @@ Er zeigt kompakt:
 - `median`
 - `mean`
 
-Der Quantile-Plot ist fuer die Dashboard-Story besser als die Heatmap, weil er Robustheit und schwache Welten sofort sichtbar macht.
+Die Quantile werden ueber die gesammelten Evaluationsscores des Kandidaten gebildet. Fuer den Overview reicht die Kandidatenebene; Welt-Details kommen spaeter in eine Detailansicht.
 
-Die Heatmap bleibt wichtig als Fokus-Variante, wenn man die genaue Score-Verteilung sehen will.
+## Siegerregel
 
-## Interaktivitaet in Colab
+KISS-Regel: Der Checkpoint mit dem hoechsten Mean Gym Score gewinnt.
 
-Die Umschaltung soll moeglichst browserseitig passieren.
+Alle weiteren Werte werden berichtet und im Plot sichtbar gemacht, gehen aber im naechsten Schritt nicht in die Auswahl ein:
 
-Keine neue Notebook-Zelle soll noetig sein, solange HPO laeuft.
+- `median`
+- `min..max`
+- `q05..q95`
+- `q25..q75`
 
-KISS-Start:
+Damit bleibt die Auswahl konsistent mit dem bisherigen Gym-Score-Ziel und vermeidet eine kuenstliche gewichtete Formel.
 
-```text
-Overview
-Focus: Study Series
-Focus: Study
-Focus: HP Robustness
-Focus: Checkpoint Qualification
-Focus: Current Trial Training
-```
+## Evaluation
 
-Fuer `Focus: Checkpoint Qualification`:
+Default fuer den naechsten Schritt:
 
 ```text
-variant: quantiles
-variant: heatmap
-variant: summary
+top_n = 3
+eval_episodes = bestehender Notebook-/Call-Wert
 ```
 
-Die erste Implementierung darf diese Modi als Plotly-`updatemenus`/Buttons bauen, solange dabei nur vorhandene Traces sichtbar/unsichtbar geschaltet werden. Keine Python-Callbacks und keine Nachberechnung beim Klick.
+Das Dashboard-Panel wird auf Kandidatenebene aktualisiert: nach Kandidat 1, nach Kandidat 2 und nach Kandidat 3.
+
+Es gibt im naechsten Schritt keine Zwischenupdates innerhalb eines Kandidaten. Das passt zum bestehenden `evaluate_checkpoint_robustness(...)`, bleibt uebersichtlich und vermeidet neue Progress-Datenstrukturen.
+
+KISS-Vorteil: Die bestehende Implementierung berichtet bereits auf Kandidatenebene; dadurch braucht der naechste Schritt kaum Aenderungen an `evaluate_checkpoint_robustness(...)`.
+
+Falls ein Kandidat spaeter messbar lange dauert, kann granularerer Fortschritt als eigener Ausbauschritt folgen.
 
 ## Datenfluss
 
-ICRE braucht aggregierte Daten fuer die Uebersicht und optional Rohscores fuer Fokusvarianten.
+Der Overview braucht pro Kandidat eine kleine Summary.
 
-```text
-checkpoint_scores(...) -> scores DataFrame
-score_summary(scores)  -> summary DataFrame
-dashboard              -> CheckpointQualificationData
-```
-
-Moegliche kleine Datenklasse:
+Moegliche Datenstruktur:
 
 ```python
 @dataclass(frozen=True)
-class CheckpointQualification:
+class CheckpointRobustnessCandidate:
+    label: str
+    trial_number: int
     checkpoint_path: str
-    episodes: int
-    scores: pd.DataFrame
-    summary: pd.DataFrame
+    scores: list[float]
 ```
 
-Fuer den Uebersichtsmodus reicht `summary`. Fuer Heatmap und Hoverdetails braucht der Fokusmodus `scores`.
+Alternativ kann die erste Implementierung aus den bestehenden `RobustnessProgress.candidate_seed_scores` starten, wenn daraus genug Werte fuer die Quantile vorliegen.
+
+Wichtig ist: Das Dashboard braucht fuer den Overview nicht die per-Welt-Rohscores.
 
 ## API-Skizze
 
-Kleinster sinnvoller Einstieg:
+Der bestehende Reporter-Pfad kann weiter genutzt werden:
 
 ```python
-dashboard.report_checkpoint_qualification(qualification)
+evaluate_checkpoint_robustness(
+    ...,
+    top_n=3,
+    progress_fn=runner.reporter.report_robustness_evaluation,
+)
 ```
 
-oder beim Figure-Bau:
+ICRE nutzt direkt denselben Reporter-Kanal wie die bisherige HP Robustness; es braucht keine neue Orchestrierung, sondern vor allem eine andere Dashboard-Darstellung.
 
-```python
-build_dashboard(..., checkpoint_qualification=qualification)
-```
+Objective-Hooks werden nur indirekt genutzt: Sie speichern vorher die eval-best Checkpoints und Trial-Attrs wie `evaluation_checkpoint_path`, die Checkpoint Robustness danach als Kandidaten einliest.
 
-Die Notebook-Zelle, die `checkpoint_scores(...)` berechnet, kann zunaechst bestehen bleiben. Sie uebergibt danach die Daten an das Dashboard.
-
-Spaeter kann `evaluate_checkpoint_robustness(...)` optional selbst eine Qualification erzeugen, wenn die Kosten dafuer akzeptabel sind.
+Das Dashboard erkennt am `RobustnessProgress.title == "Checkpoint Robustness Evaluation"`, dass das Panel als Checkpoint-Robustness-Overview gerendert wird.
 
 ## Umsetzungsschritte
 
-1. Eine kleine `CheckpointQualification`-Datenklasse einfuehren.
-2. Plotly-Version des Quantile-Plots fuer `summary` bauen.
-3. ICRE als sechstes Dashboard-Panel in den Overview integrieren.
-4. Fokusmodus fuer mindestens `Overview` und `Checkpoint Qualification` entwerfen.
-5. Heatmap erst danach als Fokus-Variante hinzufuegen.
+1. Dashboard-Panel-Titel von HP Robustness auf einen progress-abhaengigen Titel umstellen.
+2. HP-Robustness-Panel im Overview durch Checkpoint-Robustness-Darstellung ersetzen, sobald Checkpoint-Robustness-Progress vorliegt.
+3. Quantile-/Interval-Plot fuer Kandidaten implementieren.
+4. `evaluate_checkpoint_robustness(...)` im Notebook standardmaessig mit `top_n=3` verwenden.
+5. Tests fuer Titel, Traces und Kandidatenquantile ergaenzen.
 
-## Nichtziele fuer den ersten Schritt
+## Nichtziele
 
-- Kein vollstaendiges interaktives Widget-System.
-- Keine Python-Callbacks in Colab.
-- Keine neue Evaluation waehrend eines Button-Klicks.
-- Keine Vermischung von HP Robustness und Checkpoint Qualification.
-- Kein Versuch, alle Notebook-Analyseplots sofort ins Dashboard zu ziehen.
+- Keine Detailansicht.
+- Kein Zoom-in.
+- Keine Heatmap.
+- Keine per-Welt-Quantile im Dashboard-Overview.
+- Keine neue Colab-Interaktivitaet.
+- Keine Vermischung mit HP Robustness im ersten Schritt.
