@@ -39,16 +39,21 @@ Skizze:
   "platform": "...",
   "cpu": "...",
   "torch_version": "...",
+  "optuna_version": "...",
   "device": "cuda",
   "accelerator_backend": "cuda",
   "accelerator_name": "NVIDIA L4",
   "accelerator_count": 1,
+  "git_commit": "...",
+  "git_dirty": false,
   "colab": {
-    "runtime_type": "Python 3",
-    "hardware_accelerator": "L4 GPU",
-    "runtime_version": "latest"
+    "hardware_accelerator": "L4 GPU"
   }
 }
 ```
 
 Provider-spezifische Klammern wie `colab`, `lambda` oder `runpod` sind optional und sollen nur Felder enthalten, die fuer diesen Anbieter wirklich sinnvoll sind.
+
+`runtime_metadata_json` soll kompakt bleiben. Die gemeinsamen Felder sollen vor allem helfen, Laufzeit- und Ergebnisunterschiede spaeter einzuordnen: Python, Plattform, CPU, Torch, Optuna, Accelerator und Git-Stand. `git_dirty` ist bewusst enthalten, weil Notebook-/Colab-Laeufe sonst leicht wie ein sauberer Commit aussehen, obwohl lokale Aenderungen aktiv waren.
+
+Nicht geplant sind erstmal umfangreiche Inventarlisten wie kompletter Package-Freeze, RAM-Details, Hostname oder detaillierte CUDA-Treiberinformationen. Solche Felder kommen nur hinzu, wenn sie fuer eine konkrete Auswertung gebraucht werden.
