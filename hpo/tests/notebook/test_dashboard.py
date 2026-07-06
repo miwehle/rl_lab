@@ -347,7 +347,7 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     assert figure.layout.xaxis3.title.text == "Candidate"
     assert list(figure.layout.xaxis3.ticktext) == [1, 2, 3]
     assert any(
-        annotation.text == "Waiting for optimization"
+        annotation.text == "No data"
         for annotation in figure.layout.annotations
     )
 

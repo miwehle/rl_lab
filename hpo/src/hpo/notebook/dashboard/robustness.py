@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from hpo.notebook.dashboard.style import NO_DATA_TEXT
+
 
 def add_robustness_evaluation(
     figure: Any,
@@ -81,7 +83,7 @@ def add_checkpoint_robustness_evaluation(
 
     if not checkpoint_summaries:
         figure.add_annotation(
-            text="Waiting for checkpoint robustness",
+            text=NO_DATA_TEXT,
             row=2,
             col=2,
             showarrow=False,

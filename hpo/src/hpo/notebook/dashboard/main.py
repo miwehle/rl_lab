@@ -101,7 +101,7 @@ def build_dashboard(
             set_empty_score_yaxis(figure, row=2, col=2)
     else:
         figure.add_annotation(
-            text="Waiting for optimization",
+            text=NO_DATA_TEXT,
             row=2,
             col=1,
             showarrow=False,
