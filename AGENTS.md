@@ -42,6 +42,12 @@ pattern. Treat speculative generalization, optional modes, config flags,
 future-proofing, and indirection as complexity costs and mental load.
 Add them only for a concrete current need or when the user explicitly agrees.
 
+### Explicit Simplification Tasks
+
+When the task is explicitly to simplify, set a LOC budget before implementation: production-code diff should be net negative unless the user explicitly accepts a tradeoff.
+If a proposed or emerging change makes production code grow, stop and ask before continuing.
+Do not bundle simplification with new semantics, new data flows, or extra reporting fields unless the user explicitly agrees.
+
 ### Markdown
 
 Keep each prose paragraph on one source line; use line breaks only for structure.
