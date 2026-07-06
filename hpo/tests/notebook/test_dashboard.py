@@ -134,6 +134,7 @@ def test_dashboard_contains_simplified_two_row_layout() -> None:
     assert list(table.cells.fill.color[1]) == ["#fff2cc", "white"]
     study_score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x")
     assert list(study_score_trace.y) == [50.0]
+    assert list(figure.layout.xaxis.range) == [-0.5, 40.5]
     assert list(figure.layout.yaxis.range) == [-10, 260]
     assert figure.layout.legend.y < 0
     assert figure.layout.legend.x == 0.5

@@ -49,7 +49,7 @@ def add_current_study(figure: Any, study: Any, target_trials: int) -> bool:
         title_text="Trial",
         tickmode="array",
         tickvals=_trial_tickvals(target_trials),
-        range=[0, max(1, target_trials)],
+        range=[-0.5, max(1, target_trials) + 0.5],
         row=1,
         col=2,
     )
