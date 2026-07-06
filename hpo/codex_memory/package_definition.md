@@ -111,7 +111,7 @@ For SolarSystemLander, Current Trial Training colors episode-return dots by env 
 
 `Dashboard(render_mode="safe")` clears and redisplays the whole dashboard; this is robust in notebooks/Colab but can flicker.
 
-Training progress updates are throttled by `training_update_interval_seconds=5.0` by default so live training does not redraw on every episode.
+Training progress updates are throttled by `training_update_interval_seconds=10.0` by default so live training does not redraw on every episode.
 
 Only training progress is throttled; optimization and robustness updates render immediately.
 
@@ -221,7 +221,7 @@ The user is optimistic that adaptive training extension can find an "Ue220" mode
 
 `StudyRunner.run(...)` should remain easy to call from notebooks; avoid adding required parameters for reporting conveniences.
 
-`Dashboard()` defaults should be usable; currently `Dashboard(render_mode="safe")` is explicit in the SSL notebook, and `training_update_interval_seconds=5.0` does not need to be passed.
+`Dashboard()` defaults should be usable; currently `Dashboard(render_mode="safe")` is explicit in the SSL notebook, and `training_update_interval_seconds=10.0` does not need to be passed.
 
 `ObjectiveConfig.hooks` is the right place to connect checkpointing and live training progress to the objective.
 

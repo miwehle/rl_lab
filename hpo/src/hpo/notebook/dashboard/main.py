@@ -236,7 +236,7 @@ class Dashboard(StudySeriesReporter):
         self,
         *,
         render_mode: DashboardRenderMode = "safe",
-        training_update_interval_seconds: float = 5.0,
+        training_update_interval_seconds: float = 10.0,
         training_score_min: float | None = -500.0,
     ) -> None:
         if render_mode != "safe":
