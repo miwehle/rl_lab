@@ -252,6 +252,23 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
     assert list(best_trace.y) == [120.0, 120.0]
 
 
+def test_empty_current_study_plot_hides_axes() -> None:
+    study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
+
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=10,
+        studies=[],
+        incumbent_params={},
+    )
+
+    assert any(annotation.text == "No data yet" for annotation in figure.layout.annotations)
+    assert figure.layout.xaxis2.showticklabels is False
+    assert figure.layout.yaxis2.showticklabels is False
+    assert figure.layout.xaxis2.showgrid is False
+    assert figure.layout.yaxis2.showgrid is False
+
+
 def test_current_hps_use_live_trial_params_during_training() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
 

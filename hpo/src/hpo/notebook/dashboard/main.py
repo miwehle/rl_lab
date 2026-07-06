@@ -67,10 +67,19 @@ def build_dashboard(
             else None
         ),
     )
+    hide_current_study_axes = False
     hide_robustness_axes = False
     stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
     if robustness_progress is None:
-        add_current_study(figure, study, target_trials)
+        if not add_current_study(figure, study, target_trials):
+            figure.add_annotation(
+                text=NO_DATA_TEXT,
+                row=2,
+                col=1,
+                showarrow=False,
+                font=dict(color="gray"),
+            )
+            hide_current_study_axes = True
         if stored_checkpoint_summaries:
             add_checkpoint_robustness_evaluation(
                 figure,
@@ -126,6 +135,8 @@ def build_dashboard(
         add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
+    if hide_current_study_axes:
+        _hide_waiting_panel_axes(figure, row=2, col=1)
     if hide_robustness_axes:
         _hide_waiting_panel_axes(figure, row=2, col=2)
     if training_progress is None:

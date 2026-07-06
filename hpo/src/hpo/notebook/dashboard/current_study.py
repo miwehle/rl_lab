@@ -9,10 +9,13 @@ def add_current_study(
     figure: Any,
     study: Any,
     target_trials: int,
-) -> None:
+) -> bool:
     import plotly.graph_objects as go
 
     points = _current_study_points(study)
+    if not points:
+        return False
+
     numbers = [point["trial_number"] for point in points]
     scores = [point["score"] for point in points]
     best_scores = [point["best_score"] for point in points]
@@ -57,6 +60,7 @@ def add_current_study(
         row=2,
         col=1,
     )
+    return True
 
 
 def _current_study_points(study: Any) -> list[dict[str, Any]]:
