@@ -139,8 +139,6 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
         pygame.draw.aaline(env.surf, colors.ground_outline, scaled_poly[0], scaled_poly[1])
 
     for obj in env.particles + env.drawlist:
-        if _is_lander_part(obj, env):
-            continue
         for f in obj.fixtures:
             trans = f.body.transform
             fill, outline = _object_colors(obj, env, colors)
@@ -163,8 +161,16 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
                 gfxdraw.aapolygon(env.surf, path, fill)
                 pygame.draw.aalines(env.surf, color=outline, points=path, closed=True)
 
-    _draw_flags(env.surf, env, colors)
-    _draw_eagle_lander(env.surf, env)
+            for x in [env.helipad_x1, env.helipad_x2]:
+                x = x * lunar_lander.SCALE
+                flagy1 = env.helipad_y * lunar_lander.SCALE
+                flagy2 = flagy1 + 50
+                pygame.draw.line(
+                    env.surf, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1
+                )
+                flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
+                pygame.draw.polygon(env.surf, color=colors.flag, points=flag_points)
+                gfxdraw.aapolygon(env.surf, flag_points, colors.flag)
 
     env.surf = pygame.transform.flip(env.surf, False, True)
     if overlay is not None:
@@ -184,88 +190,9 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
 
 
 def _object_colors(obj, env, colors: LanderColors) -> tuple[RGB, RGB]:
-    if _is_lander_part(obj, env):
+    if obj is env.lander or any(obj is leg for leg in env.legs):
         return colors.lander_fill, colors.lander_outline
     return obj.color1, obj.color2
-
-
-def _is_lander_part(obj, env) -> bool:
-    return obj is env.lander or any(obj is leg for leg in env.legs)
-
-
-def _draw_flags(surface, env, colors: LanderColors) -> None:
-    import pygame
-    from pygame import gfxdraw
-
-    for x in [env.helipad_x1, env.helipad_x2]:
-        x = x * lunar_lander.SCALE
-        flagy1 = env.helipad_y * lunar_lander.SCALE
-        flagy2 = flagy1 + 50
-        pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
-        flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
-        pygame.draw.polygon(surface, color=colors.flag, points=flag_points)
-        gfxdraw.aapolygon(surface, flag_points, colors.flag)
-
-
-def _draw_eagle_lander(surface, env) -> None:
-    import pygame
-
-    if getattr(env, "lander", None) is None:
-        return
-    trans = env.lander.transform
-
-    def point(x: float, y: float) -> tuple[int, int]:
-        px, py = trans * (x, y) * lunar_lander.SCALE
-        return int(px), int(py)
-
-    def polygon(points, fill: RGB, outline: RGB | None = None) -> None:
-        path = [point(x, y) for x, y in points]
-        pygame.draw.polygon(surface, fill, path)
-        if outline is not None:
-            pygame.draw.aalines(surface, outline, True, path)
-
-    gold = (214, 174, 62)
-    foil = (238, 204, 94)
-    metal = (190, 194, 188)
-    dark = (45, 43, 38)
-    window = (110, 176, 205)
-
-    _draw_eagle_legs(surface, env, gold)
-    polygon([(-0.76, 0.10), (0.76, 0.10), (0.62, -0.46), (-0.62, -0.46)], gold, dark)
-    polygon([(-0.66, 0.04), (-0.18, 0.04), (-0.28, -0.40), (-0.70, -0.40)], foil)
-    polygon([(0.06, 0.05), (0.64, 0.05), (0.54, -0.40), (-0.04, -0.40)], foil)
-    polygon([(-0.48, 0.12), (-0.12, 0.96), (0.46, 0.74), (0.44, 0.08)], metal, dark)
-    polygon([(0.02, 0.12), (0.48, 0.72), (0.74, 0.28), (0.50, -0.04)], (158, 163, 160), dark)
-    polygon([(0.00, 0.48), (0.25, 0.56), (0.32, 0.34), (0.03, 0.26)], window, dark)
-    polygon([(-0.22, -0.47), (0.22, -0.47), (0.14, -0.65), (-0.14, -0.65)], dark)
-
-
-def _draw_eagle_legs(surface, env, gold: RGB) -> None:
-    import pygame
-
-    for leg in getattr(env, "legs", []):
-        trans = leg.transform
-        local_ends = [(0, -0.42), (0, 0.42)]
-        world_ends = [trans * local for local in local_ends]
-        foot_index = 0 if world_ends[0].y < world_ends[1].y else 1
-        foot_local = local_ends[foot_index]
-        upper_local = local_ends[1 - foot_index]
-        foot = _render_point(trans * foot_local)
-        upper = _render_point(trans * upper_local)
-        pygame.draw.line(surface, gold, upper, foot, 2)
-        pygame.draw.aaline(surface, gold, _render_point(trans * (-0.16, foot_local[1])), foot)
-        pygame.draw.aaline(surface, gold, _render_point(trans * (0.16, foot_local[1])), foot)
-        pygame.draw.line(
-            surface,
-            gold,
-            _render_point(trans * (-0.30, foot_local[1])),
-            _render_point(trans * (0.30, foot_local[1])),
-            2,
-        )
-
-
-def _render_point(point) -> tuple[int, int]:
-    return int(point.x * lunar_lander.SCALE), int(point.y * lunar_lander.SCALE)
 
 
 def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
