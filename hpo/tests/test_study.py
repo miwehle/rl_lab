@@ -460,3 +460,30 @@ def test_baseline_loads_from_database(monkeypatch) -> None:
     assert baseline == Baseline(params={"x": 2}, score=123.0)
     assert load_calls[0]["study_name"] == "s4"
     assert "previous.db" in load_calls[0]["storage"]
+
+
+def test_create_or_load_study_records_runtime_metadata(monkeypatch, tmp_path) -> None:
+    study = FakeStudy([])
+    record_calls = []
+    monkeypatch.setattr(study_module, "_create_study", lambda **_kwargs: study)
+    monkeypatch.setattr(
+        study_module,
+        "record_study_metadata",
+        lambda *args, **kwargs: record_calls.append((args, kwargs)),
+    )
+    database_path = tmp_path / "series.db"
+
+    loaded = study_module._create_or_load_study(
+        study_name="s1",
+        database_path=database_path,
+        runtime_provider="colab",
+        device="cuda",
+    )
+
+    assert loaded is study
+    assert record_calls == [
+        (
+            (database_path, "s1"),
+            {"runtime_provider": "colab", "device": "cuda"},
+        )
+    ]

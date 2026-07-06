@@ -12,6 +12,7 @@ from hpo.objective import (
     create_objective,
 )
 from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
+from hpo.study_metadata import record_study_metadata
 from hpo.study_reporting import (
     StudySeriesReporter,
     TrainingProgressFn,
@@ -73,6 +74,7 @@ class StudyRunner:
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     robust_eval_episodes: int = 50
+    runtime_provider: str | None = None
     sync_fn: SyncFn | None = None
     studies: list[Any] = field(default_factory=list, init=False)
     incumbent_params: dict[str, Any] = field(init=False)
@@ -103,6 +105,8 @@ class StudyRunner:
         study = _create_or_load_study(
             study_name=study_name,
             database_path=database_path,
+            runtime_provider=self.runtime_provider,
+            device=objective_cfg.device,
         )
         if not self.studies:
             self.studies = _load_finished_study_series(database_path, exclude=study_name)
@@ -203,15 +207,24 @@ def _create_or_load_study(
     *,
     study_name: str,
     database_path: str | Path,
+    runtime_provider: str | None = None,
+    device: Any = None,
 ) -> Any:
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
-    return _create_study(
+    study = _create_study(
         study_name=study_name,
         direction="maximize",
         storage=f"sqlite:///{database_path}",
         load_if_exists=True,
     )
+    record_study_metadata(
+        database_path,
+        study_name,
+        runtime_provider=runtime_provider,
+        device=device,
+    )
+    return study
 
 
 def _load_finished_study_series(
