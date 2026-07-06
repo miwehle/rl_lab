@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from hpo.notebook.dashboard.style import set_empty_score_yaxis
+from hpo.notebook.dashboard.style import NO_DATA_TEXT, set_empty_score_yaxis
 
 
 def add_study_series(figure: Any, studies: Any) -> None:
@@ -38,6 +38,13 @@ def add_study_series(figure: Any, studies: Any) -> None:
         col=1,
     )
     if not scores:
+        figure.add_annotation(
+            text=NO_DATA_TEXT,
+            row=1,
+            col=1,
+            showarrow=False,
+            font=dict(color="gray"),
+        )
         set_empty_score_yaxis(figure, row=1, col=1)
     else:
         figure.update_yaxes(title_text="Score", row=1, col=1)

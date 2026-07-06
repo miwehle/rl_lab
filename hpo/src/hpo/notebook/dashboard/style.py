@@ -22,3 +22,13 @@ def set_empty_score_yaxis(
         col=col,
         secondary_y=secondary_y,
     )
+
+
+def hide_empty_xaxis(figure: Any, *, row: int, col: int) -> None:
+    figure.update_xaxes(
+        showticklabels=False,
+        showgrid=False,
+        zeroline=False,
+        row=row,
+        col=col,
+    )

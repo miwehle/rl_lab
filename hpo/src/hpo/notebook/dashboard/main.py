@@ -11,7 +11,11 @@ from hpo.notebook.dashboard.robustness import (
     add_checkpoint_robustness_evaluation,
     add_robustness_evaluation,
 )
-from hpo.notebook.dashboard.style import NO_DATA_TEXT, set_empty_score_yaxis
+from hpo.notebook.dashboard.style import (
+    NO_DATA_TEXT,
+    hide_empty_xaxis,
+    set_empty_score_yaxis,
+)
 from hpo.notebook.dashboard.study_series import add_study_series
 from hpo.notebook.dashboard.training_progress import add_training_progress
 from hpo.study_reporting import (
@@ -68,8 +72,11 @@ def build_dashboard(
         ),
     )
     stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
+    current_study_is_empty = False
+    robustness_is_empty = False
     if robustness_progress is None:
         if not add_current_study(figure, study, target_trials):
+            current_study_is_empty = True
             figure.add_annotation(
                 text=NO_DATA_TEXT,
                 row=2,
@@ -83,21 +90,13 @@ def build_dashboard(
                 checkpoint_summaries=stored_checkpoint_summaries,
             )
         else:
+            robustness_is_empty = True
             figure.add_annotation(
                 text=NO_DATA_TEXT,
                 row=2,
                 col=2,
                 showarrow=False,
                 font=dict(color="gray"),
-            )
-            figure.update_xaxes(
-                title_text="Checkpoint",
-                tickmode="array",
-                tickvals=[0, 1, 2],
-                ticktext=["C1", "C2", "C3"],
-                range=[-0.5, 2.5],
-                row=2,
-                col=2,
             )
             set_empty_score_yaxis(figure, row=2, col=2)
     else:
@@ -141,6 +140,10 @@ def build_dashboard(
         add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
+    if current_study_is_empty:
+        hide_empty_xaxis(figure, row=2, col=1)
+    if robustness_is_empty:
+        hide_empty_xaxis(figure, row=2, col=2)
     if training_progress is None:
         _configure_empty_training_axes(figure)
     return figure
@@ -165,13 +168,7 @@ def _style_dashboard(figure: Any) -> None:
 
 
 def _configure_empty_training_axes(figure: Any) -> None:
-    figure.update_xaxes(
-        showticklabels=False,
-        showgrid=False,
-        zeroline=False,
-        row=3,
-        col=1,
-    )
+    hide_empty_xaxis(figure, row=3, col=1)
     set_empty_score_yaxis(figure, row=3, col=1, title_text="Gym score")
     _hide_yaxis(figure, row=3, col=1, secondary_y=True)
 

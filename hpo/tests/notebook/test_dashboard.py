@@ -193,8 +193,8 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
         if annotation.text == "No data"
     ]
     assert len(no_data_annotations) == 2
-    assert figure.layout.xaxis3.title.text == "Checkpoint"
-    assert list(figure.layout.xaxis3.ticktext) == ["C1", "C2", "C3"]
+    assert figure.layout.xaxis3.showticklabels is False
+    assert figure.layout.xaxis3.showgrid is False
     assert figure.layout.yaxis3.title.text == "Score"
     assert list(figure.layout.yaxis3.range) == [0, 250]
     assert figure.layout.xaxis4.showticklabels is False
@@ -253,6 +253,20 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
     assert list(figure.layout.xaxis2.tickvals) == [0, 1, 2]
 
 
+def test_empty_study_series_plot_shows_no_data() -> None:
+    study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
+
+    figure = dashboard.build_dashboard(
+        study=study,
+        target_trials=10,
+        studies=[],
+        incumbent_params={},
+    )
+
+    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
+    assert list(figure.layout.yaxis.range) == [0, 250]
+
+
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
 
@@ -264,9 +278,8 @@ def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     )
 
     assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis2.title.text == "Trial"
-    assert list(figure.layout.xaxis2.range) == [0, 10]
-    assert list(figure.layout.xaxis2.tickvals) == list(range(11))
+    assert figure.layout.xaxis2.showticklabels is False
+    assert figure.layout.xaxis2.showgrid is False
     assert figure.layout.yaxis2.title.text == "Score"
     assert list(figure.layout.yaxis2.range) == [0, 250]
     assert list(figure.layout.yaxis.range) == [0, 250]
@@ -468,8 +481,8 @@ def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None
     )
 
     assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis3.title.text == "Checkpoint"
-    assert list(figure.layout.xaxis3.ticktext) == ["C1", "C2", "C3"]
+    assert figure.layout.xaxis3.showticklabels is False
+    assert figure.layout.xaxis3.showgrid is False
     assert figure.layout.yaxis3.title.text == "Score"
     assert list(figure.layout.yaxis3.range) == [0, 250]
 

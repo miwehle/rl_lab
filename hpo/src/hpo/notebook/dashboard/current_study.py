@@ -15,14 +15,6 @@ def add_current_study(
 
     points = _current_study_points(study)
     if not points:
-        figure.update_xaxes(
-            title_text="Trial",
-            tickmode="array",
-            tickvals=_trial_tickvals(target_trials),
-            range=[0, max(1, target_trials)],
-            row=2,
-            col=1,
-        )
         set_empty_score_yaxis(figure, row=2, col=1)
         return False
 
