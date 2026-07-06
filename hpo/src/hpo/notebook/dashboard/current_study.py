@@ -16,6 +16,8 @@ def add_current_study(
     if not points:
         figure.update_xaxes(
             title_text="Trial",
+            tickmode="array",
+            tickvals=list(range(max(1, target_trials) + 1)),
             range=[0, max(1, target_trials)],
             row=2,
             col=1,

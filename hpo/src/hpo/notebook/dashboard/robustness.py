@@ -136,7 +136,7 @@ def add_checkpoint_robustness_evaluation(
         for key in ("min", "max")
     ]
     figure.update_xaxes(
-        title_text="Gym score",
+        title_text="Score",
         range=[min(score_values) - 10, max(score_values) + 10],
         row=2,
         col=2,

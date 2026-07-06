@@ -26,19 +26,6 @@ def add_study_series(figure: Any, studies: Any) -> None:
         col=1,
     )
     x_range = [-0.5, max(0.5, len(points) - 0.5)]
-    for value, name, dash in ((200, "Score 200", "dash"), (250, "Score 250", "dot")):
-        figure.add_trace(
-            go.Scatter(
-                x=x_range,
-                y=[value, value],
-                mode="lines",
-                name=name,
-                showlegend=False,
-                line=dict(color="gray", dash=dash),
-            ),
-            row=1,
-            col=1,
-        )
     figure.update_xaxes(
         title_text="Study",
         tickmode="array",

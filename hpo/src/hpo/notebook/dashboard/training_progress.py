@@ -121,7 +121,7 @@ def add_training_progress(
     figure.layout.annotations[4].text = (
         f"Trial: {progress.trial_number} · {mean_label}"
     )
-    figure.update_xaxes(title_text="Episode", range=x_range, row=3, col=1)
+    figure.update_xaxes(title_text="Training episode", range=x_range, row=3, col=1)
     score_values = [0, *returns]
     if reference_score is not None:
         score_values.append(reference_score)

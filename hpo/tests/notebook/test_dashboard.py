@@ -193,7 +193,7 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
         if annotation.text == "No data yet"
     ]
     assert len(no_data_annotations) == 2
-    assert figure.layout.xaxis3.title.text == "Gym score"
+    assert figure.layout.xaxis3.title.text == "Score"
     assert list(figure.layout.xaxis3.range) == [0, 250]
     assert figure.layout.yaxis3.title.text == "Checkpoint"
     assert list(figure.layout.yaxis3.ticktext) == ["C1", "C2", "C3"]
@@ -206,8 +206,6 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     assert {trace.name for trace in figure.data} >= {
         "Score",
         "Best score",
-        "Score 200",
-        "Score 250",
     }
     assert {
         trace.name for trace in figure.data
@@ -267,6 +265,7 @@ def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     assert any(annotation.text == "No data yet" for annotation in figure.layout.annotations)
     assert figure.layout.xaxis2.title.text == "Trial"
     assert list(figure.layout.xaxis2.range) == [0, 10]
+    assert list(figure.layout.xaxis2.tickvals) == list(range(11))
     assert figure.layout.yaxis2.title.text == "Score"
     assert list(figure.layout.yaxis2.range) == [0, 250]
     assert list(figure.layout.yaxis.range) == [0, 250]
@@ -395,7 +394,7 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     assert mean.marker.color == "white"
     assert mean.marker.line.color == "black"
     assert not any(trace.name == "median" for trace in figure.data)
-    assert figure.layout.xaxis3.title.text == "Gym score"
+    assert figure.layout.xaxis3.title.text == "Score"
     assert figure.layout.yaxis3.title.text == "Checkpoint"
     assert {
         trace.name for trace in figure.data
@@ -443,7 +442,7 @@ def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
 
     assert list(mean.x) == [145.4]
     assert list(mean.y) == ["C1 trial 3"]
-    assert figure.layout.xaxis3.title.text == "Gym score"
+    assert figure.layout.xaxis3.title.text == "Score"
     assert not any(
         annotation.text == "Waiting for robustness evaluation"
         for annotation in figure.layout.annotations
@@ -465,7 +464,7 @@ def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None
     )
 
     assert any(annotation.text == "No data yet" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis3.title.text == "Gym score"
+    assert figure.layout.xaxis3.title.text == "Score"
     assert list(figure.layout.xaxis3.range) == [0, 250]
     assert figure.layout.yaxis3.title.text == "Checkpoint"
     assert list(figure.layout.yaxis3.ticktext) == ["C1", "C2", "C3"]
@@ -525,7 +524,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert list(trailing_mean.x) == [2, 3, 4]
     assert list(trailing_mean.y) == pytest.approx([2.0, 4.0, 6.0])
     assert list(checkpoint.y) == [4.0, 4.0]
-    assert figure.layout.xaxis4.title.text == "Episode"
+    assert figure.layout.xaxis4.title.text == "Training episode"
     assert figure.layout.yaxis4.title.text == "Gym score"
     assert figure.layout.yaxis5.title.text == "Epsilon"
     assert any(

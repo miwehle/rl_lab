@@ -91,7 +91,7 @@ def build_dashboard(
                 font=dict(color="gray"),
             )
             figure.update_xaxes(
-                title_text="Gym score",
+                title_text="Score",
                 range=[0, 250],
                 row=2,
                 col=2,
