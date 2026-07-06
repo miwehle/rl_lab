@@ -41,7 +41,7 @@ def add_robustness_evaluation(
             showlegend=False,
         ),
         row=2,
-        col=2,
+        col=1,
     )
     means = [sum(scores) / len(scores) for scores in candidate_seed_scores]
     figure.add_trace(
@@ -54,7 +54,7 @@ def add_robustness_evaluation(
             showlegend=False,
         ),
         row=2,
-        col=2,
+        col=1,
     )
     figure.update_xaxes(
         title_text="Candidate",
@@ -63,31 +63,31 @@ def add_robustness_evaluation(
         ticktext=list(range(1, len(means) + 1)),
         range=[0.5, len(means) + 0.5],
         row=2,
-        col=2,
+        col=1,
     )
-    figure.update_yaxes(title_text="Score", row=2, col=2)
+    figure.update_yaxes(title_text="Score", row=2, col=1)
 
 
 def add_checkpoint_robustness_evaluation(figure: Any, *, checkpoint_summaries: list[dict[str, Any]]) -> None:
     import plotly.graph_objects as go
 
     if not checkpoint_summaries:
-        figure.add_annotation(text=NO_DATA_TEXT, row=2, col=2, showarrow=False, font=dict(color="gray"))
+        figure.add_annotation(text=NO_DATA_TEXT, row=2, col=1, showarrow=False, font=dict(color="gray"))
         return
 
     labels = [_checkpoint_candidate_label(summary) for summary in checkpoint_summaries]
-    x_values = list(range(len(labels)))
+    y_values = list(range(len(labels)))
     intervals = [
         ("min..max", "min", "max", "lightgray", 2),
         ("q05..q95", "q05", "q95", "rgba(31, 119, 180, 0.35)", 6),
         ("q25..q75", "q25", "q75", "rgba(31, 119, 180, 0.85)", 12),
     ]
     for name, low_key, high_key, color, width in intervals:
-        for x, label, summary in zip(x_values, labels, checkpoint_summaries, strict=True):
+        for y, label, summary in zip(y_values, labels, checkpoint_summaries, strict=True):
             figure.add_trace(
                 go.Scatter(
-                    x=[x, x],
-                    y=[summary[low_key], summary[high_key]],
+                    x=[summary[low_key], summary[high_key]],
+                    y=[y, y],
                     mode="lines",
                     name=name,
                     showlegend=False,
@@ -99,13 +99,13 @@ def add_checkpoint_robustness_evaluation(figure: Any, *, checkpoint_summaries: l
                     ),
                 ),
                 row=2,
-                col=2,
+                col=1,
             )
 
     figure.add_trace(
         go.Scatter(
-            x=x_values,
-            y=[summary["mean"] for summary in checkpoint_summaries],
+            x=[summary["mean"] for summary in checkpoint_summaries],
+            y=y_values,
             mode="markers+text",
             name="mean",
             showlegend=False,
@@ -114,23 +114,26 @@ def add_checkpoint_robustness_evaluation(figure: Any, *, checkpoint_summaries: l
             textfont=dict(color="#333333", size=11),
             marker=dict(color="white", line=dict(color="black", width=1), size=8),
             customdata=labels,
-            hovertemplate="%{customdata}<br>Mean: %{y:.1f}<extra></extra>",
+            hovertemplate="%{customdata}<br>Mean: %{x:.1f}<extra></extra>",
         ),
         row=2,
-        col=2,
+        col=1,
     )
     score_values = [float(summary[key]) for summary in checkpoint_summaries for key in ("min", "max")]
     figure.update_xaxes(
-        title_text="Checkpoint",
-        tickmode="array",
-        tickvals=x_values,
-        ticktext=labels,
-        range=[-0.5, len(labels) - 0.35],
+        title_text="Score",
+        range=[min(score_values) - 10, max(score_values) + 10],
         row=2,
-        col=2,
+        col=1,
     )
     figure.update_yaxes(
-        title_text="Score", range=[min(score_values) - 10, max(score_values) + 10], row=2, col=2
+        title_text="Checkpoint",
+        tickmode="array",
+        tickvals=y_values,
+        ticktext=labels,
+        range=[len(labels) - 0.35, -0.5],
+        row=2,
+        col=1,
     )
 
 

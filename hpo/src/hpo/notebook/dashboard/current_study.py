@@ -11,7 +11,7 @@ def add_current_study(figure: Any, study: Any, target_trials: int) -> bool:
 
     points = _current_study_points(study)
     if not points:
-        set_empty_score_yaxis(figure, row=2, col=1)
+        set_empty_score_yaxis(figure, row=1, col=2)
         return False
 
     numbers = [point["trial_number"] for point in points]
@@ -30,8 +30,8 @@ def add_current_study(figure: Any, study: Any, target_trials: int) -> bool:
             customdata=hover_params,
             hovertemplate=("Trial: %{x}<br>Score: %{y:.1f}" "%{customdata}<extra></extra>"),
         ),
-        row=2,
-        col=1,
+        row=1,
+        col=2,
     )
     figure.add_trace(
         go.Scatter(
@@ -42,19 +42,19 @@ def add_current_study(figure: Any, study: Any, target_trials: int) -> bool:
             showlegend=False,
             line=dict(color="red"),
         ),
-        row=2,
-        col=1,
+        row=1,
+        col=2,
     )
     figure.update_xaxes(
         title_text="Trial",
         tickmode="array",
         tickvals=_trial_tickvals(target_trials),
         range=[0, max(1, target_trials)],
-        row=2,
-        col=1,
+        row=1,
+        col=2,
     )
     score_floor = min([0, *scores])
-    figure.update_yaxes(title_text="Score", range=[score_floor - 10, 260], row=2, col=1)
+    figure.update_yaxes(title_text="Score", range=[score_floor - 10, 260], row=1, col=2)
     return True
 
 

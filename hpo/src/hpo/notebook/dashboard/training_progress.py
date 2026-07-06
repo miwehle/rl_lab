@@ -32,7 +32,7 @@ def add_training_progress(figure: Any, progress: TrainingProgress, training_scor
             line=dict(color="#9a9a9a" if has_env_labels else "#1f77b4", width=1),
             hovertemplate="Episode: %{x}<br>Return: %{y:.1f}<extra></extra>",
         ),
-        row=3,
+        row=2,
         col=1,
         secondary_y=False,
     )
@@ -50,7 +50,7 @@ def add_training_progress(figure: Any, progress: TrainingProgress, training_scor
                 line=dict(color="#2ca02c", dash="dot"),
                 hovertemplate="Epsilon: %{y:.3f}<extra></extra>",
             ),
-            row=3,
+            row=2,
             col=1,
             secondary_y=True,
         )
@@ -70,7 +70,7 @@ def add_training_progress(figure: Any, progress: TrainingProgress, training_scor
                     line=dict(color="red"),
                     hovertemplate="Mean: %{y:.1f}<extra></extra>",
                 ),
-                row=3,
+                row=2,
                 col=1,
                 secondary_y=False,
             )
@@ -94,13 +94,13 @@ def add_training_progress(figure: Any, progress: TrainingProgress, training_scor
                 line=dict(color="gray", dash="dash"),
                 hovertemplate=f"{reference_name}: %{{y:.1f}}<extra></extra>",
             ),
-            row=3,
+            row=2,
             col=1,
             secondary_y=False,
         )
 
-    figure.layout.annotations[4].text = f"Trial: {progress.trial_number} · {mean_label}"
-    figure.update_xaxes(title_text="Training episode", range=x_range, row=3, col=1)
+    figure.layout.annotations[2].text = f"Trial: {progress.trial_number} · {mean_label}"
+    figure.update_xaxes(title_text="Training episode", range=x_range, row=2, col=1)
     score_values = [0, *returns]
     if reference_score is not None:
         score_values.append(reference_score)
@@ -114,11 +114,11 @@ def add_training_progress(figure: Any, progress: TrainingProgress, training_scor
             ),
             max(score_values) + 10,
         ],
-        row=3,
+        row=2,
         col=1,
         secondary_y=False,
     )
-    figure.update_yaxes(title_text="Epsilon", range=[0, 1], row=3, col=1, secondary_y=True)
+    figure.update_yaxes(title_text="Epsilon", range=[0, 1], row=2, col=1, secondary_y=True)
 
 
 def _add_env_label_traces(
@@ -158,7 +158,7 @@ def _add_env_label_traces(
                 marker=dict(color=color, size=6),
                 hovertemplate=(f"{display_name}<br>" "Episode: %{x}<br>Return: %{y:.1f}<extra></extra>"),
             ),
-            row=3,
+            row=2,
             col=1,
             secondary_y=False,
         )

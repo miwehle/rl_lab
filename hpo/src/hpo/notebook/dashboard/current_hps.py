@@ -42,7 +42,7 @@ def add_current_hps(
             ),
         ),
         row=1,
-        col=2,
+        col=1,
     )
 
 

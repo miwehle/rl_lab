@@ -105,7 +105,7 @@ def test_dashboard_throttles_training_updates_but_shows_final(monkeypatch) -> No
     assert training_updates[-1].episode_returns == [1.0, 2.0, 3.0]
 
 
-def test_dashboard_contains_fixed_four_panel_layout() -> None:
+def test_dashboard_contains_simplified_two_row_layout() -> None:
     study = FakeStudy(
         trials=[FakeTrial(0, 50.0, {}, params={"learning_rate": 0.001})], study_name="s1_update_economy"
     )
@@ -119,20 +119,22 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     )
 
     assert figure.layout.width == 1200
-    assert figure.layout.height == 925
-    assert [annotation.text for annotation in figure.layout.annotations[:4]] == [
-        "Study Series",
+    assert figure.layout.height == 685
+    assert [annotation.text for annotation in figure.layout.annotations[:3]] == [
         "Current HPs",
         "Study: S1 Update Economy",
-        "Checkpoint Robustness",
+        "Current Trial Training",
     ]
+    plot_area_height = figure.layout.height - figure.layout.margin.t - figure.layout.margin.b
+    assert (figure.layout.yaxis.domain[1] - figure.layout.yaxis.domain[0]) * plot_area_height == pytest.approx(245)
+    assert (figure.layout.yaxis2.domain[1] - figure.layout.yaxis2.domain[0]) * plot_area_height == pytest.approx(245)
     table = next(trace for trace in figure.data if trace.type == "table")
     assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
     assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
     assert list(table.cells.fill.color[1]) == ["#fff2cc", "white"]
-    study_score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x2")
+    study_score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x")
     assert list(study_score_trace.y) == [50.0]
-    assert list(figure.layout.yaxis2.range) == [-10, 260]
+    assert list(figure.layout.yaxis.range) == [-10, 260]
     assert figure.layout.legend.y < 0
     assert figure.layout.legend.x == 0.5
     assert figure.layout.legend.xanchor == "center"
@@ -141,17 +143,13 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     no_data_annotations = [
         annotation for annotation in figure.layout.annotations if annotation.text == "No data"
     ]
-    assert len(no_data_annotations) == 2
-    assert figure.layout.xaxis3.showticklabels is False
-    assert figure.layout.xaxis3.showgrid is False
-    assert figure.layout.yaxis3.title.text == "Score"
-    assert list(figure.layout.yaxis3.range) == [0, 250]
-    assert figure.layout.xaxis4.showticklabels is False
-    assert figure.layout.yaxis5.showticklabels is False
-    assert figure.layout.xaxis4.showgrid is False
-    assert figure.layout.yaxis5.showgrid is False
-    assert figure.layout.yaxis4.title.text == "Gym score"
-    assert list(figure.layout.yaxis4.range) == [0, 250]
+    assert len(no_data_annotations) == 1
+    assert figure.layout.xaxis2.showticklabels is False
+    assert figure.layout.xaxis2.showgrid is False
+    assert figure.layout.yaxis3.showticklabels is False
+    assert figure.layout.yaxis3.showgrid is False
+    assert figure.layout.yaxis2.title.text == "Gym score"
+    assert list(figure.layout.yaxis2.range) == [0, 250]
     assert {trace.name for trace in figure.data} >= {"Score", "Best score"}
     assert {
         trace.name
@@ -170,21 +168,12 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
 
     figure = dashboard.build_dashboard(study=study, target_trials=2, studies=[], incumbent_params={})
 
-    score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x2")
-    best_trace = next(trace for trace in figure.data if trace.name == "Best score" and trace.xaxis == "x2")
+    score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x")
+    best_trace = next(trace for trace in figure.data if trace.name == "Best score" and trace.xaxis == "x")
 
     assert list(score_trace.y) == [120.0, 80.0]
     assert list(best_trace.y) == [120.0, 120.0]
-    assert list(figure.layout.xaxis2.tickvals) == [0, 1, 2]
-
-
-def test_empty_study_series_plot_shows_no_data() -> None:
-    study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
-
-    figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[], incumbent_params={})
-
-    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert list(figure.layout.yaxis.range) == [0, 250]
+    assert list(figure.layout.xaxis.tickvals) == [0, 1, 2]
 
 
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
@@ -193,10 +182,9 @@ def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[], incumbent_params={})
 
     assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis2.showticklabels is False
-    assert figure.layout.xaxis2.showgrid is False
-    assert figure.layout.yaxis2.title.text == "Score"
-    assert list(figure.layout.yaxis2.range) == [0, 250]
+    assert figure.layout.xaxis.showticklabels is False
+    assert figure.layout.xaxis.showgrid is False
+    assert figure.layout.yaxis.title.text == "Score"
     assert list(figure.layout.yaxis.range) == [0, 250]
 
 
@@ -255,8 +243,8 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     ]
     assert list(mean_trace.y) == pytest.approx([100.0, 100.0, 70.0])
     assert mean_trace.marker.symbol == "diamond"
-    assert figure.layout.xaxis3.title.text == "Candidate"
-    assert list(figure.layout.xaxis3.ticktext) == [1, 2, 3]
+    assert figure.layout.xaxis2.title.text == "Candidate"
+    assert list(figure.layout.xaxis2.ticktext) == [1, 2, 3]
     assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
 
 
@@ -309,23 +297,23 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     min_max = [trace for trace in figure.data if trace.name == "min..max"]
     mean = next(trace for trace in figure.data if trace.name == "mean")
 
-    assert list(min_max[0].x) == [0, 0]
-    assert list(min_max[0].y) == [100.0, 320.0]
-    assert list(mean.x) == [0, 1]
-    assert list(mean.y) == [240.0, 250.0]
+    assert list(min_max[0].x) == [100.0, 320.0]
+    assert list(min_max[0].y) == [0, 0]
+    assert list(mean.x) == [240.0, 250.0]
+    assert list(mean.y) == [0, 1]
     assert list(mean.text) == ["240.0", "250.0"]
     assert list(mean.customdata) == ["C1 trial 35", "C2 trial 42"]
     assert mean.marker.color == "white"
     assert mean.marker.line.color == "black"
     assert not any(trace.name == "median" for trace in figure.data)
-    assert figure.layout.xaxis3.title.text == "Checkpoint"
-    assert figure.layout.yaxis3.title.text == "Score"
+    assert figure.layout.xaxis2.title.text == "Score"
+    assert figure.layout.yaxis2.title.text == "Checkpoint"
     assert {
         trace.name
         for trace in figure.data
         if getattr(trace, "showlegend", False) is not False and trace.name is not None
     } == set()
-    assert figure.layout.annotations[3].text.startswith("Checkpoint Robustness Evaluation")
+    assert figure.layout.annotations[2].text.startswith("Checkpoint Robustness Evaluation")
 
 
 def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
@@ -357,10 +345,10 @@ def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
 
     mean = next(trace for trace in figure.data if trace.name == "mean")
 
-    assert list(mean.x) == [0]
-    assert list(mean.y) == [145.4]
+    assert list(mean.x) == [145.4]
+    assert list(mean.y) == [0]
     assert list(mean.text) == ["145.4"]
-    assert figure.layout.xaxis3.title.text == "Checkpoint"
+    assert figure.layout.xaxis2.title.text == "Score"
     assert not any(
         annotation.text == "Waiting for robustness evaluation" for annotation in figure.layout.annotations
     )
@@ -372,10 +360,11 @@ def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None
     figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
 
     assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis3.showticklabels is False
-    assert figure.layout.xaxis3.showgrid is False
-    assert figure.layout.yaxis3.title.text == "Score"
-    assert list(figure.layout.yaxis3.range) == [0, 250]
+    assert figure.layout.xaxis2.showticklabels is False
+    assert figure.layout.xaxis2.showgrid is False
+    assert figure.layout.xaxis2.title.text == "Score"
+    assert list(figure.layout.xaxis2.range) == [0, 250]
+    assert figure.layout.yaxis2.showticklabels is False
 
 
 def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() -> None:
@@ -424,9 +413,9 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert list(trailing_mean.x) == [2, 3, 4]
     assert list(trailing_mean.y) == pytest.approx([2.0, 4.0, 6.0])
     assert list(checkpoint.y) == [4.0, 4.0]
-    assert figure.layout.xaxis4.title.text == "Training episode"
-    assert figure.layout.yaxis4.title.text == "Gym score"
-    assert figure.layout.yaxis5.title.text == "Epsilon"
+    assert figure.layout.xaxis2.title.text == "Training episode"
+    assert figure.layout.yaxis2.title.text == "Gym score"
+    assert figure.layout.yaxis3.title.text == "Epsilon"
     assert any(
         annotation.text == "Trial: 3 · Current Mean: 6.0 · Best Mean: 6.0"
         for annotation in figure.layout.annotations
@@ -470,8 +459,8 @@ def test_training_plot_clips_lower_score_axis_by_default() -> None:
         training_score_min=None,
     )
 
-    assert list(clipped.layout.yaxis4.range) == [-500, 20.0]
-    assert list(unclipped.layout.yaxis4.range) == [-3010.0, 20.0]
+    assert list(clipped.layout.yaxis2.range) == [-500, 20.0]
+    assert list(unclipped.layout.yaxis2.range) == [-3010.0, 20.0]
 
 
 def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) -> None:

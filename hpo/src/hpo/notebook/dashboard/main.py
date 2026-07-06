@@ -1,12 +1,11 @@
 """Tell the story of an HPO study series in one notebook dashboard.
 
 The dashboard is the visual interface between the human and the running HPO:
-- Study Series shows the overall progress.
 - Current HPs shows the running trial hyperparameters, or the incumbent otherwise.
 - Study follows the current optimization.
-- Checkpoint Robustness confirms the best candidates at the end of each study.
 - Current Trial Training shows live episode returns for the running trial, so the
   human at the dashboard can see how training is going before the trial finishes.
+- Checkpoint Robustness confirms the best candidates at the end of each study.
 """
 
 from dataclasses import dataclass
@@ -18,7 +17,6 @@ from hpo.notebook.dashboard.current_hps import add_current_hps, current_params
 from hpo.notebook.dashboard.current_study import add_current_study
 from hpo.notebook.dashboard.robustness import add_checkpoint_robustness_evaluation, add_robustness_evaluation
 from hpo.notebook.dashboard.style import NO_DATA_TEXT, hide_empty_xaxis, set_empty_score_yaxis
-from hpo.notebook.dashboard.study_series import add_study_series
 from hpo.notebook.dashboard.training_progress import add_training_progress
 from hpo.study_reporting import RobustnessProgress, StudySeriesReporter, TrainingProgress
 
@@ -38,22 +36,21 @@ def build_dashboard(
     """Build the study-series dashboard."""
     from plotly.subplots import make_subplots
 
+    stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
+    show_robustness = robustness_progress is not None or stored_checkpoint_summaries is not None
     figure = make_subplots(
-        rows=3,
+        rows=2,
         cols=2,
-        specs=[[{}, {"type": "domain"}], [{}, {}], [{"colspan": 2, "secondary_y": True}, None]],
-        row_heights=[0.40, 0.30, 0.30],
-        vertical_spacing=0.11,
+        specs=[[{"type": "domain"}, {}], [{"colspan": 2, "secondary_y": True}, None]],
+        row_heights=[0.5, 0.5],
+        vertical_spacing=55 / 545,
         horizontal_spacing=0.12,
         subplot_titles=(
-            "Study Series",
             "Current HPs",
             f"Study: {_study_title(study)}",
-            _robustness_panel_title(robustness_progress),
-            "Current Trial Training",
+            _robustness_panel_title(robustness_progress) if show_robustness else "Current Trial Training",
         ),
     )
-    add_study_series(figure, studies)
     add_current_hps(
         figure,
         current_params(incumbent_params, training_progress),
@@ -62,22 +59,14 @@ def build_dashboard(
             training_progress.optimized_param_names if training_progress is not None else None
         ),
     )
-    stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
-    current_study_is_empty = False
-    robustness_is_empty = False
-    if robustness_progress is None:
-        if not add_current_study(figure, study, target_trials):
-            current_study_is_empty = True
-            figure.add_annotation(text=NO_DATA_TEXT, row=2, col=1, showarrow=False, font=dict(color="gray"))
-        if stored_checkpoint_summaries:
-            add_checkpoint_robustness_evaluation(figure, checkpoint_summaries=stored_checkpoint_summaries)
-        else:
-            robustness_is_empty = True
-            figure.add_annotation(text=NO_DATA_TEXT, row=2, col=2, showarrow=False, font=dict(color="gray"))
-            set_empty_score_yaxis(figure, row=2, col=2)
-    else:
-        figure.add_annotation(text=NO_DATA_TEXT, row=2, col=1, showarrow=False, font=dict(color="gray"))
-        if robustness_progress.checkpoint_summaries is None:
+
+    current_study_is_empty = not add_current_study(figure, study, target_trials)
+    if current_study_is_empty:
+        figure.add_annotation(text=NO_DATA_TEXT, row=1, col=2, showarrow=False, font=dict(color="gray"))
+
+    bottom_panel_is_empty = False
+    if show_robustness:
+        if robustness_progress is not None and robustness_progress.checkpoint_summaries is None:
             add_robustness_evaluation(
                 figure,
                 candidate_seed_scores=robustness_progress.candidate_seed_scores,
@@ -86,48 +75,51 @@ def build_dashboard(
                 extra_score_label=robustness_progress.extra_score_label,
             )
         else:
-            add_checkpoint_robustness_evaluation(
-                figure, checkpoint_summaries=robustness_progress.checkpoint_summaries
+            checkpoint_summaries = (
+                robustness_progress.checkpoint_summaries
+                if robustness_progress is not None
+                else stored_checkpoint_summaries
             )
-        figure.layout.annotations[3].text = (
-            f"{robustness_progress.title} - "
-            f"Candidate {robustness_progress.candidate_index}/"
-            f"{robustness_progress.candidate_count} - "
-            f"{robustness_progress.step_label} {robustness_progress.seed_index}/"
-            f"{robustness_progress.seed_count}"
-        )
-
-    if training_progress is None:
-        figure.add_annotation(text=NO_DATA_TEXT, row=3, col=1, showarrow=False, font=dict(color="gray"))
+            bottom_panel_is_empty = not checkpoint_summaries
+            add_checkpoint_robustness_evaluation(figure, checkpoint_summaries=checkpoint_summaries or [])
+        if robustness_progress is not None:
+            figure.layout.annotations[2].text = (
+                f"{robustness_progress.title} - "
+                f"Candidate {robustness_progress.candidate_index}/"
+                f"{robustness_progress.candidate_count} - "
+                f"{robustness_progress.step_label} {robustness_progress.seed_index}/"
+                f"{robustness_progress.seed_count}"
+            )
+    elif training_progress is None:
+        bottom_panel_is_empty = True
+        figure.add_annotation(text=NO_DATA_TEXT, row=2, col=1, showarrow=False, font=dict(color="gray"))
     else:
         add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
     if current_study_is_empty:
+        hide_empty_xaxis(figure, row=1, col=2)
+    if bottom_panel_is_empty:
         hide_empty_xaxis(figure, row=2, col=1)
-    if robustness_is_empty:
-        hide_empty_xaxis(figure, row=2, col=2)
-    if training_progress is None:
-        _configure_empty_training_axes(figure)
+        if show_robustness:
+            figure.update_xaxes(title_text="Score", range=[0, 250], row=2, col=1)
+            figure.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=2, col=1)
+        else:
+            set_empty_score_yaxis(figure, row=2, col=1, title_text="Gym score")
+            _hide_yaxis(figure, row=2, col=1, secondary_y=True)
     return figure
 
 
 def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
-        height=925,
+        height=685,
         margin=dict(l=70, r=70, t=55, b=85),
         legend=dict(orientation="h", x=0.5, y=-0.09, xanchor="center", yanchor="top"),
         plot_bgcolor="white",
     )
     figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
     figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
-
-
-def _configure_empty_training_axes(figure: Any) -> None:
-    hide_empty_xaxis(figure, row=3, col=1)
-    set_empty_score_yaxis(figure, row=3, col=1, title_text="Gym score")
-    _hide_yaxis(figure, row=3, col=1, secondary_y=True)
 
 
 def _hide_yaxis(figure: Any, *, row: int, col: int, secondary_y: bool) -> None:
