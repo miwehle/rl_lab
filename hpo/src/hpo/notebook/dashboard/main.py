@@ -1,4 +1,13 @@
-"""Tell the story of an HPO study series in one notebook dashboard."""
+"""Tell the story of an HPO study series in one notebook dashboard.
+
+The dashboard is the visual interface between the human and the running HPO:
+- Study Series shows the overall progress.
+- Current HPs shows the running trial hyperparameters, or the incumbent otherwise.
+- Study follows the current optimization.
+- Checkpoint Robustness confirms the best candidates at the end of each study.
+- Current Trial Training shows live episode returns for the running trial, so the
+  human at the dashboard can see how training is going before the trial finishes.
+"""
 
 from dataclasses import dataclass
 import json
