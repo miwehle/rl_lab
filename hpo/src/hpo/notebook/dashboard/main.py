@@ -91,17 +91,17 @@ def build_dashboard(
                 font=dict(color="gray"),
             )
             figure.update_xaxes(
-                title_text="Score",
-                range=[0, 250],
+                title_text="Checkpoint",
+                tickmode="array",
+                tickvals=[0, 1, 2],
+                ticktext=["C1", "C2", "C3"],
+                range=[-0.5, 2.5],
                 row=2,
                 col=2,
             )
             figure.update_yaxes(
-                title_text="Checkpoint",
-                tickmode="array",
-                tickvals=[1, 2, 3],
-                ticktext=["C1", "C2", "C3"],
-                range=[0.5, 3.5],
+                title_text="Score",
+                range=[0, 250],
                 row=2,
                 col=2,
             )

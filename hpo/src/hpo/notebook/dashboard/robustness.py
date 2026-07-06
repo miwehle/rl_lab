@@ -90,19 +90,23 @@ def add_checkpoint_robustness_evaluation(
         return
 
     labels = [_checkpoint_candidate_label(summary) for summary in checkpoint_summaries]
+    x_values = list(range(len(labels)))
     intervals = [
         ("min..max", "min", "max", "lightgray", 2),
         ("q05..q95", "q05", "q95", "rgba(31, 119, 180, 0.35)", 6),
         ("q25..q75", "q25", "q75", "rgba(31, 119, 180, 0.85)", 12),
     ]
     for name, low_key, high_key, color, width in intervals:
-        for index, (label, summary) in enumerate(
-            zip(labels, checkpoint_summaries, strict=True)
+        for x, label, summary in zip(
+            x_values,
+            labels,
+            checkpoint_summaries,
+            strict=True,
         ):
             figure.add_trace(
                 go.Scatter(
-                    x=[summary[low_key], summary[high_key]],
-                    y=[label, label],
+                    x=[x, x],
+                    y=[summary[low_key], summary[high_key]],
                     mode="lines",
                     name=name,
                     showlegend=False,
@@ -119,13 +123,17 @@ def add_checkpoint_robustness_evaluation(
 
     figure.add_trace(
         go.Scatter(
-            x=[summary["mean"] for summary in checkpoint_summaries],
-            y=labels,
-            mode="markers",
+            x=x_values,
+            y=[summary["mean"] for summary in checkpoint_summaries],
+            mode="markers+text",
             name="mean",
             showlegend=False,
+            text=[f"{summary['mean']:.1f}" for summary in checkpoint_summaries],
+            textposition="middle right",
+            textfont=dict(color="#333333", size=11),
             marker=dict(color="white", line=dict(color="black", width=1), size=8),
-            hovertemplate="%{y}<br>Mean: %{x:.1f}<extra></extra>",
+            customdata=labels,
+            hovertemplate="%{customdata}<br>Mean: %{y:.1f}<extra></extra>",
         ),
         row=2,
         col=2,
@@ -136,12 +144,20 @@ def add_checkpoint_robustness_evaluation(
         for key in ("min", "max")
     ]
     figure.update_xaxes(
+        title_text="Checkpoint",
+        tickmode="array",
+        tickvals=x_values,
+        ticktext=labels,
+        range=[-0.5, len(labels) - 0.35],
+        row=2,
+        col=2,
+    )
+    figure.update_yaxes(
         title_text="Score",
         range=[min(score_values) - 10, max(score_values) + 10],
         row=2,
         col=2,
     )
-    figure.update_yaxes(title_text="Checkpoint", row=2, col=2)
 
 
 def _checkpoint_candidate_label(summary: dict[str, Any]) -> str:
