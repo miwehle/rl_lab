@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from hpo.notebook.dashboard.style import set_empty_score_yaxis
+
 
 def add_study_series(figure: Any, studies: Any) -> None:
     import plotly.graph_objects as go
@@ -35,10 +37,10 @@ def add_study_series(figure: Any, studies: Any) -> None:
         row=1,
         col=1,
     )
-    yaxis = {"title_text": "Score", "row": 1, "col": 1}
     if not scores:
-        yaxis["range"] = [0, 250]
-    figure.update_yaxes(**yaxis)
+        set_empty_score_yaxis(figure, row=1, col=1)
+    else:
+        figure.update_yaxes(title_text="Score", row=1, col=1)
 
 
 def _study_series_points(studies: Any) -> list[dict[str, Any]]:

@@ -3,6 +3,7 @@
 from typing import Any
 
 from hpo.checkpointing import trial_best_checkpoint_score
+from hpo.notebook.dashboard.style import set_empty_score_yaxis
 
 
 def add_current_study(
@@ -22,12 +23,7 @@ def add_current_study(
             row=2,
             col=1,
         )
-        figure.update_yaxes(
-            title_text="Score",
-            range=[0, 250],
-            row=2,
-            col=1,
-        )
+        set_empty_score_yaxis(figure, row=2, col=1)
         return False
 
     numbers = [point["trial_number"] for point in points]

@@ -11,6 +11,7 @@ from hpo.notebook.dashboard.robustness import (
     add_checkpoint_robustness_evaluation,
     add_robustness_evaluation,
 )
+from hpo.notebook.dashboard.style import NO_DATA_TEXT, set_empty_score_yaxis
 from hpo.notebook.dashboard.study_series import add_study_series
 from hpo.notebook.dashboard.training_progress import add_training_progress
 from hpo.study_reporting import (
@@ -21,7 +22,6 @@ from hpo.study_reporting import (
 
 
 DashboardRenderMode = Literal["safe"]
-NO_DATA_TEXT = "No data yet"
 
 
 def build_dashboard(
@@ -99,12 +99,7 @@ def build_dashboard(
                 row=2,
                 col=2,
             )
-            figure.update_yaxes(
-                title_text="Score",
-                range=[0, 250],
-                row=2,
-                col=2,
-            )
+            set_empty_score_yaxis(figure, row=2, col=2)
     else:
         figure.add_annotation(
             text="Waiting for optimization",
@@ -147,7 +142,7 @@ def build_dashboard(
 
     _style_dashboard(figure)
     if training_progress is None:
-        _hide_waiting_panel_axes(figure, row=3, col=1, secondary_y=True)
+        _configure_empty_training_axes(figure)
     return figure
 
 
@@ -169,26 +164,19 @@ def _style_dashboard(figure: Any) -> None:
     figure.update_yaxes(showgrid=True, gridcolor="#e5e5e5")
 
 
-def _hide_waiting_panel_axes(
-    figure: Any,
-    *,
-    row: int,
-    col: int,
-    secondary_y: bool = False,
-) -> None:
+def _configure_empty_training_axes(figure: Any) -> None:
     figure.update_xaxes(
         showticklabels=False,
         showgrid=False,
         zeroline=False,
-        row=row,
-        col=col,
+        row=3,
+        col=1,
     )
-    _hide_waiting_panel_yaxis(figure, row=row, col=col, secondary_y=False)
-    if secondary_y:
-        _hide_waiting_panel_yaxis(figure, row=row, col=col, secondary_y=True)
+    set_empty_score_yaxis(figure, row=3, col=1, title_text="Gym score")
+    _hide_yaxis(figure, row=3, col=1, secondary_y=True)
 
 
-def _hide_waiting_panel_yaxis(
+def _hide_yaxis(
     figure: Any,
     *,
     row: int,

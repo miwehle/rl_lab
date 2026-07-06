@@ -190,7 +190,7 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     no_data_annotations = [
         annotation
         for annotation in figure.layout.annotations
-        if annotation.text == "No data yet"
+        if annotation.text == "No data"
     ]
     assert len(no_data_annotations) == 2
     assert figure.layout.xaxis3.title.text == "Checkpoint"
@@ -198,11 +198,11 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     assert figure.layout.yaxis3.title.text == "Score"
     assert list(figure.layout.yaxis3.range) == [0, 250]
     assert figure.layout.xaxis4.showticklabels is False
-    assert figure.layout.yaxis4.showticklabels is False
     assert figure.layout.yaxis5.showticklabels is False
     assert figure.layout.xaxis4.showgrid is False
-    assert figure.layout.yaxis4.showgrid is False
     assert figure.layout.yaxis5.showgrid is False
+    assert figure.layout.yaxis4.title.text == "Gym score"
+    assert list(figure.layout.yaxis4.range) == [0, 250]
     assert {trace.name for trace in figure.data} >= {
         "Score",
         "Best score",
@@ -263,7 +263,7 @@ def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
         incumbent_params={},
     )
 
-    assert any(annotation.text == "No data yet" for annotation in figure.layout.annotations)
+    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
     assert figure.layout.xaxis2.title.text == "Trial"
     assert list(figure.layout.xaxis2.range) == [0, 10]
     assert list(figure.layout.xaxis2.tickvals) == list(range(11))
@@ -467,7 +467,7 @@ def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None
         incumbent_params={},
     )
 
-    assert any(annotation.text == "No data yet" for annotation in figure.layout.annotations)
+    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
     assert figure.layout.xaxis3.title.text == "Checkpoint"
     assert list(figure.layout.xaxis3.ticktext) == ["C1", "C2", "C3"]
     assert figure.layout.yaxis3.title.text == "Score"
