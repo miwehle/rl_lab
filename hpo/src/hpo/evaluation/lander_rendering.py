@@ -163,17 +163,7 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
                 gfxdraw.aapolygon(env.surf, path, fill)
                 pygame.draw.aalines(env.surf, color=outline, points=path, closed=True)
 
-            for x in [env.helipad_x1, env.helipad_x2]:
-                x = x * lunar_lander.SCALE
-                flagy1 = env.helipad_y * lunar_lander.SCALE
-                flagy2 = flagy1 + 50
-                pygame.draw.line(
-                    env.surf, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1
-                )
-                flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
-                pygame.draw.polygon(env.surf, color=colors.flag, points=flag_points)
-                gfxdraw.aapolygon(env.surf, flag_points, colors.flag)
-
+    _draw_flags(env.surf, env, colors)
     _draw_eagle_lander(env.surf, env)
 
     env.surf = pygame.transform.flip(env.surf, False, True)
@@ -201,6 +191,20 @@ def _object_colors(obj, env, colors: LanderColors) -> tuple[RGB, RGB]:
 
 def _is_lander_part(obj, env) -> bool:
     return obj is env.lander or any(obj is leg for leg in env.legs)
+
+
+def _draw_flags(surface, env, colors: LanderColors) -> None:
+    import pygame
+    from pygame import gfxdraw
+
+    for x in [env.helipad_x1, env.helipad_x2]:
+        x = x * lunar_lander.SCALE
+        flagy1 = env.helipad_y * lunar_lander.SCALE
+        flagy2 = flagy1 + 50
+        pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
+        flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
+        pygame.draw.polygon(surface, color=colors.flag, points=flag_points)
+        gfxdraw.aapolygon(surface, flag_points, colors.flag)
 
 
 def _draw_eagle_lander(surface, env) -> None:
