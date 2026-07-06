@@ -46,10 +46,7 @@ def test_solar_system_lander_factory_accepts_custom_worlds() -> None:
 
 
 def test_worlds_by_name_returns_requested_worlds() -> None:
-    assert [world.name for world in worlds_by_name(World.EARTH, World.VENUS)] == [
-        World.EARTH,
-        World.VENUS,
-    ]
+    assert [world.name for world in worlds_by_name(World.EARTH, World.VENUS)] == [World.EARTH, World.VENUS]
 
 
 def test_worlds_by_name_rejects_unknown_world() -> None:

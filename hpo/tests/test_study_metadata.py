@@ -25,20 +25,13 @@ def test_record_study_metadata_creates_hpo_table(tmp_path, monkeypatch) -> None:
     )
     database_path = tmp_path / "study.db"
 
-    study_metadata.record_study_metadata(
-        database_path,
-        "s1",
-        runtime_provider="colab",
-        device="cuda",
-    )
+    study_metadata.record_study_metadata(database_path, "s1", runtime_provider="colab", device="cuda")
 
     with sqlite3.connect(database_path) as connection:
-        row = connection.execute(
-            """
+        row = connection.execute("""
             SELECT study_name, runtime_provider, runtime_metadata_json, created_at
             FROM hpo_study_metadata
-            """
-        ).fetchone()
+            """).fetchone()
 
     assert row[0] == "s1"
     assert row[1] == "colab"
@@ -47,15 +40,8 @@ def test_record_study_metadata_creates_hpo_table(tmp_path, monkeypatch) -> None:
 
 
 def test_record_study_metadata_keeps_existing_row(tmp_path, monkeypatch) -> None:
-    values = [
-        {"python_version": "first"},
-        {"python_version": "second"},
-    ]
-    monkeypatch.setattr(
-        study_metadata,
-        "runtime_metadata",
-        lambda **_kwargs: values.pop(0),
-    )
+    values = [{"python_version": "first"}, {"python_version": "second"}]
+    monkeypatch.setattr(study_metadata, "runtime_metadata", lambda **_kwargs: values.pop(0))
     database_path = tmp_path / "study.db"
 
     study_metadata.record_study_metadata(database_path, "s1", runtime_provider="local")

@@ -66,13 +66,7 @@ def first_weight(model: torch.nn.Module) -> float:
 
 
 def objective_context(
-    trial=None,
-    config=None,
-    *,
-    params=None,
-    q_net=None,
-    score=None,
-    episode_returns=None,
+    trial=None, config=None, *, params=None, q_net=None, score=None, episode_returns=None
 ) -> ObjectiveContext:
     ctx = ObjectiveContext(
         trial=trial or FakeTrial(),
@@ -101,11 +95,7 @@ def objective_context(
 def test_best_checkpoint_recorder_saves_best_full_window(tmp_path) -> None:
     path = tmp_path / "best.pt"
     trainer = FakeTrainer()
-    recorder = BestCheckpointRecorder(
-        path,
-        window=2,
-        metadata={"trial_number": 7},
-    )
+    recorder = BestCheckpointRecorder(path, window=2, metadata={"trial_number": 7})
 
     recorder.after_episode(trainer, [1.0])
 
@@ -133,11 +123,7 @@ def test_best_checkpoint_recorder_saves_best_full_window(tmp_path) -> None:
 
 def test_checkpointing_objective_hook_factory_reports_study_attrs(tmp_path) -> None:
     factory = ObjectiveHookFactory(
-        tmp_path,
-        window=50,
-        min_score=100.0,
-        min_score_delta=5.0,
-        best_eval_archive_dir=tmp_path / "archive",
+        tmp_path, window=50, min_score=100.0, min_score_delta=5.0, best_eval_archive_dir=tmp_path / "archive"
     )
 
     assert factory.study_attrs() == {
@@ -162,11 +148,11 @@ def test_checkpointing_objective_hook_factory_copies_with_min_score(tmp_path) ->
 
 def test_checkpointing_objective_hooks_create_training_plotter(tmp_path) -> None:
     progress_calls = []
-    hooks = ObjectiveHookFactory(
-        tmp_path,
-        window=2,
-        min_score=10.0,
-    ).with_training_progress(progress_calls.append).for_trial(objective_context())
+    hooks = (
+        ObjectiveHookFactory(tmp_path, window=2, min_score=10.0)
+        .with_training_progress(progress_calls.append)
+        .for_trial(objective_context())
+    )
     trainer = FakeTrainer()
 
     plotter = hooks.training_plotter()
@@ -184,13 +170,8 @@ def test_checkpointing_objective_hooks_create_training_plotter(tmp_path) -> None
     assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
 
 
-def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
-    tmp_path,
-) -> None:
-    hooks = ObjectiveHookFactory(
-        tmp_path,
-        window=2,
-    ).for_trial(objective_context())
+def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(tmp_path) -> None:
+    hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context())
     trainer = FakeTrainer()
 
     set_weights(trainer.q_net, 7.0)
@@ -208,21 +189,14 @@ def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(
     hooks.finalize_trial(ctx)
     attrs = ctx.trial.user_attrs
 
-    assert attrs["checkpoint_path"] == str(
-        tmp_path / "trials" / "trial_0003_best.pt"
-    )
+    assert attrs["checkpoint_path"] == str(tmp_path / "trials" / "trial_0003_best.pt")
     assert attrs["checkpoint_score"] == pytest.approx(2.0)
     assert attrs["checkpoint_episode"] == 2
     assert attrs["checkpoint_window"] == 2
 
 
-def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(
-    tmp_path,
-) -> None:
-    hooks = ObjectiveHookFactory(
-        tmp_path,
-        window=2,
-    ).for_trial(objective_context(trial=FakeRobustTrial()))
+def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(tmp_path) -> None:
+    hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context(trial=FakeRobustTrial()))
     trainer = FakeTrainer()
 
     hooks.recorder.after_episode(trainer, [1.0, 3.0])
@@ -231,20 +205,14 @@ def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(
     hooks.finalize_trial(ctx)
     attrs = ctx.trial.user_attrs
 
-    assert attrs["checkpoint_path"] == str(
-        tmp_path / "robustness" / "trial_0003_seed_1001_best.pt"
-    )
+    assert attrs["checkpoint_path"] == str(tmp_path / "robustness" / "trial_0003_seed_1001_best.pt")
 
 
 def test_evaluation_best_checkpoint_recorder_saves_evaluated_model(tmp_path) -> None:
     path = tmp_path / "eval_best.pt"
     q_net = torch.nn.Linear(1, 1)
     set_weights(q_net, 9.0)
-    ctx = objective_context(
-        q_net=q_net,
-        score=211.0,
-        episode_returns=[1.0, 2.0, 3.0],
-    )
+    ctx = objective_context(q_net=q_net, score=211.0, episode_returns=[1.0, 2.0, 3.0])
     ctx.world_scores = {"moon": 211.0}
     recorder = EvaluationBestCheckpointRecorder(path, min_score=200.0)
 
@@ -260,17 +228,12 @@ def test_evaluation_best_checkpoint_recorder_saves_evaluated_model(tmp_path) -> 
 
 def test_objective_hooks_archive_best_eval_checkpoint(tmp_path) -> None:
     archive_dir = tmp_path / "archive"
-    hooks = ObjectiveHookFactory(
-        tmp_path / "checkpoints",
-        best_eval_archive_dir=archive_dir,
-    ).for_trial(objective_context())
+    hooks = ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
+        objective_context()
+    )
     q_net = torch.nn.Linear(1, 1)
     set_weights(q_net, 9.0)
-    ctx = objective_context(
-        q_net=q_net,
-        score=211.0,
-        episode_returns=[1.0, 2.0, 3.0],
-    )
+    ctx = objective_context(q_net=q_net, score=211.0, episode_returns=[1.0, 2.0, 3.0])
 
     hooks.finalize_trial(ctx)
 
@@ -281,77 +244,45 @@ def test_objective_hooks_archive_best_eval_checkpoint(tmp_path) -> None:
 
     load_checkpoint(restored, archive_path, torch.device("cpu"))
 
-    assert ctx.trial.user_attrs["evaluation_checkpoint_archive_path"] == str(
-        archive_path
-    )
+    assert ctx.trial.user_attrs["evaluation_checkpoint_archive_path"] == str(archive_path)
     assert first_weight(restored) == pytest.approx(9.0)
     assert metadata["score"] == pytest.approx(211.0)
-    assert metadata["source_path"] == str(
-        tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt"
-    )
+    assert metadata["source_path"] == str(tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt")
 
 
-def test_objective_hooks_keep_archived_eval_checkpoint_when_score_is_lower(
-    tmp_path,
-) -> None:
+def test_objective_hooks_keep_archived_eval_checkpoint_when_score_is_lower(tmp_path) -> None:
     archive_dir = tmp_path / "archive"
-    high_hooks = ObjectiveHookFactory(
-        tmp_path / "checkpoints",
-        best_eval_archive_dir=archive_dir,
-    ).for_trial(objective_context())
+    high_hooks = ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
+        objective_context()
+    )
     high_q_net = torch.nn.Linear(1, 1)
     set_weights(high_q_net, 9.0)
-    high_hooks.finalize_trial(
-        objective_context(
-            q_net=high_q_net,
-            score=211.0,
-            episode_returns=[1.0],
-        )
-    )
+    high_hooks.finalize_trial(objective_context(q_net=high_q_net, score=211.0, episode_returns=[1.0]))
 
-    low_hooks = ObjectiveHookFactory(
-        tmp_path / "checkpoints",
-        best_eval_archive_dir=archive_dir,
-    ).for_trial(objective_context())
+    low_hooks = ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
+        objective_context()
+    )
     low_q_net = torch.nn.Linear(1, 1)
     set_weights(low_q_net, 3.0)
-    low_ctx = objective_context(
-        q_net=low_q_net,
-        score=200.0,
-        episode_returns=[1.0],
-    )
+    low_ctx = objective_context(q_net=low_q_net, score=200.0, episode_returns=[1.0])
 
     low_hooks.finalize_trial(low_ctx)
 
     restored = torch.nn.Linear(1, 1)
-    metadata = load_checkpoint(
-        restored,
-        archive_dir / "best_eval_checkpoint.pt",
-        torch.device("cpu"),
-    )
+    metadata = load_checkpoint(restored, archive_dir / "best_eval_checkpoint.pt", torch.device("cpu"))
 
     assert "evaluation_checkpoint_archive_path" not in low_ctx.trial.user_attrs
     assert first_weight(restored) == pytest.approx(9.0)
     assert metadata["score"] == pytest.approx(211.0)
 
 
-def test_best_checkpoint_selects_highest_score_across_checkpoint_dirs(
-    tmp_path,
-) -> None:
+def test_best_checkpoint_selects_highest_score_across_checkpoint_dirs(tmp_path) -> None:
     model = torch.nn.Linear(1, 1)
     trial_path = tmp_path / "trials" / "trial_0001_best.pt"
     robustness_path = tmp_path / "robustness" / "trial_0001_seed_1001_best.pt"
 
-    save_checkpoint(
-        model,
-        trial_path,
-        {"score": 10.0, "episode": 3, "window": 2},
-    )
-    save_checkpoint(
-        model,
-        robustness_path,
-        {"score": 20.0, "episode": 4, "window": 2},
-    )
+    save_checkpoint(model, trial_path, {"score": 10.0, "episode": 3, "window": 2})
+    save_checkpoint(model, robustness_path, {"score": 20.0, "episode": 4, "window": 2})
 
     checkpoint = best_checkpoint(FakeStudy(tmp_path))
 
@@ -367,16 +298,8 @@ def test_best_checkpoint_prefers_evaluation_scores(tmp_path) -> None:
     training_path = tmp_path / "trials" / "trial_0001_best.pt"
     evaluation_path = tmp_path / "trials" / "trial_0001_eval_best.pt"
 
-    save_checkpoint(
-        model,
-        training_path,
-        {"score": 250.0, "episode": 3, "window": 2},
-    )
-    save_checkpoint(
-        model,
-        evaluation_path,
-        {"score": 211.0, "episode": 4, "window": None},
-    )
+    save_checkpoint(model, training_path, {"score": 250.0, "episode": 3, "window": 2})
+    save_checkpoint(model, evaluation_path, {"score": 211.0, "episode": 4, "window": None})
 
     checkpoint = best_checkpoint(FakeStudy(tmp_path))
 

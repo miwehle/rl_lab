@@ -13,7 +13,6 @@ from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.objective import ObjectiveContext
 from hpo.study_reporting import TrainingProgressFn, TrainingProgressPlotter
 
-
 CHECKPOINT_VERSION = 1
 
 
@@ -38,12 +37,7 @@ def trial_best_checkpoint_score(trial: Any) -> float:
     Prefer the greedy evaluation score of the trial's best checkpoint, falling
     back to the Optuna trial value for older studies or trials without one.
     """
-    return float(
-        getattr(trial, "user_attrs", {}).get(
-            "evaluation_checkpoint_score",
-            trial.value,
-        )
-    )
+    return float(getattr(trial, "user_attrs", {}).get("evaluation_checkpoint_score", trial.value))
 
 
 class BestCheckpointRecorder:
@@ -84,11 +78,7 @@ class BestCheckpointRecorder:
             return
 
         episode = len(episode_returns)
-        metadata = self.metadata | {
-            "score": score,
-            "episode": episode,
-            "window": self.window,
-        }
+        metadata = self.metadata | {"score": score, "episode": episode, "window": self.window}
         save_checkpoint(trainer.q_net, self.path, metadata)
         self.best_score = score
         self.best_episode = episode
@@ -99,11 +89,7 @@ class EvaluationBestCheckpointRecorder:
     """Save q_net whenever evaluation reaches a new best score."""
 
     def __init__(
-        self,
-        path: str | Path,
-        *,
-        min_score: float | None = None,
-        min_score_delta: float = 0.0,
+        self, path: str | Path, *, min_score: float | None = None, min_score_delta: float = 0.0
     ) -> None:
         if min_score_delta < 0:
             raise ValueError("min_score_delta must be >= 0")
@@ -114,11 +100,7 @@ class EvaluationBestCheckpointRecorder:
         self.best_checkpoint: ModelCheckpoint | None = None
 
     def after_evaluation(self, ctx: ObjectiveContext) -> None:
-        if (
-            ctx.q_net is None
-            or ctx.score is None
-            or ctx.training_result is None
-        ):
+        if ctx.q_net is None or ctx.score is None or ctx.training_result is None:
             return
         if self.min_score is not None and ctx.score < self.min_score:
             return
@@ -155,9 +137,7 @@ class BestEvalCheckpointArchive:
 
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         _replace_with_copy(checkpoint.path, self.checkpoint_path)
-        self._write_metadata(
-            checkpoint.metadata | {"source_path": str(checkpoint.path)}
-        )
+        self._write_metadata(checkpoint.metadata | {"source_path": str(checkpoint.path)})
         return self.checkpoint_path
 
     def _best_score(self) -> float:
@@ -167,22 +147,14 @@ class BestEvalCheckpointArchive:
 
     def _write_metadata(self, metadata: dict[str, Any]) -> None:
         temporary = self.metadata_path.with_suffix(self.metadata_path.suffix + ".tmp")
-        temporary.write_text(
-            json.dumps(metadata, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        temporary.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         temporary.replace(self.metadata_path)
 
 
 class CheckpointingTrainer(VectorTrainer):
     """VectorTrainer variant that records the best model seen during training."""
 
-    def __init__(
-        self,
-        *args,
-        checkpoint_recorder: BestCheckpointRecorder,
-        **kwargs,
-    ) -> None:
+    def __init__(self, *args, checkpoint_recorder: BestCheckpointRecorder, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.checkpoint_recorder = checkpoint_recorder
 
@@ -197,12 +169,7 @@ class CheckpointingTrainer(VectorTrainer):
     ) -> None:
         self.checkpoint_recorder.after_episode(self, episode_returns)
         super()._after_episode(
-            episode_returns,
-            episode_lengths,
-            episode_epsilons,
-            episode_env_indices,
-            config,
-            plotter,
+            episode_returns, episode_lengths, episode_epsilons, episode_env_indices, config, plotter
         )
 
 
@@ -226,39 +193,22 @@ class ObjectiveHookFactory:
             min_score = max(self.min_score, min_score)
         return replace(self, min_score=min_score)
 
-    def with_training_progress(
-        self,
-        progress_fn: TrainingProgressFn | None,
-    ) -> "ObjectiveHookFactory":
+    def with_training_progress(self, progress_fn: TrainingProgressFn | None) -> "ObjectiveHookFactory":
         return replace(self, training_progress_fn=progress_fn)
 
-    def for_trial(
-        self,
-        ctx: ObjectiveContext,
-    ) -> "ObjectiveHooks":
+    def for_trial(self, ctx: ObjectiveContext) -> "ObjectiveHooks":
         trial = ctx.trial
         checkpoint_subdir = getattr(trial, "checkpoint_subdir", "trials")
-        checkpoint_stem = getattr(
-            trial,
-            "checkpoint_stem",
-            f"trial_{trial.number:04d}",
-        )
+        checkpoint_stem = getattr(trial, "checkpoint_stem", f"trial_{trial.number:04d}")
         recorder = BestCheckpointRecorder(
-            Path(self.checkpoint_dir)
-            / checkpoint_subdir
-            / f"{checkpoint_stem}_best.pt",
+            Path(self.checkpoint_dir) / checkpoint_subdir / f"{checkpoint_stem}_best.pt",
             window=self.window,
             min_score=self.min_score,
             min_score_delta=self.min_score_delta,
-            metadata={
-                "trial_number": trial.number,
-                "training_config": asdict(ctx.training_config),
-            },
+            metadata={"trial_number": trial.number, "training_config": asdict(ctx.training_config)},
         )
         evaluation_recorder = EvaluationBestCheckpointRecorder(
-            Path(self.checkpoint_dir)
-            / checkpoint_subdir
-            / f"{checkpoint_stem}_eval_best.pt",
+            Path(self.checkpoint_dir) / checkpoint_subdir / f"{checkpoint_stem}_eval_best.pt",
             min_score=self.min_score,
             min_score_delta=self.min_score_delta,
         )
@@ -332,13 +282,7 @@ class ObjectiveHooks:
         )
 
     def make_trainer(
-        self,
-        env,
-        *,
-        seed: int | None,
-        device: Any,
-        replay_memory_capacity: int,
-        hidden_size: int,
+        self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
     ) -> CheckpointingTrainer:
         self.env_labels = _env_labels(env)
         return CheckpointingTrainer(
@@ -353,11 +297,7 @@ class ObjectiveHooks:
     def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any:
         q_net = ctx.training_result.q_net
         if self.recorder.best_checkpoint is not None:
-            load_checkpoint(
-                q_net,
-                self.recorder.best_checkpoint.path,
-                getattr(ctx.trainer, "device", None),
-            )
+            load_checkpoint(q_net, self.recorder.best_checkpoint.path, getattr(ctx.trainer, "device", None))
         return q_net
 
     def finalize_trial(self, ctx: ObjectiveContext) -> None:
@@ -373,16 +313,11 @@ class ObjectiveHooks:
             save("checkpoint_window", metadata["window"])
         if self.evaluation_recorder.best_checkpoint is not None:
             metadata = self.evaluation_recorder.best_checkpoint.metadata
-            save(
-                "evaluation_checkpoint_path",
-                str(self.evaluation_recorder.best_checkpoint.path),
-            )
+            save("evaluation_checkpoint_path", str(self.evaluation_recorder.best_checkpoint.path))
             save("evaluation_checkpoint_score", metadata["score"])
             save("evaluation_checkpoint_episode", metadata["episode"])
             if self.best_eval_archive is not None:
-                archived_path = self.best_eval_archive.archive(
-                    self.evaluation_recorder.best_checkpoint,
-                )
+                archived_path = self.best_eval_archive.archive(self.evaluation_recorder.best_checkpoint)
                 if archived_path is not None:
                     save("evaluation_checkpoint_archive_path", str(archived_path))
 
@@ -391,25 +326,14 @@ def _env_labels(env: Any) -> list[str | None] | None:
     envs = getattr(env, "envs", None)
     if envs is None:
         return None
-    return [
-        getattr(getattr(sub_env, "world", None), "name", None)
-        for sub_env in envs
-    ]
+    return [getattr(getattr(sub_env, "world", None), "name", None) for sub_env in envs]
 
 
-def save_checkpoint(
-    q_net: nn.Module,
-    path: str | Path,
-    metadata: dict[str, Any] | None = None,
-) -> None:
+def save_checkpoint(q_net: nn.Module, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
-        {
-            "version": CHECKPOINT_VERSION,
-            "model_state_dict": q_net.state_dict(),
-            "metadata": metadata or {},
-        },
+        {"version": CHECKPOINT_VERSION, "model_state_dict": q_net.state_dict(), "metadata": metadata or {}},
         path,
     )
 
@@ -430,21 +354,16 @@ def _replace_with_copy(source: str | Path, destination: str | Path) -> None:
 def best_checkpoint(study: Any) -> BestCheckpoint:
     """Return the highest-scoring checkpoint saved for a study."""
     checkpoint_dir = Path(study.user_attrs["checkpoint_dir"])
-    checkpoints = _checkpoint_references(
-        checkpoint_dir,
-        pattern="*_eval_best.pt",
-    ) or _checkpoint_references(checkpoint_dir, pattern="*_best.pt")
+    checkpoints = _checkpoint_references(checkpoint_dir, pattern="*_eval_best.pt") or _checkpoint_references(
+        checkpoint_dir, pattern="*_best.pt"
+    )
     if not checkpoints:
         raise ValueError("study has no checkpoints")
 
     return max(checkpoints, key=lambda checkpoint: checkpoint.score)
 
 
-def _checkpoint_references(
-    checkpoint_dir: Path,
-    *,
-    pattern: str,
-) -> list[BestCheckpoint]:
+def _checkpoint_references(checkpoint_dir: Path, *, pattern: str) -> list[BestCheckpoint]:
     return [
         _checkpoint_reference(path)
         for subdir in ("trials", "robustness")
@@ -467,11 +386,7 @@ def _checkpoint_reference(path: Path) -> BestCheckpoint:
     )
 
 
-def load_checkpoint(
-    q_net: nn.Module,
-    path: str | Path,
-    device=None,
-) -> dict[str, Any]:
+def load_checkpoint(q_net: nn.Module, path: str | Path, device=None) -> dict[str, Any]:
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if checkpoint.get("version") != CHECKPOINT_VERSION:
         raise ValueError(f"unsupported checkpoint version: {checkpoint.get('version')}")

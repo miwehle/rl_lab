@@ -8,7 +8,6 @@ from hpo.checkpointing import trial_best_checkpoint_score
 from hpo.objective import ObjectiveConfig, create_objective
 from hpo.study_reporting import RobustnessProgress
 
-
 RobustnessProgressFn = Callable[..., None]
 
 
@@ -34,18 +33,12 @@ def select_robust_best(
     best_params = None
     best_mean = float("-inf")
     robustness_checkpoints = []
-    candidate_seed_scores = [
-        [trial_best_checkpoint_score(trial)]
-        for trial in candidates
-    ]
+    candidate_seed_scores = [[trial_best_checkpoint_score(trial)] for trial in candidates]
 
     def save(key, value):
         study.set_user_attr(key, value)
 
-    def score_candidate(
-        trial: Any,
-        candidate_index: int,
-    ) -> tuple[dict[str, Any], float]:
+    def score_candidate(trial: Any, candidate_index: int) -> tuple[dict[str, Any], float]:
         scores = [trial_best_checkpoint_score(trial)]
 
         for seed_index, seed_offset in enumerate(extra_seeds, start=1):
@@ -80,11 +73,8 @@ def select_robust_best(
             score = objective(fixed_trial)
             scores.append(score)
             robustness_checkpoints.append(
-                {
-                    "trial_number": trial.number,
-                    "seed_offset": seed_offset,
-                    "score": score,
-                } | fixed_trial.user_attrs
+                {"trial_number": trial.number, "seed_offset": seed_offset, "score": score}
+                | fixed_trial.user_attrs
             )
             candidate_seed_scores[candidate_index - 1] = list(scores)
             progress = _robustness_progress(
@@ -101,10 +91,7 @@ def select_robust_best(
         return dict(trial.params), mean_score
 
     for candidate_index, trial in enumerate(candidates, start=1):
-        params, mean_score = score_candidate(
-            trial,
-            candidate_index,
-        )
+        params, mean_score = score_candidate(trial, candidate_index)
         if mean_score > best_mean:
             best_mean = mean_score
             best_params = params
@@ -134,10 +121,7 @@ def _robustness_progress(
 
 
 def _top_complete_trials(study: Any, top_n: int) -> list[Any]:
-    trials = [
-        trial for trial in study.trials
-        if trial.state.name == "COMPLETE" and trial.value is not None
-    ]
+    trials = [trial for trial in study.trials if trial.state.name == "COMPLETE" and trial.value is not None]
     trials.sort(key=trial_best_checkpoint_score, reverse=True)
     return trials[:top_n]
 
@@ -151,12 +135,7 @@ class _FixedParamTrial:
     """
 
     def __init__(
-        self,
-        params: dict[str, Any],
-        *,
-        number: int,
-        checkpoint_subdir: str,
-        checkpoint_stem: str,
+        self, params: dict[str, Any], *, number: int, checkpoint_subdir: str, checkpoint_stem: str
     ) -> None:
         self.number = number
         self.checkpoint_subdir = checkpoint_subdir

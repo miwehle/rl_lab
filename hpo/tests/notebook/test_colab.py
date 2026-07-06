@@ -3,11 +3,7 @@ from types import ModuleType, SimpleNamespace
 import sys
 
 from hpo.notebook import colab
-from hpo.notebook.colab import (
-    ColabSetup,
-    prepare_storage,
-    setup_colab,
-)
+from hpo.notebook.colab import ColabSetup, prepare_storage, setup_colab
 
 
 def test_setup_colab_uses_conventional_directories(monkeypatch) -> None:
@@ -20,11 +16,7 @@ def test_setup_colab_uses_conventional_directories(monkeypatch) -> None:
     monkeypatch.setitem(sys.modules, "google", google_module)
     monkeypatch.setitem(sys.modules, "google.colab", colab_module)
     monkeypatch.setattr(
-        Path,
-        "mkdir",
-        lambda self, parents=False, exist_ok=False: created.append(
-            (self, parents, exist_ok)
-        ),
+        Path, "mkdir", lambda self, parents=False, exist_ok=False: created.append((self, parents, exist_ok))
     )
 
     setup = setup_colab()
@@ -34,25 +26,15 @@ def test_setup_colab_uses_conventional_directories(monkeypatch) -> None:
         drive_study_dir=Path("/content/drive/MyDrive/rl_lab/hpo"),
         local_study_dir=Path("/content/rl_lab/hpo/runs"),
     )
-    assert created == [
-        (setup.drive_study_dir, True, True),
-        (setup.local_study_dir, True, True),
-    ]
+    assert created == [(setup.drive_study_dir, True, True), (setup.local_study_dir, True, True)]
 
 
 def test_prepare_storage_uses_conventional_files(tmp_path, monkeypatch) -> None:
     restored = []
     logging_calls = []
-    setup = ColabSetup(
-        drive_study_dir=tmp_path / "drive",
-        local_study_dir=tmp_path / "local",
-    )
+    setup = ColabSetup(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
     monkeypatch.setattr(colab, "restore_from_drive", lambda *args: restored.append(args))
-    monkeypatch.setattr(
-        colab,
-        "configure_file_logging",
-        lambda *args: logging_calls.append(args),
-    )
+    monkeypatch.setattr(colab, "configure_file_logging", lambda *args: logging_calls.append(args))
 
     storage = prepare_storage(setup, "study_name")
 
@@ -69,24 +51,18 @@ def test_prepare_storage_uses_conventional_files(tmp_path, monkeypatch) -> None:
 
 def test_storage_backs_up_database_and_log(tmp_path, monkeypatch) -> None:
     backup_calls = []
-    setup = ColabSetup(
-        drive_study_dir=tmp_path / "drive",
-        local_study_dir=tmp_path / "local",
-    )
+    setup = ColabSetup(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
     monkeypatch.setattr(colab, "restore_from_drive", lambda *_args: None)
     monkeypatch.setattr(colab, "configure_file_logging", lambda *_args: None)
-    monkeypatch.setattr(
-        colab,
-        "backup_to_drive",
-        lambda **kwargs: backup_calls.append(kwargs),
-    )
+    monkeypatch.setattr(colab, "backup_to_drive", lambda **kwargs: backup_calls.append(kwargs))
 
     prepare_storage(setup, "study_name").backup()
 
-    assert backup_calls == [{
-        "local_database": setup.local_study_dir / "study_name.db",
-        "drive_database": setup.drive_study_dir / "study_name.db",
-        "local_log": setup.local_study_dir / "study_name.log",
-        "drive_log": setup.drive_study_dir / "study_name.log",
-    }]
-
+    assert backup_calls == [
+        {
+            "local_database": setup.local_study_dir / "study_name.db",
+            "drive_database": setup.drive_study_dir / "study_name.db",
+            "local_log": setup.local_study_dir / "study_name.log",
+            "drive_log": setup.drive_study_dir / "study_name.log",
+        }
+    ]

@@ -6,8 +6,7 @@ from hpo.study_reporting import TrainingProgress
 
 
 def current_params(
-    incumbent_params: dict[str, Any],
-    training_progress: TrainingProgress | None,
+    incumbent_params: dict[str, Any], training_progress: TrainingProgress | None
 ) -> dict[str, Any]:
     if training_progress is None or training_progress.trial_params is None:
         return incumbent_params
@@ -15,11 +14,7 @@ def current_params(
 
 
 def add_current_hps(
-    figure: Any,
-    params: dict[str, Any],
-    study: Any,
-    *,
-    optimized_param_names: list[str] | None = None,
+    figure: Any, params: dict[str, Any], study: Any, *, optimized_param_names: list[str] | None = None
 ) -> None:
     import plotly.graph_objects as go
 
@@ -39,10 +34,7 @@ def add_current_hps(
                 font=dict(color="rgba(0,0,0,0)", size=1),
             ),
             cells=dict(
-                values=[
-                    names,
-                    [_format_hp_value(name, params[name]) for name in names],
-                ],
+                values=[names, [_format_hp_value(name, params[name]) for name in names]],
                 align=["left", "right"],
                 fill_color=[row_colors, row_colors],
                 line_color="white",

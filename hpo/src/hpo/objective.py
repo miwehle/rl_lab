@@ -8,14 +8,9 @@ from typing import Any, Protocol
 
 import torch
 
-from dqn.vector_training import (
-    VectorTrainer,
-    VectorTrainingConfig,
-    VectorTrainingResult,
-)
+from dqn.vector_training import VectorTrainer, VectorTrainingConfig, VectorTrainingResult
 from hpo.lunar_lander.logging import log_call
 from hpo.hyperparams import HP
-
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +49,10 @@ class ObjectiveContext:
 #   Dependency Injection:
 #     https://martinfowler.com/articles/injection.html
 
+
 class Hooks(Protocol):
     def make_trainer(
-        self,
-        env,
-        *,
-        seed: int | None,
-        device: Any,
-        replay_memory_capacity: int,
-        hidden_size: int,
+        self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
     ) -> Any: ...
 
     def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any: ...
@@ -80,13 +70,7 @@ class HookFactory(Protocol):
 
 class DefaultHooks:
     def make_trainer(
-        self,
-        env,
-        *,
-        seed: int | None,
-        device: Any,
-        replay_memory_capacity: int,
-        hidden_size: int,
+        self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
     ) -> Any:
         return VectorTrainer(
             env,
@@ -115,12 +99,13 @@ class DefaultHookFactory:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ObjectiveConfig:    
+class ObjectiveConfig:
     """Configure one Optuna objective.
 
     num_envs sets how many parallel training environments each trial uses.
     Internally, this is passed to VectorTrainer.
     """
+
     environment_factory: EnvironmentFactory
     num_envs: int
     eval_episodes: int
@@ -153,14 +138,13 @@ class ObjectiveConfig:
         else:
             del attrs["device"]
         attrs.update(self.hooks.study_attrs())
-        attrs["eval_seeds"] = list(
-            range(self.eval_seed, self.eval_seed + self.eval_episodes)
-        )
+        attrs["eval_seeds"] = list(range(self.eval_seed, self.eval_seed + self.eval_episodes))
         return attrs
 
 
 def create_objective(
-    *, suggest_parameter_values: SuggestParameterValues,
+    *,
+    suggest_parameter_values: SuggestParameterValues,
     incumbent_params: dict[str, Any],
     config: ObjectiveConfig,
 ) -> Callable[[Any], float]:
@@ -171,21 +155,10 @@ def create_objective(
         # set up
         suggest_parameter_values(trial, incumbent_params)
         params = incumbent_params | trial.params
-        training_config = vector_training_config(
-            params,
-            early_stopping_score=config.early_stopping_score,
-        )
-        ctx = ObjectiveContext(
-            trial=trial,
-            params=params,
-            training_config=training_config,
-        )
+        training_config = vector_training_config(params, early_stopping_score=config.early_stopping_score)
+        ctx = ObjectiveContext(trial=trial, params=params, training_config=training_config)
         replay_memory_capacity = params[HP.REPLAY_MEMORY_CAPACITY]
-        trial_seed = (
-            None
-            if config.training_seed is None
-            else config.training_seed + trial.number
-        )
+        trial_seed = None if config.training_seed is None else config.training_seed + trial.number
         ctx.trial_seed = trial_seed
         hooks = config.hooks.for_trial(ctx)
         env = config.environment_factory.make_training_env(config.num_envs)
@@ -226,10 +199,10 @@ def create_objective(
                 for name, make_env in config.environment_factory.evaluation_envs().items()
             }
             ctx.score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
-        
+
         set_user_attrs(ctx)
         hooks.finalize_trial(ctx)
-        
+
         return ctx.score
 
     return objective
@@ -261,9 +234,7 @@ def set_user_attrs(ctx: ObjectiveContext) -> None:
 
 
 def vector_training_config(
-    params: dict[str, Any],
-    *,
-    early_stopping_score: float | None = None,
+    params: dict[str, Any], *, early_stopping_score: float | None = None
 ) -> VectorTrainingConfig:
     return VectorTrainingConfig(
         num_episodes=params[HP.NUM_EPISODES],
@@ -284,8 +255,12 @@ def vector_training_config(
 
 @log_call
 def evaluate_greedy_q_net(
-    *, q_net: Any, device, make_env: Callable[[], Any],
-    episodes: int = 20, max_steps: int = 2_000,
+    *,
+    q_net: Any,
+    device,
+    make_env: Callable[[], Any],
+    episodes: int = 20,
+    max_steps: int = 2_000,
     seed: int | None = None,
 ) -> float:
     """Return mean greedy episode return for a trained Q-network."""
@@ -300,11 +275,7 @@ def evaluate_greedy_q_net(
             episode_return = 0.0
 
             for _ in range(max_steps):
-                state = torch.as_tensor(
-                    observation,
-                    dtype=torch.float32,
-                    device=device,
-                ).unsqueeze(0)
+                state = torch.as_tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
                 with torch.no_grad():
                     # Greedy action: choose the highest Q-value without exploration.
                     action = q_net(state).argmax(dim=1).item()

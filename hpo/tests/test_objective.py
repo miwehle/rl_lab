@@ -50,9 +50,7 @@ BASELINE_PARAMS = {
 
 
 def test_objective_config_study_attrs_are_json_serializable() -> None:
-    attrs = objective_config(
-        device=torch.device("cuda"),
-    ).study_attrs()
+    attrs = objective_config(device=torch.device("cuda")).study_attrs()
 
     assert attrs["device"] == "cuda"
     json.dumps(attrs)
@@ -103,15 +101,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     environment_factory = FakeEnvironmentFactory()
 
     class FakeTrainer:
-        def __init__(
-            self,
-            env,
-            *,
-            seed,
-            device,
-            replay_memory_capacity,
-            hidden_size,
-        ) -> None:
+        def __init__(self, env, *, seed, device, replay_memory_capacity, hidden_size) -> None:
             self.device = "trainer-device"
             calls.append(TrainerCall(env, seed, device, replay_memory_capacity))
 
@@ -140,11 +130,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     objective = objective_module.create_objective(
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=BASELINE_PARAMS,
-        config=objective_config(
-            environment_factory=environment_factory,
-            num_envs=20,
-            training_seed=100,
-        ),
+        config=objective_config(environment_factory=environment_factory, num_envs=20, training_seed=100),
     )
 
     trial = FakeTrial()
@@ -167,9 +153,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert all(call["episodes"] == 20 for call in eval_calls)
 
 
-def test_objective_returns_early_stopping_score_without_evaluation(
-    monkeypatch,
-) -> None:
+def test_objective_returns_early_stopping_score_without_evaluation(monkeypatch) -> None:
     class FakeTrainer:
         device = "cpu"
 
@@ -236,20 +220,13 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
             )
 
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
-    monkeypatch.setattr(
-        objective_module,
-        "evaluate_greedy_q_net",
-        lambda **_kwargs: 5.0,
-    )
+    monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", lambda **_kwargs: 5.0)
 
     objective = objective_module.create_objective(
         suggest_parameter_values=FakeSuggestParameterValues(),
         incumbent_params=BASELINE_PARAMS,
         config=objective_config(
-            environment_factory=SingleEnvironmentFactory(),
-            training_seed=None,
-            eval_episodes=7,
-            eval_seed=50,
+            environment_factory=SingleEnvironmentFactory(), training_seed=None, eval_episodes=7, eval_seed=50
         ),
     )
     trial = FakeTrial()
@@ -268,15 +245,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
     class FakeTrainer:
         device = "cpu"
 
-        def __init__(
-            self,
-            _env,
-            *,
-            seed,
-            device,
-            replay_memory_capacity,
-            hidden_size,
-        ) -> None:
+        def __init__(self, _env, *, seed, device, replay_memory_capacity, hidden_size) -> None:
             hook_calls.append((seed, device, replay_memory_capacity, hidden_size))
 
         def train(self, _training_config, *, plotter=None):
@@ -326,9 +295,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
         suggest_parameter_values=suggest_parameter_values,
         incumbent_params=BASELINE_PARAMS,
         config=objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            hooks=FakeHookFactory(),
-            eval_episodes=1,
+            environment_factory=FakeEnvironmentFactory(), hooks=FakeHookFactory(), eval_episodes=1
         ),
     )
     trial = FakeTrial()
@@ -352,11 +319,7 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
         def train(self, _training_config, *, plotter):
             plotter.plot_returns([1.0], epsilons=[0.9], env_indices=[0])
             self.hooks.best_checkpoint_score = 4.0
-            plotter.plot_returns(
-                [1.0, 5.0],
-                epsilons=[0.9, 0.8],
-                env_indices=[0, 1],
-            )
+            plotter.plot_returns([1.0, 5.0], epsilons=[0.9, 0.8], env_indices=[0, 1])
             return VectorTrainingResult(
                 q_net="fake-q-net",
                 episode_returns=[1.0, 5.0],
@@ -397,36 +360,21 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
         def study_attrs(self):
             return {}
 
-    monkeypatch.setattr(
-        objective_module,
-        "evaluate_greedy_q_net",
-        lambda **_kwargs: 10.0,
-    )
+    monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", lambda **_kwargs: 10.0)
 
     objective = objective_module.create_objective(
         suggest_parameter_values=FakeSuggestParameterValues(),
         incumbent_params=BASELINE_PARAMS,
         config=objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            hooks=FakeHookFactory(),
-            eval_episodes=1,
+            environment_factory=FakeEnvironmentFactory(), hooks=FakeHookFactory(), eval_episodes=1
         ),
     )
 
     objective(FakeTrial())
 
-    assert [progress.episode_returns for progress in progress_calls] == [
-        [1.0],
-        [1.0, 5.0],
-    ]
-    assert [progress.episode_epsilons for progress in progress_calls] == [
-        [0.9],
-        [0.9, 0.8],
-    ]
-    assert [progress.episode_env_labels for progress in progress_calls] == [
-        ["moon"],
-        ["moon", "mars"],
-    ]
+    assert [progress.episode_returns for progress in progress_calls] == [[1.0], [1.0, 5.0]]
+    assert [progress.episode_epsilons for progress in progress_calls] == [[0.9], [0.9, 0.8]]
+    assert [progress.episode_env_labels for progress in progress_calls] == [["moon"], ["moon", "mars"]]
     assert progress_calls[0].checkpoint_window == 2
     assert progress_calls[0].checkpoint_min_score == pytest.approx(3.0)
     assert progress_calls[0].best_checkpoint_score is None
@@ -464,11 +412,7 @@ def test_evaluate_greedy_q_net_returns_mean_episode_return() -> None:
         return env
 
     score = evaluate_greedy_q_net(
-        q_net=FakeQNet(),
-        device=torch.device("cpu"),
-        make_env=make_env,
-        episodes=3,
-        seed=10,
+        q_net=FakeQNet(), device=torch.device("cpu"), make_env=make_env, episodes=3, seed=10
     )
 
     assert score == pytest.approx(2.0)

@@ -29,22 +29,10 @@ def add_study_series(figure: Any, studies: Any) -> None:
     )
     x_range = [-0.5, max(0.5, len(points) - 0.5)]
     figure.update_xaxes(
-        title_text="Study",
-        tickmode="array",
-        tickvals=x,
-        ticktext=labels,
-        range=x_range,
-        row=1,
-        col=1,
+        title_text="Study", tickmode="array", tickvals=x, ticktext=labels, range=x_range, row=1, col=1
     )
     if not scores:
-        figure.add_annotation(
-            text=NO_DATA_TEXT,
-            row=1,
-            col=1,
-            showarrow=False,
-            font=dict(color="gray"),
-        )
+        figure.add_annotation(text=NO_DATA_TEXT, row=1, col=1, showarrow=False, font=dict(color="gray"))
         set_empty_score_yaxis(figure, row=1, col=1)
     else:
         figure.update_yaxes(title_text="Score", row=1, col=1)
@@ -59,13 +47,6 @@ def _study_series_points(studies: Any) -> list[dict[str, Any]]:
             continue
 
         name = getattr(study, "study_name", "")
-        label = (
-            name.split("_", 1)[0].upper()
-            if name.startswith("s") and "_" in name
-            else name or f"S{index}"
-        )
-        points.append({
-            "score": float(score),
-            "label": label,
-        })
+        label = name.split("_", 1)[0].upper() if name.startswith("s") and "_" in name else name or f"S{index}"
+        points.append({"score": float(score), "label": label})
     return points

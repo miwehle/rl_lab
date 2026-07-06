@@ -59,44 +59,27 @@ class FakeEnv:
 
 class FakeEnvironmentFactory:
     def evaluation_envs(self):
-        return {
-            "earth": lambda: FakeEnv(10.0),
-            "venus": lambda: FakeEnv(20.0),
-        }
+        return {"earth": lambda: FakeEnv(10.0), "venus": lambda: FakeEnv(20.0)}
 
 
 def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
     checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(
-        DQN(1, 2),
-        checkpoint_path,
-        {"score": 200.0, "episode": 1000, "window": None},
-    )
+    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
     study = FakeStudy(
         trials=[
-            FakeTrial(
-                0,
-                300.0,
-                {"evaluation_checkpoint_score": 50.0},
-            ),
+            FakeTrial(0, 300.0, {"evaluation_checkpoint_score": 50.0}),
             FakeTrial(
                 1,
                 100.0,
-                {
-                    "evaluation_checkpoint_path": str(checkpoint_path),
-                    "evaluation_checkpoint_score": 200.0,
-                },
+                {"evaluation_checkpoint_path": str(checkpoint_path), "evaluation_checkpoint_score": 200.0},
             ),
-        ],
+        ]
     )
     progress_calls = []
 
     results = evaluate_checkpoint_robustness(
         study=study,
-        objective_cfg=objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            device="cpu",
-        ),
+        objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),
         top_n=1,
         eval_episodes=3,
         progress_fn=progress_calls.append,
@@ -136,18 +119,11 @@ def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
 
 def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
     checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(
-        DQN(1, 2),
-        checkpoint_path,
-        {"score": 200.0, "episode": 1000, "window": None},
-    )
+    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
 
     scores = checkpoint_scores(
         checkpoint_path,
-        objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            device="cpu",
-        ),
+        objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),
         episodes=2,
         progress=False,
     )
@@ -162,28 +138,18 @@ def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
 
 def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path) -> None:
     checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(
-        DQN(1, 2),
-        checkpoint_path,
-        {"score": 200.0, "episode": 1000, "window": None},
-    )
+    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
     progress_calls = []
 
     def fake_tqdm(items, *, total, desc):
         progress_calls.append({"total": total, "desc": desc})
         return items
 
-    monkeypatch.setattr(
-        "hpo.evaluation.checkpoint_robustness._tqdm",
-        lambda: fake_tqdm,
-    )
+    monkeypatch.setattr("hpo.evaluation.checkpoint_robustness._tqdm", lambda: fake_tqdm)
 
     checkpoint_scores(
         checkpoint_path,
-        objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            device="cpu",
-        ),
+        objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),
         episodes=2,
     )
 
@@ -192,18 +158,11 @@ def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path)
 
 def test_robustness_over_all_worlds_returns_candidate_summary(tmp_path) -> None:
     checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(
-        DQN(1, 2),
-        checkpoint_path,
-        {"score": 200.0, "episode": 1000, "window": None},
-    )
+    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
 
     summary = robustness_over_all_worlds(
         checkpoint_path,
-        objective_config(
-            environment_factory=FakeEnvironmentFactory(),
-            device="cpu",
-        ),
+        objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),
         episodes=2,
         progress=False,
     )
@@ -225,10 +184,12 @@ def test_robustness_over_all_worlds_returns_candidate_summary(tmp_path) -> None:
 
 
 def test_score_summary_returns_notebook_quantiles() -> None:
-    scores = pd.DataFrame({
-        "world": ["venus", "venus", "venus", "earth", "earth", "earth"],
-        "score": [100.0, 110.0, 120.0, 0.0, 10.0, 20.0],
-    })
+    scores = pd.DataFrame(
+        {
+            "world": ["venus", "venus", "venus", "earth", "earth", "earth"],
+            "score": [100.0, 110.0, 120.0, 0.0, 10.0, 20.0],
+        }
+    )
 
     summary = score_summary(scores)
 

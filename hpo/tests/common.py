@@ -6,9 +6,5 @@ class DummyEnvironmentFactory:
 
 
 def objective_config(**overrides) -> ObjectiveConfig:
-    defaults = {
-        "environment_factory": DummyEnvironmentFactory(),
-        "num_envs": 16,
-        "eval_episodes": 20,
-    }
+    defaults = {"environment_factory": DummyEnvironmentFactory(), "num_envs": 16, "eval_episodes": 20}
     return ObjectiveConfig(**(defaults | overrides))

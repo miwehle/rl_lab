@@ -109,21 +109,13 @@ def test_record_checkpoint_video_holds_terminal_frame(monkeypatch, tmp_path):
     assert captured == ["frame", "frame", "frame"]
 
 
-def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(
-    monkeypatch,
-    tmp_path,
-):
+def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(monkeypatch, tmp_path):
     recorded_envs = []
 
     class RecordingRecordVideo(FakeRecordVideo):
         def __init__(self, env, *, video_folder, name_prefix, **kwargs):
             recorded_envs.append(env)
-            super().__init__(
-                env,
-                video_folder=video_folder,
-                name_prefix=name_prefix,
-                **kwargs,
-            )
+            super().__init__(env, video_folder=video_folder, name_prefix=name_prefix, **kwargs)
 
     monkeypatch.setattr(video, "RecordVideo", RecordingRecordVideo)
     monkeypatch.setattr(video, "LanderRenderWrapper", FakeRenderWrapper)
@@ -144,21 +136,13 @@ def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(
     assert recorded_envs[0].overlay is None
 
 
-def test_record_checkpoint_video_wraps_env_when_render_overlay_is_given(
-    monkeypatch,
-    tmp_path,
-):
+def test_record_checkpoint_video_wraps_env_when_render_overlay_is_given(monkeypatch, tmp_path):
     recorded_envs = []
 
     class RecordingRecordVideo(FakeRecordVideo):
         def __init__(self, env, *, video_folder, name_prefix, **kwargs):
             recorded_envs.append(env)
-            super().__init__(
-                env,
-                video_folder=video_folder,
-                name_prefix=name_prefix,
-                **kwargs,
-            )
+            super().__init__(env, video_folder=video_folder, name_prefix=name_prefix, **kwargs)
 
     monkeypatch.setattr(video, "RecordVideo", RecordingRecordVideo)
     monkeypatch.setattr(video, "LanderRenderWrapper", FakeRenderWrapper)
@@ -183,14 +167,7 @@ def test_record_checkpoint_videos_records_world_seed_product(monkeypatch, tmp_pa
     calls = []
 
     def record(**kwargs):
-        calls.append(
-            (
-                kwargs["world"],
-                kwargs["seed"],
-                kwargs["render_colors"],
-                kwargs["render_overlay"],
-            )
-        )
+        calls.append((kwargs["world"], kwargs["seed"], kwargs["render_colors"], kwargs["render_overlay"]))
         return tmp_path / f"{kwargs['world']}_{kwargs['seed']}.mp4"
 
     monkeypatch.setattr(video, "record_checkpoint_video", record)
@@ -258,12 +235,7 @@ def test_record_checkpoint_videos_uses_progress_bar(monkeypatch, tmp_path):
 
     assert progress_calls == [
         {
-            "items": [
-                ("earth", 1, None),
-                ("earth", 2, None),
-                ("venus", 1, None),
-                ("venus", 2, None),
-            ],
+            "items": [("earth", 1, None), ("earth", 2, None), ("venus", 1, None), ("venus", 2, None)],
             "total": 4,
             "desc": "Recording videos",
         }
@@ -272,15 +244,7 @@ def test_record_checkpoint_videos_uses_progress_bar(monkeypatch, tmp_path):
 
 def test_show_video_conditions_formats_floats_with_two_decimals(monkeypatch):
     displayed = []
-    table = pd.DataFrame(
-        {
-            "nr": [0],
-            "world": ["earth"],
-            "seed": [7],
-            "gravity": [-10.0],
-            "wind": [1.2],
-        }
-    )
+    table = pd.DataFrame({"nr": [0], "world": ["earth"], "seed": [7], "gravity": [-10.0], "wind": [1.2]})
 
     monkeypatch.setattr(video, "video_conditions_table", lambda *_args: table)
     monkeypatch.setattr(ipython_display, "display", displayed.append)

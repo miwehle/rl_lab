@@ -10,10 +10,12 @@ from hpo.notebook import plots
 
 
 def _scores() -> pd.DataFrame:
-    return pd.DataFrame({
-        "world": ["earth", "earth", "mars", "mars", "venus", "venus"],
-        "score": [100.0, 200.0, 250.0, 300.0, -50.0, 150.0],
-    })
+    return pd.DataFrame(
+        {
+            "world": ["earth", "earth", "mars", "mars", "venus", "venus"],
+            "score": [100.0, 200.0, 250.0, 300.0, -50.0, 150.0],
+        }
+    )
 
 
 def test_heatmap_returns_figure_and_axes_with_requested_world_order() -> None:
@@ -45,12 +47,7 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
     monkeypatch.setattr(plt.Figure, "add_subplot", add_subplot)
     monkeypatch.setattr(plt, "tight_layout", lambda: None)
 
-    fig, ax = plots.histogram_3d(
-        _scores(),
-        worlds=["earth", "mars", "venus"],
-        bins=5,
-        alpha=0.3,
-    )
+    fig, ax = plots.histogram_3d(_scores(), worlds=["earth", "mars", "venus"], bins=5, alpha=0.3)
 
     assert fig is ax.figure
     assert add_subplot_kwargs == [{"projection": "3d", "computed_zorder": False}]
@@ -60,10 +57,7 @@ def test_histogram_3d_draws_in_reverse_world_order(monkeypatch) -> None:
 
 
 def test_histogram_3d_uses_adaptive_axis_tick_steps() -> None:
-    scores = pd.DataFrame({
-        "world": ["earth"] * 22 + ["earth"],
-        "score": [350.0] * 22 + [-200.0],
-    })
+    scores = pd.DataFrame({"world": ["earth"] * 22 + ["earth"], "score": [350.0] * 22 + [-200.0]})
 
     fig, ax = plots.histogram_3d(scores, bins=5)
 

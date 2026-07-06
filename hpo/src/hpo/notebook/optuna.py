@@ -5,11 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-def db_path(
-    db_name: str | Path,
-    google_drive: bool = False,
-    folder: str | Path = "rl_lab/hpo",
-) -> Path:
+def db_path(db_name: str | Path, google_drive: bool = False, folder: str | Path = "rl_lab/hpo") -> Path:
     """Return a local or Google Drive path for an HPO SQLite database."""
     root = Path("/content/drive/MyDrive") if google_drive else Path("/content")
     db_name = str(db_name)
@@ -31,13 +27,15 @@ def db_summary(db_path: str | Path):
     rows = []
     for summary in optuna.study.get_all_study_summaries(storage=storage):
         study = optuna.load_study(study_name=summary.study_name, storage=storage)
-        rows.append({
-            "study": summary.study_name,
-            "robust_best_score": study.user_attrs.get("robust_best_score"),
-            "robust_best_params": study.user_attrs.get("robust_best_params"),
-            "incumbent_score": study.user_attrs.get("incumbent_score"),
-            "incumbent_params": study.user_attrs.get("incumbent_params"),
-        })
+        rows.append(
+            {
+                "study": summary.study_name,
+                "robust_best_score": study.user_attrs.get("robust_best_score"),
+                "robust_best_params": study.user_attrs.get("robust_best_params"),
+                "incumbent_score": study.user_attrs.get("incumbent_score"),
+                "incumbent_params": study.user_attrs.get("incumbent_params"),
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -48,4 +46,4 @@ def neighbors(value: Any, choices: Sequence[Any]) -> list[Any]:
     Sometimes useful when defining Optuna search spaces.
     """
     index = choices.index(value)
-    return list(choices[max(0, index - 1):index + 2])
+    return list(choices[max(0, index - 1) : index + 2])

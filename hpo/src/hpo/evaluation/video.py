@@ -13,11 +13,7 @@ from gymnasium.wrappers import RecordVideo
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.evaluation.checkpoint_robustness import q_net_from_checkpoint
-from hpo.evaluation.lander_rendering import (
-    LanderColors,
-    LanderOverlay,
-    LanderRenderWrapper,
-)
+from hpo.evaluation.lander_rendering import LanderColors, LanderOverlay, LanderRenderWrapper
 
 _FINAL_HOLD_FRAMES = 30
 
@@ -47,18 +43,11 @@ def record_checkpoint_video(
     def make_env():
         env = environment_factory.make_env(world_name, render_mode="rgb_array")
         if render_colors is not None or render_overlay is not None:
-            env = LanderRenderWrapper(
-                env,
-                colors=render_colors,
-                overlay=render_overlay,
-            )
+            env = LanderRenderWrapper(env, colors=render_colors, overlay=render_overlay)
         return env
 
     q_net = q_net_from_checkpoint(
-        checkpoint_path,
-        make_env=make_env,
-        device=device,
-        model_factory=model_factory,
+        checkpoint_path, make_env=make_env, device=device, model_factory=model_factory
     )
     q_net.eval()
 
@@ -127,10 +116,7 @@ def record_checkpoint_videos(
             render_overlay=render_overlay,
         )
         for world, seed, render_colors in _with_progress(
-            jobs,
-            enabled=progress,
-            total=len(jobs),
-            desc="Recording videos",
+            jobs, enabled=progress, total=len(jobs), desc="Recording videos"
         )
     ]
 
@@ -165,11 +151,7 @@ def video_conditions_table(environment_factory, worlds: Iterable[str], seeds: It
     return table
 
 
-def show_video_conditions(
-    environment_factory,
-    worlds: Iterable[str],
-    seeds: Iterable[int],
-) -> None:
+def show_video_conditions(environment_factory, worlds: Iterable[str], seeds: Iterable[int]) -> None:
     """Display the video conditions table."""
     from IPython.display import display
 

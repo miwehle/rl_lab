@@ -19,10 +19,7 @@ def test_backup_to_and_restore_from_drive(tmp_path) -> None:
     drive_database = backup_dir / "study.db"
     drive_log = backup_dir / "study.log"
     backup_to_drive(
-        local_database=database,
-        drive_database=drive_database,
-        local_log=log,
-        drive_log=drive_log,
+        local_database=database, drive_database=drive_database, local_log=log, drive_log=drive_log
     )
 
     with sqlite3.connect(drive_database) as connection:
@@ -34,10 +31,8 @@ def test_backup_to_and_restore_from_drive(tmp_path) -> None:
     with sqlite3.connect(restored) as connection:
         assert connection.execute("SELECT value FROM values_table").fetchone() == (42,)
 
-def test_database_backup_failure_does_not_stop_log_backup(
-    tmp_path,
-    monkeypatch,
-) -> None:
+
+def test_database_backup_failure_does_not_stop_log_backup(tmp_path, monkeypatch) -> None:
     log = tmp_path / "study.log"
     drive_log = tmp_path / "backup" / "study.log"
     log.write_text("still running\n")

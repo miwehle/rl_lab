@@ -41,31 +41,11 @@ class LanderOverlay:
 
 
 _WORLD_COLORS = {
-    "earth": LanderColors(
-        sky=(143, 199, 232),
-        ground=(111, 127, 82),
-        ground_outline=(111, 127, 82),
-    ),
-    "venus": LanderColors(
-        sky=(214, 168, 92),
-        ground=(138, 103, 64),
-        ground_outline=(138, 103, 64),
-    ),
-    "mars": LanderColors(
-        sky=(201, 149, 122),
-        ground=(139, 79, 61),
-        ground_outline=(139, 79, 61),
-    ),
-    "moon": LanderColors(
-        sky=(5, 7, 10),
-        ground=(119, 122, 125),
-        ground_outline=(119, 122, 125),
-    ),
-    "mercury": LanderColors(
-        sky=(5, 7, 10),
-        ground=(111, 107, 100),
-        ground_outline=(111, 107, 100),
-    ),
+    "earth": LanderColors(sky=(143, 199, 232), ground=(111, 127, 82), ground_outline=(111, 127, 82)),
+    "venus": LanderColors(sky=(214, 168, 92), ground=(138, 103, 64), ground_outline=(138, 103, 64)),
+    "mars": LanderColors(sky=(201, 149, 122), ground=(139, 79, 61), ground_outline=(139, 79, 61)),
+    "moon": LanderColors(sky=(5, 7, 10), ground=(119, 122, 125), ground_outline=(119, 122, 125)),
+    "mercury": LanderColors(sky=(5, 7, 10), ground=(111, 107, 100), ground_outline=(111, 107, 100)),
 }
 
 
@@ -84,12 +64,7 @@ def world_colors(worlds: Iterable[str]) -> list[LanderColors]:
 class LanderRenderWrapper(gym.Wrapper):
     """Render a LunarLander-compatible environment with custom colors."""
 
-    def __init__(
-        self,
-        env,
-        colors: LanderColors | None = None,
-        overlay: LanderOverlay | None = None,
-    ) -> None:
+    def __init__(self, env, colors: LanderColors | None = None, overlay: LanderOverlay | None = None) -> None:
         super().__init__(env)
         self.colors = colors or LanderColors()
         self.overlay = overlay
@@ -107,20 +82,10 @@ class LanderRenderWrapper(gym.Wrapper):
         return observation, reward, terminated, truncated, info
 
     def render(self):
-        return _render_lunar_lander(
-            self.env.unwrapped,
-            self,
-            self.colors,
-            self.overlay,
-        )
+        return _render_lunar_lander(self.env.unwrapped, self, self.colors, self.overlay)
 
 
-def _render_lunar_lander(
-    env,
-    source_env,
-    colors: LanderColors,
-    overlay: LanderOverlay | None,
-):
+def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderOverlay | None):
     if env.render_mode is None:
         assert env.spec is not None
         gym.logger.warn(
@@ -141,9 +106,7 @@ def _render_lunar_lander(
     if env.screen is None and env.render_mode == "human":
         pygame.init()
         pygame.display.init()
-        env.screen = pygame.display.set_mode(
-            (lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H)
-        )
+        env.screen = pygame.display.set_mode((lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H))
     if env.clock is None:
         env.clock = pygame.time.Clock()
 
@@ -170,17 +133,10 @@ def _render_lunar_lander(
     for p in env.sky_polys:
         scaled_poly = []
         for coord in p:
-            scaled_poly.append(
-                (coord[0] * lunar_lander.SCALE, coord[1] * lunar_lander.SCALE)
-            )
+            scaled_poly.append((coord[0] * lunar_lander.SCALE, coord[1] * lunar_lander.SCALE))
         pygame.draw.polygon(env.surf, colors.sky, scaled_poly)
         gfxdraw.aapolygon(env.surf, scaled_poly, colors.sky)
-        pygame.draw.aaline(
-            env.surf,
-            colors.ground_outline,
-            scaled_poly[0],
-            scaled_poly[1],
-        )
+        pygame.draw.aaline(env.surf, colors.ground_outline, scaled_poly[0], scaled_poly[1])
 
     for obj in env.particles + env.drawlist:
         for f in obj.fixtures:
@@ -203,26 +159,16 @@ def _render_lunar_lander(
                 path = [trans * v * lunar_lander.SCALE for v in f.shape.vertices]
                 pygame.draw.polygon(env.surf, color=fill, points=path)
                 gfxdraw.aapolygon(env.surf, path, fill)
-                pygame.draw.aalines(
-                    env.surf, color=outline, points=path, closed=True
-                )
+                pygame.draw.aalines(env.surf, color=outline, points=path, closed=True)
 
             for x in [env.helipad_x1, env.helipad_x2]:
                 x = x * lunar_lander.SCALE
                 flagy1 = env.helipad_y * lunar_lander.SCALE
                 flagy2 = flagy1 + 50
                 pygame.draw.line(
-                    env.surf,
-                    color=colors.flag_pole,
-                    start_pos=(x, flagy1),
-                    end_pos=(x, flagy2),
-                    width=1,
+                    env.surf, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1
                 )
-                flag_points = [
-                    (x, flagy2),
-                    (x, flagy2 - 10),
-                    (x + 25, flagy2 - 5),
-                ]
+                flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
                 pygame.draw.polygon(env.surf, color=colors.flag, points=flag_points)
                 gfxdraw.aapolygon(env.surf, flag_points, colors.flag)
 
@@ -238,9 +184,7 @@ def _render_lunar_lander(
         pygame.display.flip()
         return None
     if env.render_mode == "rgb_array":
-        return np.transpose(
-            np.array(pygame.surfarray.pixels3d(env.surf)), axes=(1, 0, 2)
-        )
+        return np.transpose(np.array(pygame.surfarray.pixels3d(env.surf)), axes=(1, 0, 2))
 
     return None
 
@@ -264,13 +208,7 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
     score = getattr(source_env, "score", None)
     if score is not None:
         score_text = f"score: {float(score):.1f}"
-        _draw_text(
-            surface,
-            font,
-            score_text,
-            (surface.get_width() - 116, 8),
-            overlay,
-        )
+        _draw_text(surface, font, score_text, (surface.get_width() - 116, 8), overlay)
 
     x, y = 8, 8
     line_height = font.get_linesize()
@@ -278,10 +216,7 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
         position = (x, y + index * line_height)
         text = _draw_text(surface, font, line, position, overlay)
         if direction is not None:
-            arrow_center = (
-                position[0] + text.get_width() + 12,
-                position[1] + line_height // 2,
-            )
+            arrow_center = (position[0] + text.get_width() + 12, position[1] + line_height // 2)
             _draw_arrow(surface, arrow_center, direction, overlay)
 
 
@@ -306,12 +241,7 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
         if mass:
             lines.append((f"wind: {abs(float(wind)) / float(mass):.1f} m/s²", None))
         if inertia:
-            lines.append(
-                (
-                    f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²",
-                    None,
-                )
-            )
+            lines.append((f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²", None))
 
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     if kick is not None:
@@ -353,22 +283,14 @@ def _initial_force(seed: int) -> tuple[float, float]:
 
 
 def _draw_arrow(
-    surface,
-    center: tuple[int, int],
-    direction: tuple[float, float],
-    overlay: LanderOverlay,
+    surface, center: tuple[int, int], direction: tuple[float, float], overlay: LanderOverlay
 ) -> None:
     shadow_center = (center[0] + 1, center[1] + 1)
     _draw_arrow_shape(surface, shadow_center, direction, overlay.shadow_color)
     _draw_arrow_shape(surface, center, direction, overlay.text_color)
 
 
-def _draw_arrow_shape(
-    surface,
-    center: tuple[int, int],
-    direction: tuple[float, float],
-    color: RGB,
-) -> None:
+def _draw_arrow_shape(surface, center: tuple[int, int], direction: tuple[float, float], color: RGB) -> None:
     import pygame
 
     dx, dy = direction

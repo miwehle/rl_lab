@@ -7,22 +7,14 @@ import pandas as pd
 from matplotlib.ticker import MultipleLocator
 
 
-def heatmap(
-    scores: pd.DataFrame,
-    worlds: Sequence[str] | None = None,
-    *,
-    bins: int = 30,
-):
+def heatmap(scores: pd.DataFrame, worlds: Sequence[str] | None = None, *, bins: int = 30):
     import matplotlib.pyplot as plt
 
     worlds = _worlds(scores, worlds)
     bin_edges = _bin_edges(scores, bins)
     y = np.arange(len(worlds))
     grouped_scores = scores.groupby("world")["score"]
-    histograms = [
-        np.histogram(_scores_for_world(scores, world), bins=bin_edges)[0]
-        for world in worlds
-    ]
+    histograms = [np.histogram(_scores_for_world(scores, world), bins=bin_edges)[0] for world in worlds]
 
     fig, ax = plt.subplots(figsize=(12, 5))
     image = ax.imshow(
@@ -84,17 +76,7 @@ def histogram_3d(
         y = worlds.index(world)
         counts, _ = np.histogram(_scores_for_world(scores, world), bins=bin_edges)
         max_count = max(max_count, int(counts.max()))
-        ax.bar3d(
-            left_edges,
-            y,
-            0,
-            width * 0.9,
-            0.45,
-            counts,
-            alpha=alpha,
-            zsort="max",
-            label=world,
-        )
+        ax.bar3d(left_edges, y, 0, width * 0.9, 0.45, counts, alpha=alpha, zsort="max", label=world)
 
     ax.set(xlabel="score", ylabel="world", zlabel="episodes")
     ax.set_yticks(range(len(worlds)), worlds)
@@ -114,59 +96,17 @@ def quantiles(scores: pd.DataFrame, worlds: Sequence[str] | None = None):
     y = np.arange(len(worlds))
 
     fig, ax = plt.subplots(figsize=(12, 5))
-    ax.hlines(
-        y,
-        summary["min"],
-        summary["max"],
-        color="0.80",
-        linewidth=2,
-        label="min..max",
-    )
-    ax.hlines(
-        y,
-        summary["q05"],
-        summary["q95"],
-        color="tab:blue",
-        linewidth=5,
-        alpha=0.45,
-        label="q05..q95",
-    )
-    ax.hlines(
-        y,
-        summary["q25"],
-        summary["q75"],
-        color="tab:blue",
-        linewidth=12,
-        alpha=0.85,
-        label="q25..q75",
-    )
-    ax.scatter(
-        summary["median"],
-        y,
-        color="white",
-        edgecolor="black",
-        zorder=3,
-        label="median",
-    )
-    ax.scatter(
-        summary["mean"],
-        y,
-        marker="x",
-        color="tab:red",
-        zorder=3,
-        label="mean",
-    )
+    ax.hlines(y, summary["min"], summary["max"], color="0.80", linewidth=2, label="min..max")
+    ax.hlines(y, summary["q05"], summary["q95"], color="tab:blue", linewidth=5, alpha=0.45, label="q05..q95")
+    ax.hlines(y, summary["q25"], summary["q75"], color="tab:blue", linewidth=12, alpha=0.85, label="q25..q75")
+    ax.scatter(summary["median"], y, color="white", edgecolor="black", zorder=3, label="median")
+    ax.scatter(summary["mean"], y, marker="x", color="tab:red", zorder=3, label="mean")
 
     ax.set(xlabel="score", ylabel="world")
     ax.set_yticks(y, worlds)
     ax.xaxis.set_major_locator(MultipleLocator(50))
     ax.grid(axis="x", alpha=0.25)
-    ax.legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.16),
-        ncol=5,
-        borderaxespad=0,
-    )
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=5, borderaxespad=0)
     plt.tight_layout()
     return fig, ax
 

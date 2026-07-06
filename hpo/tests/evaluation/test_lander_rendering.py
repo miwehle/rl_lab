@@ -26,15 +26,8 @@ class ScoreEnv(gym.Env):
 
 
 def test_lander_render_wrapper_uses_custom_sky_and_ground_colors():
-    colors = LanderColors(
-        sky=(10, 20, 30),
-        ground=(40, 50, 60),
-        ground_outline=(40, 50, 60),
-    )
-    env = LanderRenderWrapper(
-        gym.make("LunarLander-v3", render_mode="rgb_array"),
-        colors,
-    )
+    colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
+    env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
 
     try:
         env.reset(seed=123)
@@ -48,15 +41,8 @@ def test_lander_render_wrapper_uses_custom_sky_and_ground_colors():
 
 
 def test_lander_render_wrapper_does_not_draw_vertical_sky_polygon_seams():
-    colors = LanderColors(
-        sky=(10, 20, 30),
-        ground=(40, 50, 60),
-        ground_outline=(40, 50, 60),
-    )
-    env = LanderRenderWrapper(
-        gym.make("LunarLander-v3", render_mode="rgb_array"),
-        colors,
-    )
+    colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
+    env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
 
     try:
         env.reset(seed=123)
@@ -120,16 +106,8 @@ def test_world_colors_returns_colors_in_world_order():
     colors = world_colors([World.EARTH, World.VENUS])
 
     assert colors == [
-        LanderColors(
-            sky=(143, 199, 232),
-            ground=(111, 127, 82),
-            ground_outline=(111, 127, 82),
-        ),
-        LanderColors(
-            sky=(214, 168, 92),
-            ground=(138, 103, 64),
-            ground_outline=(138, 103, 64),
-        ),
+        LanderColors(sky=(143, 199, 232), ground=(111, 127, 82), ground_outline=(111, 127, 82)),
+        LanderColors(sky=(214, 168, 92), ground=(138, 103, 64), ground_outline=(138, 103, 64)),
     ]
 
 

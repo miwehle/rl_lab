@@ -11,23 +11,10 @@ _ENV_LABELS = {
     "moon": ("Moon", "#809090"),
     "mars": ("Mars", "#ff5f0e"),
 }
-_FALLBACK_COLORS = (
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-)
+_FALLBACK_COLORS = ("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f")
 
 
-def add_training_progress(
-    figure: Any,
-    progress: TrainingProgress,
-    training_score_min: float | None,
-) -> None:
+def add_training_progress(figure: Any, progress: TrainingProgress, training_score_min: float | None) -> None:
     import plotly.graph_objects as go
 
     returns = [float(value) for value in progress.episode_returns]
@@ -72,10 +59,7 @@ def add_training_progress(
     if progress.checkpoint_window is not None:
         mean_episodes, means = _trailing_means(returns, progress.checkpoint_window)
         if means:
-            mean_label = (
-                f"Current Mean: {means[-1]:.1f}"
-                f" · Best Mean: {max(means):.1f}"
-            )
+            mean_label = f"Current Mean: {means[-1]:.1f}" f" · Best Mean: {max(means):.1f}"
             figure.add_trace(
                 go.Scatter(
                     x=mean_episodes,
@@ -98,9 +82,7 @@ def add_training_progress(
     )
     if reference_score is not None:
         reference_name = (
-            "Best checkpoint score"
-            if progress.best_checkpoint_score is not None
-            else "Checkpoint threshold"
+            "Best checkpoint score" if progress.best_checkpoint_score is not None else "Checkpoint threshold"
         )
         figure.add_trace(
             go.Scatter(
@@ -117,9 +99,7 @@ def add_training_progress(
             secondary_y=False,
         )
 
-    figure.layout.annotations[4].text = (
-        f"Trial: {progress.trial_number} · {mean_label}"
-    )
+    figure.layout.annotations[4].text = f"Trial: {progress.trial_number} · {mean_label}"
     figure.update_xaxes(title_text="Training episode", range=x_range, row=3, col=1)
     score_values = [0, *returns]
     if reference_score is not None:
@@ -127,29 +107,22 @@ def add_training_progress(
     figure.update_yaxes(
         title_text="Gym score",
         range=[
-            max(min(score_values) - 10, training_score_min)
-            if training_score_min is not None
-            else min(score_values) - 10,
+            (
+                max(min(score_values) - 10, training_score_min)
+                if training_score_min is not None
+                else min(score_values) - 10
+            ),
             max(score_values) + 10,
         ],
         row=3,
         col=1,
         secondary_y=False,
     )
-    figure.update_yaxes(
-        title_text="Epsilon",
-        range=[0, 1],
-        row=3,
-        col=1,
-        secondary_y=True,
-    )
+    figure.update_yaxes(title_text="Epsilon", range=[0, 1], row=3, col=1, secondary_y=True)
 
 
 def _add_env_label_traces(
-    figure: Any,
-    progress: TrainingProgress,
-    episodes: list[int],
-    returns: list[float],
+    figure: Any, progress: TrainingProgress, episodes: list[int], returns: list[float]
 ) -> None:
     import plotly.graph_objects as go
 
@@ -159,8 +132,7 @@ def _add_env_label_traces(
         *[label for label in seen_labels if label not in _ENV_LABELS],
     ]
     fallback_colors = {
-        label: _FALLBACK_COLORS[index % len(_FALLBACK_COLORS)]
-        for index, label in enumerate(labels)
+        label: _FALLBACK_COLORS[index % len(_FALLBACK_COLORS)] for index, label in enumerate(labels)
     }
     for label in labels:
         label_episodes = [
@@ -170,10 +142,7 @@ def _add_env_label_traces(
         ]
         label_returns = [
             episode_return
-            for episode_return, episode_label in zip(
-                returns,
-                progress.episode_env_labels,
-            )
+            for episode_return, episode_label in zip(returns, progress.episode_env_labels)
             if episode_label == label
         ]
         label_name = label if label is not None else "unknown"
@@ -186,14 +155,8 @@ def _add_env_label_traces(
                 mode="markers",
                 name=display_name,
                 showlegend=True,
-                marker=dict(
-                    color=color,
-                    size=6,
-                ),
-                hovertemplate=(
-                    f"{display_name}<br>"
-                    "Episode: %{x}<br>Return: %{y:.1f}<extra></extra>"
-                ),
+                marker=dict(color=color, size=6),
+                hovertemplate=(f"{display_name}<br>" "Episode: %{x}<br>Return: %{y:.1f}<extra></extra>"),
             ),
             row=3,
             col=1,
@@ -212,6 +175,6 @@ def _trailing_means(values: list[float], window: int) -> tuple[list[int], list[f
     means = []
     for end in range(window, len(values) + 1):
         episodes.append(end)
-        window_values = values[end - window:end]
+        window_values = values[end - window : end]
         means.append(sum(window_values) / len(window_values))
     return episodes, means

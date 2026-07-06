@@ -6,11 +6,7 @@ from hpo.checkpointing import trial_best_checkpoint_score
 from hpo.notebook.dashboard.style import set_empty_score_yaxis
 
 
-def add_current_study(
-    figure: Any,
-    study: Any,
-    target_trials: int,
-) -> bool:
+def add_current_study(figure: Any, study: Any, target_trials: int) -> bool:
     import plotly.graph_objects as go
 
     points = _current_study_points(study)
@@ -58,12 +54,7 @@ def add_current_study(
         col=1,
     )
     score_floor = min([0, *scores])
-    figure.update_yaxes(
-        title_text="Score",
-        range=[score_floor - 10, 260],
-        row=2,
-        col=1,
-    )
+    figure.update_yaxes(title_text="Score", range=[score_floor - 10, 260], row=2, col=1)
     return True
 
 
@@ -77,22 +68,18 @@ def _trial_tickvals(target_trials: int) -> list[int]:
 
 
 def _current_study_points(study: Any) -> list[dict[str, Any]]:
-    trials = [
-        trial
-        for trial in study.trials
-        if trial.state.name == "COMPLETE" and trial.value is not None
-    ]
+    trials = [trial for trial in study.trials if trial.state.name == "COMPLETE" and trial.value is not None]
     points = []
     best = float("-inf")
     for trial in trials:
         score = trial_best_checkpoint_score(trial)
         best = max(best, score)
-        points.append({
-            "trial_number": trial.number,
-            "score": score,
-            "best_score": best,
-            "hover_params": "".join(
-                f"<br>{name}: {value}" for name, value in trial.params.items()
-            ),
-        })
+        points.append(
+            {
+                "trial_number": trial.number,
+                "score": score,
+                "best_score": best,
+                "hover_params": "".join(f"<br>{name}: {value}" for name, value in trial.params.items()),
+            }
+        )
     return points

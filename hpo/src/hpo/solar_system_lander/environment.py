@@ -26,6 +26,7 @@ class World(StrEnum):
     EARTH = "earth"
     VENUS = "venus"
 
+
 WORLDS = (
     WorldConfig(World.MOON, -1.65, (0.0, 0.0), (0.0, 0.0)),
     WorldConfig(World.MERCURY, -3.7, (0.0, 0.0), (0.0, 0.0)),
@@ -35,10 +36,7 @@ WORLDS = (
 )
 
 
-def acceleration_vector(
-    previous_observation: np.ndarray,
-    observation: np.ndarray,
-) -> np.ndarray:
+def acceleration_vector(previous_observation: np.ndarray, observation: np.ndarray) -> np.ndarray:
     """Return clipped velocity delta from two LunarLander observations."""
     previous_velocity = previous_observation[2:4]
     velocity = observation[2:4]
@@ -97,10 +95,7 @@ class EnvWrapper(gym.Wrapper):
     def step(self, action):
         observation, reward, terminated, truncated, info = self.env.step(action)
         if self._previous_observation is not None:
-            self._acceleration = acceleration_vector(
-                self._previous_observation,
-                observation,
-            )
+            self._acceleration = acceleration_vector(self._previous_observation, observation)
         self._previous_observation = observation
         return self._observation(observation), reward, terminated, truncated, info
 
@@ -109,10 +104,7 @@ class EnvWrapper(gym.Wrapper):
             return observation
         if self.observation_mode == "10d":
             # append seat-of-the-pants input to observation for 10d Elise
-            return np.concatenate((observation, self._acceleration)).astype(
-                np.float32,
-                copy=False,
-            )
+            return np.concatenate((observation, self._acceleration)).astype(np.float32, copy=False)
         wind, turbulence = self._weather
         values = [self.world.gravity / 12]
         if self.observation_mode == "11d":
@@ -122,12 +114,7 @@ class EnvWrapper(gym.Wrapper):
 
 
 class EnvFactory:
-    def __init__(
-        self,
-        observation_mode: str,
-        *,
-        worlds: Sequence[WorldConfig] = WORLDS,
-    ) -> None:
+    def __init__(self, observation_mode: str, *, worlds: Sequence[WorldConfig] = WORLDS) -> None:
         if observation_mode not in {"8d", "9d", "10d", "11d"}:
             raise ValueError("observation_mode must be '8d', '9d', '10d', or '11d'")
         if not worlds:
@@ -139,11 +126,7 @@ class EnvFactory:
         if num_envs % len(self.worlds):
             raise ValueError(f"num_envs must be divisible by {len(self.worlds)}")
         slots_per_world = num_envs // len(self.worlds)
-        factories = [
-            self._factory(world)
-            for world in self.worlds
-            for _ in range(slots_per_world)
-        ]
+        factories = [self._factory(world) for world in self.worlds for _ in range(slots_per_world)]
         return SyncVectorEnv(factories)
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]:
@@ -169,18 +152,12 @@ class EnvFactory:
             ],
         }
 
-    def _factory(
-        self,
-        world: WorldConfig,
-        *,
-        render_mode: str | None = None,
-    ) -> Callable[[], Any]:
+    def _factory(self, world: WorldConfig, *, render_mode: str | None = None) -> Callable[[], Any]:
         return lambda: EnvWrapper(
             gym.make(
                 "LunarLander-v3",
                 gravity=world.gravity,
-                enable_wind=world.wind_power[1] > 0
-                or world.turbulence_power[1] > 0,
+                enable_wind=world.wind_power[1] > 0 or world.turbulence_power[1] > 0,
                 render_mode=render_mode,
             ),
             world,
@@ -190,16 +167,7 @@ class EnvFactory:
 
 def _extra_bounds(observation_mode: str) -> tuple[np.ndarray, np.ndarray]:
     if observation_mode == "9d":
-        return (
-            np.array([-1.0], dtype=np.float32),
-            np.array([0.0], dtype=np.float32),
-        )
+        return (np.array([-1.0], dtype=np.float32), np.array([0.0], dtype=np.float32))
     if observation_mode == "10d":
-        return (
-            np.array([-1.0, -1.0], dtype=np.float32),
-            np.array([1.0, 1.0], dtype=np.float32),
-        )
-    return (
-        np.array([-1.0, 0.0, 0.0], dtype=np.float32),
-        np.array([0.0, 1.0, 1.0], dtype=np.float32),
-    )
+        return (np.array([-1.0, -1.0], dtype=np.float32), np.array([1.0, 1.0], dtype=np.float32))
+    return (np.array([-1.0, 0.0, 0.0], dtype=np.float32), np.array([0.0, 1.0, 1.0], dtype=np.float32))

@@ -15,11 +15,7 @@ from typing import Any
 
 
 def record_study_metadata(
-    database_path: str | Path,
-    study_name: str,
-    *,
-    runtime_provider: str | None = None,
-    device: Any = None,
+    database_path: str | Path, study_name: str, *, runtime_provider: str | None = None, device: Any = None
 ) -> None:
     """Create or update the HPO metadata row for one study."""
     database_path = Path(database_path)
@@ -27,16 +23,14 @@ def record_study_metadata(
     metadata = runtime_metadata(device=device, runtime_provider=runtime_provider)
     provider = runtime_provider or detect_runtime_provider()
     with sqlite3.connect(database_path) as connection:
-        connection.execute(
-            """
+        connection.execute("""
             CREATE TABLE IF NOT EXISTS hpo_study_metadata (
                 study_name TEXT PRIMARY KEY,
                 runtime_provider TEXT NOT NULL,
                 runtime_metadata_json TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )
-            """
-        )
+            """)
         connection.execute(
             """
             INSERT OR IGNORE INTO hpo_study_metadata (
@@ -47,20 +41,11 @@ def record_study_metadata(
             )
             VALUES (?, ?, ?, ?)
             """,
-            (
-                study_name,
-                provider,
-                json.dumps(metadata, sort_keys=True),
-                datetime.now(UTC).isoformat(),
-            ),
+            (study_name, provider, json.dumps(metadata, sort_keys=True), datetime.now(UTC).isoformat()),
         )
 
 
-def runtime_metadata(
-    *,
-    device: Any = None,
-    runtime_provider: str | None = None,
-) -> dict[str, Any]:
+def runtime_metadata(*, device: Any = None, runtime_provider: str | None = None) -> dict[str, Any]:
     """Collect the compact runtime facts that help explain study results."""
     metadata = {
         "python_version": platform.python_version(),
@@ -77,9 +62,7 @@ def runtime_metadata(
     }
     _add_accelerator_metadata(metadata)
     if (runtime_provider or detect_runtime_provider()) == "colab":
-        metadata["colab"] = {
-            "hardware_accelerator": _colab_hardware_accelerator(metadata),
-        }
+        metadata["colab"] = {"hardware_accelerator": _colab_hardware_accelerator(metadata)}
     return metadata
 
 
@@ -147,13 +130,7 @@ def _torch() -> Any | None:
 
 def _git(*args: str) -> str | None:
     try:
-        completed = subprocess.run(
-            ["git", *args],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
+        completed = subprocess.run(["git", *args], check=True, capture_output=True, text=True, timeout=2)
     except (OSError, subprocess.SubprocessError):
         return None
     return completed.stdout.strip()

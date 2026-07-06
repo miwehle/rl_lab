@@ -7,7 +7,6 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 
-
 _call_depth: ContextVar[int] = ContextVar("hpo_call_depth", default=0)
 
 
@@ -21,15 +20,11 @@ class _SourceFilter(logging.Filter):
         return True
 
 
-def configure_file_logging(
-    study_dir: str | Path,
-    filename: str = "hpo.log",
-) -> None:
+def configure_file_logging(study_dir: str | Path, filename: str = "hpo.log") -> None:
     log_path = Path(study_dir) / filename
     logger = logging.getLogger("hpo")
     if any(
-        isinstance(handler, logging.FileHandler)
-        and Path(handler.baseFilename) == log_path
+        isinstance(handler, logging.FileHandler) and Path(handler.baseFilename) == log_path
         for handler in logger.handlers
     ):
         return
@@ -38,8 +33,7 @@ def configure_file_logging(
     handler.addFilter(_SourceFilter())
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s %(levelname)-8s %(source)-32s %(indent)s%(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+            "%(asctime)s %(levelname)-8s %(source)-32s %(indent)s%(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
     )
     logger.addHandler(handler)
@@ -49,10 +43,7 @@ def configure_file_logging(
 
 def log_call(func: Callable[..., Any]) -> Callable[..., Any]:
     call_logger = logging.getLogger(func.__module__)
-    log_extra = {
-        "definition_line": func.__code__.co_firstlineno,
-        "call_boundary": True,
-    }
+    log_extra = {"definition_line": func.__code__.co_firstlineno, "call_boundary": True}
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:

@@ -41,19 +41,13 @@ def evaluate_checkpoint_robustness(
     if not candidates:
         raise ValueError("study has no evaluation checkpoints")
 
-    candidate_scores: list[list[float]] = [
-        [candidate.score] for candidate in candidates
-    ]
+    candidate_scores: list[list[float]] = [[candidate.score] for candidate in candidates]
     checkpoint_summaries: list[dict[str, Any]] = []
     results = []
 
     for candidate_index, candidate in enumerate(candidates, start=1):
         summary = robustness_over_all_worlds(
-            candidate.path,
-            objective_cfg,
-            episodes=eval_episodes,
-            progress=False,
-            model_factory=model_factory,
+            candidate.path, objective_cfg, episodes=eval_episodes, progress=False, model_factory=model_factory
         )
         summary = {
             "candidate": candidate_index,
@@ -76,14 +70,7 @@ def evaluate_checkpoint_robustness(
         }
         results.append(result)
         if progress_fn is not None:
-            progress_fn(
-                _progress(
-                    candidate_index,
-                    len(candidates),
-                    candidate_scores,
-                    checkpoint_summaries,
-                )
-            )
+            progress_fn(_progress(candidate_index, len(candidates), candidate_scores, checkpoint_summaries))
 
     study.set_user_attr("checkpoint_robustness", results)
     return results
@@ -105,41 +92,27 @@ def checkpoint_scores(
     make_envs = objective_cfg.environment_factory.evaluation_envs()
     q_net_env = next(iter(make_envs.values()))
     q_net = q_net_from_checkpoint(
-        checkpoint_path,
-        make_env=q_net_env,
-        device=device,
-        model_factory=model_factory,
+        checkpoint_path, make_env=q_net_env, device=device, model_factory=model_factory
     )
     q_net.eval()
 
     rows = []
     work_items = (
-        (world, make_env, episode)
-        for world, make_env in make_envs.items()
-        for episode in range(episodes)
+        (world, make_env, episode) for world, make_env in make_envs.items() for episode in range(episodes)
     )
     for world, make_env, episode in _with_progress(
-        work_items,
-        enabled=progress,
-        total=len(make_envs) * episodes,
-        desc="Evaluating checkpoint",
+        work_items, enabled=progress, total=len(make_envs) * episodes, desc="Evaluating checkpoint"
     ):
-        seed = (
-            None
-            if objective_cfg.eval_seed is None
-            else objective_cfg.eval_seed + episode
+        seed = None if objective_cfg.eval_seed is None else objective_cfg.eval_seed + episode
+        rows.append(
+            {
+                "world": world,
+                "episode": episode,
+                "score": _episode_return(
+                    q_net, make_env, device, max_steps=objective_cfg.eval_max_steps, seed=seed
+                ),
+            }
         )
-        rows.append({
-            "world": world,
-            "episode": episode,
-            "score": _episode_return(
-                q_net,
-                make_env,
-                device,
-                max_steps=objective_cfg.eval_max_steps,
-                seed=seed,
-            ),
-        })
 
     return pd.DataFrame(rows)
 
@@ -154,11 +127,7 @@ def robustness_over_all_worlds(
 ) -> dict[str, Any]:
     """Return one checkpoint's robustness summary over all evaluation worlds."""
     scores = checkpoint_scores(
-        checkpoint_path,
-        objective_cfg,
-        episodes=episodes,
-        progress=progress,
-        model_factory=model_factory,
+        checkpoint_path, objective_cfg, episodes=episodes, progress=progress, model_factory=model_factory
     )
     values = scores["score"]
     world_scores = scores.groupby("world", sort=False)["score"].mean()
@@ -174,9 +143,7 @@ def robustness_over_all_worlds(
         "q75": float(values.quantile(0.75)),
         "q95": float(values.quantile(0.95)),
         "max": float(values.max()),
-        "world_scores": {
-            str(world): float(score) for world, score in world_scores.items()
-        },
+        "world_scores": {str(world): float(score) for world, score in world_scores.items()},
     }
 
 
@@ -196,13 +163,7 @@ def score_summary(scores: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def q_net_from_checkpoint(
-    path: str | Path,
-    *,
-    make_env,
-    device=None,
-    model_factory: ModelFactory = DQN,
-):
+def q_net_from_checkpoint(path: str | Path, *, make_env, device=None, model_factory: ModelFactory = DQN):
     """Build a Q-net from env dimensions and load checkpoint weights into it."""
     device = resolve_device(device)
     hidden_size = _checkpoint_hidden_size(path)
@@ -229,11 +190,7 @@ def _episode_return(q_net, make_env, device, *, max_steps: int, seed: int | None
         episode_return = 0.0
 
         for _ in range(max_steps):
-            state = torch.as_tensor(
-                observation,
-                dtype=torch.float32,
-                device=device,
-            ).unsqueeze(0)
+            state = torch.as_tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
             with torch.no_grad():
                 action = int(q_net(state).argmax(dim=1).item())
 

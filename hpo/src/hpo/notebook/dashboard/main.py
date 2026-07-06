@@ -16,23 +16,11 @@ from typing import Any, Literal
 
 from hpo.notebook.dashboard.current_hps import add_current_hps, current_params
 from hpo.notebook.dashboard.current_study import add_current_study
-from hpo.notebook.dashboard.robustness import (
-    add_checkpoint_robustness_evaluation,
-    add_robustness_evaluation,
-)
-from hpo.notebook.dashboard.style import (
-    NO_DATA_TEXT,
-    hide_empty_xaxis,
-    set_empty_score_yaxis,
-)
+from hpo.notebook.dashboard.robustness import add_checkpoint_robustness_evaluation, add_robustness_evaluation
+from hpo.notebook.dashboard.style import NO_DATA_TEXT, hide_empty_xaxis, set_empty_score_yaxis
 from hpo.notebook.dashboard.study_series import add_study_series
 from hpo.notebook.dashboard.training_progress import add_training_progress
-from hpo.study_reporting import (
-    RobustnessProgress,
-    StudySeriesReporter,
-    TrainingProgress,
-)
-
+from hpo.study_reporting import RobustnessProgress, StudySeriesReporter, TrainingProgress
 
 DashboardRenderMode = Literal["safe"]
 
@@ -53,11 +41,7 @@ def build_dashboard(
     figure = make_subplots(
         rows=3,
         cols=2,
-        specs=[
-            [{}, {"type": "domain"}],
-            [{}, {}],
-            [{"colspan": 2, "secondary_y": True}, None],
-        ],
+        specs=[[{}, {"type": "domain"}], [{}, {}], [{"colspan": 2, "secondary_y": True}, None]],
         row_heights=[0.40, 0.30, 0.30],
         vertical_spacing=0.11,
         horizontal_spacing=0.12,
@@ -75,9 +59,7 @@ def build_dashboard(
         current_params(incumbent_params, training_progress),
         study,
         optimized_param_names=(
-            training_progress.optimized_param_names
-            if training_progress is not None
-            else None
+            training_progress.optimized_param_names if training_progress is not None else None
         ),
     )
     stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
@@ -86,36 +68,15 @@ def build_dashboard(
     if robustness_progress is None:
         if not add_current_study(figure, study, target_trials):
             current_study_is_empty = True
-            figure.add_annotation(
-                text=NO_DATA_TEXT,
-                row=2,
-                col=1,
-                showarrow=False,
-                font=dict(color="gray"),
-            )
+            figure.add_annotation(text=NO_DATA_TEXT, row=2, col=1, showarrow=False, font=dict(color="gray"))
         if stored_checkpoint_summaries:
-            add_checkpoint_robustness_evaluation(
-                figure,
-                checkpoint_summaries=stored_checkpoint_summaries,
-            )
+            add_checkpoint_robustness_evaluation(figure, checkpoint_summaries=stored_checkpoint_summaries)
         else:
             robustness_is_empty = True
-            figure.add_annotation(
-                text=NO_DATA_TEXT,
-                row=2,
-                col=2,
-                showarrow=False,
-                font=dict(color="gray"),
-            )
+            figure.add_annotation(text=NO_DATA_TEXT, row=2, col=2, showarrow=False, font=dict(color="gray"))
             set_empty_score_yaxis(figure, row=2, col=2)
     else:
-        figure.add_annotation(
-            text=NO_DATA_TEXT,
-            row=2,
-            col=1,
-            showarrow=False,
-            font=dict(color="gray"),
-        )
+        figure.add_annotation(text=NO_DATA_TEXT, row=2, col=1, showarrow=False, font=dict(color="gray"))
         if robustness_progress.checkpoint_summaries is None:
             add_robustness_evaluation(
                 figure,
@@ -126,8 +87,7 @@ def build_dashboard(
             )
         else:
             add_checkpoint_robustness_evaluation(
-                figure,
-                checkpoint_summaries=robustness_progress.checkpoint_summaries,
+                figure, checkpoint_summaries=robustness_progress.checkpoint_summaries
             )
         figure.layout.annotations[3].text = (
             f"{robustness_progress.title} - "
@@ -138,13 +98,7 @@ def build_dashboard(
         )
 
     if training_progress is None:
-        figure.add_annotation(
-            text=NO_DATA_TEXT,
-            row=3,
-            col=1,
-            showarrow=False,
-            font=dict(color="gray"),
-        )
+        figure.add_annotation(text=NO_DATA_TEXT, row=3, col=1, showarrow=False, font=dict(color="gray"))
     else:
         add_training_progress(figure, training_progress, training_score_min)
 
@@ -163,13 +117,7 @@ def _style_dashboard(figure: Any) -> None:
         width=1200,
         height=925,
         margin=dict(l=70, r=70, t=55, b=85),
-        legend=dict(
-            orientation="h",
-            x=0.5,
-            y=-0.09,
-            xanchor="center",
-            yanchor="top",
-        ),
+        legend=dict(orientation="h", x=0.5, y=-0.09, xanchor="center", yanchor="top"),
         plot_bgcolor="white",
     )
     figure.update_xaxes(showgrid=True, gridcolor="#e5e5e5")
@@ -182,20 +130,9 @@ def _configure_empty_training_axes(figure: Any) -> None:
     _hide_yaxis(figure, row=3, col=1, secondary_y=True)
 
 
-def _hide_yaxis(
-    figure: Any,
-    *,
-    row: int,
-    col: int,
-    secondary_y: bool,
-) -> None:
+def _hide_yaxis(figure: Any, *, row: int, col: int, secondary_y: bool) -> None:
     figure.update_yaxes(
-        showticklabels=False,
-        showgrid=False,
-        zeroline=False,
-        row=row,
-        col=col,
-        secondary_y=secondary_y,
+        showticklabels=False, showgrid=False, zeroline=False, row=row, col=col, secondary_y=secondary_y
     )
 
 
@@ -218,11 +155,7 @@ def _stored_checkpoint_summaries(study: Any) -> list[dict[str, Any]] | None:
         return None
     if isinstance(results, str):
         results = json.loads(results)
-    return [
-        result["checkpoint_summary"]
-        for result in results
-        if "checkpoint_summary" in result
-    ]
+    return [result["checkpoint_summary"] for result in results if "checkpoint_summary" in result]
 
 
 @dataclass
@@ -257,39 +190,18 @@ class Dashboard(StudySeriesReporter):
         self._context: DashboardContext | None = None
         self._series: StudySeriesContext | None = None
 
-    def set_study_series_context(
-        self,
-        *,
-        studies: list[Any],
-        incumbent_params: dict[str, Any],
-    ) -> None:
-        self._series = StudySeriesContext(
-            studies=studies,
-            incumbent_params=incumbent_params,
-        )
+    def set_study_series_context(self, *, studies: list[Any], incumbent_params: dict[str, Any]) -> None:
+        self._series = StudySeriesContext(studies=studies, incumbent_params=incumbent_params)
 
-    def report_optimization(
-        self,
-        study: Any,
-        *,
-        target_trials: int,
-    ) -> None:
-        self._context = DashboardContext(
-            study=study,
-            target_trials=target_trials,
-        )
+    def report_optimization(self, study: Any, *, target_trials: int) -> None:
+        self._context = DashboardContext(study=study, target_trials=target_trials)
         self._show()
 
-    def report_robustness_evaluation(
-        self,
-        progress: RobustnessProgress,
-    ) -> None:
+    def report_robustness_evaluation(self, progress: RobustnessProgress) -> None:
         if self._context is None:
             return
         self._context = DashboardContext(
-            study=self._context.study,
-            target_trials=self._context.target_trials,
-            robustness_progress=progress,
+            study=self._context.study, target_trials=self._context.target_trials, robustness_progress=progress
         )
         self._show()
 
@@ -298,10 +210,7 @@ class Dashboard(StudySeriesReporter):
             return
         now = perf_counter()
         is_final = len(progress.episode_returns) >= progress.target_episodes
-        if (
-            not is_final
-            and now - self._last_training_update < self.training_update_interval_seconds
-        ):
+        if not is_final and now - self._last_training_update < self.training_update_interval_seconds:
             return
         self._last_training_update = now
         self._show(training_progress=progress)

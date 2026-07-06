@@ -55,64 +55,37 @@ class TrainingProgressPlotter:
                 trial_number=self.trial_number,
                 target_episodes=self.target_episodes,
                 episode_returns=list(episode_returns),
-                episode_epsilons=(
-                    list(kwargs["epsilons"])
-                    if kwargs.get("epsilons") is not None
-                    else None
-                ),
+                episode_epsilons=(list(kwargs["epsilons"]) if kwargs.get("epsilons") is not None else None),
                 episode_env_labels=(
                     [
-                        self.env_labels[index]
-                        if self.env_labels is not None
-                        and 0 <= index < len(self.env_labels)
-                        else None
+                        (
+                            self.env_labels[index]
+                            if self.env_labels is not None and 0 <= index < len(self.env_labels)
+                            else None
+                        )
                         for index in env_indices
                     ]
                     if env_indices is not None
                     else None
                 ),
-                trial_params=(
-                    dict(self.trial_params)
-                    if self.trial_params is not None
-                    else None
-                ),
+                trial_params=(dict(self.trial_params) if self.trial_params is not None else None),
                 optimized_param_names=(
-                    list(self.optimized_param_names)
-                    if self.optimized_param_names is not None
-                    else None
+                    list(self.optimized_param_names) if self.optimized_param_names is not None else None
                 ),
                 checkpoint_window=self.checkpoint_window,
                 checkpoint_min_score=self.checkpoint_min_score,
                 best_checkpoint_score=(
-                    self.best_checkpoint_score()
-                    if self.best_checkpoint_score is not None
-                    else None
+                    self.best_checkpoint_score() if self.best_checkpoint_score is not None else None
                 ),
             )
         )
 
 
 class StudySeriesReporter(Protocol):
-    def set_study_series_context(
-        self,
-        *,
-        studies: list[Any],
-        incumbent_params: dict[str, Any],
-    ) -> None: ...
+    def set_study_series_context(self, *, studies: list[Any], incumbent_params: dict[str, Any]) -> None: ...
 
-    def report_optimization(
-        self,
-        study: Any,
-        *,
-        target_trials: int,
-    ) -> None: ...
+    def report_optimization(self, study: Any, *, target_trials: int) -> None: ...
 
-    def report_robustness_evaluation(
-        self,
-        progress: RobustnessProgress,
-    ) -> None: ...
+    def report_robustness_evaluation(self, progress: RobustnessProgress) -> None: ...
 
-    def report_training_progress(
-        self,
-        progress: TrainingProgress,
-    ) -> None: ...
+    def report_training_progress(self, progress: TrainingProgress) -> None: ...
