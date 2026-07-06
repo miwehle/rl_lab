@@ -9,7 +9,7 @@
     "tau": 0.005,
     "learning_starts": 2_500,
     "optimize_every": 2,
-    "replay_memory_capacity": 400_000,
+    "replay_memory": 400_000,
     "num_episodes": 500,
 }
 

@@ -157,7 +157,7 @@ def create_objective(
         params = incumbent_params | trial.params
         training_config = vector_training_config(params, early_stopping_score=config.early_stopping_score)
         ctx = ObjectiveContext(trial=trial, params=params, training_config=training_config)
-        replay_memory_capacity = params[HP.REPLAY_MEMORY_CAPACITY]
+        replay_memory_capacity = params[HP.REPLAY_MEMORY]
         trial_seed = None if config.training_seed is None else config.training_seed + trial.number
         ctx.trial_seed = trial_seed
         hooks = config.hooks.for_trial(ctx)

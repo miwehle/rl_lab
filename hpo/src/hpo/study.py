@@ -9,6 +9,7 @@ from typing import Any
 from hpo.lunar_lander.logging import log_call
 from hpo.objective import ObjectiveConfig, create_objective
 from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
+from hpo.hyperparams import HP
 from hpo.study_metadata import record_study_metadata
 from hpo.study_reporting import StudySeriesReporter, TrainingProgressFn
 
@@ -35,7 +36,10 @@ class Baseline:
     score: float | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "params", dict(self.params))
+        params = dict(self.params)
+        if "replay_memory_capacity" in params:
+            params.setdefault(HP.REPLAY_MEMORY, params.pop("replay_memory_capacity"))
+        object.__setattr__(self, "params", params)
 
     @classmethod
     def from_database(cls, database_path: str | Path, study_name: str) -> "Baseline":

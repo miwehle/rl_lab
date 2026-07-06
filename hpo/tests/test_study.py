@@ -359,6 +359,12 @@ def test_baseline_loads_from_study() -> None:
     assert baseline == Baseline(params={"x": 2}, score=123.0)
 
 
+def test_baseline_accepts_legacy_replay_memory_capacity() -> None:
+    baseline = Baseline(params={"replay_memory_capacity": 12_345})
+
+    assert baseline.params == {"replay_memory": 12_345}
+
+
 def test_baseline_loads_from_database(monkeypatch) -> None:
     study = FakeStudy([], {"incumbent_params": {"x": 2}, "incumbent_score": 123.0})
     load_calls = []

@@ -69,7 +69,7 @@ _BASELINE_PARAMS = {
     HP.TAU: 0.005,
     HP.LEARNING_STARTS: 2_500,
     HP.OPTIMIZE_EVERY: 2,
-    HP.REPLAY_MEMORY_CAPACITY: 400_000,
+    HP.REPLAY_MEMORY: 400_000,
     HP.NUM_EPISODES: 500,
 }
 
@@ -167,7 +167,7 @@ from hpo.hyperparams import HP
 
 def _suggest_params(trial, _incumbent_params):
     trial.suggest_categorical(HP.NUM_EPISODES, [2000])
-    trial.suggest_int(HP.REPLAY_MEMORY_CAPACITY, 20_000, 200_000, log=True)
+    trial.suggest_int(HP.REPLAY_MEMORY, 20_000, 200_000, log=True)
     trial.suggest_float(HP.EPS_END, 0.02, 0.05)
     trial.suggest_int(HP.EPS_DECAY, 25_000, 150_000, log=True)
     trial.suggest_float(HP.LEARNING_RATE, 0.0005, 0.002, log=True)

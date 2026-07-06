@@ -44,7 +44,7 @@ BASELINE_PARAMS = {
     "tau": 0.005,
     "learning_starts": 77,
     "optimize_every": 3,
-    "replay_memory_capacity": 12_345,
+    "replay_memory": 12_345,
     "num_episodes": 12,
 }
 

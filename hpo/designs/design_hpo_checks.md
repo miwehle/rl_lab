@@ -58,7 +58,7 @@ Gekoppelte Hyperparameter müssen auch nach Änderungen plausibel zueinander ste
 
 KISS-Start: `num_episodes ↔ eps_decay` mit `eps_decay / num_episodes`. Ändert sich das Verhältnis gegenüber dem Incumbent etwa um mehr als Faktor 2, kann die Exploration deutlich zu früh oder zu spät enden. Bei Series 4 fiel es durch die Erhöhung von 500 auf 2.000 Episoden bei unverändertem `eps_decay` auf ein Viertel.
 
-Spätere Kandidaten sind `num_episodes ↔ replay_memory_capacity`, `batch_size ↔ learning_rate` und `optimize_every ↔ training effort`.
+Spätere Kandidaten sind `num_episodes ↔ replay_memory`, `batch_size ↔ learning_rate` und `optimize_every ↔ training effort`.
 
 ### Umsetzung
 

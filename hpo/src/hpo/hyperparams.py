@@ -11,5 +11,5 @@ class HP:
     LEARNING_STARTS = "learning_starts"
     NUM_EPISODES = "num_episodes"
     OPTIMIZE_EVERY = "optimize_every"
-    REPLAY_MEMORY_CAPACITY = "replay_memory_capacity"
+    REPLAY_MEMORY = "replay_memory"
     TAU = "tau"
