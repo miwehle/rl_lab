@@ -183,6 +183,8 @@ def test_dashboard_contains_fixed_four_panel_layout() -> None:
     assert list(study_score_trace.y) == [50.0]
     assert list(figure.layout.yaxis2.range) == [-10, 260]
     assert figure.layout.legend.y < 0
+    assert figure.layout.legend.x == 0.5
+    assert figure.layout.legend.xanchor == "center"
     assert figure.layout.legend.yanchor == "top"
     assert figure.layout.margin.b >= 85
     no_data_annotations = [
@@ -527,7 +529,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert figure.layout.yaxis5.title.text == "Epsilon"
     assert any(
         annotation.text
-        == "Current Trial Training - Trial 3 - Mean (2 episodes): 6.0 - Best Mean: 6.0"
+        == "Trial: 3 · Current Mean: 6.0 · Best Mean: 6.0"
         for annotation in figure.layout.annotations
     )
 

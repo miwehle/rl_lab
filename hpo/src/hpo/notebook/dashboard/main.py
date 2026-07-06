@@ -151,9 +151,9 @@ def _style_dashboard(figure: Any) -> None:
         margin=dict(l=70, r=70, t=55, b=85),
         legend=dict(
             orientation="h",
-            x=0.01,
+            x=0.5,
             y=-0.09,
-            xanchor="left",
+            xanchor="center",
             yanchor="top",
         ),
         plot_bgcolor="white",

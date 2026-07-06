@@ -74,8 +74,8 @@ def add_training_progress(
         mean_episodes, means = _trailing_means(returns, progress.checkpoint_window)
         if means:
             mean_label = (
-                f"Mean ({progress.checkpoint_window} episodes): {means[-1]:.1f}"
-                f" - Best Mean: {max(means):.1f}"
+                f"Current Mean: {means[-1]:.1f}"
+                f" · Best Mean: {max(means):.1f}"
             )
             figure.add_trace(
                 go.Scatter(
@@ -119,7 +119,7 @@ def add_training_progress(
         )
 
     figure.layout.annotations[4].text = (
-        f"Current Trial Training - Trial {progress.trial_number} - {mean_label}"
+        f"Trial: {progress.trial_number} · {mean_label}"
     )
     figure.update_xaxes(title_text="Episode", range=x_range, row=3, col=1)
     score_values = [0, *returns]
