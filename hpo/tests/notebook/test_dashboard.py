@@ -250,6 +250,7 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
 
     assert list(score_trace.y) == [120.0, 80.0]
     assert list(best_trace.y) == [120.0, 120.0]
+    assert list(figure.layout.xaxis2.tickvals) == [0, 1, 2]
 
 
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:

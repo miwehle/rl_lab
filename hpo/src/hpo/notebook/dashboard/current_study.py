@@ -17,7 +17,7 @@ def add_current_study(
         figure.update_xaxes(
             title_text="Trial",
             tickmode="array",
-            tickvals=list(range(max(1, target_trials) + 1)),
+            tickvals=_trial_tickvals(target_trials),
             range=[0, max(1, target_trials)],
             row=2,
             col=1,
@@ -63,6 +63,8 @@ def add_current_study(
     )
     figure.update_xaxes(
         title_text="Trial",
+        tickmode="array",
+        tickvals=_trial_tickvals(target_trials),
         range=[0, max(1, target_trials)],
         row=2,
         col=1,
@@ -75,6 +77,15 @@ def add_current_study(
         col=1,
     )
     return True
+
+
+def _trial_tickvals(target_trials: int) -> list[int]:
+    end = max(1, target_trials)
+    step = max(1, (end + 9) // 10)
+    tickvals = list(range(0, end + 1, step))
+    if tickvals[-1] != end:
+        tickvals.append(end)
+    return tickvals
 
 
 def _current_study_points(study: Any) -> list[dict[str, Any]]:
