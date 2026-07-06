@@ -498,24 +498,24 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
         trace for trace in figure.data if trace.name == "Best checkpoint score"
     )
     epsilon = next(trace for trace in figure.data if trace.name == "Epsilon")
-    moon = next(trace for trace in figure.data if trace.name == "moon")
-    mars = next(trace for trace in figure.data if trace.name == "mars")
+    moon = next(trace for trace in figure.data if trace.name == "Moon")
+    mars = next(trace for trace in figure.data if trace.name == "Mars")
     env_traces = [
         trace.name
         for trace in figure.data
-        if trace.name in {"mercury", "earth", "moon", "mars"}
+        if trace.name in {"Mercury", "Earth", "Moon", "Mars"}
     ]
 
     assert list(returns.x) == [1, 2, 3, 4]
     assert list(returns.y) == [1.0, 3.0, 5.0, 7.0]
     assert returns.mode == "lines"
     assert returns.line.color == "#9a9a9a"
-    assert env_traces == ["mercury", "earth", "moon", "mars"]
+    assert env_traces == ["Mercury", "Earth", "Moon", "Mars"]
     assert {
         trace.name for trace in figure.data
         if getattr(trace, "showlegend", False) is not False
         and trace.name is not None
-    } == {"mercury", "earth", "moon", "mars"}
+    } == {"Mercury", "Earth", "Moon", "Mars"}
     assert list(moon.x) == [1]
     assert list(moon.y) == [1.0]
     assert list(mars.x) == [2]

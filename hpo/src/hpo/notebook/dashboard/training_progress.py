@@ -4,14 +4,13 @@ from typing import Any
 
 from hpo.study_reporting import TrainingProgress
 
-_ENV_LABEL_COLORS = {
-    "moon": "#809090",
-    "mercury": "#4f4f4f",
-    "mars": "#ff5f0e",
-    "earth": "#1f77d4",
-    "venus": "#f2c94c",
+_ENV_LABELS = {
+    "mercury": ("Mercury", "#4f4f4f"),
+    "venus": ("Venus", "#f2c94c"),
+    "earth": ("Earth", "#1f77d4"),
+    "moon": ("Moon", "#809090"),
+    "mars": ("Mars", "#ff5f0e"),
 }
-_ENV_LABEL_ORDER = ("mercury", "venus", "earth", "moon", "mars")
 _FALLBACK_COLORS = (
     "#1f77b4",
     "#ff7f0e",
@@ -156,8 +155,8 @@ def _add_env_label_traces(
 
     seen_labels = list(dict.fromkeys(progress.episode_env_labels))
     labels = [
-        *[label for label in _ENV_LABEL_ORDER if label in seen_labels],
-        *[label for label in seen_labels if label not in _ENV_LABEL_ORDER],
+        *[label for label in _ENV_LABELS if label in seen_labels],
+        *[label for label in seen_labels if label not in _ENV_LABELS],
     ]
     fallback_colors = {
         label: _FALLBACK_COLORS[index % len(_FALLBACK_COLORS)]
@@ -178,19 +177,21 @@ def _add_env_label_traces(
             if episode_label == label
         ]
         label_name = label if label is not None else "unknown"
+        display_name = _display_name(label_name)
+        color = _ENV_LABELS.get(label_name, (display_name, fallback_colors[label]))[1]
         figure.add_trace(
             go.Scatter(
                 x=label_episodes,
                 y=label_returns,
                 mode="markers",
-                name=label_name,
+                name=display_name,
                 showlegend=True,
                 marker=dict(
-                    color=_ENV_LABEL_COLORS.get(label_name, fallback_colors[label]),
+                    color=color,
                     size=6,
                 ),
                 hovertemplate=(
-                    f"{label_name}<br>"
+                    f"{display_name}<br>"
                     "Episode: %{x}<br>Return: %{y:.1f}<extra></extra>"
                 ),
             ),
@@ -198,6 +199,10 @@ def _add_env_label_traces(
             col=1,
             secondary_y=False,
         )
+
+
+def _display_name(label: str) -> str:
+    return _ENV_LABELS.get(label, (label, ""))[0]
 
 
 def _trailing_means(values: list[float], window: int) -> tuple[list[int], list[float]]:
