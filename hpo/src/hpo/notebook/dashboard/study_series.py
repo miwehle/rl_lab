@@ -48,7 +48,10 @@ def add_study_series(figure: Any, studies: Any) -> None:
         row=1,
         col=1,
     )
-    figure.update_yaxes(title_text="Score", row=1, col=1)
+    yaxis = {"title_text": "Score", "row": 1, "col": 1}
+    if not scores:
+        yaxis["range"] = [0, 250]
+    figure.update_yaxes(**yaxis)
 
 
 def _study_series_points(studies: Any) -> list[dict[str, Any]]:

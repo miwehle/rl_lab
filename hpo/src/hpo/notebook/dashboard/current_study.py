@@ -14,6 +14,18 @@ def add_current_study(
 
     points = _current_study_points(study)
     if not points:
+        figure.update_xaxes(
+            title_text="Trial",
+            range=[0, max(1, target_trials)],
+            row=2,
+            col=1,
+        )
+        figure.update_yaxes(
+            title_text="Score",
+            range=[0, 250],
+            row=2,
+            col=1,
+        )
         return False
 
     numbers = [point["trial_number"] for point in points]

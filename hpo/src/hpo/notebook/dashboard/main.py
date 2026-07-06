@@ -67,8 +67,6 @@ def build_dashboard(
             else None
         ),
     )
-    hide_current_study_axes = False
-    hide_robustness_axes = False
     stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
     if robustness_progress is None:
         if not add_current_study(figure, study, target_trials):
@@ -79,7 +77,6 @@ def build_dashboard(
                 showarrow=False,
                 font=dict(color="gray"),
             )
-            hide_current_study_axes = True
         if stored_checkpoint_summaries:
             add_checkpoint_robustness_evaluation(
                 figure,
@@ -93,7 +90,21 @@ def build_dashboard(
                 showarrow=False,
                 font=dict(color="gray"),
             )
-            hide_robustness_axes = True
+            figure.update_xaxes(
+                title_text="Gym score",
+                range=[0, 250],
+                row=2,
+                col=2,
+            )
+            figure.update_yaxes(
+                title_text="Checkpoint",
+                tickmode="array",
+                tickvals=[1, 2, 3],
+                ticktext=["C1", "C2", "C3"],
+                range=[0.5, 3.5],
+                row=2,
+                col=2,
+            )
     else:
         figure.add_annotation(
             text="Waiting for optimization",
@@ -135,10 +146,6 @@ def build_dashboard(
         add_training_progress(figure, training_progress, training_score_min)
 
     _style_dashboard(figure)
-    if hide_current_study_axes:
-        _hide_waiting_panel_axes(figure, row=2, col=1)
-    if hide_robustness_axes:
-        _hide_waiting_panel_axes(figure, row=2, col=2)
     if training_progress is None:
         _hide_waiting_panel_axes(figure, row=3, col=1, secondary_y=True)
     return figure
