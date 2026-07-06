@@ -45,7 +45,7 @@ def build_dashboard(
             [{}, {}],
             [{"colspan": 2, "secondary_y": True}, None],
         ],
-        row_heights=[0.36, 0.32, 0.32],
+        row_heights=[0.40, 0.30, 0.30],
         vertical_spacing=0.11,
         horizontal_spacing=0.12,
         subplot_titles=(
@@ -136,7 +136,7 @@ def build_dashboard(
 def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
-        height=900,
+        height=925,
         margin=dict(l=70, r=70, t=55, b=85),
         legend=dict(
             orientation="h",
