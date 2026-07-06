@@ -110,7 +110,7 @@ def add_checkpoint_robustness_evaluation(figure: Any, *, checkpoint_summaries: l
             name="mean",
             showlegend=False,
             text=[f"{summary['mean']:.1f}" for summary in checkpoint_summaries],
-            textposition="middle right",
+            textposition="top center",
             textfont=dict(color="#333333", size=11),
             marker=dict(color="white", line=dict(color="black", width=1), size=8),
             customdata=labels,

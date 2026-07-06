@@ -303,6 +303,7 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     assert list(mean.x) == [240.0, 250.0]
     assert list(mean.y) == [0, 1]
     assert list(mean.text) == ["240.0", "250.0"]
+    assert mean.textposition == "top center"
     assert list(mean.customdata) == ["C1 trial 35", "C2 trial 42"]
     assert mean.marker.color == "white"
     assert mean.marker.line.color == "black"
