@@ -43,7 +43,7 @@ def build_dashboard(
         cols=2,
         specs=[[{"type": "domain"}, {}], [{"colspan": 2, "secondary_y": True}, None]],
         row_heights=[0.5, 0.5],
-        vertical_spacing=55 / 545,
+        vertical_spacing=55 / 515,
         horizontal_spacing=0.12,
         subplot_titles=(
             "Current HPs",
@@ -113,7 +113,7 @@ def build_dashboard(
 def _style_dashboard(figure: Any) -> None:
     figure.update_layout(
         width=1200,
-        height=685,
+        height=655,
         margin=dict(l=70, r=70, t=55, b=85),
         legend=dict(orientation="h", x=0.5, y=-0.09, xanchor="center", yanchor="top"),
         plot_bgcolor="white",

@@ -119,15 +119,15 @@ def test_dashboard_contains_simplified_two_row_layout() -> None:
     )
 
     assert figure.layout.width == 1200
-    assert figure.layout.height == 685
+    assert figure.layout.height == 655
     assert [annotation.text for annotation in figure.layout.annotations[:3]] == [
         "Current HPs",
         "Study: S1 Update Economy",
         "Current Trial Training",
     ]
     plot_area_height = figure.layout.height - figure.layout.margin.t - figure.layout.margin.b
-    assert (figure.layout.yaxis.domain[1] - figure.layout.yaxis.domain[0]) * plot_area_height == pytest.approx(245)
-    assert (figure.layout.yaxis2.domain[1] - figure.layout.yaxis2.domain[0]) * plot_area_height == pytest.approx(245)
+    assert (figure.layout.yaxis.domain[1] - figure.layout.yaxis.domain[0]) * plot_area_height == pytest.approx(230)
+    assert (figure.layout.yaxis2.domain[1] - figure.layout.yaxis2.domain[0]) * plot_area_height == pytest.approx(230)
     table = next(trace for trace in figure.data if trace.type == "table")
     assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
     assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
