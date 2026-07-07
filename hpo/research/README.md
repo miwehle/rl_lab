@@ -1,5 +1,10 @@
 # HPO Research Notes
 
+> [!quote] Codex:
+Verstehen heisst, ein einfaches, strukturtreues Modell zu besitzen, das erklaert, vorhersagt und die wirksamen Hebel sichtbar macht.
+Ein gutes Modell ist evidenzgesichertes Als-ob: einfach genug zum Denken, strukturtreu genug zum Handeln.
+Für HPO passt das sehr gut: Wir tun nicht so, als wäre „Flugschüler“, „Sucher“ oder „Dirigent“ die Realität (cf. [[the_magnificent_7|Magnificent 7]]). Aber die Modelle sind nützlich, solange sie die richtigen Fragen, Erwartungen und Eingriffe erzeugen.
+
 This folder keeps research knowledge separate from code and package documentation.
 
 Research is cyclic: observations update hypotheses, and updated hypotheses guide the next questions and tests.
