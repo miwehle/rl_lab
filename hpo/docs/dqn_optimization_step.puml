@@ -1,0 +1,49 @@
+@startuml
+
+!include ../../puml_links.iuml
+
+title DQN Optimization Step - Backprop and Optimizer
+
+hide footbox
+
+participant ":VectorTrainer" as Trainer
+participant ":VectorReplayMemory" as Memory
+participant "q_net: DQN" as QNet
+participant "target_net: DQN" as TargetNet
+participant "PyTorch Autograd" as Autograd
+participant "optimizer: AdamW" as Optimizer
+
+url of Trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:131:1]]
+url of Memory is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:67:1]]
+url of QNet is [[WORKSPACE_ROOT/dqn/src/dqn/model.py:8:1]]
+url of TargetNet is [[WORKSPACE_ROOT/dqn/src/dqn/model.py:8:1]]
+url of Autograd is [[https://pytorch.org/docs/stable/autograd.html]]
+url of Optimizer is [[https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html]]
+
+Trainer -> Trainer : optimization is due\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:356:1 _optimize_due(config, previous_steps)]]
+Trainer -> Trainer : optimize one replay batch\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:377:1 _optimize_model(config)]]
+activate Trainer
+
+Trainer -> Memory : sample replay batch\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:116:1 sample(batch_size, device)]]
+Memory --> Trainer : states, actions, next_states, rewards, terminated
+
+Trainer -> QNet : forward(states) for chosen actions\n[[WORKSPACE_ROOT/dqn/src/dqn/model.py:20:1 forward(x)]]
+QNet --> Trainer : q_values
+
+Trainer -> TargetNet : forward(next_states) under no_grad\n[[WORKSPACE_ROOT/dqn/src/dqn/model.py:20:1 forward(x)]]
+TargetNet --> Trainer : next_q_values
+
+Trainer -> Trainer : compute TD targets and SmoothL1 loss\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:389:1 loss = nn.functional.smooth_l1_loss(...)]]
+Trainer -> Optimizer : zero gradients\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:391:1 optimizer.zero_grad(set_to_none=True)]]
+Trainer -> Autograd : backpropagate loss\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:392:1 loss.backward()]]
+Autograd -> QNet : accumulate parameter gradients
+
+Trainer -> QNet : clip gradients\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:393:1 clip_grad_value_(...)]]
+Trainer -> Optimizer : apply optimizer step\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:394:1 optimizer.step()]]
+Optimizer -> QNet : update q_net parameters
+
+Trainer -> TargetNet : soft target update from q_net\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:397:1 _soft_target_update(tau)]]
+
+deactivate Trainer
+
+@enduml

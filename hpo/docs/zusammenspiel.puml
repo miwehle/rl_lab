@@ -1,0 +1,106 @@
+@startuml
+
+!include ../../puml_links.iuml
+
+title HPO Zusammenspiel V4 - mit Optuna- und Train-Detailnoten
+
+hide footbox
+
+actor Human as Human
+participant "notebook" as Notebook
+participant ":StudyRunner" as Runner
+participant ":Dashboard" as Dashboard
+participant "Optuna Study" as Study
+participant "objective.py" as Objective
+participant ":ObjectiveHooks" as Hooks
+participant ":VectorTrainer" as Trainer
+participant "DQN q_net" as DQN
+participant "checkpointing.py" as Checkpointing
+participant "checkpoint_robustness.py" as Robustness
+
+url of Notebook is [[WORKSPACE_ROOT/hpo/notebooks/solar_system_lander/train_elise.ipynb]]
+url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:55:1]]
+url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:166:1]]
+url of Study is [[https://optuna.readthedocs.io/]]
+url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:145:1]]
+url of Hooks is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:244:1]]
+url of Trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:131:1]]
+url of DQN is [[WORKSPACE_ROOT/dqn/src/dqn/model.py:8:1]]
+url of Checkpointing is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:1:1]]
+url of Robustness is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/checkpoint_robustness.py:25:1]]
+
+Human -> Notebook : start or resume Elise HPO
+Notebook -> Runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:75:1 run(study_name, suggest, n_trials)]]
+activate Runner
+
+Runner -> Study : create or load named study\n[[WORKSPACE_ROOT/hpo/src/hpo/study.py:176:1 _create_or_load_study(...)]]
+Runner -> Dashboard : set series context and incumbent HPs\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:185:1 set_study_series_context(...)]]
+
+loop until target finished trials
+    Runner -> Study : optimize one trial\n[[WORKSPACE_ROOT/hpo/src/hpo/study.py:167:1 study.optimize(objective, n_trials=1)]]
+    activate Study
+    Study -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:154:1 objective(trial)]]
+    activate Objective
+
+    Objective -> Objective : suggest trial HPs\n[[WORKSPACE_ROOT/hpo/src/hpo/objective.py:156:1 suggest_parameter_values(trial, incumbent_params)]]
+    note right
+        Optuna suggests the next hyperparameter combination
+        using the study history and search space
+    end note
+    Objective -> Objective : build VectorTrainingConfig\n[[WORKSPACE_ROOT/hpo/src/hpo/objective.py:236:1 vector_training_config(params, ...)]]
+    Objective -> Hooks : create per-trial hooks\n[[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:199:1 for_trial(ctx)]]
+    Hooks -> Trainer : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:273:1 make_trainer(...)]]
+    activate Trainer
+    Objective -> Trainer : train q_net in vector Gym envs\n[[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:193:1 train(config, plotter)]]
+    note right
+        collect transitions into replay memory
+        sample replay batches
+        backprop TD loss
+        apply optimizer step
+    end note
+    Trainer -> DQN : run DQN forward passes\n[[WORKSPACE_ROOT/dqn/src/dqn/model.py:20:1 forward(x)]]
+
+    loop episode batches
+        Trainer -> Checkpointing : save improved training-window checkpoint\n[[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:69:1 after_episode(trainer, episode_returns)]]
+        Trainer -> Dashboard : live training progress\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:200:1 report_training_progress(progress)]]
+        note right
+            Dashboard shows the story of the study live
+            depicting learning progress as Gym scores
+            from different views
+            so the human can spot patterns, failures,
+            and improvement potential
+        end note
+    end
+
+    Trainer --> Objective : TrainingResult and q_net
+    deactivate Trainer
+
+    Objective -> Objective : evaluate greedy q_net over worlds\n[[WORKSPACE_ROOT/hpo/src/hpo/objective.py:257:1 evaluate_greedy_q_net(...)]]
+    Objective -> Hooks : finalize trial\n[[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:303:1 finalize_trial(ctx)]]
+    Hooks -> Checkpointing : save eval-best checkpoint and trial attrs\n[[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:102:1 after_evaluation(ctx)]]
+    Objective --> Study : mean Gym score
+    deactivate Objective
+
+    Study --> Runner : completed trial
+    deactivate Study
+    Runner -> Dashboard : optimization progress\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:188:1 report_optimization(study, target_trials=...)]]
+end
+
+Runner -> Robustness : [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/checkpoint_robustness.py:25:1 evaluate_checkpoint_robustness(...)]]
+activate Robustness
+Robustness -> Checkpointing : select top eval checkpoints\n[[WORKSPACE_ROOT/hpo/src/hpo/evaluation/checkpoint_robustness.py:231:1 _top_checkpoint_candidates(study, top_n)]]
+loop top concrete pilots
+    Robustness -> Checkpointing : load checkpoint into q_net\n[[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:389:1 load_checkpoint(q_net, path, device)]]
+    Robustness -> DQN : greedy evaluation over worlds and seeds\n[[WORKSPACE_ROOT/hpo/src/hpo/evaluation/checkpoint_robustness.py:186:1 _episode_return(...)]]
+    Robustness -> Dashboard : checkpoint robustness progress\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:192:1 report_robustness_evaluation(progress)]]
+end
+Robustness -> Study : store checkpoint_robustness\n[[WORKSPACE_ROOT/hpo/src/hpo/evaluation/checkpoint_robustness.py:75:1 study.set_user_attr("checkpoint_robustness", results)]]
+Robustness --> Runner : robust checkpoint scores
+deactivate Robustness
+
+Runner -> Study : store incumbent attrs\n[[WORKSPACE_ROOT/hpo/src/hpo/study.py:122:1 study.set_user_attr("incumbent_params", ...)]]
+Runner -> Dashboard : final study-series view\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:188:1 report_optimization(study, target_trials=...)]]
+Runner --> Notebook : study step done
+deactivate Runner
+
+@enduml
