@@ -9,3 +9,4 @@ pytest-cache-files-*/
 hpo/runs/
 hpo/tmp/
 .obsidian/
+out/
