@@ -52,6 +52,12 @@ Do not bundle simplification with new semantics, new data flows, or extra report
 
 Keep each prose paragraph on one source line; use line breaks only for structure.
 
+### Test Code
+
+For structure and naming of new test code, follow `../nmt_lab/translator/AGENTS.md`, section `## Struktur und Benennung von Testcode`.
+Existing tests in `rl_lab` do not need to be retrofitted just to match that section.
+New tests in `reward_shaping` should follow it from the start.
+
 ### PlantUML
 
 Keep `.puml` sequence diagrams compact and navigable.
