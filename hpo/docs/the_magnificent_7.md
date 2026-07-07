@@ -24,7 +24,7 @@ Orchestriert die Study: laden oder anlegen, Optuna laufen lassen, Checkpoint-Rob
 
 Der Sucher im Hyperparameter-Raum.
 
-Schlaegt die naechste Hyperparameter-Kombination vor, aus Suchraum und Study-Historie.
+Nutzt Suchraum und Study-Historie, um die naechste Hyperparameter-Kombination vorzuschlagen.
 
 ## 5. VectorTrainer
 
@@ -44,13 +44,14 @@ Die numerische Lernbasis.
 
 Stellt bereit: Modell-Bausteine, Tensor/GPU-Rechnung, Autograd fuer Backprop und Optimizer wie `AdamW` fuer den Parameter-Update.
 
+## Honorable Mention: Gymnasium
+
+Gymnasium stellt die Umgebung (Environment) bereit, in welcher der Flugschueler Erfahrungen sammelt. Es ist die Welt, in der die KI lernt (Simulation).
+
 ## Mental Model
 
-`VectorTrainer`, `DQN` und PyTorch sind eng gekoppelt, aber nicht dasselbe.
+Die HPO ist ein Lernkreislauf: Optuna schlaegt eine Abstimmung vor, der StudyRunner bringt sie in den Lauf, der VectorTrainer laesst den Flugschueler in Gymnasium-Welten ueben, PyTorch passt das Modell an, und das Dashboard zeigt dem Menschen, was dabei passiert.
 
-Der `VectorTrainer` ist der Flugtrainer. Das `DQN` ist das Gehirn. PyTorch ist die Rechenmaschine, die das Gehirn anhand des Loss veraendert. Hinzu kommt der StudyRunner als Dirigent.
+Der Mensch schaut auf das Ergebnis, kann den Suchraum anpassen und eine weitere Iteration starten.
 
-Als Landkarte:  
-Ein Mensch mit Dashboard zum "Reinkucken" in den HPO-Prozess,  
-ein Dirigent, ein Trainer und ein KI-Modell als Flugschueler.  
-Technische Basis: PyTorch und Optuna.
+Technische Basis: PyTorch, Optuna und Gymnasium.
