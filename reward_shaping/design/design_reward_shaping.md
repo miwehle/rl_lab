@@ -6,14 +6,15 @@
 
 ==The first project question is whether Elise can be trained out of firing a side thruster after touchdown, because this can prevent the normal LunarLander terminal landing reward of `+100`.==
 
-## Rough Design: The 4 Main Roles
+## Rough Design: The 5 Main Roles
 
-The first implementation has four main roles.
+The first implementation has five main roles.
 
 1) ==`RewardShapingEnv` is the training environment wrapper.== It changes the reward returned by the environment before the transition enters replay memory.
 2) ==`dqn.vector_training.VectorTrainer` is the training engine.== It brings the DQN training loop, replay memory, TD target, optimizer, and default DQN model path, so `reward_shaping` does not need a second DQN trainer.
 3) ==The run directory is the file-system I/O boundary.== It stores input checkpoints, run metadata, training summaries, evaluation scores, and the shaped output checkpoint.
 4) ==Unshaped evaluation is the truth check.== It evaluates checkpoints with the original Gym reward and decides whether the experiment improved mean Gym score.
+5) ==The Colab notebook is the experiment runner.== It defines the run configuration and executes training, unshaped evaluation, and artifact writing on the intended L4 runtime.
 
 ## Details
 
@@ -46,6 +47,10 @@ The class name stays easy to speak; the module and docstring carry the concrete 
 Unshaped evaluation uses two score measurements.
 
 Diagnostics such as `both_contact + awake + side_thruster` tails and landed-but-truncated episodes can explain behavior, but they do not replace the Gym score.
+
+`ground_side_thrust_steps` should be measured during unshaped evaluation for before/after comparison.
+
+Count evaluation steps where the greedy action is a side-thruster action while both lander legs have ground contact and the lander body is still awake.
 
 #### Historical Scoring
 
@@ -90,7 +95,7 @@ reward_shaping/runs/<run_id>/
 
 `reward_shaping/notebooks/ground_side_thrust_elise.ipynb` should be the first Colab notebook.
 
-Use a Colab L4 runtime for the first experiments. A100 is more expensive and was not clearly faster for this kind of evaluation work.
+Use a Colab L4 runtime for the first experiments. (A100 is more expensive and was not clearly faster for this kind of evaluation work.)
 
 The notebook may use HPO helpers to save code, but the `reward_shaping` package should not depend on `hpo`.
 
