@@ -142,6 +142,31 @@ HPO may later call into `reward_shaping`, but that dependency should point from 
 
 The first implementation should be the smallest useful experiment, not a generic reward-shaping framework.
 
+## Possible Integration Approach
+
+HPO already has the useful dependency-injection point: an environment factory with `make_training_env(num_envs)` and `evaluation_envs()`.
+
+Reward shaping can use this without adding a new HPO interface.
+
+A small adapter can provide shaped training envs and unshaped evaluation envs:
+
+```python
+class RewardShapingFactory:
+    def __init__(self, base_factory, penalty):
+        self.base_factory = base_factory
+        self.penalty = penalty
+
+    def make_training_env(self, num_envs):
+        return make_reward_shaping_vector_env(self.base_factory, num_envs, ground_thrust_penalty=self.penalty)
+
+    def evaluation_envs(self):
+        return self.base_factory.evaluation_envs()
+```
+
+The notebook or later HPO glue can inject this adapter into `ObjectiveConfig`.
+
+This keeps package dependencies clean: neither `reward_shaping` nor `hpo` needs to import the other. The notebook or later glue code can depend on both, inject the adapter into `ObjectiveConfig`, and then use StudyRunner and the dashboard unchanged.
+
 ## Design Rules
 
 Keep the shaped reward training-only.
