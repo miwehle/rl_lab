@@ -17,7 +17,10 @@ CHECKPOINT_VERSION = 1
 def save_q_net_checkpoint(q_net: nn.Module, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"version": CHECKPOINT_VERSION, "model_state_dict": q_net.state_dict(), "metadata": metadata or {}}, path)
+    torch.save(
+        {"version": CHECKPOINT_VERSION, "model_state_dict": q_net.state_dict(), "metadata": metadata or {}},
+        path,
+    )
 
 
 def load_q_net_checkpoint(q_net: nn.Module, path: str | Path, device=None) -> dict[str, Any]:

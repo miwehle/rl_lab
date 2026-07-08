@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "dqn" / "src"))
 sys.path.insert(0, str(ROOT / "hpo" / "src"))
 
 from hpo.evaluation.lander_rendering import LanderOverlay, LanderRenderWrapper, world_colors  # noqa: E402
-from hpo.solar_system_lander.environment import EnvFactory, World  # noqa: E402
+from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World  # noqa: E402
 
 WORLDS = [world.value for world in World]
 NORMAL_PERIOD = 3
@@ -45,7 +45,7 @@ def main() -> None:
     screen = pygame.display.set_mode((lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H))
     clock = pygame.time.Clock()
 
-    factory = EnvFactory(args.observation_mode)
+    factory = EnvFactory(args.observation_mode, world_mix=DEFAULT_WORLD_MIX)
     colors = dict(zip(WORLDS, world_colors(WORLDS), strict=True))
     state = GameState(world_index=WORLDS.index(args.world), seed=args.seed)
     env = _make_env(factory, state.world_index, colors)

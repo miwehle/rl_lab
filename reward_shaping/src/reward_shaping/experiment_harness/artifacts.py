@@ -1,6 +1,7 @@
 """File artifacts for reward shaping runs."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, is_dataclass
+from enum import Enum
 from pathlib import Path
 import csv
 import shutil
@@ -50,7 +51,7 @@ def run_paths(root: str | Path, run_id: str) -> RunPaths:
 def write_yaml(path: str | Path, data: dict[str, Any]) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    path.write_text(yaml.safe_dump(plain_data(data), sort_keys=False), encoding="utf-8")
 
 
 def write_eval_scores(path: str | Path, results: list[EvaluationResult]) -> None:
@@ -65,3 +66,18 @@ def write_eval_scores(path: str | Path, results: list[EvaluationResult]) -> None
         for result in results:
             for row in result.rows:
                 writer.writerow(asdict(row))
+
+
+def plain_data(value: Any) -> Any:
+    """Return YAML-friendly data made of plain Python containers and scalars."""
+    if is_dataclass(value) and not isinstance(value, type):
+        return plain_data(asdict(value))
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(plain_data(key)): plain_data(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [plain_data(item) for item in value]
+    return value

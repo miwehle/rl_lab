@@ -2,16 +2,15 @@ import numpy as np
 import pytest
 
 from hpo.solar_system_lander.environment import (
+    DEFAULT_WORLD_MIX,
     EnvFactory,
     World,
-    WorldConfig,
     acceleration_vector,
-    worlds_by_name,
 )
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:
-    env = EnvFactory("8d").make_training_env(20)
+    env = EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).make_training_env(20)
     try:
         names = [wrapped.world.name for wrapped in env.envs]
     finally:
@@ -28,30 +27,20 @@ def test_solar_system_lander_factory_balances_world_slots() -> None:
 
 def test_solar_system_lander_requires_balanced_slot_count() -> None:
     with pytest.raises(ValueError, match="divisible by 5"):
-        EnvFactory("8d").make_training_env(16)
+        EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).make_training_env(16)
 
 
-def test_solar_system_lander_factory_accepts_custom_worlds() -> None:
-    calm_venus = WorldConfig("calm_venus", -9.0, (0.0, 0.0), (0.0, 0.0))
-    factory = EnvFactory("9d", worlds=(calm_venus,))
+def test_solar_system_lander_factory_accepts_weighted_world_mix() -> None:
+    factory = EnvFactory("9d", world_mix={World.VENUS: 2, World.MOON: 1})
     env = factory.make_training_env(3)
     try:
         names = [wrapped.world.name for wrapped in env.envs]
     finally:
         env.close()
 
-    assert names == ["calm_venus", "calm_venus", "calm_venus"]
-    assert list(factory.evaluation_envs()) == ["calm_venus"]
-    assert factory.metadata()["worlds"][0]["wind_power"] == [0.0, 0.0]
-
-
-def test_worlds_by_name_returns_requested_worlds() -> None:
-    assert [world.name for world in worlds_by_name(World.EARTH, World.VENUS)] == [World.EARTH, World.VENUS]
-
-
-def test_worlds_by_name_rejects_unknown_world() -> None:
-    with pytest.raises(ValueError, match="unknown world: pluto"):
-        worlds_by_name("pluto")
+    assert names == ["venus", "venus", "moon"]
+    assert list(factory.evaluation_envs()) == ["venus", "moon"]
+    assert factory.metadata()["worlds"][0]["wind_power"] == [15.0, 20.0]
 
 
 def test_acceleration_vector_uses_velocity_delta_and_clips() -> None:
@@ -65,12 +54,17 @@ def test_acceleration_vector_uses_velocity_delta_and_clips() -> None:
 
 
 def test_solar_system_lander_factory_rejects_empty_worlds() -> None:
-    with pytest.raises(ValueError, match="worlds must not be empty"):
-        EnvFactory("8d", worlds=())
+    with pytest.raises(ValueError, match="world_mix must not be empty"):
+        EnvFactory("8d", world_mix={})
+
+
+def test_solar_system_lander_factory_rejects_zero_world_count() -> None:
+    with pytest.raises(ValueError, match="world_mix count must be >= 1: moon"):
+        EnvFactory("8d", world_mix={World.MOON: 0})
 
 
 def test_solar_system_lander_11d_exposes_reproducible_weather() -> None:
-    make_mars = EnvFactory("11d").evaluation_envs()["mars"]
+    make_mars = EnvFactory("11d", world_mix=DEFAULT_WORLD_MIX).evaluation_envs()["mars"]
     first = make_mars()
     second = make_mars()
     try:
@@ -88,7 +82,7 @@ def test_solar_system_lander_11d_exposes_reproducible_weather() -> None:
 
 
 def test_solar_system_lander_9d_exposes_gravity() -> None:
-    env = EnvFactory("9d").evaluation_envs()["mars"]()
+    env = EnvFactory("9d", world_mix=DEFAULT_WORLD_MIX).evaluation_envs()["mars"]()
     try:
         observation, _ = env.reset(seed=42)
     finally:
@@ -99,7 +93,7 @@ def test_solar_system_lander_9d_exposes_gravity() -> None:
 
 
 def test_solar_system_lander_10d_exposes_acceleration() -> None:
-    env = EnvFactory("10d").evaluation_envs()["earth"]()
+    env = EnvFactory("10d", world_mix=DEFAULT_WORLD_MIX).evaluation_envs()["earth"]()
     try:
         observation, _ = env.reset(seed=42)
     finally:
@@ -110,7 +104,7 @@ def test_solar_system_lander_10d_exposes_acceleration() -> None:
 
 
 def test_solar_system_lander_8d_hides_world_parameters() -> None:
-    env = EnvFactory("8d").evaluation_envs()["earth"]()
+    env = EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).evaluation_envs()["earth"]()
     try:
         observation, _ = env.reset(seed=42)
     finally:

@@ -46,7 +46,7 @@ def is_ground_side_thrust(env, action: int, side_thruster_actions: Iterable[int]
 
 
 def make_reward_shaping_vector_env(factory, num_envs: int, *, ground_thrust_penalty: float) -> SyncVectorEnv:
-    """Return vector envs whose sub-envs are wrapped with RewardShapingEnv."""
+    """Build shaped VectorEnv from any factory with `.worlds` and `.make_env(world_name)`."""
     if num_envs % len(factory.worlds):
         raise ValueError(f"num_envs must be divisible by {len(factory.worlds)}")
 

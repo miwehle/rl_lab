@@ -1,6 +1,6 @@
 """Mixed-world LunarLander environments for SolarSystemLander HPO."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import Any
@@ -34,6 +34,7 @@ WORLDS = (
     WorldConfig(World.EARTH, -10.0, (5.0, 15.0), (0.0, 2.0)),
     WorldConfig(World.VENUS, -9.0, (15.0, 20.0), (0.0, 2.0)),
 )
+DEFAULT_WORLD_MIX = {world.name: 1 for world in WORLDS}
 
 
 def acceleration_vector(previous_observation: np.ndarray, observation: np.ndarray) -> np.ndarray:
@@ -41,15 +42,6 @@ def acceleration_vector(previous_observation: np.ndarray, observation: np.ndarra
     previous_velocity = previous_observation[2:4]
     velocity = observation[2:4]
     return np.clip(velocity - previous_velocity, -1.0, 1.0).astype(np.float32)
-
-
-def worlds_by_name(*names: str) -> tuple[WorldConfig, ...]:
-    """Return worlds in the requested order."""
-    worlds = {world.name: world for world in WORLDS}
-    try:
-        return tuple(worlds[name] for name in names)
-    except KeyError as error:
-        raise ValueError(f"unknown world: {error.args[0]}") from None
 
 
 class EnvWrapper(gym.Wrapper):
@@ -114,13 +106,12 @@ class EnvWrapper(gym.Wrapper):
 
 
 class EnvFactory:
-    def __init__(self, observation_mode: str, *, worlds: Sequence[WorldConfig] = WORLDS) -> None:
+    def __init__(self, observation_mode: str, *, world_mix: Mapping[str, int]) -> None:
         if observation_mode not in {"8d", "9d", "10d", "11d"}:
             raise ValueError("observation_mode must be '8d', '9d', '10d', or '11d'")
-        if not worlds:
-            raise ValueError("worlds must not be empty")
+        worlds = _worlds_from_mix(world_mix)
         self.observation_mode = observation_mode
-        self.worlds = tuple(worlds)
+        self.worlds = worlds
 
     def make_training_env(self, num_envs: int) -> SyncVectorEnv:
         if num_envs % len(self.worlds):
@@ -171,3 +162,19 @@ def _extra_bounds(observation_mode: str) -> tuple[np.ndarray, np.ndarray]:
     if observation_mode == "10d":
         return (np.array([-1.0, -1.0], dtype=np.float32), np.array([1.0, 1.0], dtype=np.float32))
     return (np.array([-1.0, 0.0, 0.0], dtype=np.float32), np.array([0.0, 1.0, 1.0], dtype=np.float32))
+
+
+def _worlds_from_mix(world_mix: Mapping[str, int]) -> tuple[WorldConfig, ...]:
+    if not world_mix:
+        raise ValueError("world_mix must not be empty")
+    worlds = {world.name: world for world in WORLDS}
+    expanded = []
+    for world_name, count in world_mix.items():
+        if count < 1:
+            raise ValueError(f"world_mix count must be >= 1: {world_name}")
+        try:
+            world = worlds[world_name]
+        except KeyError:
+            raise ValueError(f"unknown world: {world_name}") from None
+        expanded.extend([world] * count)
+    return tuple(expanded)

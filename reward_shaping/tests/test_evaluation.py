@@ -62,7 +62,10 @@ def test_historical_score_uses_ten_seeds_per_world_and_means_world_scores() -> N
 
 def test_robust_score_uses_configured_number_of_seeds_per_world() -> None:
     result = robust_score(
-        q_net=FixedActionQNet(0), make_envs={"earth": lambda: SeedRewardEnv(0.0)}, episodes_per_world=3, device="cpu"
+        q_net=FixedActionQNet(0),
+        make_envs={"earth": lambda: SeedRewardEnv(0.0)},
+        episodes_per_world=3,
+        device="cpu",
     )
 
     assert result.measurement == "robust_score"
@@ -73,4 +76,8 @@ def test_robust_score_uses_configured_number_of_seeds_per_world() -> None:
 
 def test_historical_score_rejects_invalid_episode_count_through_common_evaluator() -> None:
     with pytest.raises(ValueError, match="episodes_per_world must be >= 1"):
-        robust_score(q_net=FixedActionQNet(0), make_envs={"earth": lambda: SeedRewardEnv(0.0)}, episodes_per_world=0)
+        robust_score(
+            q_net=FixedActionQNet(0),
+            make_envs={"earth": lambda: SeedRewardEnv(0.0)},
+            episodes_per_world=0,
+        )

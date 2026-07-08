@@ -128,7 +128,11 @@ def _episode_return(q_net, make_env, device, *, max_steps: int, seed: int | None
         ground_side_thrust_steps = 0
 
         for _ in range(max_steps):
-            state = torch.as_tensor(observation, dtype=torch.float32, device=device).unsqueeze(0).flatten(start_dim=1)
+            state = (
+                torch.as_tensor(observation, dtype=torch.float32, device=device)
+                .unsqueeze(0)
+                .flatten(start_dim=1)
+            )
             with torch.no_grad():
                 action = int(q_net(state).argmax(dim=1).item())
 
