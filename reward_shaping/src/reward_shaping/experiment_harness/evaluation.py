@@ -7,7 +7,7 @@ from typing import Any
 import torch
 
 from dqn.training import resolve_device
-from reward_shaping.ground_side_thrust import is_ground_side_thrust
+from reward_shaping.ground_thrust_penalty import is_ground_side_thrust
 
 
 @dataclass(frozen=True)

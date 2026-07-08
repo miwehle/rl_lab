@@ -20,14 +20,14 @@ The first implementation has five main roles.
 
 ### RewardShapingEnv
 
-`reward_shaping.ground_side_thrust` contains the first focused shaping environment.
+`reward_shaping.ground_thrust_penalty` contains the first focused shaping environment.
 
 `RewardShapingEnv` applies a small training penalty when the agent fires a side thruster while both lander legs are on the ground and the lander is still awake.
 
 The shaped reward is:
 
 ```text
-shaped_reward = gym_reward - ground_side_thrust_penalty
+shaped_reward = gym_reward - ground_thrust_penalty
 ```
 
 The penalty applies only when all of these conditions hold:
@@ -40,7 +40,9 @@ Otherwise the shaped reward equals the original Gym reward.
 
 The shaped training reward is a learning aid, not the truth metric.
 
-The class name stays easy to speak; the module and docstring carry the concrete ground-side-thrust details.
+The class name stays easy to speak; the module and docstring carry the concrete ground-thrust penalty details.
+
+`make_reward_shaping_vector_env` is the public factory for the VectorTrainer input: it returns a Gymnasium `SyncVectorEnv` whose sub-envs are wrapped with `RewardShapingEnv`.
 
 ### Experiment Harness
 
@@ -99,7 +101,7 @@ reward_shaping/runs/<run_id>/
 
 ### Notebook
 
-`reward_shaping/notebooks/ground_side_thrust_elise.ipynb` should be the first Colab notebook.
+`reward_shaping/notebooks/ground_thrust_penalty_elise.ipynb` should be the first Colab notebook.
 
 Use a Colab L4 runtime for the first experiments. (A100 is more expensive and was not clearly faster for this kind of evaluation work.)
 

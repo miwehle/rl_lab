@@ -13,7 +13,7 @@ Correct is what:
 
 ## First Question
 
-Can a small training penalty for ground side-thrust help Elise collect the normal LunarLander landing reward more reliably?
+Can a small training penalty for ground thrust help Elise collect the normal LunarLander landing reward more reliably?
 
 The target metric is the mean unshaped Gym score, in the same spirit as checkpoint robustness evaluation. Diagnostic metrics such as landed-but-truncated episodes can explain failures, but they are not the objective.
 
