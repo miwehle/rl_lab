@@ -97,6 +97,6 @@ The current 10D SolarSystemLander observation appends clipped velocity deltas (`
 
 Idea: compare the current 10D acceleration observation with a proper-acceleration variant: `8D + proper_accel_x + proper_accel_y`.
 
-Reason: A lander pilot would feel gravitational force, not just net velocity change. This may help one shared agent behave more consistently across worlds with different gravity.
+Reason: A lander pilot would also feel gravitational force, not just net velocity change. This may help one shared agent behave more consistently across worlds with different gravity.
 
 Status: loose idea; turn into a hypothesis only after defining scaling, clipping, and a fair comparison.
