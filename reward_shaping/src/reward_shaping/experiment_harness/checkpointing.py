@@ -9,6 +9,7 @@ import torch.nn as nn
 
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
+from dqn.vector_training import VectorTrainingConfig
 
 
 CHECKPOINT_VERSION = 1
@@ -51,8 +52,19 @@ def q_net_from_checkpoint(path: str | Path, *, make_env, device=None, model_fact
         env.close()
 
 
+def vector_training_config_from_checkpoint(path: str | Path, **overrides) -> VectorTrainingConfig:
+    training_config = _checkpoint_training_config(path)
+    if not training_config:
+        raise ValueError("checkpoint metadata has no training_config")
+    return VectorTrainingConfig(**(training_config | overrides))
+
+
 def _checkpoint_hidden_size(path: str | Path) -> int:
+    training_config = _checkpoint_training_config(path)
+    return int(training_config.get("hidden_size", 128))
+
+
+def _checkpoint_training_config(path: str | Path) -> dict[str, Any]:
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
     metadata = checkpoint.get("metadata", {})
-    training_config = metadata.get("training_config", {})
-    return int(training_config.get("hidden_size", 128))
+    return metadata.get("training_config", {})

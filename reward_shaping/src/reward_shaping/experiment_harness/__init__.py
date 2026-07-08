@@ -12,6 +12,7 @@ from reward_shaping.experiment_harness.checkpointing import (
     load_q_net_checkpoint,
     q_net_from_checkpoint,
     save_q_net_checkpoint,
+    vector_training_config_from_checkpoint,
 )
 from reward_shaping.experiment_harness.evaluation import (
     EvaluationResult,
@@ -40,6 +41,7 @@ __all__ = [
     "run_paths",
     "run_experiment",
     "save_q_net_checkpoint",
+    "vector_training_config_from_checkpoint",
     "write_eval_scores",
     "write_yaml",
 ]
