@@ -42,6 +42,12 @@ The shaped training reward is a learning aid, not the truth metric.
 
 The class name stays easy to speak; the module and docstring carry the concrete ground-side-thrust details.
 
+### Experiment Harness
+
+`reward_shaping.experiment_harness` is the public experiment support package around the fachlicher Kern.
+
+It contains evaluation, checkpoint, and artifact helpers used by the notebook.
+
 ### Unshaped Evaluation
 
 Unshaped evaluation uses two score measurements.
