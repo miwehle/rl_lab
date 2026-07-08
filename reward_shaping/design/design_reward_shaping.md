@@ -86,6 +86,39 @@ reward_shaping/runs/<run_id>/
 
 `shaped_checkpoint.pt` is the newly trained checkpoint produced by the run.
 
+### Notebook
+
+`reward_shaping/notebooks/ground_side_thrust_elise.ipynb` should be the first Colab notebook.
+
+Use a Colab L4 runtime for the first experiments. A100 is more expensive and was not clearly faster for this kind of evaluation work.
+
+The notebook may use HPO helpers to save code, but the `reward_shaping` package should not depend on `hpo`.
+
+Notebook outline:
+
+```text
+# Reward Shaping SolarSystemLander
+
+## Set up
+# cell: colab-setup
+# cell: reward-shaping-setup; requires: colab-setup
+
+## Configure run
+# cell: run-config; requires: reward-shaping-setup
+# cell: checkpoint-input; requires: run-config
+
+## Train
+# cell: training-env; requires: run-config, checkpoint-input
+# cell: train-shaped-checkpoint; requires: training-env
+
+## Evaluate
+# cell: historical-score; requires: train-shaped-checkpoint
+# cell: robust-score; requires: train-shaped-checkpoint
+
+## Save artifacts
+# cell: save-run-artifacts; requires: historical-score, robust-score
+```
+
 ## Boundaries
 
 HPO remains the separate project for hyperparameter optimization.
