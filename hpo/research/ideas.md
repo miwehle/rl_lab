@@ -90,3 +90,13 @@ Demo-Idee: ein auf Knopfdruck installierbares Multi-Planet-Lander-Spiel, in dem 
 Harte Evidenz darf nicht zu kurz kommen: Score-Verteilungen ueber Welten und Seeds, Robustness-Tabellen, HPO-Verlaeufe, Checkpoint-Vergleiche, Failure-Mode-Metriken wie `landed-but-awake`, sowie Diagramme fuer Recoverability/Safety-Shielding.
 
 Paper-Winkel: Tool-assisted RL agent development ueber Environment-Familien hinweg. Elise waere die anschauliche Case Study, nicht die Grenze des Tools.
+
+## Proper-Acceleration Popometer
+
+The current 10D SolarSystemLander observation appends clipped velocity deltas (`dv_x`, `dv_y`). This measures net acceleration. A pilot-like Popometer might instead expose felt force per mass, roughly `dv/dt - gravity`: hovering has `dv/dt ~= 0`, but it is not force-free.
+
+Idea: compare the current 10D acceleration observation with a proper-acceleration variant: `8D + proper_accel_x + proper_accel_y`.
+
+Reason: A lander pilot would feel gravitational force, not just net velocity change. This may help one shared agent behave more consistently across worlds with different gravity.
+
+Status: loose idea; turn into a hypothesis only after defining scaling, clipping, and a fair comparison.
