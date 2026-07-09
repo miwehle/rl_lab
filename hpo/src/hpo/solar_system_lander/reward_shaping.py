@@ -5,7 +5,7 @@ from collections.abc import Iterable
 import gymnasium as gym
 
 
-class RewardShapingEnv(gym.Wrapper):
+class GroundThrustPenaltyEnv(gym.Wrapper):
     """Penalize side-thrust while both lander legs touch ground and the body is awake."""
 
     def __init__(
