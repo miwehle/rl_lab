@@ -84,7 +84,21 @@ The main score should be the existing HPO objective and checkpoint robustness ev
 
 For diagnosis, we may also count ground side-thrust steps before/after, but that diagnostic must not replace the Gym score.
 
-## Expected Code Size
+## Implementation
+
+### Approach
+- Neues HPO-Modul für Reward Shaping anlegen, grob als Port/Kopie von `reward_shaping/src/reward_shaping/ground_thrust_penalty.py`.
+- Darin liegt der eigentliche Wrapper: `RewardShapingEnv`, ein `gym.Wrapper`.
+- `EnvFactory` bekommt diesen Wrapper bzw. eine passende Wrapper-Funktion als optionales Argument und speichert sie als Attribut.
+- Wenn dieses Attribut gesetzt ist, wendet `make_training_env()` den Wrapper auf die Trainings-Envs an.
+- Evaluation bleibt dadurch unshaped, solange `evaluation_envs()` unverändert bleibt.
+
+### Notebook
+
+Ob Elise mit oder ohne Reward Shaping trainiert, wird im Notebook bei der Erzeugung der `EnvFactory` entschieden. Ohne Wrapper trainiert Elise auf der normalen Umgebung; mit übergebenem Trainings-Wrapper trainiert sie auf der entsprechend geshapten Umgebung, während Evaluation und HPO-Score unshaped bleiben.
+
+
+### Expected Code Size
 
 The HPO spike should be much smaller than the standalone reward-shaping harness.
 
