@@ -106,18 +106,29 @@ class EnvWrapper(gym.Wrapper):
 
 
 class EnvFactory:
-    def __init__(self, observation_mode: str, *, world_mix: Mapping[str, int]) -> None:
+    def __init__(
+        self,
+        observation_mode: str,
+        *,
+        world_mix: Mapping[str, int],
+        training_env_wrapper: Callable[[gym.Env], gym.Env] | None = None,
+    ) -> None:
+        """Create env factories.
+
+        training_env_wrapper wraps only envs built by make_training_env(), for example for reward shaping.
+        """
         if observation_mode not in {"8d", "9d", "10d", "11d"}:
             raise ValueError("observation_mode must be '8d', '9d', '10d', or '11d'")
         worlds = _worlds_from_mix(world_mix)
         self.observation_mode = observation_mode
         self.worlds = worlds
+        self.training_env_wrapper = training_env_wrapper
 
     def make_training_env(self, num_envs: int) -> SyncVectorEnv:
         if num_envs % len(self.worlds):
             raise ValueError(f"num_envs must be divisible by {len(self.worlds)}")
         slots_per_world = num_envs // len(self.worlds)
-        factories = [self._factory(world) for world in self.worlds for _ in range(slots_per_world)]
+        factories = [self._training_factory(world) for world in self.worlds for _ in range(slots_per_world)]
         return SyncVectorEnv(factories)
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]:
@@ -154,6 +165,16 @@ class EnvFactory:
             world,
             self.observation_mode,
         )
+
+    def _training_factory(self, world: WorldConfig) -> Callable[[], Any]:
+        """Return a per-world training factory that can apply the reward-shaping wrapper."""
+        def make_env():
+            env = self._factory(world)()
+            if self.training_env_wrapper is not None:
+                env = self.training_env_wrapper(env)
+            return env
+
+        return make_env
 
 
 def _extra_bounds(observation_mode: str) -> tuple[np.ndarray, np.ndarray]:

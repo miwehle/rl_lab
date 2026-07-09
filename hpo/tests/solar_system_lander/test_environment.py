@@ -4,9 +4,11 @@ import pytest
 from hpo.solar_system_lander.environment import (
     DEFAULT_WORLD_MIX,
     EnvFactory,
+    EnvWrapper,
     World,
     acceleration_vector,
 )
+from hpo.solar_system_lander.reward_shaping import RewardShapingEnv
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:
@@ -41,6 +43,22 @@ def test_solar_system_lander_factory_accepts_weighted_world_mix() -> None:
     assert names == ["venus", "venus", "moon"]
     assert list(factory.evaluation_envs()) == ["venus", "moon"]
     assert factory.metadata()["worlds"][0]["wind_power"] == [15.0, 20.0]
+
+
+def test_solar_system_lander_factory_wraps_training_envs_only() -> None:
+    factory = EnvFactory(
+        "8d",
+        world_mix={World.MOON: 1},
+        training_env_wrapper=lambda env: RewardShapingEnv(env, ground_thrust_penalty=0.5),
+    )
+    training_env = factory.make_training_env(1)
+    evaluation_env = factory.evaluation_envs()["moon"]()
+    try:
+        assert isinstance(training_env.envs[0], RewardShapingEnv)
+        assert isinstance(evaluation_env, EnvWrapper)
+    finally:
+        training_env.close()
+        evaluation_env.close()
 
 
 def test_acceleration_vector_uses_velocity_delta_and_clips() -> None:
