@@ -42,6 +42,14 @@ pattern. Treat speculative generalization, optional modes, config flags,
 future-proofing, and indirection as complexity costs and mental load.
 Add them only for a concrete current need or when the user explicitly agrees.
 
+### Cost-Aware Alternative Selection
+
+When proposing or comparing implementation alternatives, estimate the likely cost and complexity of each option, especially hidden infrastructure cost such as orchestration, persistence, evaluation, reporting, notebooks, tests, and integration glue.
+
+If the user chooses an option that appears significantly more complex or costly than another viable option, pause before implementation and explicitly call out the tradeoff. Ask for confirmation in plain language, for example: "This option likely costs much more code because it duplicates existing experiment infrastructure. Do you still want this path?"
+
+Do not treat "go" as overriding this warning when the selected option conflicts with KISS/YAGNI or appears to create avoidable infrastructure duplication. First confirm that the user intentionally accepts the extra complexity.
+
 ### Explicit Simplification Tasks
 
 When the task is explicitly to simplify, set a LOC budget before implementation: production-code diff should be net negative unless the user explicitly accepts a tradeoff.
