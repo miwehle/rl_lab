@@ -39,7 +39,7 @@ Action details:
 - `rewrite`: plot semantic tests should assert durable user-facing facts, such as evaluation checkpoint score usage, empty-state existence, live trial params, robustness summaries, and training progress content.
 - `drop`: exact layout numbers and brittle Plotly internals, such as figure width/height, subplot domains, margin values, legend coordinates, annotation indexes, exact axis object choices, and hidden-axis implementation details.
 
-### `hpo/tests/evaluation/test_lander_rendering.py` (116 LOC)
+### `hpo/tests/evaluation/test_lander_rendering.py` (LOC: 116 -> 79)
 
 Overall: mixed `keep` and `drop`.
 Action: drop private-helper tests first.

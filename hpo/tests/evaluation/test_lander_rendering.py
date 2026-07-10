@@ -4,8 +4,6 @@ import pytest
 from hpo.evaluation.lander_rendering import (
     LanderColors,
     LanderRenderWrapper,
-    _kick_direction,
-    _overlay_lines,
     world_colors,
 )
 from hpo.solar_system_lander.environment import World
@@ -53,34 +51,6 @@ def test_lander_render_wrapper_does_not_draw_vertical_sky_polygon_seams():
     assert tuple(frame[10, 60]) == colors.sky
 
 
-def test_overlay_lines_include_static_world_conditions():
-    class World:
-        name = "earth"
-        gravity = -10.0
-
-    class Lander:
-        mass = 4.8
-        inertia = 0.8
-
-    class Unwrapped:
-        lander = Lander()
-
-    class Env:
-        world = World()
-        _weather = (12.36, 1.14)
-        unwrapped = Unwrapped()
-        reset_seed = 123
-        score = 12.34
-
-    assert _overlay_lines(Env()) == [
-        ("Earth", None),
-        ("g: 10.0 m/s²", None),
-        ("wind: 2.6 m/s²", None),
-        ("turb: 1.4 rad/s²", None),
-        ("kick: 3.6 m/s", (1.0, -1.0)),
-    ]
-
-
 def test_lander_render_wrapper_accumulates_score_and_resets_it():
     env = LanderRenderWrapper(ScoreEnv())
 
@@ -93,13 +63,6 @@ def test_lander_render_wrapper_accumulates_score_and_resets_it():
     env.reset(seed=123)
 
     assert env.score == 0.0
-
-
-def test_kick_direction_uses_eight_directions():
-    assert _kick_direction(1.0, 0.0) == (1.0, 0.0)
-    assert _kick_direction(1.0, 1.0) == (1.0, 1.0)
-    assert _kick_direction(0.0, 1.0) == (0.0, 1.0)
-    assert _kick_direction(-1.0, -1.0) == (-1.0, -1.0)
 
 
 def test_world_colors_returns_colors_in_world_order():
