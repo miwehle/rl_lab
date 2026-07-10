@@ -62,9 +62,9 @@ Keep each prose paragraph on one source line; use line breaks only for structure
 
 ### Test Code
 
-For structure and naming of new test code, follow `../nmt_lab/translator/AGENTS.md`, section `## Struktur und Benennung von Testcode`.
-Existing tests in `rl_lab` do not need to be retrofitted just to match that section.
-New tests in `reward_shaping` should follow it from the start.
+For test code, follow `../nmt_lab/translator/how_to_test.md`. Treat it as part of this AGENTS.md.
+
+Existing tests in `rl_lab` do not need to be retrofitted just to match those rules.
 
 ### PlantUML
 
