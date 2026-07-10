@@ -19,7 +19,7 @@ Priority means how strongly a test module deviates from the test rules, not only
 
 ## High-Priority Files
 
-### `hpo/tests/notebook/test_dashboard.py` (LOC: 507 -> 437)
+### `hpo/tests/notebook/test_dashboard.py` (LOC: 507 -> 434)
 
 Overall: `rewrite` with several `drop` candidates.
 Action: rewrite/drop layout-detail assertions.
@@ -39,7 +39,7 @@ Action details:
 - `rewrite`: plot semantic tests should assert durable user-facing facts, such as evaluation checkpoint score usage, empty-state existence, live trial params, robustness summaries, and training progress content.
 - `drop`: exact layout numbers and brittle Plotly internals, such as figure width/height, subplot domains, margin values, legend coordinates, annotation indexes, exact axis object choices, and hidden-axis implementation details.
 
-### `hpo/tests/evaluation/test_lander_rendering.py` (LOC: 116 -> 79)
+### `hpo/tests/evaluation/test_lander_rendering.py` (LOC: 116 -> 78)
 
 Overall: mixed `keep` and `drop`.
 Action: drop private-helper tests first.
@@ -109,7 +109,7 @@ Action details:
 - `keep`: public evaluation behavior for `evaluate_checkpoint_robustness`, `checkpoint_scores`, `robustness_over_all_worlds`, and `score_summary`.
 - `rewrite/drop`: `_tqdm` patching for progress bars is a fragile implementation-detail test unless progress reporting is considered a stable user-facing behavior.
 
-### `hpo/tests/test_checkpointing.py` (LOC: 313 -> 311)
+### `hpo/tests/test_checkpointing.py` (LOC: 313 -> 310)
 
 Overall: mostly `keep`, with a naming/structure cleanup opportunity.
 Action: keep behavior, simplify structure only when LOC goes down.

@@ -41,83 +41,7 @@ def annotation_texts(figure) -> list[str]:
     return [annotation.text for annotation in figure.layout.annotations]
 
 
-def test_dashboard_rejects_unknown_render_mode() -> None:
-    with pytest.raises(ValueError, match="unsupported dashboard render_mode"):
-        Dashboard(render_mode="smooth")
-
-
-def test_show_dashboard_during_optimization_displays_one_dashboard(monkeypatch) -> None:
-    study = FakeStudy(
-        trials=[FakeTrial(number=0, value=180, user_attrs={"wall_time_seconds": 60})],
-        user_attrs={"incumbent_score": 180},
-    )
-    displayed = []
-    cleared = []
-    monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: ("dashboard", kwargs))
-    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
-    monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
-    reporter = Dashboard()
-    reporter.set_study_series_context(
-        studies=[study], incumbent_params={"learning_rate": 0.001, "gamma": 0.99}
-    )
-
-    reporter.report_optimization(study, target_trials=40)
-
-    assert cleared == [{"wait": True}]
-    assert displayed[-1] == (
-        "dashboard",
-        {
-            "study": study,
-            "target_trials": 40,
-            "studies": [study],
-            "incumbent_params": {"learning_rate": 0.001, "gamma": 0.99},
-            "robustness_progress": None,
-            "training_progress": None,
-            "training_score_min": -500.0,
-        },
-    )
-
-
-def test_show_dashboard_during_training_reuses_current_context(monkeypatch) -> None:
-    study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
-    displayed = []
-    monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: ("dashboard", kwargs))
-    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
-    monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
-    reporter = Dashboard()
-    reporter.set_study_series_context(studies=[study], incumbent_params={"learning_rate": 0.001})
-    reporter.report_optimization(study, target_trials=40)
-    progress = TrainingProgress(trial_number=3, target_episodes=5, episode_returns=[1.0])
-
-    reporter.report_training_progress(progress)
-
-    assert displayed[-1][1]["study"] is study
-    assert displayed[-1][1]["target_trials"] == 40
-    assert displayed[-1][1]["training_progress"] == progress
-
-
-def test_dashboard_throttles_training_updates_but_shows_final(monkeypatch) -> None:
-    study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
-    displayed = []
-    times = iter([10.0, 11.0, 12.0])
-    monkeypatch.setattr(dashboard_main, "perf_counter", lambda: next(times))
-    monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: kwargs)
-    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
-    monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
-    reporter = Dashboard(training_update_interval_seconds=5.0)
-    reporter.set_study_series_context(studies=[study], incumbent_params={})
-    reporter.report_optimization(study, target_trials=40)
-
-    reporter.report_training_progress(TrainingProgress(1, 3, [1.0]))
-    reporter.report_training_progress(TrainingProgress(1, 3, [1.0, 2.0]))
-    reporter.report_training_progress(TrainingProgress(1, 3, [1.0, 2.0, 3.0]))
-
-    training_updates = [item["training_progress"] for item in displayed if item["training_progress"]]
-    assert len(training_updates) == 2
-    assert training_updates[-1].episode_returns == [1.0, 2.0, 3.0]
-
-
-def test_dashboard_shows_incumbent_params_and_current_score() -> None:
+def test_shows_incumbent_params_and_current_score() -> None:
     study = FakeStudy(
         trials=[FakeTrial(0, 50.0, {}, params={"learning_rate": 0.001})], study_name="s1_update_economy"
     )
@@ -269,7 +193,7 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     assert any(text.startswith("Checkpoint Robustness Evaluation") for text in annotation_texts(figure))
 
 
-def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
+def test_shows_stored_checkpoint_robustness_after_study() -> None:
     study = FakeStudy(
         trials=[],
         study_name="s1_update_economy",
@@ -394,44 +318,117 @@ def test_training_plot_clips_lower_score_axis_by_default() -> None:
     assert list(unclipped.layout.yaxis2.range) == [-3010.0, 20.0]
 
 
-def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) -> None:
-    study = FakeStudy(trials=[], study_name="s1_update_economy")
-    displayed = []
-    cleared = []
-    monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: ("dashboard", kwargs))
-    monkeypatch.setattr(dashboard_main, "_display", displayed.append)
-    monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
-    reporter = Dashboard()
-    reporter.set_study_series_context(studies=[], incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
-    reporter.report_optimization(study, target_trials=0)
+class TestDashboard:
+    def test_rejects_unknown_render_mode(self) -> None:
+        with pytest.raises(ValueError, match="unsupported dashboard render_mode"):
+            Dashboard(render_mode="smooth")
 
-    reporter.report_robustness_evaluation(
-        progress=RobustnessProgress(
-            candidate_index=2,
-            candidate_count=3,
-            seed_index=1,
-            seed_count=1,
-            candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
+    def test_show_during_optimization_displays_one_dashboard(self, monkeypatch) -> None:
+        study = FakeStudy(
+            trials=[FakeTrial(number=0, value=180, user_attrs={"wall_time_seconds": 60})],
+            user_attrs={"incumbent_score": 180},
         )
-    )
+        displayed = []
+        cleared = []
+        monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: ("dashboard", kwargs))
+        monkeypatch.setattr(dashboard_main, "_display", displayed.append)
+        monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
+        reporter = Dashboard()
+        reporter.set_study_series_context(
+            studies=[study], incumbent_params={"learning_rate": 0.001, "gamma": 0.99}
+        )
 
-    assert cleared == [{"wait": True}, {"wait": True}]
-    assert displayed[-1] == (
-        "dashboard",
-        {
-            "study": study,
-            "target_trials": 0,
-            "studies": [],
-            "incumbent_params": {"learning_rate": 0.001, "gamma": 0.99},
-            "robustness_progress": RobustnessProgress(
+        reporter.report_optimization(study, target_trials=40)
+
+        assert cleared == [{"wait": True}]
+        assert displayed[-1] == (
+            "dashboard",
+            {
+                "study": study,
+                "target_trials": 40,
+                "studies": [study],
+                "incumbent_params": {"learning_rate": 0.001, "gamma": 0.99},
+                "robustness_progress": None,
+                "training_progress": None,
+                "training_score_min": -500.0,
+            },
+        )
+
+    def test_show_during_training_reuses_current_context(self, monkeypatch) -> None:
+        study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
+        displayed = []
+        monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: ("dashboard", kwargs))
+        monkeypatch.setattr(dashboard_main, "_display", displayed.append)
+        monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
+        reporter = Dashboard()
+        reporter.set_study_series_context(studies=[study], incumbent_params={"learning_rate": 0.001})
+        reporter.report_optimization(study, target_trials=40)
+        progress = TrainingProgress(trial_number=3, target_episodes=5, episode_returns=[1.0])
+
+        reporter.report_training_progress(progress)
+
+        assert displayed[-1][1]["study"] is study
+        assert displayed[-1][1]["target_trials"] == 40
+        assert displayed[-1][1]["training_progress"] == progress
+
+    def test_throttles_training_updates_but_shows_final(self, monkeypatch) -> None:
+        study = FakeStudy(trials=[], user_attrs={"incumbent_score": 180})
+        displayed = []
+        times = iter([10.0, 11.0, 12.0])
+        monkeypatch.setattr(dashboard_main, "perf_counter", lambda: next(times))
+        monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: kwargs)
+        monkeypatch.setattr(dashboard_main, "_display", displayed.append)
+        monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
+        reporter = Dashboard(training_update_interval_seconds=5.0)
+        reporter.set_study_series_context(studies=[study], incumbent_params={})
+        reporter.report_optimization(study, target_trials=40)
+
+        reporter.report_training_progress(TrainingProgress(1, 3, [1.0]))
+        reporter.report_training_progress(TrainingProgress(1, 3, [1.0, 2.0]))
+        reporter.report_training_progress(TrainingProgress(1, 3, [1.0, 2.0, 3.0]))
+
+        training_updates = [item["training_progress"] for item in displayed if item["training_progress"]]
+        assert len(training_updates) == 2
+        assert training_updates[-1].episode_returns == [1.0, 2.0, 3.0]
+
+    def test_show_during_robustness_evaluation_replaces_oh(self, monkeypatch) -> None:
+        study = FakeStudy(trials=[], study_name="s1_update_economy")
+        displayed = []
+        cleared = []
+        monkeypatch.setattr(dashboard_main, "build_dashboard", lambda **kwargs: ("dashboard", kwargs))
+        monkeypatch.setattr(dashboard_main, "_display", displayed.append)
+        monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
+        reporter = Dashboard()
+        reporter.set_study_series_context(studies=[], incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
+        reporter.report_optimization(study, target_trials=0)
+
+        reporter.report_robustness_evaluation(
+            progress=RobustnessProgress(
                 candidate_index=2,
                 candidate_count=3,
                 seed_index=1,
                 seed_count=1,
                 candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
-            ),
-            "training_progress": None,
-            "training_score_min": -500.0,
-        },
-    )
+            )
+        )
+
+        assert cleared == [{"wait": True}, {"wait": True}]
+        assert displayed[-1] == (
+            "dashboard",
+            {
+                "study": study,
+                "target_trials": 0,
+                "studies": [],
+                "incumbent_params": {"learning_rate": 0.001, "gamma": 0.99},
+                "robustness_progress": RobustnessProgress(
+                    candidate_index=2,
+                    candidate_count=3,
+                    seed_index=1,
+                    seed_count=1,
+                    candidate_seed_scores=[[-1.0], [-1.5], [-2.0]],
+                ),
+                "training_progress": None,
+                "training_score_min": -500.0,
+            },
+        )
 

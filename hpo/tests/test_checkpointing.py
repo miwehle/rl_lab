@@ -110,168 +110,167 @@ def objective_context(
     return ctx
 
 
-def test_best_checkpoint_recorder_saves_best_full_window(tmp_path) -> None:
-    path = tmp_path / "best.pt"
-    trainer = FakeTrainer()
-    recorder = BestCheckpointRecorder(path, window=2, metadata={"trial_number": 7})
+class TestBestCheckpointRecorder:
+    def test_saves_best_full_window(self, tmp_path) -> None:
+        path = tmp_path / "best.pt"
+        trainer = FakeTrainer()
+        recorder = BestCheckpointRecorder(path, window=2, metadata={"trial_number": 7})
 
-    recorder.after_episode(trainer, [1.0])
+        recorder.after_episode(trainer, [1.0])
 
-    assert not path.exists()
+        assert not path.exists()
 
-    set_weights(trainer.q_net, 2.0)
-    recorder.after_episode(trainer, [1.0, 3.0])
+        set_weights(trainer.q_net, 2.0)
+        recorder.after_episode(trainer, [1.0, 3.0])
 
-    assert path.exists()
-    assert recorder.best_score == pytest.approx(2.0)
-    assert recorder.best_episode == 2
+        assert path.exists()
+        assert recorder.best_score == pytest.approx(2.0)
+        assert recorder.best_episode == 2
 
-    set_weights(trainer.q_net, 5.0)
-    recorder.after_episode(trainer, [1.0, 3.0, 4.0])
+        set_weights(trainer.q_net, 5.0)
+        recorder.after_episode(trainer, [1.0, 3.0, 4.0])
 
-    weight, metadata = loaded_weight(path)
+        weight, metadata = loaded_weight(path)
 
-    assert weight == pytest.approx(5.0)
-    assert metadata["trial_number"] == 7
-    assert metadata["score"] == pytest.approx(3.5)
-    assert metadata["episode"] == 3
-    assert metadata["window"] == 2
-
-
-def test_checkpointing_objective_hook_factory_reports_study_attrs(tmp_path) -> None:
-    factory = ObjectiveHookFactory(
-        tmp_path, window=50, min_score=100.0, min_score_delta=5.0, best_eval_archive_dir=tmp_path / "archive"
-    )
-
-    assert factory.study_attrs() == {
-        "checkpoint_dir": str(tmp_path),
-        "checkpoint_window": 50,
-        "checkpoint_min_score": 100.0,
-        "checkpoint_min_score_delta": 5.0,
-        "best_eval_archive_dir": str(tmp_path / "archive"),
-    }
+        assert weight == pytest.approx(5.0)
+        assert metadata["trial_number"] == 7
+        assert metadata["score"] == pytest.approx(3.5)
+        assert metadata["episode"] == 3
+        assert metadata["window"] == 2
 
 
-def test_checkpointing_objective_hook_factory_copies_with_min_score(tmp_path) -> None:
-    factory = ObjectiveHookFactory(tmp_path, window=50, min_score=100.0)
+class TestEvaluationBestCheckpointRecorder:
+    def test_saves_evaluated_model(self, tmp_path) -> None:
+        path = tmp_path / "eval_best.pt"
+        ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
+        ctx.world_scores = {"moon": 211.0}
+        recorder = EvaluationBestCheckpointRecorder(path, min_score=200.0)
 
-    copied = factory.with_min_score(120.0)
+        recorder.after_evaluation(ctx)
 
-    assert copied.min_score == pytest.approx(120.0)
-    assert factory.min_score == pytest.approx(100.0)
-    assert copied.with_min_score(90.0).min_score == pytest.approx(120.0)
-
-
-def test_checkpointing_objective_hooks_create_training_plotter(tmp_path) -> None:
-    progress_calls = []
-    hooks = (
-        ObjectiveHookFactory(tmp_path, window=2, min_score=10.0)
-        .with_training_progress(progress_calls.append)
-        .for_trial(objective_context())
-    )
-    trainer = FakeTrainer()
-
-    plotter = hooks.training_plotter()
-    assert plotter is not None
-
-    plotter.plot_returns([1.0])
-    hooks.recorder.after_episode(trainer, [10.0, 20.0])
-    plotter.plot_returns([10.0, 20.0])
-
-    assert progress_calls[0].checkpoint_window == 2
-    assert progress_calls[0].checkpoint_min_score == pytest.approx(10.0)
-    assert progress_calls[0].trial_params == {"learning_rate": 0.002, "gamma": 0.99}
-    assert progress_calls[0].optimized_param_names == ["learning_rate"]
-    assert progress_calls[0].best_checkpoint_score is None
-    assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
+        weight, metadata = loaded_weight(path)
+        assert weight == pytest.approx(9.0)
+        assert metadata["score"] == pytest.approx(211.0)
+        assert metadata["episode"] == 3
+        assert metadata["window"] is None
 
 
-def test_checkpointing_objective_hooks_load_best_checkpoint_and_save_attrs(tmp_path) -> None:
-    hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context())
-    trainer = FakeTrainer()
+class TestObjectiveHookFactory:
+    def test_reports_study_attrs(self, tmp_path) -> None:
+        factory = ObjectiveHookFactory(
+            tmp_path, window=50, min_score=100.0, min_score_delta=5.0, best_eval_archive_dir=tmp_path / "archive"
+        )
 
-    set_weights(trainer.q_net, 7.0)
-    hooks.recorder.after_episode(trainer, [1.0, 3.0])
-    set_weights(trainer.q_net, 1.0)
+        assert factory.study_attrs() == {
+            "checkpoint_dir": str(tmp_path),
+            "checkpoint_window": 50,
+            "checkpoint_min_score": 100.0,
+            "checkpoint_min_score_delta": 5.0,
+            "best_eval_archive_dir": str(tmp_path / "archive"),
+        }
 
-    assert hooks.checkpoint_window == 2
-    assert hooks.best_checkpoint_score == pytest.approx(2.0)
+    def test_copies_with_min_score(self, tmp_path) -> None:
+        factory = ObjectiveHookFactory(tmp_path, window=50, min_score=100.0)
 
-    ctx = objective_context(q_net=trainer.q_net, episode_returns=[1.0, 3.0])
-    q_net = hooks.q_net_for_evaluation(ctx)
-    assert q_net is trainer.q_net
-    assert first_weight(trainer.q_net) == pytest.approx(7.0)
+        copied = factory.with_min_score(120.0)
 
-    hooks.finalize_trial(ctx)
-    attrs = ctx.trial.user_attrs
-
-    assert attrs["checkpoint_path"] == str(tmp_path / "trials" / "trial_0003_best.pt")
-    assert attrs["checkpoint_score"] == pytest.approx(2.0)
-    assert attrs["checkpoint_episode"] == 2
-    assert attrs["checkpoint_window"] == 2
-
-
-def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(tmp_path) -> None:
-    hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context(trial=FakeRobustTrial()))
-    trainer = FakeTrainer()
-
-    hooks.recorder.after_episode(trainer, [1.0, 3.0])
-
-    ctx = objective_context(trial=FakeRobustTrial())
-    hooks.finalize_trial(ctx)
-    attrs = ctx.trial.user_attrs
-
-    assert attrs["checkpoint_path"] == str(tmp_path / "robustness" / "trial_0003_seed_1001_best.pt")
+        assert copied.min_score == pytest.approx(120.0)
+        assert factory.min_score == pytest.approx(100.0)
+        assert copied.with_min_score(90.0).min_score == pytest.approx(120.0)
 
 
-def test_evaluation_best_checkpoint_recorder_saves_evaluated_model(tmp_path) -> None:
-    path = tmp_path / "eval_best.pt"
-    ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
-    ctx.world_scores = {"moon": 211.0}
-    recorder = EvaluationBestCheckpointRecorder(path, min_score=200.0)
+class TestObjectiveHooks:
+    def test_create_training_plotter(self, tmp_path) -> None:
+        progress_calls = []
+        hooks = (
+            ObjectiveHookFactory(tmp_path, window=2, min_score=10.0)
+            .with_training_progress(progress_calls.append)
+            .for_trial(objective_context())
+        )
+        trainer = FakeTrainer()
 
-    recorder.after_evaluation(ctx)
+        plotter = hooks.training_plotter()
+        assert plotter is not None
 
-    weight, metadata = loaded_weight(path)
-    assert weight == pytest.approx(9.0)
-    assert metadata["score"] == pytest.approx(211.0)
-    assert metadata["episode"] == 3
-    assert metadata["window"] is None
+        plotter.plot_returns([1.0])
+        hooks.recorder.after_episode(trainer, [10.0, 20.0])
+        plotter.plot_returns([10.0, 20.0])
 
+        assert progress_calls[0].checkpoint_window == 2
+        assert progress_calls[0].checkpoint_min_score == pytest.approx(10.0)
+        assert progress_calls[0].trial_params == {"learning_rate": 0.002, "gamma": 0.99}
+        assert progress_calls[0].optimized_param_names == ["learning_rate"]
+        assert progress_calls[0].best_checkpoint_score is None
+        assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
 
-def test_objective_hooks_archive_best_eval_checkpoint(tmp_path) -> None:
-    archive_dir = tmp_path / "archive"
-    hooks = archive_hooks(tmp_path, archive_dir)
-    ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
+    def test_load_best_checkpoint_and_save_attrs(self, tmp_path) -> None:
+        hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context())
+        trainer = FakeTrainer()
 
-    hooks.finalize_trial(ctx)
+        set_weights(trainer.q_net, 7.0)
+        hooks.recorder.after_episode(trainer, [1.0, 3.0])
+        set_weights(trainer.q_net, 1.0)
 
-    archive_path = archive_dir / "best_eval_checkpoint.pt"
-    metadata = json.loads((archive_dir / "best_eval_checkpoint.json").read_text())
-    weight, _ = loaded_weight(archive_path)
+        assert hooks.checkpoint_window == 2
+        assert hooks.best_checkpoint_score == pytest.approx(2.0)
 
-    assert ctx.trial.user_attrs["evaluation_checkpoint_archive_path"] == str(archive_path)
-    assert weight == pytest.approx(9.0)
-    assert metadata["score"] == pytest.approx(211.0)
-    assert metadata["source_path"] == str(tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt")
+        ctx = objective_context(q_net=trainer.q_net, episode_returns=[1.0, 3.0])
+        q_net = hooks.q_net_for_evaluation(ctx)
+        assert q_net is trainer.q_net
+        assert first_weight(trainer.q_net) == pytest.approx(7.0)
 
+        hooks.finalize_trial(ctx)
+        attrs = ctx.trial.user_attrs
 
-def test_objective_hooks_keep_archived_eval_checkpoint_when_score_is_lower(tmp_path) -> None:
-    archive_dir = tmp_path / "archive"
-    high_hooks = archive_hooks(tmp_path, archive_dir)
-    high_ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0])
-    high_hooks.finalize_trial(high_ctx)
+        assert attrs["checkpoint_path"] == str(tmp_path / "trials" / "trial_0003_best.pt")
+        assert attrs["checkpoint_score"] == pytest.approx(2.0)
+        assert attrs["checkpoint_episode"] == 2
+        assert attrs["checkpoint_window"] == 2
 
-    low_hooks = archive_hooks(tmp_path, archive_dir)
-    low_ctx = objective_context(q_net=linear_with_weight(3.0), score=200.0, episode_returns=[1.0])
+    def test_uses_robustness_checkpoint_dir(self, tmp_path) -> None:
+        hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context(trial=FakeRobustTrial()))
+        trainer = FakeTrainer()
 
-    low_hooks.finalize_trial(low_ctx)
+        hooks.recorder.after_episode(trainer, [1.0, 3.0])
 
-    weight, metadata = loaded_weight(archive_dir / "best_eval_checkpoint.pt")
+        ctx = objective_context(trial=FakeRobustTrial())
+        hooks.finalize_trial(ctx)
+        attrs = ctx.trial.user_attrs
 
-    assert "evaluation_checkpoint_archive_path" not in low_ctx.trial.user_attrs
-    assert weight == pytest.approx(9.0)
-    assert metadata["score"] == pytest.approx(211.0)
+        assert attrs["checkpoint_path"] == str(tmp_path / "robustness" / "trial_0003_seed_1001_best.pt")
+
+    def test_archive_best_eval_checkpoint(self, tmp_path) -> None:
+        archive_dir = tmp_path / "archive"
+        hooks = archive_hooks(tmp_path, archive_dir)
+        ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
+
+        hooks.finalize_trial(ctx)
+
+        archive_path = archive_dir / "best_eval_checkpoint.pt"
+        metadata = json.loads((archive_dir / "best_eval_checkpoint.json").read_text())
+        weight, _ = loaded_weight(archive_path)
+
+        assert ctx.trial.user_attrs["evaluation_checkpoint_archive_path"] == str(archive_path)
+        assert weight == pytest.approx(9.0)
+        assert metadata["score"] == pytest.approx(211.0)
+        assert metadata["source_path"] == str(tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt")
+
+    def test_keep_archived_eval_checkpoint_when_score_is_lower(self, tmp_path) -> None:
+        archive_dir = tmp_path / "archive"
+        high_hooks = archive_hooks(tmp_path, archive_dir)
+        high_ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0])
+        high_hooks.finalize_trial(high_ctx)
+
+        low_hooks = archive_hooks(tmp_path, archive_dir)
+        low_ctx = objective_context(q_net=linear_with_weight(3.0), score=200.0, episode_returns=[1.0])
+
+        low_hooks.finalize_trial(low_ctx)
+
+        weight, metadata = loaded_weight(archive_dir / "best_eval_checkpoint.pt")
+
+        assert "evaluation_checkpoint_archive_path" not in low_ctx.trial.user_attrs
+        assert weight == pytest.approx(9.0)
+        assert metadata["score"] == pytest.approx(211.0)
 
 
 def test_best_checkpoint_selects_highest_score_across_checkpoint_dirs(tmp_path) -> None:

@@ -23,48 +23,6 @@ class ScoreEnv(gym.Env):
         return [0.0], 1.25, False, False, {}
 
 
-def test_lander_render_wrapper_uses_custom_sky_and_ground_colors():
-    colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
-    env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
-
-    try:
-        env.reset(seed=123)
-        frame = env.render()
-    finally:
-        env.close()
-
-    assert frame.shape == (400, 600, 3)
-    assert tuple(frame[10, 10]) == colors.sky
-    assert tuple(frame[390, 10]) == colors.ground
-
-
-def test_lander_render_wrapper_does_not_draw_vertical_sky_polygon_seams():
-    colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
-    env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
-
-    try:
-        env.reset(seed=123)
-        frame = env.render()
-    finally:
-        env.close()
-
-    assert tuple(frame[10, 60]) == colors.sky
-
-
-def test_lander_render_wrapper_accumulates_score_and_resets_it():
-    env = LanderRenderWrapper(ScoreEnv())
-
-    env.reset(seed=123)
-    env.step(0)
-    env.step(0)
-
-    assert env.score == 2.5
-
-    env.reset(seed=123)
-
-    assert env.score == 0.0
-
-
 def test_world_colors_returns_colors_in_world_order():
     colors = world_colors([World.EARTH, World.VENUS])
 
@@ -77,3 +35,44 @@ def test_world_colors_returns_colors_in_world_order():
 def test_world_colors_rejects_unknown_world():
     with pytest.raises(ValueError, match="unknown world color: pluto"):
         world_colors(["pluto"])
+
+
+class TestLanderRenderWrapper:
+    def test_uses_custom_sky_and_ground_colors(self):
+        colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
+        env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
+
+        try:
+            env.reset(seed=123)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert frame.shape == (400, 600, 3)
+        assert tuple(frame[10, 10]) == colors.sky
+        assert tuple(frame[390, 10]) == colors.ground
+
+    def test_does_not_draw_vertical_sky_polygon_seams(self):
+        colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
+        env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
+
+        try:
+            env.reset(seed=123)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert tuple(frame[10, 60]) == colors.sky
+
+    def test_accumulates_score_and_resets_it(self):
+        env = LanderRenderWrapper(ScoreEnv())
+
+        env.reset(seed=123)
+        env.step(0)
+        env.step(0)
+
+        assert env.score == 2.5
+
+        env.reset(seed=123)
+
+        assert env.score == 0.0
