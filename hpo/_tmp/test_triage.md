@@ -59,7 +59,7 @@ Action details:
 - `rewrite`: overlay behavior if it matters to notebook/video users should be checked through public rendering or a public overlay API, not by calling private formatting helpers.
 - `drop`: direct tests of `_overlay_lines` and `_kick_direction`; they are private implementation details and fragile against formatting or rendering refactors.
 
-### `hpo/tests/test_study.py` (LOC: 394 -> 363)
+### `hpo/tests/test_study.py` (LOC: 394 -> 365)
 
 Overall: mostly `keep`, but several tests should be `rewrite`.
 Action: rewrite private loader/creator seam tests.
