@@ -62,9 +62,14 @@ class FakeEnvironmentFactory:
         return {"earth": lambda: FakeEnv(10.0), "venus": lambda: FakeEnv(20.0)}
 
 
-def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
+def saved_checkpoint(tmp_path):
     checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
     save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
+    return checkpoint_path
+
+
+def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
+    checkpoint_path = saved_checkpoint(tmp_path)
     study = FakeStudy(
         trials=[
             FakeTrial(0, 300.0, {"evaluation_checkpoint_score": 50.0}),
@@ -118,11 +123,8 @@ def test_evaluate_checkpoint_robustness_scores_top_checkpoint(tmp_path) -> None:
 
 
 def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
-    checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
-
     scores = checkpoint_scores(
-        checkpoint_path,
+        saved_checkpoint(tmp_path),
         objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),
         episodes=2,
         progress=False,
@@ -136,30 +138,8 @@ def test_checkpoint_scores_returns_episode_scores_by_world(tmp_path) -> None:
     ]
 
 
-def test_checkpoint_scores_uses_progress_bar_when_enabled(monkeypatch, tmp_path) -> None:
-    checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
-    progress_calls = []
-
-    def fake_tqdm(items, *, total, desc):
-        progress_calls.append({"total": total, "desc": desc})
-        return items
-
-    monkeypatch.setattr("hpo.evaluation.checkpoint_robustness._tqdm", lambda: fake_tqdm)
-
-    checkpoint_scores(
-        checkpoint_path,
-        objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),
-        episodes=2,
-    )
-
-    assert progress_calls == [{"total": 4, "desc": "Evaluating checkpoint"}]
-
-
 def test_robustness_over_all_worlds_returns_candidate_summary(tmp_path) -> None:
-    checkpoint_path = tmp_path / "trial_0001_eval_best.pt"
-    save_checkpoint(DQN(1, 2), checkpoint_path, {"score": 200.0, "episode": 1000, "window": None})
-
+    checkpoint_path = saved_checkpoint(tmp_path)
     summary = robustness_over_all_worlds(
         checkpoint_path,
         objective_config(environment_factory=FakeEnvironmentFactory(), device="cpu"),

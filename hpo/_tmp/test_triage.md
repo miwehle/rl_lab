@@ -19,7 +19,7 @@ Priority means how strongly a test module deviates from the test rules, not only
 
 ## High-Priority Files
 
-### `hpo/tests/notebook/test_dashboard.py` (436 LOC)
+### `hpo/tests/notebook/test_dashboard.py` (LOC: 507 -> 437)
 
 Overall: `rewrite` with several `drop` candidates.
 Action: rewrite/drop layout-detail assertions.
@@ -39,7 +39,7 @@ Action details:
 - `rewrite`: plot semantic tests should assert durable user-facing facts, such as evaluation checkpoint score usage, empty-state existence, live trial params, robustness summaries, and training progress content.
 - `drop`: exact layout numbers and brittle Plotly internals, such as figure width/height, subplot domains, margin values, legend coordinates, annotation indexes, exact axis object choices, and hidden-axis implementation details.
 
-### `hpo/tests/evaluation/test_lander_rendering.py` (83 LOC)
+### `hpo/tests/evaluation/test_lander_rendering.py` (116 LOC)
 
 Overall: mixed `keep` and `drop`.
 Action: drop private-helper tests first.
@@ -59,7 +59,7 @@ Action details:
 - `rewrite`: overlay behavior if it matters to notebook/video users should be checked through public rendering or a public overlay API, not by calling private formatting helpers.
 - `drop`: direct tests of `_overlay_lines` and `_kick_direction`; they are private implementation details and fragile against formatting or rendering refactors.
 
-### `hpo/tests/test_study.py` (318 LOC)
+### `hpo/tests/test_study.py` (LOC: 394 -> 363)
 
 Overall: mostly `keep`, but several tests should be `rewrite`.
 Action: rewrite private loader/creator seam tests.
@@ -78,7 +78,7 @@ Action details:
 - `rewrite`: tests that patch `_create_or_load_study`, `_load_study`, `_create_study`, or call `_create_or_load_study` directly. The behavior is valuable, but the test shape is coupled to private orchestration seams.
 - `drop` candidate: `test_create_or_load_study_records_runtime_metadata` if the same metadata behavior is covered through a public `StudyRunner` or `run_study` path.
 
-### `hpo/tests/evaluation/test_video.py` (192 LOC)
+### `hpo/tests/evaluation/test_video.py` (LOC: 256 -> 185)
 
 Overall: mostly `keep` with a few `rewrite/drop` candidates.
 Action: keep public video behavior, drop or rewrite private progress/hold details.
@@ -95,7 +95,7 @@ Action details:
 
 ## Medium-Priority Files
 
-### `hpo/tests/evaluation/test_checkpoint_robustness.py` (171 LOC)
+### `hpo/tests/evaluation/test_checkpoint_robustness.py` (LOC: 212 -> 192)
 
 Overall: mostly `keep`.
 Action: keep, reconsider progress-bar internals.
@@ -109,7 +109,7 @@ Action details:
 - `keep`: public evaluation behavior for `evaluate_checkpoint_robustness`, `checkpoint_scores`, `robustness_over_all_worlds`, and `score_summary`.
 - `rewrite/drop`: `_tqdm` patching for progress bars is a fragile implementation-detail test unless progress reporting is considered a stable user-facing behavior.
 
-### `hpo/tests/test_checkpointing.py` (231 LOC)
+### `hpo/tests/test_checkpointing.py` (LOC: 313 -> 311)
 
 Overall: mostly `keep`, with a naming/structure cleanup opportunity.
 Action: keep behavior, simplify structure only when LOC goes down.
@@ -124,7 +124,7 @@ Action details:
 - `rewrite`: group class behavior in `Test...` classes and reduce repeated context setup if doing so lowers LOC.
 - `watch`: some hook tests inspect attrs and paths closely; keep only attrs that are part of the persisted checkpoint contract.
 
-### `hpo/tests/test_objective.py` (325 LOC)
+### `hpo/tests/test_objective.py` (LOC: 419 -> 395)
 
 Overall: mostly `keep`.
 Action: keep, reduce fixture boilerplate cautiously.
@@ -144,7 +144,7 @@ Action details:
 - `rewrite`: if possible, reduce FakeTrainer/FakeHooks boilerplate and group class/function tests symmetrically.
 - `watch`: tests that assert exact internal training config defaults are useful only for defaults that are intentionally part of the public objective contract.
 
-### `hpo/tests/evaluation/test_hp_robustness.py` (158 LOC)
+### `hpo/tests/evaluation/test_hp_robustness.py` (198 LOC)
 
 Overall: mostly `keep`.
 Action: keep, move reporting DTO test later if symmetry is improved.
@@ -158,7 +158,7 @@ Action details:
 - `keep`: `select_robust_best` is a public robustness helper and the tests cover meaningful selection/reporting behavior.
 - `rewrite`: consider whether `RobustnessProgress` belongs in `test_study_reporting.py` once test symmetry is improved.
 
-### `hpo/tests/notebook/test_plots.py` (54 LOC)
+### `hpo/tests/notebook/test_plots.py` (78 LOC)
 
 Overall: mostly `keep`, with a small fragility watch.
 Action: keep, avoid exact plotting internals unless user-visible.
@@ -172,7 +172,7 @@ Action details:
 - `keep`: notebook plotting helpers are public for exploratory analysis.
 - `rewrite/drop`: assertions about exact Matplotlib internals or locator classes should stay only when they protect a real notebook usability contract.
 
-### `hpo/tests/notebook/test_drive_backup.py` (39 LOC)
+### `hpo/tests/notebook/test_drive_backup.py` (52 LOC)
 
 Overall: mostly `keep`, one `rewrite` candidate.
 Action: keep, rewrite private backup failure seam if simple.
@@ -188,7 +188,7 @@ Action details:
 
 ## Low-Priority / Mostly Fine Files
 
-### `hpo/tests/solar_system_lander/test_environment.py` (100 LOC)
+### `hpo/tests/solar_system_lander/test_environment.py` (131 LOC)
 
 Overall: mostly `keep`.
 Action: keep, decide status of `acceleration_vector`.
@@ -202,7 +202,7 @@ Action details:
 - `keep`: `EnvFactory`, `World`, `DEFAULT_WORLD_MIX`, and observation modes are public environment behavior.
 - `watch`: `acceleration_vector` is not currently notebook-public via `hpo`, but it is a named lower-level function used as domain logic. Either make it `to-higher-level public` if direct tests should remain, or test it through `EnvWrapper` behavior.
 
-### `hpo/tests/solar_system_lander/test_reward_shaping.py` (34 LOC)
+### `hpo/tests/solar_system_lander/test_reward_shaping.py` (52 LOC)
 
 Overall: `keep`.
 Action: keep.
@@ -215,7 +215,7 @@ Action details:
 
 - `keep`: `GroundThrustPenaltyEnv` is notebook-public and tests are already grouped in `TestGroundThrustPenaltyEnv`.
 
-### `hpo/tests/lunar_lander/test_environment.py` (8 LOC)
+### `hpo/tests/lunar_lander/test_environment.py` (11 LOC)
 
 Overall: `keep`.
 Action: keep.
@@ -228,7 +228,7 @@ Action details:
 
 - `keep`: `EnvFactory` is public in `hpo.lunar_lander`.
 
-### `hpo/tests/lunar_lander/test_logging.py` (73 LOC)
+### `hpo/tests/lunar_lander/test_logging.py` (97 LOC)
 
 Overall: likely `keep`, but not urgent for notebook-public cleanup.
 Action: keep unless logging becomes internal-only.
@@ -242,7 +242,7 @@ Action details:
 - `keep`: file logging and `log_call` are public module behavior used by HPO infrastructure.
 - `watch`: if logging is treated as internal infrastructure later, reduce tests to only the observable log contract needed by public HPO flows.
 
-### `hpo/tests/notebook/test_colab.py` (55 LOC)
+### `hpo/tests/notebook/test_colab.py` (68 LOC)
 
 Overall: `keep`.
 Action: keep.
@@ -255,7 +255,7 @@ Action details:
 
 - `keep`: `setup_colab`, `prepare_storage`, and `Storage.backup` are notebook-public helpers.
 
-### `hpo/tests/notebook/test_optuna.py` (28 LOC)
+### `hpo/tests/notebook/test_optuna.py` (38 LOC)
 
 Overall: `keep`.
 Action: keep.
@@ -268,7 +268,7 @@ Action details:
 
 - `keep`: `db_path`, `db_summary`, and `neighbors` are notebook helpers.
 
-### `hpo/tests/test_study_metadata.py` (46 LOC)
+### `hpo/tests/test_study_metadata.py` (57 LOC)
 
 Overall: `keep`.
 Action: keep.

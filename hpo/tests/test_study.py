@@ -75,6 +75,43 @@ class FakeReporter:
         self.training_calls.append((args, kwargs))
 
 
+def study_runner(
+    *,
+    baseline: Baseline | None = None,
+    objective_cfg=None,
+    reporter: FakeReporter | None = None,
+    database_path=None,
+    **kwargs,
+) -> StudyRunner:
+    return StudyRunner(
+        database_path=database_path or (lambda _name: Path("runs/study.db")),
+        objective_cfg=objective_cfg or objective_config(environment_factory=FakeEnvironmentFactory()),
+        baseline=baseline or Baseline(params={"x": 1}),
+        reporter=reporter or FakeReporter(),
+        **kwargs,
+    )
+
+
+def patch_study_runner_dependencies(monkeypatch, study, *, robustness=None):
+    run_calls = []
+    robust_calls = []
+    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: study)
+    def run(**kwargs):
+        run_calls.append(kwargs | {"incumbent_params": dict(kwargs["incumbent_params"])})
+        return kwargs["study"]
+
+    monkeypatch.setattr(study_module, "run_study", run)
+
+    def evaluate_robustness(**kwargs):
+        robust_calls.append(kwargs)
+        if robustness is None:
+            return fake_checkpoint_robustness(kwargs["study"])
+        return robustness(**kwargs)
+
+    monkeypatch.setattr(study_module, "evaluate_checkpoint_robustness", evaluate_robustness)
+    return run_calls, robust_calls
+
+
 def test_study_runner_reuses_context_and_previous_studies(monkeypatch) -> None:
     studies = [FakeStudy([FakeTrial(0, 1.0, {"x": 2})]), FakeStudy([FakeTrial(0, 2.0, {"x": 3})])]
     run_calls = []
@@ -94,7 +131,7 @@ def test_study_runner_reuses_context_and_previous_studies(monkeypatch) -> None:
     environment_factory = FakeEnvironmentFactory()
     objective_cfg = objective_config(environment_factory=environment_factory, device="cpu")
     reporter = FakeReporter()
-    runner = StudyRunner(
+    runner = study_runner(
         database_path=lambda name: Path("runs") / f"{name}.db",
         objective_cfg=objective_cfg,
         baseline=Baseline(params={"x": 1}, score=0.0),
@@ -153,7 +190,7 @@ def test_study_runner_loads_finished_study_series_for_dashboard(monkeypatch, tmp
         lambda **kwargs: fake_checkpoint_robustness(kwargs["study"]),
     )
     reporter = FakeReporter()
-    runner = StudyRunner(
+    runner = study_runner(
         database_path=lambda _name: database_path,
         objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
         baseline=Baseline(params={"x": 1}),
@@ -168,19 +205,8 @@ def test_study_runner_loads_finished_study_series_for_dashboard(monkeypatch, tmp
 
 def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
     current = FakeStudy([FakeTrial(0, 9.0, {"x": 2})])
-    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
-    monkeypatch.setattr(study_module, "run_study", lambda **kwargs: kwargs["study"])
-    monkeypatch.setattr(
-        study_module,
-        "evaluate_checkpoint_robustness",
-        lambda **kwargs: fake_checkpoint_robustness(kwargs["study"]),
-    )
-    runner = StudyRunner(
-        database_path=lambda _name: Path("runs/study.db"),
-        objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
-        baseline=Baseline(params={"x": 1}, score=10.0),
-        reporter=FakeReporter(),
-    )
+    patch_study_runner_dependencies(monkeypatch, current)
+    runner = study_runner(baseline=Baseline(params={"x": 1}, score=10.0))
 
     runner.run("s2", suggest_parameter_values=object(), n_trials=1)
 
@@ -193,15 +219,8 @@ def test_study_runner_keeps_better_incumbent(monkeypatch) -> None:
 
 def test_study_runner_marks_empty_checkpoint_robustness_done(monkeypatch) -> None:
     current = FakeStudy([])
-    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
-    monkeypatch.setattr(study_module, "run_study", lambda **kwargs: kwargs["study"])
-    monkeypatch.setattr(study_module, "evaluate_checkpoint_robustness", no_checkpoint_robustness)
-    runner = StudyRunner(
-        database_path=lambda _name: Path("runs/study.db"),
-        objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
-        baseline=Baseline(params={"x": 1}, score=10.0),
-        reporter=FakeReporter(),
-    )
+    patch_study_runner_dependencies(monkeypatch, current, robustness=no_checkpoint_robustness)
+    runner = study_runner(baseline=Baseline(params={"x": 1}, score=10.0))
 
     runner.run("s2", suggest_parameter_values=object(), n_trials=1)
 
@@ -212,27 +231,12 @@ def test_study_runner_marks_empty_checkpoint_robustness_done(monkeypatch) -> Non
 
 def test_study_runner_accepts_baseline_without_score(monkeypatch, tmp_path) -> None:
     current = FakeStudy([FakeTrial(0, 9.0, {"x": 2})])
-    run_calls = []
-    robust_calls = []
-    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
-    monkeypatch.setattr(
-        study_module,
-        "run_study",
-        lambda **kwargs: run_calls.append(kwargs | {"incumbent_params": dict(kwargs["incumbent_params"])})
-        or kwargs["study"],
-    )
-    monkeypatch.setattr(
-        study_module,
-        "evaluate_checkpoint_robustness",
-        lambda **kwargs: robust_calls.append(kwargs) or fake_checkpoint_robustness(kwargs["study"]),
-    )
-    runner = StudyRunner(
-        database_path=lambda _name: Path("runs/study.db"),
+    run_calls, robust_calls = patch_study_runner_dependencies(monkeypatch, current)
+    runner = study_runner(
         objective_cfg=objective_config(
             environment_factory=FakeEnvironmentFactory(), hooks=ObjectiveHookFactory(tmp_path, window=2)
         ),
         baseline=Baseline(params={"x": 1}),
-        reporter=FakeReporter(),
     )
 
     runner.run("s1", suggest_parameter_values=object(), n_trials=1)
@@ -258,12 +262,7 @@ def test_study_runner_skips_already_finished_study(monkeypatch, capsys) -> None:
         lambda **_kwargs: pytest.fail("finished study should not evaluate again"),
     )
     reporter = FakeReporter()
-    runner = StudyRunner(
-        database_path=lambda _name: Path("runs/study.db"),
-        objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
-        baseline=Baseline(params={"x": 1}, score=0.0),
-        reporter=reporter,
-    )
+    runner = study_runner(baseline=Baseline(params={"x": 1}, score=0.0), reporter=reporter)
 
     runner.run("s1", suggest_parameter_values=object(), n_trials=1)
 
@@ -274,26 +273,11 @@ def test_study_runner_skips_already_finished_study(monkeypatch, capsys) -> None:
 
 def test_study_runner_uses_incumbent_as_checkpoint_min_score(monkeypatch, tmp_path) -> None:
     current = FakeStudy([FakeTrial(0, 9.0, {"x": 2})])
-    run_calls = []
-    robust_calls = []
     cfg = objective_config(
         environment_factory=FakeEnvironmentFactory(), hooks=ObjectiveHookFactory(tmp_path, window=2)
     )
-    monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
-    monkeypatch.setattr(
-        study_module, "run_study", lambda **kwargs: run_calls.append(kwargs) or kwargs["study"]
-    )
-    monkeypatch.setattr(
-        study_module,
-        "evaluate_checkpoint_robustness",
-        lambda **kwargs: robust_calls.append(kwargs) or fake_checkpoint_robustness(kwargs["study"]),
-    )
-    runner = StudyRunner(
-        database_path=lambda _name: Path("runs/study.db"),
-        objective_cfg=cfg,
-        baseline=Baseline(params={"x": 1}, score=10.0),
-        reporter=FakeReporter(),
-    )
+    run_calls, robust_calls = patch_study_runner_dependencies(monkeypatch, current)
+    runner = study_runner(objective_cfg=cfg, baseline=Baseline(params={"x": 1}, score=10.0))
 
     runner.run("s2", suggest_parameter_values=object(), n_trials=1)
 
@@ -377,18 +361,3 @@ def test_baseline_loads_from_database(monkeypatch) -> None:
     assert "previous.db" in load_calls[0]["storage"]
 
 
-def test_create_or_load_study_records_runtime_metadata(monkeypatch, tmp_path) -> None:
-    study = FakeStudy([])
-    record_calls = []
-    monkeypatch.setattr(study_module, "_create_study", lambda **_kwargs: study)
-    monkeypatch.setattr(
-        study_module, "record_study_metadata", lambda *args, **kwargs: record_calls.append((args, kwargs))
-    )
-    database_path = tmp_path / "series.db"
-
-    loaded = study_module._create_or_load_study(
-        study_name="s1", database_path=database_path, runtime_provider="colab", device="cuda"
-    )
-
-    assert loaded is study
-    assert record_calls == [((database_path, "s1"), {"runtime_provider": "colab", "device": "cuda"})]

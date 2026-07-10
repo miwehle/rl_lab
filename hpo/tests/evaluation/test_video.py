@@ -87,29 +87,16 @@ def test_record_checkpoint_video_records_one_greedy_episode(monkeypatch, tmp_pat
     assert path.read_bytes() == b"video"
 
 
-def test_record_checkpoint_video_holds_terminal_frame(monkeypatch, tmp_path):
-    captured = []
-
-    class CapturingRecordVideo(FakeRecordVideo):
-        def _capture_frame(self):
-            captured.append("frame")
-
-    monkeypatch.setattr(video, "RecordVideo", CapturingRecordVideo)
-    monkeypatch.setattr(video, "q_net_from_checkpoint", lambda *_args, **_kwargs: FakeQNet())
-    monkeypatch.setattr(video, "_FINAL_HOLD_FRAMES", 3)
-
-    video.record_checkpoint_video(
-        checkpoint_path="trial_0009_eval_best.pt",
-        environment_factory=FakeFactory(),
-        world="venus",
-        seed=10_000,
-        output_dir=tmp_path,
-    )
-
-    assert captured == ["frame", "frame", "frame"]
-
-
-def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    ("kwargs", "expected_colors", "expected_overlay"),
+    [
+        ({"render_colors": video.LanderColors(sky=(1, 2, 3))}, video.LanderColors(sky=(1, 2, 3)), None),
+        ({"render_overlay": video.LanderOverlay()}, None, video.LanderOverlay()),
+    ],
+)
+def test_record_checkpoint_video_wraps_env_for_render_options(
+    monkeypatch, tmp_path, kwargs, expected_colors, expected_overlay
+):
     recorded_envs = []
 
     class RecordingRecordVideo(FakeRecordVideo):
@@ -120,7 +107,6 @@ def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(monkeypa
     monkeypatch.setattr(video, "RecordVideo", RecordingRecordVideo)
     monkeypatch.setattr(video, "LanderRenderWrapper", FakeRenderWrapper)
     monkeypatch.setattr(video, "q_net_from_checkpoint", lambda *_args, **_kwargs: FakeQNet())
-    colors = video.LanderColors(sky=(1, 2, 3))
 
     video.record_checkpoint_video(
         checkpoint_path="trial_0009_eval_best.pt",
@@ -128,39 +114,12 @@ def test_record_checkpoint_video_wraps_env_when_render_colors_are_given(monkeypa
         world="venus",
         seed=10_000,
         output_dir=tmp_path,
-        render_colors=colors,
+        **kwargs,
     )
 
     assert isinstance(recorded_envs[0], FakeRenderWrapper)
-    assert recorded_envs[0].colors == colors
-    assert recorded_envs[0].overlay is None
-
-
-def test_record_checkpoint_video_wraps_env_when_render_overlay_is_given(monkeypatch, tmp_path):
-    recorded_envs = []
-
-    class RecordingRecordVideo(FakeRecordVideo):
-        def __init__(self, env, *, video_folder, name_prefix, **kwargs):
-            recorded_envs.append(env)
-            super().__init__(env, video_folder=video_folder, name_prefix=name_prefix, **kwargs)
-
-    monkeypatch.setattr(video, "RecordVideo", RecordingRecordVideo)
-    monkeypatch.setattr(video, "LanderRenderWrapper", FakeRenderWrapper)
-    monkeypatch.setattr(video, "q_net_from_checkpoint", lambda *_args, **_kwargs: FakeQNet())
-    overlay = video.LanderOverlay()
-
-    video.record_checkpoint_video(
-        checkpoint_path="trial_0009_eval_best.pt",
-        environment_factory=FakeFactory(),
-        world="venus",
-        seed=10_000,
-        output_dir=tmp_path,
-        render_overlay=overlay,
-    )
-
-    assert isinstance(recorded_envs[0], FakeRenderWrapper)
-    assert recorded_envs[0].colors is None
-    assert recorded_envs[0].overlay == overlay
+    assert recorded_envs[0].colors == expected_colors
+    assert recorded_envs[0].overlay == expected_overlay
 
 
 def test_record_checkpoint_videos_records_world_seed_product(monkeypatch, tmp_path):
@@ -210,36 +169,6 @@ def test_record_checkpoint_videos_rejects_mismatched_colors_by_world(tmp_path):
             output_dir=tmp_path,
             colors_by_world=[video.LanderColors()],
         )
-
-
-def test_record_checkpoint_videos_uses_progress_bar(monkeypatch, tmp_path):
-    progress_calls = []
-
-    def record(**kwargs):
-        return tmp_path / f"{kwargs['world']}_{kwargs['seed']}.mp4"
-
-    def fake_tqdm(items, *, total, desc):
-        progress_calls.append({"items": list(items), "total": total, "desc": desc})
-        return progress_calls[-1]["items"]
-
-    monkeypatch.setattr(video, "record_checkpoint_video", record)
-    monkeypatch.setattr(video, "_tqdm", lambda: fake_tqdm)
-
-    video.record_checkpoint_videos(
-        checkpoint_path="checkpoint.pt",
-        environment_factory=object(),
-        worlds=["earth", "venus"],
-        seeds=[1, 2],
-        output_dir=tmp_path,
-    )
-
-    assert progress_calls == [
-        {
-            "items": [("earth", 1, None), ("earth", 2, None), ("venus", 1, None), ("venus", 2, None)],
-            "total": 4,
-            "desc": "Recording videos",
-        }
-    ]
 
 
 def test_show_video_conditions_formats_floats_with_two_decimals(monkeypatch):

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import json
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -49,6 +49,71 @@ BASELINE_PARAMS = {
 }
 
 
+def vector_result(
+    episode_returns=None,
+    *,
+    q_net="fake-q-net",
+    episode_epsilons=None,
+    episode_env_indices=None,
+    env_steps=None,
+    optimizer_updates=1,
+    early_stopped=False,
+    early_stopping_score=None,
+) -> VectorTrainingResult:
+    returns = episode_returns or [1.0]
+    episodes = len(returns)
+    return VectorTrainingResult(
+        q_net=q_net,
+        episode_returns=returns,
+        episode_lengths=[1] * episodes,
+        episode_epsilons=episode_epsilons or [0.1] * episodes,
+        episode_env_indices=episode_env_indices or [0] * episodes,
+        env_steps=env_steps or episodes,
+        optimizer_updates=optimizer_updates,
+        early_stopped=early_stopped,
+        early_stopping_score=early_stopping_score,
+    )
+
+
+def create_test_objective(*, suggest_parameter_values=None, environment_factory=None, **config_overrides):
+    return objective_module.create_objective(
+        suggest_parameter_values=suggest_parameter_values or FakeSuggestParameterValues(),
+        incumbent_params=BASELINE_PARAMS,
+        config=objective_config(
+            environment_factory=environment_factory or FakeEnvironmentFactory(), **config_overrides
+        ),
+    )
+
+
+def trainer_class(result, *, on_train=None):
+    class FakeTrainer:
+        device = "cpu"
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def train(self, training_config, *, plotter=None):
+            assert plotter is None
+            if on_train is not None:
+                on_train(training_config)
+            return result
+
+    return FakeTrainer
+
+
+class StaticHookFactory:
+    def __init__(self, hooks, on_trial=lambda _ctx: None) -> None:
+        self.hooks = hooks
+        self.on_trial = on_trial
+
+    def for_trial(self, ctx):
+        self.on_trial(ctx)
+        return self.hooks
+
+    def study_attrs(self):
+        return {}
+
+
 def test_objective_config_study_attrs_are_json_serializable() -> None:
     attrs = objective_config(device=torch.device("cuda")).study_attrs()
 
@@ -85,15 +150,6 @@ class FakeSuggestParameterValues:
         trial.suggest_float("learning_rate", 5e-4, 1e-3)
 
 
-@dataclass
-class TrainerCall:
-    env: FakeEnv
-    seed: int | None
-    device: object
-    replay_memory_capacity: int
-    training_config: object | None = None
-
-
 def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     calls = []
     eval_calls = []
@@ -103,15 +159,13 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     class FakeTrainer:
         def __init__(self, env, *, seed, device, replay_memory_capacity, hidden_size) -> None:
             self.device = "trainer-device"
-            calls.append(TrainerCall(env, seed, device, replay_memory_capacity))
+            calls.append(SimpleNamespace(env=env))
 
         def train(self, training_config, *, plotter=None):
             assert plotter is None
             calls[-1].training_config = training_config
-            return VectorTrainingResult(
-                q_net="fake-q-net",
-                episode_returns=[10.0, 50.0],
-                episode_lengths=[1, 1],
+            return vector_result(
+                [10.0, 50.0],
                 episode_epsilons=[0.7, 0.6],
                 episode_env_indices=[0, 1],
                 env_steps=80,
@@ -127,10 +181,11 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", score_fn)
 
-    objective = objective_module.create_objective(
+    objective = create_test_objective(
         suggest_parameter_values=suggest_parameter_values,
-        incumbent_params=BASELINE_PARAMS,
-        config=objective_config(environment_factory=environment_factory, num_envs=20, training_seed=100),
+        environment_factory=environment_factory,
+        num_envs=20,
+        training_seed=100,
     )
 
     trial = FakeTrial()
@@ -154,39 +209,24 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
 
 
 def test_objective_returns_early_stopping_score_without_evaluation(monkeypatch) -> None:
-    class FakeTrainer:
-        device = "cpu"
+    def assert_early_stopping_config(training_config):
+        assert training_config.early_stopping_score == pytest.approx(-250.0)
 
-        def __init__(self, *_args, **_kwargs) -> None:
-            pass
-
-        def train(self, training_config, *, plotter=None):
-            assert training_config.early_stopping_score == pytest.approx(-250.0)
-            assert plotter is None
-            return VectorTrainingResult(
-                q_net="fake-q-net",
-                episode_returns=[-300.0] * 6,
-                episode_lengths=[1] * 6,
-                episode_epsilons=[0.1] * 6,
-                episode_env_indices=[0] * 6,
-                env_steps=6,
-                optimizer_updates=1,
-                early_stopped=True,
-                early_stopping_score=-300.0,
-            )
-
-    monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
+    monkeypatch.setattr(
+        objective_module,
+        "VectorTrainer",
+        trainer_class(
+            vector_result([-300.0] * 6, early_stopped=True, early_stopping_score=-300.0),
+            on_train=assert_early_stopping_config,
+        ),
+    )
     monkeypatch.setattr(
         objective_module,
         "evaluate_greedy_q_net",
         lambda **_kwargs: pytest.fail("early-stopped trials are not evaluated"),
     )
 
-    objective = objective_module.create_objective(
-        suggest_parameter_values=FakeSuggestParameterValues(),
-        incumbent_params=BASELINE_PARAMS,
-        config=objective_config(environment_factory=FakeEnvironmentFactory()),
-    )
+    objective = create_test_objective()
     trial = FakeTrial()
 
     assert objective(trial) == pytest.approx(-300.0)
@@ -201,33 +241,11 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
         def evaluation_envs(self):
             return {"lunar_lander": lambda: FakeEnv()}
 
-    class FakeTrainer:
-        device = "cpu"
-
-        def __init__(self, *_args, **_kwargs) -> None:
-            pass
-
-        def train(self, _training_config, *, plotter=None):
-            assert plotter is None
-            return VectorTrainingResult(
-                q_net="fake-q-net",
-                episode_returns=[1.0],
-                episode_lengths=[1],
-                episode_epsilons=[0.1],
-                episode_env_indices=[0],
-                env_steps=1,
-                optimizer_updates=1,
-            )
-
-    monkeypatch.setattr(objective_module, "VectorTrainer", FakeTrainer)
+    monkeypatch.setattr(objective_module, "VectorTrainer", trainer_class(vector_result()))
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", lambda **_kwargs: 5.0)
 
-    objective = objective_module.create_objective(
-        suggest_parameter_values=FakeSuggestParameterValues(),
-        incumbent_params=BASELINE_PARAMS,
-        config=objective_config(
-            environment_factory=SingleEnvironmentFactory(), training_seed=None, eval_episodes=7, eval_seed=50
-        ),
+    objective = create_test_objective(
+        environment_factory=SingleEnvironmentFactory(), training_seed=None, eval_episodes=7, eval_seed=50
     )
     trial = FakeTrial()
     objective(trial)
@@ -236,7 +254,7 @@ def test_single_evaluation_keeps_existing_trial_attributes(monkeypatch) -> None:
 
 
 def test_objective_uses_objective_hooks(monkeypatch) -> None:
-    suggest_parameter_values = FakeSuggestParameterValues()
+    suggest = FakeSuggestParameterValues()
     hook_calls = []
 
     class FakeQNet:
@@ -250,15 +268,7 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
 
         def train(self, _training_config, *, plotter=None):
             assert plotter is None
-            return VectorTrainingResult(
-                q_net=FakeQNet(),
-                episode_returns=[1.0],
-                episode_lengths=[1],
-                episode_epsilons=[0.1],
-                episode_env_indices=[0],
-                env_steps=1,
-                optimizer_updates=1,
-            )
+            return vector_result(q_net=FakeQNet())
 
     class FakeHooks:
         def make_trainer(self, *args, **kwargs):
@@ -277,27 +287,14 @@ def test_objective_uses_objective_hooks(monkeypatch) -> None:
             assert ctx.training_result is not None
             ctx.trial.set_user_attr("hook_attr", "yes")
 
-    class FakeHookFactory:
-        def for_trial(self, ctx):
-            hook_calls.append((ctx.trial, ctx.training_config))
-            return FakeHooks()
-
-        def study_attrs(self):
-            return {"hook_factory": "fake"}
-
     def score_fn(**kwargs):
         assert kwargs["q_net"].hooked
         return 10.0
 
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", score_fn)
 
-    objective = objective_module.create_objective(
-        suggest_parameter_values=suggest_parameter_values,
-        incumbent_params=BASELINE_PARAMS,
-        config=objective_config(
-            environment_factory=FakeEnvironmentFactory(), hooks=FakeHookFactory(), eval_episodes=1
-        ),
-    )
+    hook_factory = StaticHookFactory(FakeHooks(), lambda c: hook_calls.append((c.trial, c.training_config)))
+    objective = create_test_objective(suggest_parameter_values=suggest, hooks=hook_factory, eval_episodes=1)
     trial = FakeTrial()
 
     assert objective(trial) == pytest.approx(10.0)
@@ -320,15 +317,7 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
             plotter.plot_returns([1.0], epsilons=[0.9], env_indices=[0])
             self.hooks.best_checkpoint_score = 4.0
             plotter.plot_returns([1.0, 5.0], epsilons=[0.9, 0.8], env_indices=[0, 1])
-            return VectorTrainingResult(
-                q_net="fake-q-net",
-                episode_returns=[1.0, 5.0],
-                episode_lengths=[1, 1],
-                episode_epsilons=[0.1, 0.1],
-                episode_env_indices=[0, 1],
-                env_steps=2,
-                optimizer_updates=1,
-            )
+            return vector_result([1.0, 5.0], episode_env_indices=[0, 1])
 
     class FakeHooks:
         best_checkpoint_score = None
@@ -353,22 +342,9 @@ def test_objective_reports_live_training_progress(monkeypatch) -> None:
         def finalize_trial(self, _ctx):
             pass
 
-    class FakeHookFactory:
-        def for_trial(self, _ctx):
-            return FakeHooks()
-
-        def study_attrs(self):
-            return {}
-
     monkeypatch.setattr(objective_module, "evaluate_greedy_q_net", lambda **_kwargs: 10.0)
 
-    objective = objective_module.create_objective(
-        suggest_parameter_values=FakeSuggestParameterValues(),
-        incumbent_params=BASELINE_PARAMS,
-        config=objective_config(
-            environment_factory=FakeEnvironmentFactory(), hooks=FakeHookFactory(), eval_episodes=1
-        ),
-    )
+    objective = create_test_objective(hooks=StaticHookFactory(FakeHooks()), eval_episodes=1)
 
     objective(FakeTrial())
 

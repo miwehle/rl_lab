@@ -65,6 +65,24 @@ def first_weight(model: torch.nn.Module) -> float:
     return next(model.parameters()).flatten()[0].item()
 
 
+def linear_with_weight(value: float) -> torch.nn.Linear:
+    model = torch.nn.Linear(1, 1)
+    set_weights(model, value)
+    return model
+
+
+def loaded_weight(path, *, device=torch.device("cpu")) -> tuple[float, dict]:
+    restored = torch.nn.Linear(1, 1)
+    metadata = load_checkpoint(restored, path, device)
+    return first_weight(restored), metadata
+
+
+def archive_hooks(tmp_path, archive_dir):
+    return ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
+        objective_context()
+    )
+
+
 def objective_context(
     trial=None, config=None, *, params=None, q_net=None, score=None, episode_returns=None
 ) -> ObjectiveContext:
@@ -111,10 +129,9 @@ def test_best_checkpoint_recorder_saves_best_full_window(tmp_path) -> None:
     set_weights(trainer.q_net, 5.0)
     recorder.after_episode(trainer, [1.0, 3.0, 4.0])
 
-    restored = torch.nn.Linear(1, 1)
-    metadata = load_checkpoint(restored, path, torch.device("cpu"))
+    weight, metadata = loaded_weight(path)
 
-    assert first_weight(restored) == pytest.approx(5.0)
+    assert weight == pytest.approx(5.0)
     assert metadata["trial_number"] == 7
     assert metadata["score"] == pytest.approx(3.5)
     assert metadata["episode"] == 3
@@ -140,7 +157,6 @@ def test_checkpointing_objective_hook_factory_copies_with_min_score(tmp_path) ->
 
     copied = factory.with_min_score(120.0)
 
-    assert copied is not factory
     assert copied.min_score == pytest.approx(120.0)
     assert factory.min_score == pytest.approx(100.0)
     assert copied.with_min_score(90.0).min_score == pytest.approx(120.0)
@@ -210,17 +226,14 @@ def test_checkpointing_objective_hook_factory_uses_robustness_checkpoint_dir(tmp
 
 def test_evaluation_best_checkpoint_recorder_saves_evaluated_model(tmp_path) -> None:
     path = tmp_path / "eval_best.pt"
-    q_net = torch.nn.Linear(1, 1)
-    set_weights(q_net, 9.0)
-    ctx = objective_context(q_net=q_net, score=211.0, episode_returns=[1.0, 2.0, 3.0])
+    ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
     ctx.world_scores = {"moon": 211.0}
     recorder = EvaluationBestCheckpointRecorder(path, min_score=200.0)
 
     recorder.after_evaluation(ctx)
 
-    restored = torch.nn.Linear(1, 1)
-    metadata = load_checkpoint(restored, path, torch.device("cpu"))
-    assert first_weight(restored) == pytest.approx(9.0)
+    weight, metadata = loaded_weight(path)
+    assert weight == pytest.approx(9.0)
     assert metadata["score"] == pytest.approx(211.0)
     assert metadata["episode"] == 3
     assert metadata["window"] is None
@@ -228,51 +241,36 @@ def test_evaluation_best_checkpoint_recorder_saves_evaluated_model(tmp_path) -> 
 
 def test_objective_hooks_archive_best_eval_checkpoint(tmp_path) -> None:
     archive_dir = tmp_path / "archive"
-    hooks = ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
-        objective_context()
-    )
-    q_net = torch.nn.Linear(1, 1)
-    set_weights(q_net, 9.0)
-    ctx = objective_context(q_net=q_net, score=211.0, episode_returns=[1.0, 2.0, 3.0])
+    hooks = archive_hooks(tmp_path, archive_dir)
+    ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
 
     hooks.finalize_trial(ctx)
 
     archive_path = archive_dir / "best_eval_checkpoint.pt"
-    metadata_path = archive_dir / "best_eval_checkpoint.json"
-    metadata = json.loads(metadata_path.read_text())
-    restored = torch.nn.Linear(1, 1)
-
-    load_checkpoint(restored, archive_path, torch.device("cpu"))
+    metadata = json.loads((archive_dir / "best_eval_checkpoint.json").read_text())
+    weight, _ = loaded_weight(archive_path)
 
     assert ctx.trial.user_attrs["evaluation_checkpoint_archive_path"] == str(archive_path)
-    assert first_weight(restored) == pytest.approx(9.0)
+    assert weight == pytest.approx(9.0)
     assert metadata["score"] == pytest.approx(211.0)
     assert metadata["source_path"] == str(tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt")
 
 
 def test_objective_hooks_keep_archived_eval_checkpoint_when_score_is_lower(tmp_path) -> None:
     archive_dir = tmp_path / "archive"
-    high_hooks = ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
-        objective_context()
-    )
-    high_q_net = torch.nn.Linear(1, 1)
-    set_weights(high_q_net, 9.0)
-    high_hooks.finalize_trial(objective_context(q_net=high_q_net, score=211.0, episode_returns=[1.0]))
+    high_hooks = archive_hooks(tmp_path, archive_dir)
+    high_ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0])
+    high_hooks.finalize_trial(high_ctx)
 
-    low_hooks = ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
-        objective_context()
-    )
-    low_q_net = torch.nn.Linear(1, 1)
-    set_weights(low_q_net, 3.0)
-    low_ctx = objective_context(q_net=low_q_net, score=200.0, episode_returns=[1.0])
+    low_hooks = archive_hooks(tmp_path, archive_dir)
+    low_ctx = objective_context(q_net=linear_with_weight(3.0), score=200.0, episode_returns=[1.0])
 
     low_hooks.finalize_trial(low_ctx)
 
-    restored = torch.nn.Linear(1, 1)
-    metadata = load_checkpoint(restored, archive_dir / "best_eval_checkpoint.pt", torch.device("cpu"))
+    weight, metadata = loaded_weight(archive_dir / "best_eval_checkpoint.pt")
 
     assert "evaluation_checkpoint_archive_path" not in low_ctx.trial.user_attrs
-    assert first_weight(restored) == pytest.approx(9.0)
+    assert weight == pytest.approx(9.0)
     assert metadata["score"] == pytest.approx(211.0)
 
 

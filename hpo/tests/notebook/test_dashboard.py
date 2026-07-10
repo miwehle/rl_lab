@@ -29,6 +29,18 @@ class FakeStudy:
     user_attrs: dict = field(default_factory=dict)
 
 
+def trace_named(figure, name: str, *, xaxis: str | None = None):
+    return next(
+        trace
+        for trace in figure.data
+        if trace.name == name and (xaxis is None or getattr(trace, "xaxis", None) == xaxis)
+    )
+
+
+def annotation_texts(figure) -> list[str]:
+    return [annotation.text for annotation in figure.layout.annotations]
+
+
 def test_dashboard_rejects_unknown_render_mode() -> None:
     with pytest.raises(ValueError, match="unsupported dashboard render_mode"):
         Dashboard(render_mode="smooth")
@@ -105,58 +117,24 @@ def test_dashboard_throttles_training_updates_but_shows_final(monkeypatch) -> No
     assert training_updates[-1].episode_returns == [1.0, 2.0, 3.0]
 
 
-def test_dashboard_contains_simplified_two_row_layout() -> None:
+def test_dashboard_shows_incumbent_params_and_current_score() -> None:
     study = FakeStudy(
         trials=[FakeTrial(0, 50.0, {}, params={"learning_rate": 0.001})], study_name="s1_update_economy"
     )
-    baseline = FakeStudy(trials=[], study_name="s1_flight_hours", user_attrs={"incumbent_score": 30.0})
 
     figure = dashboard.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[baseline, study],
+        studies=[study],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
     )
 
-    assert figure.layout.width == 1200
-    assert figure.layout.height == 655
-    assert [annotation.text for annotation in figure.layout.annotations[:3]] == [
-        "Current HPs",
-        "Study: S1 Update Economy",
-        "Current Trial Training",
-    ]
-    plot_area_height = figure.layout.height - figure.layout.margin.t - figure.layout.margin.b
-    assert (figure.layout.yaxis.domain[1] - figure.layout.yaxis.domain[0]) * plot_area_height == pytest.approx(230)
-    assert (figure.layout.yaxis2.domain[1] - figure.layout.yaxis2.domain[0]) * plot_area_height == pytest.approx(230)
     table = next(trace for trace in figure.data if trace.type == "table")
     assert list(table.cells.values[0]) == ["learning_rate", "gamma"]
-    assert list(table.cells.fill.color[0]) == ["#fff2cc", "white"]
-    assert list(table.cells.fill.color[1]) == ["#fff2cc", "white"]
-    study_score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x")
-    assert list(study_score_trace.y) == [50.0]
-    assert list(figure.layout.xaxis.range) == [-0.5, 40.5]
-    assert list(figure.layout.yaxis.range) == [-10, 260]
-    assert figure.layout.legend.y < 0
-    assert figure.layout.legend.x == 0.5
-    assert figure.layout.legend.xanchor == "center"
-    assert figure.layout.legend.yanchor == "top"
-    assert figure.layout.margin.b >= 85
-    no_data_annotations = [
-        annotation for annotation in figure.layout.annotations if annotation.text == "No data"
-    ]
-    assert len(no_data_annotations) == 1
-    assert figure.layout.xaxis2.showticklabels is False
-    assert figure.layout.xaxis2.showgrid is False
-    assert figure.layout.yaxis3.showticklabels is False
-    assert figure.layout.yaxis3.showgrid is False
-    assert figure.layout.yaxis2.title.text == "Gym score"
-    assert list(figure.layout.yaxis2.range) == [0, 250]
-    assert {trace.name for trace in figure.data} >= {"Score", "Best score"}
-    assert {
-        trace.name
-        for trace in figure.data
-        if getattr(trace, "showlegend", False) is not False and trace.name is not None
-    } == set()
+    assert list(table.cells.values[1]) == ["0.001", "0.99"]
+    assert list(trace_named(figure, "Score", xaxis="x").y) == [50.0]
+    assert "Study: S1 Update Economy" in annotation_texts(figure)
+    assert "No data" in annotation_texts(figure)
 
 
 def test_study_plot_uses_evaluation_checkpoint_score() -> None:
@@ -169,12 +147,11 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
 
     figure = dashboard.build_dashboard(study=study, target_trials=2, studies=[], incumbent_params={})
 
-    score_trace = next(trace for trace in figure.data if trace.name == "Score" and trace.xaxis == "x")
-    best_trace = next(trace for trace in figure.data if trace.name == "Best score" and trace.xaxis == "x")
+    score_trace = trace_named(figure, "Score", xaxis="x")
+    best_trace = trace_named(figure, "Best score", xaxis="x")
 
     assert list(score_trace.y) == [120.0, 80.0]
     assert list(best_trace.y) == [120.0, 120.0]
-    assert list(figure.layout.xaxis.tickvals) == [0, 1, 2]
 
 
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
@@ -182,11 +159,8 @@ def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
 
     figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[], incumbent_params={})
 
-    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis.showticklabels is False
-    assert figure.layout.xaxis.showgrid is False
+    assert "No data" in annotation_texts(figure)
     assert figure.layout.yaxis.title.text == "Score"
-    assert list(figure.layout.yaxis.range) == [0, 250]
 
 
 def test_current_hps_use_live_trial_params_during_training() -> None:
@@ -234,19 +208,7 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
 
     seed_trace, mean_trace = figure.data[-2:]
     assert list(seed_trace.y) == [100.0, 120.0, 80.0, 90.0, 110.0, 70.0]
-    assert list(seed_trace.customdata) == [
-        "Optimize trial",
-        "Extra seed 1",
-        "Extra seed 2",
-        "Optimize trial",
-        "Extra seed 1",
-        "Optimize trial",
-    ]
     assert list(mean_trace.y) == pytest.approx([100.0, 100.0, 70.0])
-    assert mean_trace.marker.symbol == "diamond"
-    assert figure.layout.xaxis2.title.text == "Candidate"
-    assert list(figure.layout.xaxis2.ticktext) == [1, 2, 3]
-    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
 
 
 def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
@@ -302,20 +264,9 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     assert list(min_max[0].y) == [0, 0]
     assert list(mean.x) == [240.0, 250.0]
     assert list(mean.y) == [0, 1]
-    assert list(mean.text) == ["240.0", "250.0"]
-    assert mean.textposition == "top center"
     assert list(mean.customdata) == ["C1 trial 35", "C2 trial 42"]
-    assert mean.marker.color == "white"
-    assert mean.marker.line.color == "black"
     assert not any(trace.name == "median" for trace in figure.data)
-    assert figure.layout.xaxis2.title.text == "Score"
-    assert figure.layout.yaxis2.title.text == "Checkpoint"
-    assert {
-        trace.name
-        for trace in figure.data
-        if getattr(trace, "showlegend", False) is not False and trace.name is not None
-    } == set()
-    assert figure.layout.annotations[2].text.startswith("Checkpoint Robustness Evaluation")
+    assert any(text.startswith("Checkpoint Robustness Evaluation") for text in annotation_texts(figure))
 
 
 def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
@@ -345,15 +296,10 @@ def test_dashboard_shows_stored_checkpoint_robustness_after_study() -> None:
 
     figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
 
-    mean = next(trace for trace in figure.data if trace.name == "mean")
+    mean = trace_named(figure, "mean")
 
     assert list(mean.x) == [145.4]
-    assert list(mean.y) == [0]
-    assert list(mean.text) == ["145.4"]
-    assert figure.layout.xaxis2.title.text == "Score"
-    assert not any(
-        annotation.text == "Waiting for robustness evaluation" for annotation in figure.layout.annotations
-    )
+    assert "Waiting for robustness evaluation" not in annotation_texts(figure)
 
 
 def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None:
@@ -361,12 +307,8 @@ def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None
 
     figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
 
-    assert any(annotation.text == "No data" for annotation in figure.layout.annotations)
-    assert figure.layout.xaxis2.showticklabels is False
-    assert figure.layout.xaxis2.showgrid is False
+    assert "No data" in annotation_texts(figure)
     assert figure.layout.xaxis2.title.text == "Score"
-    assert list(figure.layout.xaxis2.range) == [0, 250]
-    assert figure.layout.yaxis2.showticklabels is False
 
 
 def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() -> None:
@@ -388,24 +330,17 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
         ),
     )
 
-    returns = next(trace for trace in figure.data if trace.name == "Episode return")
-    trailing_mean = next(trace for trace in figure.data if trace.name == "Mean (2 episodes)")
-    checkpoint = next(trace for trace in figure.data if trace.name == "Best checkpoint score")
-    epsilon = next(trace for trace in figure.data if trace.name == "Epsilon")
-    moon = next(trace for trace in figure.data if trace.name == "Moon")
-    mars = next(trace for trace in figure.data if trace.name == "Mars")
+    returns = trace_named(figure, "Episode return")
+    trailing_mean = trace_named(figure, "Mean (2 episodes)")
+    checkpoint = trace_named(figure, "Best checkpoint score")
+    epsilon = trace_named(figure, "Epsilon")
+    moon = trace_named(figure, "Moon")
+    mars = trace_named(figure, "Mars")
     env_traces = [trace.name for trace in figure.data if trace.name in {"Mercury", "Earth", "Moon", "Mars"}]
 
     assert list(returns.x) == [1, 2, 3, 4]
     assert list(returns.y) == [1.0, 3.0, 5.0, 7.0]
-    assert returns.mode == "lines"
-    assert returns.line.color == "#9a9a9a"
     assert env_traces == ["Mercury", "Earth", "Moon", "Mars"]
-    assert {
-        trace.name
-        for trace in figure.data
-        if getattr(trace, "showlegend", False) is not False and trace.name is not None
-    } == {"Mercury", "Earth", "Moon", "Mars"}
     assert list(moon.x) == [1]
     assert list(moon.y) == [1.0]
     assert list(mars.x) == [2]
@@ -415,13 +350,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     assert list(trailing_mean.x) == [2, 3, 4]
     assert list(trailing_mean.y) == pytest.approx([2.0, 4.0, 6.0])
     assert list(checkpoint.y) == [4.0, 4.0]
-    assert figure.layout.xaxis2.title.text == "Training episode"
-    assert figure.layout.yaxis2.title.text == "Gym score"
-    assert figure.layout.yaxis3.title.text == "Epsilon"
-    assert any(
-        annotation.text == "Trial: 3 · Current Mean: 6.0 · Best Mean: 6.0"
-        for annotation in figure.layout.annotations
-    )
+    assert "Trial: 3 · Current Mean: 6.0 · Best Mean: 6.0" in annotation_texts(figure)
 
 
 def test_training_plot_starts_reference_at_checkpoint_threshold() -> None:
@@ -505,3 +434,4 @@ def test_show_dashboard_during_robustness_evaluation_replaces_oh(monkeypatch) ->
             "training_score_min": -500.0,
         },
     )
+
