@@ -1,18 +1,8 @@
-"""Hyperparameter optimization package for DQN lander agents.
+"""Notebook-public HPO API.
 
-Main characters:
-
-- Use-case modules:
-  - study: run one named Optuna study within a study series.
-  - objective: run one Optuna trial.
-- Evaluation:
-  - evaluation: videos, rendering, and robustness evaluation helpers.
-- Notebook:
-  - notebook.dashboard: notebook dashboard for the running HPO.
-- Games:
-  - games: playable demos for understanding environments by hand.
-- Reporting port:
-  - study_reporting: reporter protocol and progress DTOs.
-- Infrastructure:
-  - checkpointing: checkpoint recorders, loading/saving, and objective hooks.
+This module re-exports the HPO objects used directly by the SolarSystemLander notebooks.
+Lower-level public package contracts live in the corresponding package ``__init__`` files.
 """
+
+from hpo._api import *  # noqa: F403
+from hpo._api import __all__

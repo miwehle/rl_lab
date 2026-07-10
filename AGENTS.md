@@ -66,6 +66,13 @@ For test code, follow `../nmt_lab/translator/how_to_test.md`. Treat it as part o
 
 Existing tests in `rl_lab` do not need to be retrofitted just to match those rules.
 
+For HPO, distinguish two public API levels when applying the test rules:
+
+- `notebook-public`: objects directly used by the SolarSystemLander HPO notebooks. They should be re-exported from `hpo/__init__.py`.
+- `to-higher-level public`: lower-level package objects directly used by a higher-level public object. They should be re-exported only from the `__init__.py` of their own lower-level package.
+
+In HPO, direct tests should usually target only one of these two public API levels. Private helpers and incidental implementation details should usually be tested through their public users instead.
+
 ### PlantUML
 
 Keep `.puml` sequence diagrams compact and navigable.
