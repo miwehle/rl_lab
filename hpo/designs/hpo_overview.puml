@@ -9,7 +9,7 @@ participant "study.py" as study_module
 participant "hp_robustness.py" as hp_robustness
 participant "study:Study" as study
 participant "objective.py" as objective
-participant ":SuggestParameterValues" as suggest_parameter_values
+participant ":_SuggestParameterValues" as suggest_parameter_values
 participant ":EnvironmentFactory" as environment_factory
 participant ":VectorTrainer" as trainer
 participant ":Trial" as trial
@@ -19,7 +19,7 @@ url of study_module is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
 url of hp_robustness is [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:1:1]]
 url of study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:182:1]]
 url of objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1]]
-url of suggest_parameter_values is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:19:1]]
+url of suggest_parameter_values is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:18:1]]
 url of environment_factory is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:23:1]]
 url of trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:115:1]]
 url of trial is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1]]
@@ -47,7 +47,7 @@ deactivate trial
 suggest_parameter_values --> objective : trial.params ergaenzt
 deactivate suggest_parameter_values
 
-objective -> objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:205:1 vector_training_config(params)]]
+objective -> objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:236:1 _vector_training_config(params)]]
 
 objective -> environment_factory : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:23:1 make_training_env(num_envs)]]
 activate environment_factory

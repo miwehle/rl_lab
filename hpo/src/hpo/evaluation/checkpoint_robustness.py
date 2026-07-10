@@ -16,7 +16,7 @@ from hpo.study_reporting import RobustnessProgress
 
 
 @dataclass(frozen=True)
-class CheckpointCandidate:
+class _CheckpointCandidate:
     trial_number: int
     path: Path
     score: float
@@ -228,9 +228,9 @@ def _checkpoint_hidden_size(path: str | Path) -> int:
     return int(training_config.get("hidden_size", 128))
 
 
-def _top_checkpoint_candidates(study: Any, top_n: int) -> list[CheckpointCandidate]:
+def _top_checkpoint_candidates(study: Any, top_n: int) -> list[_CheckpointCandidate]:
     candidates = [
-        CheckpointCandidate(
+        _CheckpointCandidate(
             trial_number=trial.number,
             path=Path(trial.user_attrs["evaluation_checkpoint_path"]),
             score=trial_best_checkpoint_score(trial),

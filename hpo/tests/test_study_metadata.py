@@ -7,7 +7,7 @@ from hpo import study_metadata
 def test_record_study_metadata_creates_hpo_table(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
         study_metadata,
-        "runtime_metadata",
+        "_runtime_metadata",
         lambda **_kwargs: {
             "python_version": "3.12.0",
             "platform": "test",
@@ -41,7 +41,7 @@ def test_record_study_metadata_creates_hpo_table(tmp_path, monkeypatch) -> None:
 
 def test_record_study_metadata_keeps_existing_row(tmp_path, monkeypatch) -> None:
     values = [{"python_version": "first"}, {"python_version": "second"}]
-    monkeypatch.setattr(study_metadata, "runtime_metadata", lambda **_kwargs: values.pop(0))
+    monkeypatch.setattr(study_metadata, "_runtime_metadata", lambda **_kwargs: values.pop(0))
     database_path = tmp_path / "study.db"
 
     study_metadata.record_study_metadata(database_path, "s1", runtime_provider="local")

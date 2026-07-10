@@ -15,11 +15,11 @@ from hpo.hyperparams import HP
 logger = logging.getLogger(__name__)
 
 
-class SuggestParameterValues(Protocol):
+class _SuggestParameterValues(Protocol):
     def __call__(self, trial: Any, incumbent_params: dict[str, Any]) -> None: ...
 
 
-class EnvironmentFactory(Protocol):
+class _EnvironmentFactory(Protocol):
     def make_training_env(self, num_envs: int) -> Any: ...
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
@@ -50,7 +50,7 @@ class ObjectiveContext:
 #     https://martinfowler.com/articles/injection.html
 
 
-class Hooks(Protocol):
+class _Hooks(Protocol):
     def make_trainer(
         self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
     ) -> Any: ...
@@ -62,13 +62,13 @@ class Hooks(Protocol):
     def finalize_trial(self, ctx: ObjectiveContext) -> None: ...
 
 
-class HookFactory(Protocol):
-    def for_trial(self, ctx: ObjectiveContext) -> Hooks: ...
+class _HookFactory(Protocol):
+    def for_trial(self, ctx: ObjectiveContext) -> _Hooks: ...
 
     def study_attrs(self) -> dict[str, Any]: ...
 
 
-class DefaultHooks:
+class _DefaultHooks:
     def make_trainer(
         self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
     ) -> Any:
@@ -90,9 +90,9 @@ class DefaultHooks:
         pass
 
 
-class DefaultHookFactory:
-    def for_trial(self, ctx: ObjectiveContext) -> Hooks:
-        return DefaultHooks()
+class _DefaultHookFactory:
+    def for_trial(self, ctx: ObjectiveContext) -> _Hooks:
+        return _DefaultHooks()
 
     def study_attrs(self) -> dict[str, Any]:
         return {}
@@ -106,14 +106,14 @@ class ObjectiveConfig:
     Internally, this is passed to VectorTrainer.
     """
 
-    environment_factory: EnvironmentFactory
+    environment_factory: _EnvironmentFactory
     num_envs: int
     eval_episodes: int
     eval_max_steps: int = 2_000
     eval_seed: int = 10_000
     training_seed: int | None = 42
     early_stopping_score: float | None = -250.0
-    hooks: HookFactory = field(default_factory=DefaultHookFactory)
+    hooks: _HookFactory = field(default_factory=_DefaultHookFactory)
     device: Any = None
 
     def __post_init__(self) -> None:
@@ -144,7 +144,7 @@ class ObjectiveConfig:
 
 def create_objective(
     *,
-    suggest_parameter_values: SuggestParameterValues,
+    suggest_parameter_values: _SuggestParameterValues,
     incumbent_params: dict[str, Any],
     config: ObjectiveConfig,
 ) -> Callable[[Any], float]:
@@ -155,7 +155,7 @@ def create_objective(
         # set up
         suggest_parameter_values(trial, incumbent_params)
         params = incumbent_params | trial.params
-        training_config = vector_training_config(params, early_stopping_score=config.early_stopping_score)
+        training_config = _vector_training_config(params, early_stopping_score=config.early_stopping_score)
         ctx = ObjectiveContext(trial=trial, params=params, training_config=training_config)
         replay_memory_capacity = params[HP.REPLAY_MEMORY]
         trial_seed = None if config.training_seed is None else config.training_seed + trial.number
@@ -200,7 +200,7 @@ def create_objective(
             }
             ctx.score = sum(ctx.world_scores.values()) / len(ctx.world_scores)
 
-        set_user_attrs(ctx)
+        _set_user_attrs(ctx)
         hooks.finalize_trial(ctx)
 
         return ctx.score
@@ -208,7 +208,7 @@ def create_objective(
     return objective
 
 
-def set_user_attrs(ctx: ObjectiveContext) -> None:
+def _set_user_attrs(ctx: ObjectiveContext) -> None:
     def save(key, value):
         ctx.trial.set_user_attr(key, value)
 
@@ -233,7 +233,7 @@ def set_user_attrs(ctx: ObjectiveContext) -> None:
     )
 
 
-def vector_training_config(
+def _vector_training_config(
     params: dict[str, Any], *, early_stopping_score: float | None = None
 ) -> VectorTrainingConfig:
     return VectorTrainingConfig(

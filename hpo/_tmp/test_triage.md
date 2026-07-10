@@ -19,7 +19,7 @@ Priority means how strongly a test module deviates from the test rules, not only
 
 ## High-Priority Files
 
-### `hpo/tests/notebook/test_dashboard.py` (LOC: 507 -> 434)
+### `hpo/tests/notebook/test_dashboard.py` (LOC: 507 -> 433)
 
 Overall: `rewrite` with several `drop` candidates.
 Action: rewrite/drop layout-detail assertions.
@@ -109,7 +109,7 @@ Action details:
 - `keep`: public evaluation behavior for `evaluate_checkpoint_robustness`, `checkpoint_scores`, `robustness_over_all_worlds`, and `score_summary`.
 - `rewrite/drop`: `_tqdm` patching for progress bars is a fragile implementation-detail test unless progress reporting is considered a stable user-facing behavior.
 
-### `hpo/tests/test_checkpointing.py` (LOC: 313 -> 310)
+### `hpo/tests/test_checkpointing.py` (LOC: 313 -> 308)
 
 Overall: mostly `keep`, with a naming/structure cleanup opportunity.
 Action: keep behavior, simplify structure only when LOC goes down.

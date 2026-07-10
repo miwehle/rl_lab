@@ -38,7 +38,7 @@ end
 Objective -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:143:1 suggest_parameter_values(...)]]
 Trial --> Objective: params
 
-Objective -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:205:1 vector_training_config(params)]]
+Objective -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:236:1 _vector_training_config(params)]]
 Objective -> Checkpointing: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:152:1 hooks = config.hooks.for_trial(...)]]
 create Recorder
 Checkpointing -> Recorder: [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:126:1 new BestCheckpointRecorder(...)]]

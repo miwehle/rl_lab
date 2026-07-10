@@ -178,9 +178,7 @@ class TestObjectiveHookFactory:
         assert factory.min_score == pytest.approx(100.0)
         assert copied.with_min_score(90.0).min_score == pytest.approx(120.0)
 
-
-class TestObjectiveHooks:
-    def test_create_training_plotter(self, tmp_path) -> None:
+    def test_for_trial_creates_training_plotter(self, tmp_path) -> None:
         progress_calls = []
         hooks = (
             ObjectiveHookFactory(tmp_path, window=2, min_score=10.0)
@@ -203,7 +201,7 @@ class TestObjectiveHooks:
         assert progress_calls[0].best_checkpoint_score is None
         assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
 
-    def test_load_best_checkpoint_and_save_attrs(self, tmp_path) -> None:
+    def test_for_trial_loads_best_checkpoint_and_saves_attrs(self, tmp_path) -> None:
         hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context())
         trainer = FakeTrainer()
 
@@ -227,7 +225,7 @@ class TestObjectiveHooks:
         assert attrs["checkpoint_episode"] == 2
         assert attrs["checkpoint_window"] == 2
 
-    def test_uses_robustness_checkpoint_dir(self, tmp_path) -> None:
+    def test_for_trial_uses_robustness_checkpoint_dir(self, tmp_path) -> None:
         hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context(trial=FakeRobustTrial()))
         trainer = FakeTrainer()
 
@@ -239,7 +237,7 @@ class TestObjectiveHooks:
 
         assert attrs["checkpoint_path"] == str(tmp_path / "robustness" / "trial_0003_seed_1001_best.pt")
 
-    def test_archive_best_eval_checkpoint(self, tmp_path) -> None:
+    def test_for_trial_archives_best_eval_checkpoint(self, tmp_path) -> None:
         archive_dir = tmp_path / "archive"
         hooks = archive_hooks(tmp_path, archive_dir)
         ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
@@ -255,7 +253,7 @@ class TestObjectiveHooks:
         assert metadata["score"] == pytest.approx(211.0)
         assert metadata["source_path"] == str(tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt")
 
-    def test_keep_archived_eval_checkpoint_when_score_is_lower(self, tmp_path) -> None:
+    def test_for_trial_keeps_archived_eval_checkpoint_when_score_is_lower(self, tmp_path) -> None:
         archive_dir = tmp_path / "archive"
         high_hooks = archive_hooks(tmp_path, archive_dir)
         high_ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0])

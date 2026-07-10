@@ -130,7 +130,7 @@ def video_conditions_table(environment_factory, worlds: Iterable[str], seeds: It
             try:
                 env.reset(seed=seed)
                 wind, turbulence = env._weather
-                fx, fy = initial_force(seed)
+                fx, fy = _initial_force(seed)
                 rows.append(
                     {
                         "world": env.world.name,
@@ -159,7 +159,7 @@ def show_video_conditions(environment_factory, worlds: Iterable[str], seeds: Ite
     display(_video_conditions_style(table))
 
 
-def initial_force(seed: int) -> tuple[float, float]:
+def _initial_force(seed: int) -> tuple[float, float]:
     """Reconstruct LunarLander's reset-time random initial force for a seed."""
     rng, _ = seeding.np_random(seed)
     viewport_height = lunar_lander.VIEWPORT_H / lunar_lander.SCALE

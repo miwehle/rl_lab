@@ -1,7 +1,6 @@
-"""Notebook-public HPO API.
+"""Top-level HPO API.
 
-This module re-exports the HPO objects used directly by the SolarSystemLander notebooks.
-Lower-level public package contracts live in the corresponding package ``__init__`` files.
+This module re-exports the curated HPO objects intended for notebooks and external clients.
 """
 
 from hpo._api import *  # noqa: F403

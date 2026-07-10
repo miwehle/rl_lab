@@ -61,7 +61,7 @@ The objective uses a Hook Object pattern through `ObjectiveConfig.hooks` so chec
 
 `ObjectiveContext` is the small hook-relevant context object that is filled through the objective; hooks receive it at `for_trial(ctx)` and `finalize_trial(ctx, save)`.
 
-`vector_training_config(...)` maps HPO hyperparameters to `VectorTrainingConfig`; HPO currently enables adaptive training extension with `adaptive_extension_window=50` and early stopping through `ObjectiveConfig.early_stopping_score`.
+`_vector_training_config(...)` maps HPO hyperparameters to `VectorTrainingConfig`; HPO currently enables adaptive training extension with `adaptive_extension_window=50` and early stopping through `ObjectiveConfig.early_stopping_score`.
 
 The objective saves `trained_episodes` so planned vs. actual training length is visible after adaptive extension or early stopping.
 

@@ -31,11 +31,11 @@ L4 GPU
 
 HPO uses two public API levels to keep notebooks, package boundaries, and tests aligned.
 
-`notebook-public` objects are objects directly used by the SolarSystemLander HPO notebooks. They are re-exported from `hpo/__init__.py`, so notebook code can treat `hpo` as the user-facing API surface.
+`api-public` objects are objects intended for notebooks and external clients. They are re-exported from `hpo/__init__.py`, so notebook code can treat `hpo` as the user-facing API surface.
 
-`to-higher-level public` objects are lower-level package objects directly used by a higher-level public object. They are re-exported only from the `__init__.py` of their own lower-level package.
+`module-public` objects are names without a leading `_` in a public module or public class. They may be used by higher-level package code without being re-exported from package `__init__.py` files.
 
-Direct tests should usually target only one of these two public API levels. Private helpers and incidental implementation details should usually be tested through their public users instead.
+Direct tests should usually target only one of these two public API levels. Names with a leading `_`, and members of a private surrounding structure, are private implementation details and should usually be tested through their public users instead.
 
 ## Objective
 

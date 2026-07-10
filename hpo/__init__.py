@@ -1,4 +1,4 @@
-"""Workspace shim for the notebook-public HPO API."""
+"""Workspace shim for the top-level HPO API."""
 
 from pathlib import Path
 

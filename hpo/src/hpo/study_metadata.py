@@ -20,8 +20,8 @@ def record_study_metadata(
     """Create or update the HPO metadata row for one study."""
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
-    metadata = runtime_metadata(device=device, runtime_provider=runtime_provider)
-    provider = runtime_provider or detect_runtime_provider()
+    metadata = _runtime_metadata(device=device, runtime_provider=runtime_provider)
+    provider = runtime_provider or _detect_runtime_provider()
     with sqlite3.connect(database_path) as connection:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS hpo_study_metadata (
@@ -45,7 +45,7 @@ def record_study_metadata(
         )
 
 
-def runtime_metadata(*, device: Any = None, runtime_provider: str | None = None) -> dict[str, Any]:
+def _runtime_metadata(*, device: Any = None, runtime_provider: str | None = None) -> dict[str, Any]:
     """Collect the compact runtime facts that help explain study results."""
     metadata = {
         "python_version": platform.python_version(),
@@ -61,12 +61,12 @@ def runtime_metadata(*, device: Any = None, runtime_provider: str | None = None)
         "git_dirty": _git_dirty(),
     }
     _add_accelerator_metadata(metadata)
-    if (runtime_provider or detect_runtime_provider()) == "colab":
+    if (runtime_provider or _detect_runtime_provider()) == "colab":
         metadata["colab"] = {"hardware_accelerator": _colab_hardware_accelerator(metadata)}
     return metadata
 
 
-def detect_runtime_provider() -> str:
+def _detect_runtime_provider() -> str:
     """Return a coarse runtime provider label."""
     if "google.colab" in sys.modules:
         return "colab"

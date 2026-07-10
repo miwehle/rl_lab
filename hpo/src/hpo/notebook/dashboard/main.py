@@ -151,14 +151,14 @@ def _stored_checkpoint_summaries(study: Any) -> list[dict[str, Any]] | None:
 
 
 @dataclass
-class DashboardContext:
+class _DashboardContext:
     study: Any
     target_trials: int
     robustness_progress: RobustnessProgress | None = None
 
 
 @dataclass
-class StudySeriesContext:
+class _StudySeriesContext:
     studies: list[Any]
     incumbent_params: dict[str, Any]
 
@@ -179,20 +179,20 @@ class Dashboard(StudySeriesReporter):
         self.training_update_interval_seconds = training_update_interval_seconds
         self.training_score_min = training_score_min
         self._last_training_update = 0.0
-        self._context: DashboardContext | None = None
-        self._series: StudySeriesContext | None = None
+        self._context: _DashboardContext | None = None
+        self._series: _StudySeriesContext | None = None
 
     def set_study_series_context(self, *, studies: list[Any], incumbent_params: dict[str, Any]) -> None:
-        self._series = StudySeriesContext(studies=studies, incumbent_params=incumbent_params)
+        self._series = _StudySeriesContext(studies=studies, incumbent_params=incumbent_params)
 
     def report_optimization(self, study: Any, *, target_trials: int) -> None:
-        self._context = DashboardContext(study=study, target_trials=target_trials)
+        self._context = _DashboardContext(study=study, target_trials=target_trials)
         self._show()
 
     def report_robustness_evaluation(self, progress: RobustnessProgress) -> None:
         if self._context is None:
             return
-        self._context = DashboardContext(
+        self._context = _DashboardContext(
             study=self._context.study, target_trials=self._context.target_trials, robustness_progress=progress
         )
         self._show()

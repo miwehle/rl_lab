@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from hpo.notebook import dashboard
-from hpo.notebook.dashboard import Dashboard
+from hpo import Dashboard
 from hpo.notebook.dashboard import main as dashboard_main
 from hpo.study_reporting import RobustnessProgress, TrainingProgress
 
@@ -46,7 +45,7 @@ def test_shows_incumbent_params_and_current_score() -> None:
         trials=[FakeTrial(0, 50.0, {}, params={"learning_rate": 0.001})], study_name="s1_update_economy"
     )
 
-    figure = dashboard.build_dashboard(
+    figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[study],
@@ -69,7 +68,7 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
         ]
     )
 
-    figure = dashboard.build_dashboard(study=study, target_trials=2, studies=[], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=2, studies=[], incumbent_params={})
 
     score_trace = trace_named(figure, "Score", xaxis="x")
     best_trace = trace_named(figure, "Best score", xaxis="x")
@@ -81,7 +80,7 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
 
-    figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, studies=[], incumbent_params={})
 
     assert "No data" in annotation_texts(figure)
     assert figure.layout.yaxis.title.text == "Score"
@@ -90,7 +89,7 @@ def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
 def test_current_hps_use_live_trial_params_during_training() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
 
-    figure = dashboard.build_dashboard(
+    figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[],
@@ -116,7 +115,7 @@ def test_current_hps_use_live_trial_params_during_training() -> None:
 
 def test_robustness_plot_shows_seed_scores_and_means() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
-    figure = dashboard.build_dashboard(
+    figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[],
@@ -137,7 +136,7 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
 
 def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
-    figure = dashboard.build_dashboard(
+    figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[],
@@ -218,7 +217,7 @@ def test_shows_stored_checkpoint_robustness_after_study() -> None:
         },
     )
 
-    figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
 
     mean = trace_named(figure, "mean")
 
@@ -229,7 +228,7 @@ def test_shows_stored_checkpoint_robustness_after_study() -> None:
 def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy", user_attrs={"checkpoint_robustness": []})
 
-    figure = dashboard.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
 
     assert "No data" in annotation_texts(figure)
     assert figure.layout.xaxis2.title.text == "Score"
@@ -237,7 +236,7 @@ def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None
 
 def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
-    figure = dashboard.build_dashboard(
+    figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[],
@@ -279,7 +278,7 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
 
 def test_training_plot_starts_reference_at_checkpoint_threshold() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
-    figure = dashboard.build_dashboard(
+    figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[],
@@ -302,10 +301,10 @@ def test_training_plot_clips_lower_score_axis_by_default() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy")
     progress = TrainingProgress(trial_number=3, target_episodes=5, episode_returns=[-3000.0, 10.0])
 
-    clipped = dashboard.build_dashboard(
+    clipped = dashboard_main.build_dashboard(
         study=study, target_trials=40, studies=[], incumbent_params={}, training_progress=progress
     )
-    unclipped = dashboard.build_dashboard(
+    unclipped = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
         studies=[],

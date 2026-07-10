@@ -47,7 +47,7 @@ loop until target finished trials
         Optuna suggests the next hyperparameter combination
         using the study history and search space
     end note
-    Objective -> Objective : build VectorTrainingConfig\n[[WORKSPACE_ROOT/hpo/src/hpo/objective.py:236:1 vector_training_config(params, ...)]]
+    Objective -> Objective : build VectorTrainingConfig\n[[WORKSPACE_ROOT/hpo/src/hpo/objective.py:236:1 _vector_training_config(params, ...)]]
     Objective -> Hooks : create per-trial hooks\n[[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:199:1 for_trial(ctx)]]
     Hooks -> Trainer : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:273:1 make_trainer(...)]]
     activate Trainer

@@ -17,7 +17,7 @@ CHECKPOINT_VERSION = 1
 
 
 @dataclass(frozen=True)
-class ModelCheckpoint:
+class _ModelCheckpoint:
     path: Path
     metadata: dict[str, Any]
 
@@ -64,7 +64,7 @@ class BestCheckpointRecorder:
         self.metadata = metadata or {}
         self.best_score = float("-inf")
         self.best_episode: int | None = None
-        self.best_checkpoint: ModelCheckpoint | None = None
+        self.best_checkpoint: _ModelCheckpoint | None = None
 
     def after_episode(self, trainer: VectorTrainer, episode_returns: list[float]) -> None:
         if len(episode_returns) < self.window:
@@ -82,7 +82,7 @@ class BestCheckpointRecorder:
         save_checkpoint(trainer.q_net, self.path, metadata)
         self.best_score = score
         self.best_episode = episode
-        self.best_checkpoint = ModelCheckpoint(self.path, metadata)
+        self.best_checkpoint = _ModelCheckpoint(self.path, metadata)
 
 
 class EvaluationBestCheckpointRecorder:
@@ -97,7 +97,7 @@ class EvaluationBestCheckpointRecorder:
         self.min_score = min_score
         self.min_score_delta = min_score_delta
         self.best_score = float("-inf")
-        self.best_checkpoint: ModelCheckpoint | None = None
+        self.best_checkpoint: _ModelCheckpoint | None = None
 
     def after_evaluation(self, ctx: ObjectiveContext) -> None:
         if ctx.q_net is None or ctx.score is None or ctx.training_result is None:
@@ -117,10 +117,10 @@ class EvaluationBestCheckpointRecorder:
         }
         save_checkpoint(ctx.q_net, self.path, metadata)
         self.best_score = ctx.score
-        self.best_checkpoint = ModelCheckpoint(self.path, metadata)
+        self.best_checkpoint = _ModelCheckpoint(self.path, metadata)
 
 
-class BestEvalCheckpointArchive:
+class _BestEvalCheckpointArchive:
     """Keep the best evaluation checkpoint in a durable archive directory."""
 
     checkpoint_name = "best_eval_checkpoint.pt"
@@ -131,7 +131,7 @@ class BestEvalCheckpointArchive:
         self.checkpoint_path = self.archive_dir / self.checkpoint_name
         self.metadata_path = self.archive_dir / self.metadata_name
 
-    def archive(self, checkpoint: ModelCheckpoint) -> Path | None:
+    def archive(self, checkpoint: _ModelCheckpoint) -> Path | None:
         if checkpoint.metadata["score"] <= self._best_score():
             return None
 
@@ -151,7 +151,7 @@ class BestEvalCheckpointArchive:
         temporary.replace(self.metadata_path)
 
 
-class CheckpointingTrainer(VectorTrainer):
+class _CheckpointingTrainer(VectorTrainer):
     """VectorTrainer variant that records the best model seen during training."""
 
     def __init__(self, *args, checkpoint_recorder: BestCheckpointRecorder, **kwargs) -> None:
@@ -196,7 +196,7 @@ class ObjectiveHookFactory:
     def with_training_progress(self, progress_fn: TrainingProgressFn | None) -> "ObjectiveHookFactory":
         return replace(self, training_progress_fn=progress_fn)
 
-    def for_trial(self, ctx: ObjectiveContext) -> "ObjectiveHooks":
+    def for_trial(self, ctx: ObjectiveContext) -> "_ObjectiveHooks":
         trial = ctx.trial
         checkpoint_subdir = getattr(trial, "checkpoint_subdir", "trials")
         checkpoint_stem = getattr(trial, "checkpoint_stem", f"trial_{trial.number:04d}")
@@ -215,9 +215,9 @@ class ObjectiveHookFactory:
         archive = (
             None
             if self.best_eval_archive_dir is None
-            else BestEvalCheckpointArchive(self.best_eval_archive_dir)
+            else _BestEvalCheckpointArchive(self.best_eval_archive_dir)
         )
-        return ObjectiveHooks(
+        return _ObjectiveHooks(
             recorder=recorder,
             evaluation_recorder=evaluation_recorder,
             best_eval_archive=archive,
@@ -241,10 +241,10 @@ class ObjectiveHookFactory:
 
 
 @dataclass
-class ObjectiveHooks:
+class _ObjectiveHooks:
     recorder: BestCheckpointRecorder
     evaluation_recorder: EvaluationBestCheckpointRecorder
-    best_eval_archive: BestEvalCheckpointArchive | None
+    best_eval_archive: _BestEvalCheckpointArchive | None
     trial_number: int
     target_episodes: int
     training_progress_fn: TrainingProgressFn | None = None
@@ -283,9 +283,9 @@ class ObjectiveHooks:
 
     def make_trainer(
         self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
-    ) -> CheckpointingTrainer:
+    ) -> _CheckpointingTrainer:
         self.env_labels = _env_labels(env)
-        return CheckpointingTrainer(
+        return _CheckpointingTrainer(
             env,
             seed=seed,
             device=device,

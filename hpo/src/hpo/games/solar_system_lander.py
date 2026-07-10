@@ -26,7 +26,7 @@ WINDOW_TITLE = (
 
 
 @dataclass
-class GameState:
+class _GameState:
     world_index: int
     seed: int
     step: int = 0
@@ -47,7 +47,7 @@ def main() -> None:
 
     factory = EnvFactory(args.observation_mode, world_mix=DEFAULT_WORLD_MIX)
     colors = dict(zip(WORLDS, world_colors(WORLDS), strict=True))
-    state = GameState(world_index=WORLDS.index(args.world), seed=args.seed)
+    state = _GameState(world_index=WORLDS.index(args.world), seed=args.seed)
     env = _make_env(factory, state.world_index, colors)
     env.reset(seed=state.seed)
 
@@ -62,17 +62,17 @@ def main() -> None:
                         running = False
                     elif event.key == pygame.K_r:
                         env.close()
-                        state = GameState(world_index=state.world_index, seed=state.seed)
+                        state = _GameState(world_index=state.world_index, seed=state.seed)
                         env = _make_env(factory, state.world_index, colors)
                         env.reset(seed=state.seed)
                     elif event.key == pygame.K_n:
                         env.close()
-                        state = GameState(world_index=state.world_index, seed=state.seed + 1)
+                        state = _GameState(world_index=state.world_index, seed=state.seed + 1)
                         env = _make_env(factory, state.world_index, colors)
                         env.reset(seed=state.seed)
                     elif pygame.K_1 <= event.key <= pygame.K_5:
                         env.close()
-                        state = GameState(world_index=event.key - pygame.K_1, seed=state.seed)
+                        state = _GameState(world_index=event.key - pygame.K_1, seed=state.seed)
                         env = _make_env(factory, state.world_index, colors)
                         env.reset(seed=state.seed)
 
@@ -141,7 +141,7 @@ def _draw_frame(screen, frame: np.ndarray) -> None:
     screen.blit(surface, (0, 0))
 
 
-def _draw_hud(screen, state: GameState) -> None:
+def _draw_hud(screen, state: _GameState) -> None:
     import pygame
 
     if not pygame.font.get_init():
