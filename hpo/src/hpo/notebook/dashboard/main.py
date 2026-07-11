@@ -27,7 +27,6 @@ def build_dashboard(
     *,
     study: Any,
     target_trials: int,
-    studies: Any,
     incumbent_params: dict[str, Any],
     robustness_progress: RobustnessProgress | None = None,
     training_progress: TrainingProgress | None = None,
@@ -159,7 +158,6 @@ class _DashboardContext:
 
 @dataclass
 class _StudySeriesContext:
-    studies: list[Any]
     incumbent_params: dict[str, Any]
 
 
@@ -182,8 +180,8 @@ class Dashboard(StudySeriesReporter):
         self._context: _DashboardContext | None = None
         self._series: _StudySeriesContext | None = None
 
-    def set_study_series_context(self, *, studies: list[Any], incumbent_params: dict[str, Any]) -> None:
-        self._series = _StudySeriesContext(studies=studies, incumbent_params=incumbent_params)
+    def set_study_series_context(self, *, incumbent_params: dict[str, Any]) -> None:
+        self._series = _StudySeriesContext(incumbent_params=incumbent_params)
 
     def report_optimization(self, study: Any, *, target_trials: int) -> None:
         self._context = _DashboardContext(study=study, target_trials=target_trials)
@@ -215,7 +213,6 @@ class Dashboard(StudySeriesReporter):
             build_dashboard(
                 study=self._context.study,
                 target_trials=self._context.target_trials,
-                studies=self._series.studies,
                 incumbent_params=self._series.incumbent_params,
                 robustness_progress=self._context.robustness_progress,
                 training_progress=training_progress,

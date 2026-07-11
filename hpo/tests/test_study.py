@@ -33,12 +33,6 @@ class FakeStudy:
         self.user_attrs[name] = value
 
 
-@dataclass
-class FakeStudySummary:
-    study_name: str
-    user_attrs: dict = field(default_factory=dict)
-
-
 class FakeEnvironmentFactory:
     pass
 
@@ -140,7 +134,7 @@ class TestBaseline:
 
 
 class TestStudyRunner:
-    def test_reuses_context_and_previous_studies(self, monkeypatch) -> None:
+    def test_reuses_context_and_updates_incumbent(self, monkeypatch) -> None:
         studies = [FakeStudy([FakeTrial(0, 1.0, {"x": 2})]), FakeStudy([FakeTrial(0, 2.0, {"x": 3})])]
         run_calls = []
         robust_calls = []
@@ -175,7 +169,6 @@ class TestStudyRunner:
 
         assert runner.incumbent_params == {"x": 3}
         assert runner.incumbent_score == 2.0
-        assert runner.studies == studies
         assert run_calls[1]["study"] is studies[1]
         assert run_calls[1]["objective_cfg"].environment_factory is environment_factory
         assert run_calls[1]["study_attrs"] == {"mode": "8d"}
@@ -192,43 +185,10 @@ class TestStudyRunner:
         )
         robust_calls[0]["progress_fn"](progress)
         assert reporter.robustness_calls[0][0] == (progress,)
-        assert reporter.context_calls[-1][1]["studies"] == studies
         assert reporter.context_calls[-1][1]["incumbent_params"] == {"x": 3}
         assert len(sync_calls) == 2
         assert studies[-1].user_attrs["incumbent_params"] == {"x": 3}
         assert studies[-1].user_attrs["incumbent_score"] == 2.0
-
-
-    def test_loads_finished_study_series_for_dashboard(self, monkeypatch, tmp_path) -> None:
-        database_path = tmp_path / "series.db"
-        database_path.touch()
-        previous = FakeStudy([], {"incumbent_score": 5.0})
-        current = FakeStudy([FakeTrial(0, 9.0, {"x": 2})])
-        monkeypatch.setattr(
-            study_module,
-            "_all_study_summaries",
-            lambda **_kwargs: [FakeStudySummary("s2", {"incumbent_score": 5.0}), FakeStudySummary("s3", {})],
-        )
-        monkeypatch.setattr(study_module, "_load_study", lambda **_kwargs: previous)
-        monkeypatch.setattr(study_module, "_create_or_load_study", lambda **_kwargs: current)
-        monkeypatch.setattr(study_module, "run_study", lambda **kwargs: kwargs["study"])
-        monkeypatch.setattr(
-            study_module,
-            "evaluate_checkpoint_robustness",
-            lambda **kwargs: fake_checkpoint_robustness(kwargs["study"]),
-        )
-        reporter = FakeReporter()
-        runner = study_runner(
-            database_path=lambda _name: database_path,
-            objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
-            baseline=Baseline(params={"x": 1}),
-            reporter=reporter,
-        )
-
-        runner.run("s3", suggest_parameter_values=object(), n_trials=1)
-
-        assert reporter.context_calls[0][1]["studies"] == [previous, current]
-        assert runner.studies == [previous, current]
 
 
     def test_keeps_better_incumbent(self, monkeypatch) -> None:
@@ -296,7 +256,6 @@ class TestStudyRunner:
 
         assert capsys.readouterr().out == "Study already finished.\n"
         assert reporter.context_calls == []
-        assert runner.studies == []
 
 
     def test_uses_incumbent_as_checkpoint_min_score(self, monkeypatch, tmp_path) -> None:

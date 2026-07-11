@@ -45,7 +45,7 @@ KISS does not mean avoiding good libraries or future reuse; it means avoiding co
 
 Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
 
-`StudyRunner.run(...)` loads or creates the current study, briefs the reporter with series context, runs Optuna until the target finished trial count, runs checkpoint robustness on saved challenger checkpoints, updates incumbent attrs, syncs DB/log if configured, updates the dashboard, and appends the study to its in-memory series.
+`StudyRunner.run(...)` loads or creates the current study, briefs the reporter with incumbent context, runs Optuna until the target finished trial count, runs checkpoint robustness on saved challenger checkpoints, updates incumbent attrs, syncs DB/log if configured, and updates the dashboard.
 
 `run_study(...)` treats `n_trials` as target total finished trials, not additional trials; this is what makes Optuna resume safely after Colab reconnects.
 
@@ -97,7 +97,7 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 `hpo/src/hpo/study_reporting.py` owns the reporting protocol and small reporting data classes.
 
-`StudySeriesReporter` is implemented by the dashboard and has methods for series context, optimization progress, robustness progress, and live training progress.
+`StudySeriesReporter` is implemented by the dashboard and has methods for incumbent context, optimization progress, robustness progress, and live training progress.
 
 `TrainingProgressPlotter` adapts the DQN trainer plotter protocol into `TrainingProgress` reports.
 
@@ -105,7 +105,7 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 The dashboard is the visual interface between the human and the running HPO, and it should make the study series feel readable while it runs.
 
-Dashboard panels: Study Series, Current HPs, current Study, a reusable Robustness Evaluation panel, and Current Trial Training.
+Dashboard panels: Current HPs, current Study, a reusable Robustness Evaluation panel, and Current Trial Training.
 
 Current Trial Training plots raw episode returns, trailing mean over the checkpoint window, epsilon on a secondary axis, and a horizontal reference line from the current best checkpoint score or initial checkpoint threshold.
 
@@ -171,11 +171,7 @@ The live plot can expose raw outliers such as very negative LunarLander returns;
 
 If the plot's y-axis is dominated by outliers, a future KISS improvement could use robust axis scaling while still making outliers visible.
 
-Do not assume `Study Series` can reconstruct previous studies after Colab reconnect yet.
-
-Currently, `StudyRunner.studies` is in-memory context; after reconnect it starts empty unless previous studies are reloaded and supplied by future code.
-
-The desired future behavior is that a resumed study series shows previous studies from the same DB immediately in the Study Series panel.
+The old `StudyRunner.studies` in-memory context was removed because the dashboard no longer used it.
 
 ## Checkpointing Lessons
 
@@ -266,8 +262,6 @@ For dashboard changes, run:
 ## Open Next Steps
 
 Verify evaluation-best checkpointing in Colab on the next strong run and decide how selected evaluation-best checkpoints should be copied to Drive.
-
-Reconstruct Study Series dashboard context from the existing series DB after Colab reconnect.
 
 Consider a `StudyRunner.show(...)` method later for displaying finished studies or whole series without re-running them.
 

@@ -65,7 +65,6 @@ class StudyRunner:
     robust_eval_episodes: int = 50
     runtime_provider: str | None = None
     sync_fn: SyncFn | None = None
-    studies: list[Any] = field(default_factory=list, init=False)
     incumbent_params: dict[str, Any] = field(init=False)
     incumbent_score: float | None = field(init=False)
 
@@ -86,15 +85,11 @@ class StudyRunner:
             runtime_provider=self.runtime_provider,
             device=objective_cfg.device,
         )
-        if not self.studies:
-            self.studies = _load_finished_study_series(database_path, exclude=study_name)
         if _study_already_finished(study, n_trials):
             print("Study already finished.")
             return
 
-        self.reporter.set_study_series_context(
-            studies=[*self.studies, study], incumbent_params=self.incumbent_params
-        )
+        self.reporter.set_study_series_context(incumbent_params=self.incumbent_params)
 
         run_study(
             study=study,
@@ -124,11 +119,8 @@ class StudyRunner:
         study.set_user_attr("incumbent_score", self.incumbent_score)
         if self.sync_fn is not None:
             self.sync_fn()
-        self.reporter.set_study_series_context(
-            studies=[*self.studies, study], incumbent_params=self.incumbent_params
-        )
+        self.reporter.set_study_series_context(incumbent_params=self.incumbent_params)
         self.reporter.report_optimization(study, target_trials=n_trials)
-        self.studies.append(study)
 
 
 @log_call
@@ -185,17 +177,6 @@ def _create_or_load_study(
     )
     record_study_metadata(database_path, study_name, runtime_provider=runtime_provider, device=device)
     return study
-
-
-def _load_finished_study_series(database_path: str | Path, *, exclude: str) -> list[Any]:
-    if not Path(database_path).exists():
-        return []
-    storage = f"sqlite:///{Path(database_path)}"
-    return [
-        _load_study(study_name=summary.study_name, storage=storage)
-        for summary in sorted(_all_study_summaries(storage=storage), key=lambda summary: summary.study_name)
-        if summary.study_name != exclude and "incumbent_score" in summary.user_attrs
-    ]
 
 
 def _with_checkpoint_min_score(objective_cfg: ObjectiveConfig, min_score: float) -> ObjectiveConfig:
@@ -255,12 +236,6 @@ def _load_study(**kwargs) -> Any:
     import optuna
 
     return optuna.load_study(**kwargs)
-
-
-def _all_study_summaries(**kwargs) -> Any:
-    import optuna
-
-    return optuna.study.get_all_study_summaries(**kwargs)
 
 
 def _set_or_check_study_attrs(study: Any, attrs: dict[str, Any]) -> None:

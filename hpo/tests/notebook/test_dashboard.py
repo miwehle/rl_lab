@@ -48,7 +48,6 @@ def test_shows_incumbent_params_and_current_score() -> None:
     figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[study],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
     )
 
@@ -68,7 +67,7 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
         ]
     )
 
-    figure = dashboard_main.build_dashboard(study=study, target_trials=2, studies=[], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=2, incumbent_params={})
 
     score_trace = trace_named(figure, "Score", xaxis="x")
     best_trace = trace_named(figure, "Best score", xaxis="x")
@@ -80,7 +79,7 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
 
-    figure = dashboard_main.build_dashboard(study=study, target_trials=10, studies=[], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, incumbent_params={})
 
     assert "No data" in annotation_texts(figure)
     assert figure.layout.yaxis.title.text == "Score"
@@ -92,7 +91,6 @@ def test_current_hps_use_live_trial_params_during_training() -> None:
     figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
         training_progress=TrainingProgress(
             trial_number=3,
@@ -118,7 +116,6 @@ def test_robustness_plot_shows_seed_scores_and_means() -> None:
     figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
         robustness_progress=RobustnessProgress(
             candidate_index=2,
@@ -139,7 +136,6 @@ def test_checkpoint_robustness_plot_shows_candidate_intervals() -> None:
     figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[],
         incumbent_params={},
         robustness_progress=RobustnessProgress(
             candidate_index=2,
@@ -217,7 +213,7 @@ def test_shows_stored_checkpoint_robustness_after_study() -> None:
         },
     )
 
-    figure = dashboard_main.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, incumbent_params={})
 
     mean = trace_named(figure, "mean")
 
@@ -228,7 +224,7 @@ def test_shows_stored_checkpoint_robustness_after_study() -> None:
 def test_empty_stored_checkpoint_robustness_shows_plausible_empty_axes() -> None:
     study = FakeStudy(trials=[], study_name="s1_update_economy", user_attrs={"checkpoint_robustness": []})
 
-    figure = dashboard_main.build_dashboard(study=study, target_trials=10, studies=[study], incumbent_params={})
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, incumbent_params={})
 
     assert "No data" in annotation_texts(figure)
     assert figure.layout.xaxis2.title.text == "Score"
@@ -239,7 +235,6 @@ def test_training_plot_shows_returns_trailing_mean_and_checkpoint_reference() ->
     figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
         training_progress=TrainingProgress(
             trial_number=3,
@@ -281,7 +276,6 @@ def test_training_plot_starts_reference_at_checkpoint_threshold() -> None:
     figure = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[],
         incumbent_params={"learning_rate": 0.001, "gamma": 0.99},
         training_progress=TrainingProgress(
             trial_number=3,
@@ -302,12 +296,11 @@ def test_training_plot_clips_lower_score_axis_by_default() -> None:
     progress = TrainingProgress(trial_number=3, target_episodes=5, episode_returns=[-3000.0, 10.0])
 
     clipped = dashboard_main.build_dashboard(
-        study=study, target_trials=40, studies=[], incumbent_params={}, training_progress=progress
+        study=study, target_trials=40, incumbent_params={}, training_progress=progress
     )
     unclipped = dashboard_main.build_dashboard(
         study=study,
         target_trials=40,
-        studies=[],
         incumbent_params={},
         training_progress=progress,
         training_score_min=None,
@@ -333,9 +326,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
         reporter = Dashboard()
-        reporter.set_study_series_context(
-            studies=[study], incumbent_params={"learning_rate": 0.001, "gamma": 0.99}
-        )
+        reporter.set_study_series_context(incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
 
         reporter.report_optimization(study, target_trials=40)
 
@@ -345,7 +336,6 @@ class TestDashboard:
             {
                 "study": study,
                 "target_trials": 40,
-                "studies": [study],
                 "incumbent_params": {"learning_rate": 0.001, "gamma": 0.99},
                 "robustness_progress": None,
                 "training_progress": None,
@@ -360,7 +350,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
         reporter = Dashboard()
-        reporter.set_study_series_context(studies=[study], incumbent_params={"learning_rate": 0.001})
+        reporter.set_study_series_context(incumbent_params={"learning_rate": 0.001})
         reporter.report_optimization(study, target_trials=40)
         progress = TrainingProgress(trial_number=3, target_episodes=5, episode_returns=[1.0])
 
@@ -379,7 +369,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
         reporter = Dashboard(training_update_interval_seconds=5.0)
-        reporter.set_study_series_context(studies=[study], incumbent_params={})
+        reporter.set_study_series_context(incumbent_params={})
         reporter.report_optimization(study, target_trials=40)
 
         reporter.report_training_progress(TrainingProgress(1, 3, [1.0]))
@@ -398,7 +388,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
         reporter = Dashboard()
-        reporter.set_study_series_context(studies=[], incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
+        reporter.set_study_series_context(incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
         reporter.report_optimization(study, target_trials=0)
 
         reporter.report_robustness_evaluation(
@@ -417,7 +407,6 @@ class TestDashboard:
             {
                 "study": study,
                 "target_trials": 0,
-                "studies": [],
                 "incumbent_params": {"learning_rate": 0.001, "gamma": 0.99},
                 "robustness_progress": RobustnessProgress(
                     candidate_index=2,
