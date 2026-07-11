@@ -73,6 +73,10 @@ class StudyRunner:
         self.incumbent_score = self.baseline.score
 
     def run(self, study_name: str, suggest_parameter_values: Any, n_trials: int) -> None:
+        """Run or resume the named Optuna study in the configured storage.
+
+        study_name: Name of the Optuna study inside the storage.
+        """
         database_path = self.database_path(study_name)
         objective_cfg = self.objective_cfg
         if self.incumbent_score is not None:
