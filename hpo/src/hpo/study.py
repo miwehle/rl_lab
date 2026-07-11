@@ -54,7 +54,7 @@ class Baseline:
 
 @dataclass
 class StudyRunner:
-    """Run a study and retain its incumbent."""
+    """Run a study and keep its incumbent."""
 
     database_path: DatabasePathFn
     objective_cfg: ObjectiveConfig
