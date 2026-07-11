@@ -48,6 +48,7 @@ class Baseline:
 
     @classmethod
     def from_study(cls, study: Any) -> "Baseline":
+        """Build a baseline from an Optuna study."""
         return cls(params=study.user_attrs["incumbent_params"], score=study.user_attrs["incumbent_score"])
 
 
@@ -144,6 +145,7 @@ def run_study(
 ) -> Any:
     """Run an Optuna study to the target trial count.
 
+    study: Optuna study to optimize.
     study_attrs: Study metadata to store and validate when resuming.
     n_trials: Target total number of finished trials.
     """
