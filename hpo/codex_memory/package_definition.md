@@ -45,7 +45,7 @@ KISS does not mean avoiding good libraries or future reuse; it means avoiding co
 
 Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
 
-`StudyRunner.run(...)` loads or creates the current study, briefs the reporter with incumbent context, runs Optuna until the target finished trial count, runs checkpoint robustness on saved challenger checkpoints, updates incumbent attrs, syncs DB/log if configured, and updates the dashboard.
+`StudyRunner.run(...)` loads or creates the current study, briefs the reporter with incumbent context, runs Optuna until the target finished trial count, runs checkpoint robustness on saved challenger checkpoints, updates incumbent attrs, backs up DB/log if configured, and updates the dashboard.
 
 `run_study(...)` treats `n_trials` as target total finished trials, not additional trials; this is what makes Optuna resume safely after Colab reconnects.
 

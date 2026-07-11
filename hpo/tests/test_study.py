@@ -138,7 +138,7 @@ class TestStudyRunner:
         studies = [FakeStudy([FakeTrial(0, 1.0, {"x": 2})]), FakeStudy([FakeTrial(0, 2.0, {"x": 3})])]
         run_calls = []
         robust_calls = []
-        sync_calls = []
+        backup_calls = []
 
         monkeypatch.setattr(study_module, "_create_or_load_study", lambda **kwargs: studies[len(run_calls)])
         monkeypatch.setattr(
@@ -161,7 +161,7 @@ class TestStudyRunner:
             study_attrs={"mode": "8d"},
             robust_candidates=5,
             robust_eval_episodes=7,
-            sync_fn=lambda: sync_calls.append(None),
+            backup_fn=lambda: backup_calls.append(None),
         )
 
         runner.run("s1", suggest_parameter_values="suggest-values", n_trials=4)
@@ -172,7 +172,7 @@ class TestStudyRunner:
         assert run_calls[1]["study"] is studies[1]
         assert run_calls[1]["objective_cfg"].environment_factory is environment_factory
         assert run_calls[1]["study_attrs"] == {"mode": "8d"}
-        assert run_calls[1]["sync_fn"] is runner.sync_fn
+        assert run_calls[1]["backup_fn"] is runner.backup_fn
         assert robust_calls[0]["study"] is studies[0]
         assert robust_calls[0]["top_n"] == 5
         assert robust_calls[0]["eval_episodes"] == 7
@@ -186,7 +186,7 @@ class TestStudyRunner:
         robust_calls[0]["progress_fn"](progress)
         assert reporter.robustness_calls[0][0] == (progress,)
         assert reporter.context_calls[-1][1]["incumbent_params"] == {"x": 3}
-        assert len(sync_calls) == 2
+        assert len(backup_calls) == 2
         assert studies[-1].user_attrs["incumbent_params"] == {"x": 3}
         assert studies[-1].user_attrs["incumbent_score"] == 2.0
 
@@ -302,7 +302,7 @@ def test_run_study_uses_task_attrs_and_reports_progress(monkeypatch) -> None:
 
     monkeypatch.setattr(study_module, "create_objective", fake_create_objective)
 
-    sync_calls = []
+    backup_calls = []
     progress_trial_counts = []
     study = FakeOptunaStudy()
     study = run_study(
@@ -313,12 +313,12 @@ def test_run_study_uses_task_attrs_and_reports_progress(monkeypatch) -> None:
         objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
         study_attrs={"observation_mode": "8d"},
         progress_fn=lambda current_study, **_kwargs: progress_trial_counts.append(len(current_study.trials)),
-        sync_fn=lambda: sync_calls.append(None),
+        backup_fn=lambda: backup_calls.append(None),
     )
 
     assert study.user_attrs["observation_mode"] == "8d"
     assert study.user_attrs["eval_episodes"] == 20
-    assert len(sync_calls) == 2
+    assert len(backup_calls) == 2
     assert progress_trial_counts == [0, 1, 2]
 
 

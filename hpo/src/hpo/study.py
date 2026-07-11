@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[..., None]
 DatabasePathFn = Callable[[str], str | Path]
-SyncFn = Callable[[], None]
+BackupFn = Callable[[], None]
 
 
 @dataclass(frozen=True)
@@ -64,7 +64,7 @@ class StudyRunner:
     robust_candidates: int = 3
     robust_eval_episodes: int = 50
     runtime_provider: str | None = None
-    sync_fn: SyncFn | None = None
+    backup_fn: BackupFn | None = None
     incumbent_params: dict[str, Any] = field(init=False)
     incumbent_score: float | None = field(init=False)
 
@@ -103,7 +103,7 @@ class StudyRunner:
             objective_cfg=objective_cfg,
             study_attrs=self.study_attrs,
             progress_fn=self.reporter.report_optimization,
-            sync_fn=self.sync_fn,
+            backup_fn=self.backup_fn,
         )
         checkpoint_results = _evaluate_checkpoint_robustness(
             study=study,
@@ -121,8 +121,8 @@ class StudyRunner:
 
         study.set_user_attr("incumbent_params", self.incumbent_params)
         study.set_user_attr("incumbent_score", self.incumbent_score)
-        if self.sync_fn is not None:
-            self.sync_fn()
+        if self.backup_fn is not None:
+            self.backup_fn()
         self.reporter.set_incumbent_context(incumbent_params=self.incumbent_params)
         self.reporter.report_optimization(study, target_trials=n_trials)
 
@@ -137,13 +137,14 @@ def run_study(
     objective_cfg: ObjectiveConfig,
     study_attrs: dict[str, Any] | None = None,
     progress_fn: ProgressFn | None = None,
-    sync_fn: SyncFn | None = None,
+    backup_fn: BackupFn | None = None,
 ) -> Any:
     """Run an Optuna study to the target trial count.
 
     study: Optuna study to optimize.
     study_attrs: Study metadata to store and validate when resuming.
     n_trials: Target total number of finished trials.
+    backup_fn: Optional callback, usually for backing up DB/log from Colab storage to Google Drive.
     """
     logger.info("study: %s", getattr(study, "study_name", ""))
 
@@ -163,8 +164,8 @@ def run_study(
     while _finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
         study.optimize(objective, n_trials=1)
-        if sync_fn is not None:
-            sync_fn()
+        if backup_fn is not None:
+            backup_fn()
         if progress_fn is not None:
             progress_fn(study, target_trials=n_trials)
 
