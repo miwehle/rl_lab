@@ -2,6 +2,7 @@
 
 | Nr                                                  | Aha                                       | Topics                 |
 | --------------------------------------------------- | ----------------------------------------- | ---------------------- |
+| [[#A13 Fine-Tune Strong Pilots Into A Model Line\|A13]] | Fine-Tune Strong Pilots Into A Model Line | SSL, RL, HP, Checkpointing |
 | [[#A12 How To Build A Small Good Five-World Lander\|A12]] | How To Build A Small Good Five-World Lander | SSL, RL, HP, OTO       |
 | [[#A11 Preserve Good Pilots Immediately\|A11]]       | Preserve Good Pilots Immediately          | OTO, Checkpointing, LL |
 | [[#A10 10D Gives The SSL A Popometer\|A10]]          | 10D Gives The SSL A Popometer             | SSL, RL                |
@@ -16,6 +17,21 @@
 | [[#A1 Code Complexity Is Part Of The Experiment\|A1]] | Code Complexity Is Part Of The Experiment | OTO, LL                |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters.
+
+
+## A13 Fine-Tune Strong Pilots Into A Model Line
+
+Elise-264-GSTP shows that a good pilot does not have to be the end of the search; it can become the parent of a model line. The 264er Elise starts from the preserved 253er 10D checkpoint and fine-tunes that concrete pilot with a small training-only Ground-Side-Thrust-Penalty.
+
+The new checkpoint's source score reached `266.1`, but the more meaningful identity is the robustness mean around `264`, so `Elise-264-GSTP` is the better name. The old 253er was strong, but that number was a lighter study score; later broader checkpoint evaluation measured it lower. The 264er is therefore not just a higher peak, but a more robust concrete pilot.
+
+GSTP was a record breaker already in the smoke test. The first small fine-tuning sweep found the new top pilot in Optuna trial `4` (zero-based numbering), which is strong evidence that the intervention hit a real weakness rather than merely adding search budget.
+
+Success HPs for trial `4`: `learning_rate=0.00044682753699024145`, `learning_starts=1000`, `eps_start=0.059769600826486025`, `num_episodes=500`, and `ground_thrust_penalty=0.05346038291108023`, with the remaining DQN HPs inherited from the 253er baseline.
+
+The useful step was not a full retrain. It was targeted refinement: start from the 253er checkpoint, use a fresh optimizer and replay buffer, lower `eps_start`, keep training short, and apply a mild ground-thrust penalty. The best penalty value was close to the lower edge of the search space (`~0.053`), suggesting Elise needed a small nudge, not a hard constraint.
+
+==Mental model: Preserve a strong pilot, identify one concrete weakness, and fine-tune the checkpoint into the next model generation.==
 
 
 ## A12 How To Build A Small Good Five-World Lander

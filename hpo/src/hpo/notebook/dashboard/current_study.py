@@ -54,7 +54,8 @@ def add_current_study(figure: Any, study: Any, target_trials: int) -> bool:
         col=2,
     )
     score_floor = min([0, *scores])
-    figure.update_yaxes(title_text="Score", range=[score_floor - 10, 260], row=1, col=2)
+    score_ceiling = max([260, *scores, *best_scores])
+    figure.update_yaxes(title_text="Score", range=[score_floor - 10, score_ceiling + 10], row=1, col=2)
     return True
 
 

@@ -76,6 +76,14 @@ def test_study_plot_uses_evaluation_checkpoint_score() -> None:
     assert list(best_trace.y) == [120.0, 120.0]
 
 
+def test_study_plot_keeps_record_scores_visible() -> None:
+    study = FakeStudy(trials=[FakeTrial(number=4, value=266.1, user_attrs={})])
+
+    figure = dashboard_main.build_dashboard(study=study, target_trials=10, incumbent_params={})
+
+    assert figure.layout.yaxis.range[1] > 266.1
+
+
 def test_empty_current_study_plot_shows_plausible_empty_axes() -> None:
     study = FakeStudy(trials=[], study_name="s1_waiting_for_first_trial")
 
