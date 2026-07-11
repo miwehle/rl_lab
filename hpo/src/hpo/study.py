@@ -1,4 +1,4 @@
-"""Shared Optuna orchestration for resumable HPO study series."""
+"""Shared Optuna orchestration for resumable HPO studies."""
 
 import logging
 from collections.abc import Callable
@@ -11,7 +11,7 @@ from hpo.objective import ObjectiveConfig, create_objective
 from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
 from hpo.hyperparams import HP
 from hpo.study_metadata import record_study_metadata
-from hpo.study_reporting import StudySeriesReporter, TrainingProgressFn
+from hpo.study_reporting import StudyReporter, TrainingProgressFn
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ SyncFn = Callable[[], None]
 class Baseline:
     """Complete HP starting point for a study.
 
-    At the start of a study series, score is typically omitted.
-    Later in a series, build the baseline with from_database; then score is included.
+    At the start of a study sequence, score is typically omitted.
+    For a resumed study, build the baseline with from_database; then score is included.
 
     Purpose of this class: HPs are required for training, the DQN, and related configuration.
     We provide them through the baseline. HPs optimized by Optuna are provided via
@@ -54,11 +54,11 @@ class Baseline:
 
 @dataclass
 class StudyRunner:
-    """Run a study series and retain its incumbent and results."""
+    """Run a study and retain its incumbent."""
 
     database_path: DatabasePathFn
     objective_cfg: ObjectiveConfig
-    reporter: StudySeriesReporter
+    reporter: StudyReporter
     baseline: Baseline
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
@@ -89,7 +89,7 @@ class StudyRunner:
             print("Study already finished.")
             return
 
-        self.reporter.set_study_series_context(incumbent_params=self.incumbent_params)
+        self.reporter.set_incumbent_context(incumbent_params=self.incumbent_params)
 
         run_study(
             study=study,
@@ -119,7 +119,7 @@ class StudyRunner:
         study.set_user_attr("incumbent_score", self.incumbent_score)
         if self.sync_fn is not None:
             self.sync_fn()
-        self.reporter.set_study_series_context(incumbent_params=self.incumbent_params)
+        self.reporter.set_incumbent_context(incumbent_params=self.incumbent_params)
         self.reporter.report_optimization(study, target_trials=n_trials)
 
 

@@ -41,7 +41,7 @@ KISS does not mean avoiding good libraries or future reuse; it means avoiding co
 
 ## Main Modules
 
-`hpo/src/hpo/study.py` owns study-series orchestration.
+`hpo/src/hpo/study.py` owns HPO study orchestration.
 
 Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
 
@@ -97,7 +97,7 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 `hpo/src/hpo/study_reporting.py` owns the reporting protocol and small reporting data classes.
 
-`StudySeriesReporter` is implemented by the dashboard and has methods for incumbent context, optimization progress, robustness progress, and live training progress.
+`StudyReporter` is implemented by the dashboard and has methods for incumbent context, optimization progress, robustness progress, and live training progress.
 
 `TrainingProgressPlotter` adapts the DQN trainer plotter protocol into `TrainingProgress` reports.
 

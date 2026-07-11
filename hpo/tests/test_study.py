@@ -56,7 +56,7 @@ class FakeReporter:
     robustness_calls: list = field(default_factory=list)
     training_calls: list = field(default_factory=list)
 
-    def set_study_series_context(self, *args, **kwargs) -> None:
+    def set_incumbent_context(self, *args, **kwargs) -> None:
         self.context_calls.append((args, kwargs))
 
     def report_optimization(self, *args, **kwargs) -> None:

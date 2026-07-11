@@ -1,4 +1,4 @@
-"""Reporting contract for HPO study-series progress."""
+"""Reporting contract for HPO study progress."""
 
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -81,8 +81,8 @@ class TrainingProgressPlotter:
         )
 
 
-class StudySeriesReporter(Protocol):
-    def set_study_series_context(self, *, incumbent_params: dict[str, Any]) -> None: ...
+class StudyReporter(Protocol):
+    def set_incumbent_context(self, *, incumbent_params: dict[str, Any]) -> None: ...
 
     def report_optimization(self, study: Any, *, target_trials: int) -> None: ...
 

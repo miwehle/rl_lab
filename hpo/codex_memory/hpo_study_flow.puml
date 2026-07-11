@@ -32,7 +32,7 @@ activate Runner
 Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:184:1 _create_or_load_study(...)]]
 StudyModule --> Runner : study
 
-Runner -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:56:1 set_study_series_context(...)]]
+Runner -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:85:1 set_incumbent_context(...)]]
 Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:139:1 run_study(...)]]
 activate StudyModule
 

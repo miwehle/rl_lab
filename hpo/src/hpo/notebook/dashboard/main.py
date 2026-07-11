@@ -1,4 +1,4 @@
-"""Tell the story of an HPO study series in one notebook dashboard.
+"""Tell the story of HPO study progress in one notebook dashboard.
 
 The dashboard is the visual interface between the human and the running HPO:
 - Current HPs shows the running trial hyperparameters, or the incumbent otherwise.
@@ -18,7 +18,7 @@ from hpo.notebook.dashboard.current_study import add_current_study
 from hpo.notebook.dashboard.robustness import add_checkpoint_robustness_evaluation, add_robustness_evaluation
 from hpo.notebook.dashboard.style import NO_DATA_TEXT, hide_empty_xaxis, set_empty_score_yaxis
 from hpo.notebook.dashboard.training_progress import add_training_progress
-from hpo.study_reporting import RobustnessProgress, StudySeriesReporter, TrainingProgress
+from hpo.study_reporting import RobustnessProgress, StudyReporter, TrainingProgress
 
 DashboardRenderMode = Literal["safe"]
 
@@ -32,7 +32,7 @@ def build_dashboard(
     training_progress: TrainingProgress | None = None,
     training_score_min: float | None = -500.0,
 ) -> Any:
-    """Build the study-series dashboard."""
+    """Build the study progress dashboard."""
     from plotly.subplots import make_subplots
 
     stored_checkpoint_summaries = _stored_checkpoint_summaries(study)
@@ -156,13 +156,8 @@ class _DashboardContext:
     robustness_progress: RobustnessProgress | None = None
 
 
-@dataclass
-class _StudySeriesContext:
-    incumbent_params: dict[str, Any]
-
-
-class Dashboard(StudySeriesReporter):
-    """Report study-series progress through the notebook dashboard."""
+class Dashboard(StudyReporter):
+    """Report study progress through the notebook dashboard."""
 
     def __init__(
         self,
@@ -178,10 +173,10 @@ class Dashboard(StudySeriesReporter):
         self.training_score_min = training_score_min
         self._last_training_update = 0.0
         self._context: _DashboardContext | None = None
-        self._series: _StudySeriesContext | None = None
+        self._incumbent_params: dict[str, Any] | None = None
 
-    def set_study_series_context(self, *, incumbent_params: dict[str, Any]) -> None:
-        self._series = _StudySeriesContext(incumbent_params=incumbent_params)
+    def set_incumbent_context(self, *, incumbent_params: dict[str, Any]) -> None:
+        self._incumbent_params = incumbent_params
 
     def report_optimization(self, study: Any, *, target_trials: int) -> None:
         self._context = _DashboardContext(study=study, target_trials=target_trials)
@@ -206,14 +201,14 @@ class Dashboard(StudySeriesReporter):
         self._show(training_progress=progress)
 
     def _show(self, training_progress: TrainingProgress | None = None) -> None:
-        if self._context is None or self._series is None:
+        if self._context is None or self._incumbent_params is None:
             return
         _clear_output(wait=True)
         _display(
             build_dashboard(
                 study=self._context.study,
                 target_trials=self._context.target_trials,
-                incumbent_params=self._series.incumbent_params,
+                incumbent_params=self._incumbent_params,
                 robustness_progress=self._context.robustness_progress,
                 training_progress=training_progress,
                 training_score_min=self.training_score_min,

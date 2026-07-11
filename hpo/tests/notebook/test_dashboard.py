@@ -326,7 +326,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
         reporter = Dashboard()
-        reporter.set_study_series_context(incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
+        reporter.set_incumbent_context(incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
 
         reporter.report_optimization(study, target_trials=40)
 
@@ -350,7 +350,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
         reporter = Dashboard()
-        reporter.set_study_series_context(incumbent_params={"learning_rate": 0.001})
+        reporter.set_incumbent_context(incumbent_params={"learning_rate": 0.001})
         reporter.report_optimization(study, target_trials=40)
         progress = TrainingProgress(trial_number=3, target_episodes=5, episode_returns=[1.0])
 
@@ -369,7 +369,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **_kwargs: None)
         reporter = Dashboard(training_update_interval_seconds=5.0)
-        reporter.set_study_series_context(incumbent_params={})
+        reporter.set_incumbent_context(incumbent_params={})
         reporter.report_optimization(study, target_trials=40)
 
         reporter.report_training_progress(TrainingProgress(1, 3, [1.0]))
@@ -388,7 +388,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard_main, "_display", displayed.append)
         monkeypatch.setattr(dashboard_main, "_clear_output", lambda **kwargs: cleared.append(kwargs))
         reporter = Dashboard()
-        reporter.set_study_series_context(incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
+        reporter.set_incumbent_context(incumbent_params={"learning_rate": 0.001, "gamma": 0.99})
         reporter.report_optimization(study, target_trials=0)
 
         reporter.report_robustness_evaluation(
