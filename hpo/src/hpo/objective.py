@@ -240,7 +240,7 @@ def _vector_training_config(
         num_episodes=params[HP.NUM_EPISODES],
         batch_size=params[HP.BATCH_SIZE],
         gamma=params[HP.GAMMA],
-        eps_start=1.0,
+        eps_start=params[HP.EPS_START],
         eps_end=params[HP.EPS_END],
         eps_decay=params[HP.EPS_DECAY],
         tau=params[HP.TAU],

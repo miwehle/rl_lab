@@ -4,6 +4,7 @@
 class HP:
     BATCH_SIZE = "batch_size"
     EPS_DECAY = "eps_decay"
+    EPS_START = "eps_start"
     EPS_END = "eps_end"
     GAMMA = "gamma"
     HIDDEN_SIZE = "hidden_size"

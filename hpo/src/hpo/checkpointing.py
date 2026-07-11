@@ -175,12 +175,25 @@ class _CheckpointingTrainer(VectorTrainer):
 
 @dataclass(frozen=True)
 class ObjectiveHookFactory:
+    """Create objective hooks for checkpointing one HPO study.
+
+    Parameters:
+        checkpoint_dir: Local write target for new trial and evaluation checkpoints
+            produced by the study.
+        best_eval_archive_dir: Optional durable write target for the best new
+            evaluation checkpoint.
+        initial_checkpoint_path: Optional read source for starting a trial from
+            existing model weights. Useful for fine-tuning an already trained
+            checkpoint.
+    """
+
     checkpoint_dir: str | Path
     window: int = 100
     min_score: float | None = None
     min_score_delta: float = 0.0
     training_progress_fn: TrainingProgressFn | None = None
     best_eval_archive_dir: str | Path | None = None
+    initial_checkpoint_path: str | Path | None = None
 
     def __post_init__(self) -> None:
         if self.window < 1:
@@ -221,6 +234,7 @@ class ObjectiveHookFactory:
             recorder=recorder,
             evaluation_recorder=evaluation_recorder,
             best_eval_archive=archive,
+            initial_checkpoint_path=self.initial_checkpoint_path,
             trial_number=trial.number,
             target_episodes=ctx.training_config.num_episodes,
             training_progress_fn=self.training_progress_fn,
@@ -237,6 +251,8 @@ class ObjectiveHookFactory:
         }
         if self.best_eval_archive_dir is not None:
             attrs["best_eval_archive_dir"] = str(self.best_eval_archive_dir)
+        if self.initial_checkpoint_path is not None:
+            attrs["initial_checkpoint_path"] = str(self.initial_checkpoint_path)
         return attrs
 
 
@@ -245,6 +261,7 @@ class _ObjectiveHooks:
     recorder: BestCheckpointRecorder
     evaluation_recorder: EvaluationBestCheckpointRecorder
     best_eval_archive: _BestEvalCheckpointArchive | None
+    initial_checkpoint_path: str | Path | None
     trial_number: int
     target_episodes: int
     training_progress_fn: TrainingProgressFn | None = None
@@ -285,7 +302,7 @@ class _ObjectiveHooks:
         self, env, *, seed: int | None, device: Any, replay_memory_capacity: int, hidden_size: int
     ) -> _CheckpointingTrainer:
         self.env_labels = _env_labels(env)
-        return _CheckpointingTrainer(
+        trainer = _CheckpointingTrainer(
             env,
             seed=seed,
             device=device,
@@ -293,6 +310,10 @@ class _ObjectiveHooks:
             hidden_size=hidden_size,
             checkpoint_recorder=self.recorder,
         )
+        if self.initial_checkpoint_path is not None:
+            load_checkpoint(trainer.q_net, self.initial_checkpoint_path, trainer.device)
+            trainer.target_net.load_state_dict(trainer.q_net.state_dict())
+        return trainer
 
     def q_net_for_evaluation(self, ctx: ObjectiveContext) -> Any:
         q_net = ctx.training_result.q_net

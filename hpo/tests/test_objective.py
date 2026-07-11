@@ -38,6 +38,7 @@ class FakeTrial:
 BASELINE_PARAMS = {
     "learning_rate": 0.001,
     "batch_size": 64,
+    "eps_start": 0.7,
     "eps_end": 0.02,
     "eps_decay": 1234,
     "gamma": 0.99,
@@ -204,6 +205,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert calls[0].training_config.early_stopping_score == pytest.approx(-250.0)
     assert calls[0].training_config.hidden_size == 128
     assert calls[0].training_config.learning_rate == 5e-4
+    assert calls[0].training_config.eps_start == pytest.approx(0.7)
     assert len(eval_calls) == 2
     assert all(call["episodes"] == 20 for call in eval_calls)
 

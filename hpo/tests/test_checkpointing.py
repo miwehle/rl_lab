@@ -1,8 +1,11 @@
 import json
 
+import gymnasium as gym
 import pytest
 import torch
+from gymnasium.vector import SyncVectorEnv
 
+from dqn.model import DQN
 from dqn.vector_training import VectorTrainingConfig
 from hpo.checkpointing import (
     BestCheckpointRecorder,
@@ -69,6 +72,10 @@ def linear_with_weight(value: float) -> torch.nn.Linear:
     model = torch.nn.Linear(1, 1)
     set_weights(model, value)
     return model
+
+
+def cartpole_vector_env():
+    return SyncVectorEnv([lambda: gym.make("CartPole-v1")])
 
 
 def loaded_weight(path, *, device=torch.device("cpu")) -> tuple[float, dict]:
@@ -158,7 +165,12 @@ class TestEvaluationBestCheckpointRecorder:
 class TestObjectiveHookFactory:
     def test_reports_study_attrs(self, tmp_path) -> None:
         factory = ObjectiveHookFactory(
-            tmp_path, window=50, min_score=100.0, min_score_delta=5.0, best_eval_archive_dir=tmp_path / "archive"
+            tmp_path,
+            window=50,
+            min_score=100.0,
+            min_score_delta=5.0,
+            best_eval_archive_dir=tmp_path / "archive",
+            initial_checkpoint_path=tmp_path / "initial.pt",
         )
 
         assert factory.study_attrs() == {
@@ -167,6 +179,7 @@ class TestObjectiveHookFactory:
             "checkpoint_min_score": 100.0,
             "checkpoint_min_score_delta": 5.0,
             "best_eval_archive_dir": str(tmp_path / "archive"),
+            "initial_checkpoint_path": str(tmp_path / "initial.pt"),
         }
 
     def test_copies_with_min_score(self, tmp_path) -> None:
@@ -200,6 +213,33 @@ class TestObjectiveHookFactory:
         assert progress_calls[0].optimized_param_names == ["learning_rate"]
         assert progress_calls[0].best_checkpoint_score is None
         assert progress_calls[1].best_checkpoint_score == pytest.approx(15.0)
+
+    def test_for_trial_loads_initial_checkpoint_into_q_and_target_net(self, tmp_path) -> None:
+        initial = DQN(4, 2, 128)
+        set_weights(initial, 4.0)
+        initial_path = tmp_path / "initial.pt"
+        save_checkpoint(initial, initial_path)
+        hooks = ObjectiveHookFactory(tmp_path, window=2, initial_checkpoint_path=initial_path).for_trial(
+            objective_context()
+        )
+        env = cartpole_vector_env()
+
+        try:
+            trainer = hooks.make_trainer(
+                env,
+                seed=42,
+                device=torch.device("cpu"),
+                replay_memory_capacity=8,
+                hidden_size=128,
+            )
+        finally:
+            env.close()
+
+        assert first_weight(trainer.q_net) == pytest.approx(4.0)
+        for q_tensor, target_tensor in zip(
+            trainer.q_net.state_dict().values(), trainer.target_net.state_dict().values(), strict=True
+        ):
+            assert torch.equal(q_tensor, target_tensor)
 
     def test_for_trial_loads_best_checkpoint_and_saves_attrs(self, tmp_path) -> None:
         hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context())
