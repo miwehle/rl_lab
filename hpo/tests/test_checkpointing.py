@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 
 import gymnasium as gym
 import pytest
@@ -11,6 +12,7 @@ from hpo.checkpointing import (
     BestCheckpointRecorder,
     EvaluationBestCheckpointRecorder,
     ObjectiveHookFactory,
+    _env_labels,
     best_checkpoint,
     load_checkpoint,
     save_checkpoint,
@@ -90,6 +92,11 @@ def archive_hooks(tmp_path, archive_dir):
     )
 
 
+def wrapped_env_label(name: str):
+    world_env = SimpleNamespace(world=SimpleNamespace(name=name))
+    return SimpleNamespace(env=SimpleNamespace(env=world_env))
+
+
 def objective_context(
     trial=None, config=None, *, params=None, q_net=None, score=None, episode_returns=None
 ) -> ObjectiveContext:
@@ -163,6 +170,11 @@ class TestEvaluationBestCheckpointRecorder:
 
 
 class TestObjectiveHookFactory:
+    def test_env_labels_look_through_training_wrappers(self) -> None:
+        env = SimpleNamespace(envs=[wrapped_env_label("earth"), wrapped_env_label("moon")])
+
+        assert _env_labels(env) == ["earth", "moon"]
+
     def test_reports_study_attrs(self, tmp_path) -> None:
         factory = ObjectiveHookFactory(
             tmp_path,
