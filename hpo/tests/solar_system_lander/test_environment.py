@@ -12,7 +12,7 @@ from hpo.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:
-    env = EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).make_training_env(20)
+    env = EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).make_training_env(20, params={})
     try:
         names = [wrapped.world.name for wrapped in env.envs]
     finally:
@@ -29,12 +29,12 @@ def test_solar_system_lander_factory_balances_world_slots() -> None:
 
 def test_solar_system_lander_requires_balanced_slot_count() -> None:
     with pytest.raises(ValueError, match="divisible by 5"):
-        EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).make_training_env(16)
+        EnvFactory("8d", world_mix=DEFAULT_WORLD_MIX).make_training_env(16, params={})
 
 
 def test_solar_system_lander_factory_accepts_weighted_world_mix() -> None:
     factory = EnvFactory("9d", world_mix={World.VENUS: 2, World.MOON: 1})
-    env = factory.make_training_env(3)
+    env = factory.make_training_env(3, params={})
     try:
         names = [wrapped.world.name for wrapped in env.envs]
     finally:
@@ -49,12 +49,15 @@ def test_solar_system_lander_factory_wraps_training_envs_only() -> None:
     factory = EnvFactory(
         "8d",
         world_mix={World.MOON: 1},
-        training_env_wrapper=lambda env: GroundThrustPenaltyEnv(env, ground_thrust_penalty=0.5),
+        training_env_wrapper=lambda env, params: GroundThrustPenaltyEnv(
+            env, ground_thrust_penalty=params["ground_thrust_penalty"]
+        ),
     )
-    training_env = factory.make_training_env(1)
+    training_env = factory.make_training_env(1, params={"ground_thrust_penalty": 0.5})
     evaluation_env = factory.evaluation_envs()["moon"]()
     try:
         assert isinstance(training_env.envs[0], GroundThrustPenaltyEnv)
+        assert training_env.envs[0].ground_thrust_penalty == pytest.approx(0.5)
         assert isinstance(evaluation_env, EnvWrapper)
     finally:
         training_env.close()

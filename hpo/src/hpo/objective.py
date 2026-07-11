@@ -20,7 +20,7 @@ class _SuggestParameterValues(Protocol):
 
 
 class _EnvironmentFactory(Protocol):
-    def make_training_env(self, num_envs: int) -> Any: ...
+    def make_training_env(self, num_envs: int, *, params: dict[str, Any]) -> Any: ...
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]: ...
 
@@ -161,7 +161,7 @@ def create_objective(
         trial_seed = None if config.training_seed is None else config.training_seed + trial.number
         ctx.trial_seed = trial_seed
         hooks = config.hooks.for_trial(ctx)
-        env = config.environment_factory.make_training_env(config.num_envs)
+        env = config.environment_factory.make_training_env(config.num_envs, params=params)
 
         try:
             # make trainer

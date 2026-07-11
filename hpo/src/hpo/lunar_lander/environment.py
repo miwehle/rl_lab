@@ -8,7 +8,7 @@ from gymnasium.vector import SyncVectorEnv
 
 
 class EnvFactory:
-    def make_training_env(self, num_envs: int) -> SyncVectorEnv:
+    def make_training_env(self, num_envs: int, *, params: dict) -> SyncVectorEnv:
         return SyncVectorEnv([self._make_env for _ in range(num_envs)])
 
     def evaluation_envs(self) -> dict[str, Callable[[], Any]]:

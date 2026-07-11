@@ -134,8 +134,8 @@ class FakeEnvironmentFactory:
     def __init__(self) -> None:
         self.training_calls = []
 
-    def make_training_env(self, num_envs):
-        self.training_calls.append(num_envs)
+    def make_training_env(self, num_envs, *, params):
+        self.training_calls.append((num_envs, params))
         return FakeEnv()
 
     def evaluation_envs(self):
@@ -198,7 +198,7 @@ def test_objective_trains_and_averages_named_evaluations(monkeypatch) -> None:
     assert trial.user_attrs["env_steps"] == 80
     assert trial.user_attrs["trained_episodes"] == 2
     assert trial.user_attrs["trial_seed"] == 103
-    assert environment_factory.training_calls == [20]
+    assert environment_factory.training_calls == [(20, BASELINE_PARAMS | {"learning_rate": 5e-4})]
     assert calls[0].env.closed
     assert calls[0].training_config.num_episodes == 12
     assert calls[0].training_config.adaptive_extension_window == 50

@@ -2,7 +2,7 @@ from hpo.lunar_lander.environment import EnvFactory
 
 
 def test_lunar_lander_factory_keeps_original_observation() -> None:
-    env = EnvFactory().make_training_env(2)
+    env = EnvFactory().make_training_env(2, params={})
     try:
         observations, _ = env.reset(seed=42)
     finally:
