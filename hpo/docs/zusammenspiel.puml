@@ -34,7 +34,7 @@ Notebook -> Runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:75:1 run(study_name, 
 activate Runner
 
 Runner -> Study : create or load named study\n[[WORKSPACE_ROOT/hpo/src/hpo/study.py:176:1 _create_or_load_study(...)]]
-Runner -> Dashboard : set series context and incumbent HPs\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:185:1 set_study_series_context(...)]]
+Runner -> Dashboard : set incumbent context\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:178:1 set_incumbent_context(...)]]
 
 loop until target finished trials
     Runner -> Study : optimize one trial\n[[WORKSPACE_ROOT/hpo/src/hpo/study.py:167:1 study.optimize(objective, n_trials=1)]]
@@ -99,7 +99,7 @@ Robustness --> Runner : robust checkpoint scores
 deactivate Robustness
 
 Runner -> Study : store incumbent attrs\n[[WORKSPACE_ROOT/hpo/src/hpo/study.py:122:1 study.set_user_attr("incumbent_params", ...)]]
-Runner -> Dashboard : final study-series view\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:188:1 report_optimization(study, target_trials=...)]]
+Runner -> Dashboard : final study view\n[[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:188:1 report_optimization(study, target_trials=...)]]
 Runner --> Notebook : study step done
 deactivate Runner
 

@@ -23,15 +23,15 @@ Related sequence diagrams:
 
 ## Mental Model
 
-The core story is: a human starts a study series in a notebook, `StudyRunner` runs one named Optuna study at a time, each trial trains a DQN with `VectorTrainer`, the objective evaluates the trained model across one or more worlds, checkpoint robustness re-checks saved challenger checkpoints, and the dashboard tells the live story of the study series.
+The core story is: a human starts a study in a notebook, `StudyRunner` runs one named Optuna study at a time, each trial trains a DQN with `VectorTrainer`, the objective evaluates the trained model across one or more worlds, checkpoint robustness re-checks saved challenger checkpoints, and the dashboard tells the live story of study progress.
 
-A study series is the long-running HPO campaign; in this project, one SQLite database is assumed to represent one study series.
+One SQLite database can hold several named Optuna studies.
 
-A study is one named step in a series, for example `s1_flight_hours` or `s2_exploration`.
+A study is one named Optuna optimization step, for example `s1_flight_hours` or `s2_exploration`.
 
-A baseline is the complete HP starting point for a study series or resumed series: parameters plus an optional score.
+A baseline is the complete HP starting point for a study or resumed study: parameters plus an optional score.
 
-An incumbent is the current title holder for the series; it seeds future trials through `incumbent_params`, sets the checkpoint minimum score, and is written to study user attrs when a study finishes.
+An incumbent is the current title holder; it seeds future trials through `incumbent_params`, sets the checkpoint minimum score, and is written to study user attrs when a study finishes.
 
 The current optimization is deliberately simple: `StudyRunner.run(...)` is still the main orchestration point; do not add a hook layer to `study.py` without a strong current need.
 
@@ -103,7 +103,7 @@ The user may prefer "class over mass": a future selection policy might consider 
 
 `hpo/src/hpo/notebook/dashboard/` owns the notebook dashboard and is a central HPO tool, not merely a reporting afterthought.
 
-The dashboard is the visual interface between the human and the running HPO, and it should make the study series feel readable while it runs.
+The dashboard is the visual interface between the human and the running HPO, and it should make study progress readable while it runs.
 
 Dashboard panels: Current HPs, current Study, a reusable Robustness Evaluation panel, and Current Trial Training.
 
@@ -203,7 +203,7 @@ If a checkpoint directory is tiny, directly copy the whole directory to Drive; z
 
 ## SolarSystemLander Context
 
-The active SSL notebook has used `OBSERVATION_MODE = "8d"` and study series name `solar_system_lander_8d_elise`.
+The active SSL notebook has used `OBSERVATION_MODE = "8d"` and storage/study name `solar_system_lander_8d_elise`.
 
 SSL training worlds are `moon`, `mercury`, `mars`, `earth`, and `venus`.
 
@@ -263,7 +263,7 @@ For dashboard changes, run:
 
 Verify evaluation-best checkpointing in Colab on the next strong run and decide how selected evaluation-best checkpoints should be copied to Drive.
 
-Consider a `StudyRunner.show(...)` method later for displaying finished studies or whole series without re-running them.
+Consider a `StudyRunner.show(...)` method later for displaying finished studies without re-running them.
 
 Consider a smoother dashboard rendering mode only after the safe throttled mode is no longer good enough.
 
