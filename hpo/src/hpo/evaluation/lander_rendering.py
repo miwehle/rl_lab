@@ -544,8 +544,8 @@ def _draw_torque_arrow(
     end_angle = start_angle + direction * span
     tangent = (-math.sin(end_angle) * direction, math.cos(end_angle) * direction)
     tip = (points[-1][0] + tangent[0] * 2, points[-1][1] + tangent[1] * 2)
-    _draw_arrow_head(surface, (tip[0] + 1, tip[1] + 1), tangent, shadow_color, size=13)
-    _draw_arrow_head(surface, tip, tangent, color, size=12)
+    _draw_arrow_head(surface, (tip[0] + 1, tip[1] + 1), tangent, shadow_color, size=9)
+    _draw_arrow_head(surface, tip, tangent, color, size=8)
 
 
 def _draw_line_arrow(surface, start: tuple[float, float], end: tuple[float, float], color: RGB, *, width: int) -> None:
