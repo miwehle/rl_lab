@@ -1,12 +1,15 @@
 import gymnasium as gym
+import numpy as np
 import pytest
+from gymnasium.envs.box2d import lunar_lander
 
 from hpo.evaluation.lander_rendering import (
     LanderColors,
+    LanderOverlay,
     LanderRenderWrapper,
     world_colors,
 )
-from hpo.solar_system_lander.environment import World
+from hpo.solar_system_lander.environment import EnvFactory, World
 
 
 class ScoreEnv(gym.Env):
@@ -76,3 +79,35 @@ class TestLanderRenderWrapper:
         env.reset(seed=123)
 
         assert env.score == 0.0
+
+    def test_overlay_draws_wind_and_turbulence_indicators(self):
+        plain_frame, _ = _render_venus_frame(overlay=None)
+        overlay_frame, lander_center = _render_venus_frame(overlay=LanderOverlay())
+
+        top_center = np.s_[8:52, 200:400]
+        assert np.any(overlay_frame[top_center] != plain_frame[top_center])
+
+        x, y = lander_center
+        lander_neighborhood = np.s_[max(y - 70, 0) : y + 30, x : min(x + 80, overlay_frame.shape[1])]
+        assert np.any(overlay_frame[lander_neighborhood] != plain_frame[lander_neighborhood])
+
+
+def _render_venus_frame(*, overlay):
+    factory = EnvFactory("10d", world_mix={World.VENUS: 1})
+    colors = world_colors([World.VENUS])[0]
+    env = LanderRenderWrapper(
+        factory.make_env(World.VENUS, render_mode="rgb_array"),
+        colors=colors,
+        overlay=overlay,
+    )
+    try:
+        env.reset(seed=10_173)
+        env.step(0)
+        lander = env.env.unwrapped.lander
+        lander_center = (
+            round(lander.position.x * lunar_lander.SCALE),
+            round(lunar_lander.VIEWPORT_H - lander.position.y * lunar_lander.SCALE),
+        )
+        return env.render(), lander_center
+    finally:
+        env.close()

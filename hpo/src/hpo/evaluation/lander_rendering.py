@@ -21,6 +21,10 @@ _KICK_DIRECTIONS = (
     (0.0, -1.0),
     (1.0, -1.0),
 )
+_WIND_ACCEL_SCALE = 4.0
+_TURBULENCE_ACCEL_SCALE = 3.0
+_FORCE_WEAK_COLOR = (92, 188, 255)
+_FORCE_STRONG_COLOR = (255, 183, 77)
 
 
 @dataclass(frozen=True)
@@ -199,8 +203,6 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
     import pygame
 
     lines = _overlay_lines(source_env)
-    if not lines:
-        return
 
     if not pygame.font.get_init():
         pygame.font.init()
@@ -219,6 +221,10 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
             arrow_center = (position[0] + text.get_width() + 12, position[1] + line_height // 2)
             _draw_arrow(surface, arrow_center, direction, overlay)
 
+    env = getattr(source_env, "env", source_env)
+    _draw_wind_indicator(surface, font, env, overlay)
+    _draw_turbulence_indicator(surface, font, env, overlay)
+
 
 def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
     lines = []
@@ -230,7 +236,7 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
         if name is not None:
             lines.append((str(name).title(), None))
         if gravity is not None:
-            lines.append((f"g: {abs(float(gravity)):.1f} m/s²", None))
+            lines.append((f"g: {abs(float(gravity)):.1f} m/s^2", None))
 
     lander = getattr(env.unwrapped, "lander", None)
     mass = getattr(lander, "mass", None)
@@ -239,9 +245,9 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
     if weather is not None:
         wind, turbulence = weather
         if mass:
-            lines.append((f"wind: {abs(float(wind)) / float(mass):.1f} m/s²", None))
+            lines.append((f"wind max: {abs(float(wind)) / float(mass):.1f} m/s^2", None))
         if inertia:
-            lines.append((f"turb: {abs(float(turbulence)) / float(inertia):.1f} rad/s²", None))
+            lines.append((f"turb max: {abs(float(turbulence)) / float(inertia):.1f} rad/s^2", None))
 
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     if kick is not None:
@@ -257,6 +263,128 @@ def _draw_text(surface, font, line: str, position: tuple[int, int], overlay: Lan
     surface.blit(shadow, (position[0] + 1, position[1] + 1))
     surface.blit(text, position)
     return text
+
+
+def _draw_wind_indicator(surface, font, env, overlay: LanderOverlay) -> None:
+    wind = _wind_acceleration(env)
+    if wind is None:
+        return
+
+    acceleration, max_acceleration = wind
+    center = (surface.get_width() // 2, 26)
+    color = _force_color(abs(acceleration), max_acceleration)
+    _draw_horizontal_force_arrow(
+        surface,
+        center,
+        acceleration,
+        scale=_WIND_ACCEL_SCALE,
+        color=color,
+        shadow_color=overlay.shadow_color,
+    )
+    _draw_centered_text(surface, font, f"wind {acceleration:+.1f} m/s^2", (center[0], center[1] + 13), color, overlay)
+
+
+def _draw_turbulence_indicator(surface, font, env, overlay: LanderOverlay) -> None:
+    turbulence = _turbulence_acceleration(env)
+    lander_center = _lander_screen_position(env)
+    if turbulence is None or lander_center is None:
+        return
+
+    acceleration, max_acceleration = turbulence
+    color = _force_color(abs(acceleration), max_acceleration)
+    if lander_center[1] < 80:
+        center = (_clamp(lander_center[0] + 86, 26, surface.get_width() - 26), 62)
+    else:
+        center = (
+            _clamp(lander_center[0] + 34, 26, surface.get_width() - 26),
+            _clamp(lander_center[1] - 28, 26, surface.get_height() - 26),
+        )
+    _draw_torque_arrow(
+        surface,
+        center,
+        acceleration,
+        scale=_TURBULENCE_ACCEL_SCALE,
+        color=color,
+        shadow_color=overlay.shadow_color,
+    )
+    _draw_centered_text(surface, font, f"turb {acceleration:+.1f}", (center[0], center[1] + 18), color, overlay)
+
+
+def _draw_centered_text(
+    surface, font, line: str, center: tuple[int, int], color: RGB, overlay: LanderOverlay
+) -> None:
+    shadow = font.render(line, True, overlay.shadow_color)
+    text = font.render(line, True, color)
+    position = (center[0] - text.get_width() // 2, center[1])
+    surface.blit(shadow, (position[0] + 1, position[1] + 1))
+    surface.blit(text, position)
+
+
+def _wind_acceleration(env) -> tuple[float, float] | None:
+    env = getattr(env, "unwrapped", env)
+    lander = getattr(env, "lander", None)
+    mass = getattr(lander, "mass", None)
+    wind_idx = getattr(env, "wind_idx", None)
+    if not getattr(env, "enable_wind", False) or lander is None or not mass or wind_idx is None:
+        return None
+
+    wind_power = float(getattr(env, "wind_power", 0.0))
+    max_acceleration = _max_acceleration(wind_power, mass)
+    if _has_ground_contact(env):
+        return 0.0, max_acceleration
+    return _force_wave(wind_idx) * wind_power / float(mass), max_acceleration
+
+
+def _turbulence_acceleration(env) -> tuple[float, float] | None:
+    env = getattr(env, "unwrapped", env)
+    lander = getattr(env, "lander", None)
+    inertia = getattr(lander, "inertia", None)
+    torque_idx = getattr(env, "torque_idx", None)
+    if not getattr(env, "enable_wind", False) or lander is None or not inertia or torque_idx is None:
+        return None
+
+    turbulence_power = float(getattr(env, "turbulence_power", 0.0))
+    max_acceleration = _max_acceleration(turbulence_power, inertia)
+    if _has_ground_contact(env):
+        return 0.0, max_acceleration
+    return _force_wave(torque_idx) * turbulence_power / float(inertia), max_acceleration
+
+
+def _force_wave(index) -> float:
+    return math.tanh(math.sin(0.02 * int(index)) + math.sin(math.pi * 0.01 * int(index)))
+
+
+def _max_acceleration(force: float, divisor: float) -> float:
+    if not divisor:
+        return 0.0
+    return abs(float(force)) / float(divisor)
+
+
+def _has_ground_contact(env) -> bool:
+    return any(getattr(leg, "ground_contact", False) for leg in getattr(env, "legs", ()))
+
+
+def _force_color(value: float, max_value: float) -> RGB:
+    ratio = 0.0 if max_value <= 0 else min(value / max_value, 1.0)
+    return tuple(
+        round(weak + (strong - weak) * ratio)
+        for weak, strong in zip(_FORCE_WEAK_COLOR, _FORCE_STRONG_COLOR)
+    )
+
+
+def _lander_screen_position(env) -> tuple[int, int] | None:
+    env = getattr(env, "unwrapped", env)
+    lander = getattr(env, "lander", None)
+    if lander is None:
+        return None
+    return (
+        int(lander.position.x * lunar_lander.SCALE),
+        int(lunar_lander.VIEWPORT_H - lander.position.y * lunar_lander.SCALE),
+    )
+
+
+def _clamp(value: int, minimum: int, maximum: int) -> int:
+    return max(minimum, min(value, maximum))
 
 
 def _initial_kick(seed: int | None, mass) -> tuple[float, tuple[float, float]] | None:
@@ -314,3 +442,80 @@ def _draw_arrow_shape(surface, center: tuple[int, int], direction: tuple[float, 
     )
     pygame.draw.line(surface, color, start, end, 2)
     pygame.draw.polygon(surface, color, [end, left, right])
+
+
+def _draw_horizontal_force_arrow(
+    surface,
+    center: tuple[int, int],
+    value: float,
+    *,
+    scale: float,
+    color: RGB,
+    shadow_color: RGB,
+) -> None:
+    length = 14 + min(abs(value) / scale, 1.0) * 96
+    direction = 1 if value >= 0 else -1
+    start = (center[0] - direction * length / 2, center[1])
+    end = (center[0] + direction * length / 2, center[1])
+    _draw_line_arrow(surface, (start[0] + 1, start[1] + 1), (end[0] + 1, end[1] + 1), shadow_color, width=4)
+    _draw_line_arrow(surface, start, end, color, width=3)
+
+
+def _draw_torque_arrow(
+    surface,
+    center: tuple[int, int],
+    value: float,
+    *,
+    scale: float,
+    color: RGB,
+    shadow_color: RGB,
+) -> None:
+    import pygame
+
+    radius = 20
+    span = math.radians(240)
+    start_angle = math.radians(-120)
+    direction = 1 if value >= 0 else -1
+    point_count = 22
+    points = [
+        (
+            center[0] + math.cos(start_angle + direction * span * index / (point_count - 1)) * radius,
+            center[1] + math.sin(start_angle + direction * span * index / (point_count - 1)) * radius,
+        )
+        for index in range(point_count)
+    ]
+    width = 2 + round(min(abs(value) / scale, 1.0) * 2)
+    shadow_points = [(x + 1, y + 1) for x, y in points]
+    pygame.draw.lines(surface, shadow_color, False, shadow_points, width + 1)
+    pygame.draw.lines(surface, color, False, points, width)
+
+    end_angle = start_angle + direction * span
+    tangent = (-math.sin(end_angle) * direction, math.cos(end_angle) * direction)
+    _draw_arrow_head(surface, points[-1], tangent, color, size=7)
+
+
+def _draw_line_arrow(surface, start: tuple[float, float], end: tuple[float, float], color: RGB, *, width: int) -> None:
+    import pygame
+
+    pygame.draw.line(surface, color, start, end, width)
+    direction = (end[0] - start[0], end[1] - start[1])
+    _draw_arrow_head(surface, end, direction, color, size=8)
+
+
+def _draw_arrow_head(surface, tip: tuple[float, float], direction: tuple[float, float], color: RGB, *, size: int) -> None:
+    import pygame
+
+    dx, dy = direction
+    length = math.hypot(dx, dy)
+    if not length:
+        return
+    angle = math.atan2(dy, dx)
+    left = (
+        tip[0] - size * math.cos(angle - math.pi / 6),
+        tip[1] - size * math.sin(angle - math.pi / 6),
+    )
+    right = (
+        tip[0] - size * math.cos(angle + math.pi / 6),
+        tip[1] - size * math.sin(angle + math.pi / 6),
+    )
+    pygame.draw.polygon(surface, color, [tip, left, right])
