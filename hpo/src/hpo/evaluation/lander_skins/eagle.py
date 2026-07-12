@@ -19,8 +19,9 @@ RGB: TypeAlias = tuple[int, int, int]
 HaloMode: TypeAlias = Literal["auto", "always", "never"]
 
 _HALO_LUMA_THRESHOLD = 45.0
-_HALO_COLOR = (230, 235, 240, 105)
-_HALO_OFFSETS = ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, -1), (-1, 1), (1, 1))
+_HALO_OUTLINE_COLOR = (230, 235, 240)
+_HALO_WIDTH_ADD = 2
+_HALO_MIN_OUTLINE_AREA = 500.0
 
 
 @dataclass(frozen=True)
@@ -37,8 +38,11 @@ class DetailedEagleSkin:
         if self.halo not in ("auto", "always", "never"):
             raise ValueError(f"unknown halo mode: {self.halo}")
         left_ops, right_ops = _split_leg_ops(EAGLE_LEG_OPS)
+        object.__setattr__(self, "_body_outline_ops", _outline_ops(EAGLE_BODY_OPS))
         object.__setattr__(self, "_left_leg_ops", left_ops)
         object.__setattr__(self, "_right_leg_ops", right_ops)
+        object.__setattr__(self, "_left_leg_outline_ops", _outline_ops(left_ops))
+        object.__setattr__(self, "_right_leg_outline_ops", _outline_ops(right_ops))
         object.__setattr__(self, "_left_leg_anchor", _bbox_center(left_ops))
         object.__setattr__(self, "_right_leg_anchor", _bbox_center(right_ops))
 
@@ -47,28 +51,33 @@ class DetailedEagleSkin:
         if getattr(env, "lander", None) is None or len(getattr(env, "legs", ())) < 2:
             return
 
-        target = _transparent_surface_like(surface) if self.halo != "never" else surface
-        _draw_ops(target, EAGLE_BODY_OPS, env.lander, self.body_anchor, scale=self.scale)
+        if _should_draw_halo(surface, env.lander.position, self.halo):
+            self._draw(surface, env, outline_only=True)
+        self._draw(surface, env, outline_only=False)
+
+    def _draw(self, surface, env, *, outline_only: bool) -> None:
+        body_ops = self._body_outline_ops if outline_only else EAGLE_BODY_OPS
+        left_leg_ops = self._left_leg_outline_ops if outline_only else self._left_leg_ops
+        right_leg_ops = self._right_leg_outline_ops if outline_only else self._right_leg_ops
+        _draw_ops(surface, body_ops, env.lander, self.body_anchor, scale=self.scale, outline_only=outline_only)
         _draw_ops(
-            target,
-            self._left_leg_ops,
+            surface,
+            left_leg_ops,
             env.legs[1],
             self._left_leg_anchor,
             scale=self.scale,
             angle_offset=self.left_leg_rest_angle,
+            outline_only=outline_only,
         )
         _draw_ops(
-            target,
-            self._right_leg_ops,
+            surface,
+            right_leg_ops,
             env.legs[0],
             self._right_leg_anchor,
             scale=self.scale,
             angle_offset=self.right_leg_rest_angle,
+            outline_only=outline_only,
         )
-        if target is not surface:
-            if _should_draw_halo(surface, env.lander.position, self.halo):
-                _draw_halo(surface, target)
-            surface.blit(target, (0, 0), special_flags=_alpha_blend_flag())
 
 
 def _draw_ops(
@@ -79,6 +88,7 @@ def _draw_ops(
     *,
     scale: float,
     angle_offset: float = 0.0,
+    outline_only: bool = False,
 ) -> None:
     import pygame
 
@@ -86,7 +96,12 @@ def _draw_ops(
         transformed = [_source_to_screen(point, body, source_anchor, scale, angle_offset) for point in points]
         fill = _rgb(fill_hex)
         stroke = _rgb(stroke_hex)
-        width = max(1, round(stroke_width * scale))
+        if outline_only:
+            stroke = _HALO_OUTLINE_COLOR
+            fill = None
+            width = max(1, round(stroke_width * scale)) + _HALO_WIDTH_ADD
+        else:
+            width = max(1, round(stroke_width * scale))
 
         if kind == "polygon":
             if fill is not None:
@@ -122,35 +137,12 @@ def _body_to_screen(position) -> tuple[int, int]:
     return round(position[0] * lunar_lander.SCALE), round(lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE)
 
 
-def _transparent_surface_like(surface):
-    import pygame
-
-    return pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-
-
 def _should_draw_halo(surface, lander_position, halo: HaloMode) -> bool:
     if halo == "always":
         return True
     if halo == "never":
         return False
     return _mean_luma_around(surface, _body_to_screen(lander_position)) < _HALO_LUMA_THRESHOLD
-
-
-def _draw_halo(surface, source) -> None:
-    import pygame
-
-    mask = pygame.mask.from_surface(source)
-    halo = mask.to_surface(setcolor=_HALO_COLOR, unsetcolor=(0, 0, 0, 0))
-    halo.set_colorkey((0, 0, 0))
-    blend_flag = _alpha_blend_flag()
-    for offset in _HALO_OFFSETS:
-        surface.blit(halo, offset, special_flags=blend_flag)
-
-
-def _alpha_blend_flag() -> int:
-    import pygame
-
-    return getattr(pygame, "BLEND_ALPHA_SDL2", 0)
 
 
 def _mean_luma_around(surface, center: tuple[int, int]) -> float:
@@ -178,6 +170,17 @@ def _split_leg_ops(ops: Sequence[Op]) -> tuple[list[Op], list[Op]]:
         else:
             right.append(op)
     return left, right
+
+
+def _outline_ops(ops: Sequence[Op]) -> list[Op]:
+    return [op for op in ops if _bbox_area(op) >= _HALO_MIN_OUTLINE_AREA]
+
+
+def _bbox_area(op: Op) -> float:
+    points = op[4]
+    xs = [point[0] for point in points]
+    ys = [point[1] for point in points]
+    return (max(xs) - min(xs)) * (max(ys) - min(ys))
 
 
 def _bbox_center(ops: Sequence[Op]) -> Point:
