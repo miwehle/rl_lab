@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 import math
+from typing import Literal
 from typing import TypeAlias
 
 from gymnasium.envs.box2d import lunar_lander
@@ -15,6 +16,11 @@ from hpo.evaluation.lander_skins._eagle_legs_pygame import EAGLE_LEG_OPS
 Point: TypeAlias = tuple[float, float]
 Op: TypeAlias = tuple[str, str | None, str | None, float, list[Point]]
 RGB: TypeAlias = tuple[int, int, int]
+HaloMode: TypeAlias = Literal["auto", "always", "never"]
+
+_HALO_LUMA_THRESHOLD = 45.0
+_HALO_COLOR = (230, 235, 240, 105)
+_HALO_OFFSETS = ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, -1), (-1, 1), (1, 1))
 
 
 @dataclass(frozen=True)
@@ -25,8 +31,11 @@ class DetailedEagleSkin:
     body_anchor: Point = (244.0, 236.0)
     right_leg_rest_angle: float = 0.492
     left_leg_rest_angle: float = -0.492
+    halo: HaloMode = "auto"
 
     def __post_init__(self) -> None:
+        if self.halo not in ("auto", "always", "never"):
+            raise ValueError(f"unknown halo mode: {self.halo}")
         left_ops, right_ops = _split_leg_ops(EAGLE_LEG_OPS)
         object.__setattr__(self, "_left_leg_ops", left_ops)
         object.__setattr__(self, "_right_leg_ops", right_ops)
@@ -38,9 +47,10 @@ class DetailedEagleSkin:
         if getattr(env, "lander", None) is None or len(getattr(env, "legs", ())) < 2:
             return
 
-        _draw_ops(surface, EAGLE_BODY_OPS, env.lander, self.body_anchor, scale=self.scale)
+        target = _transparent_surface_like(surface) if self.halo != "never" else surface
+        _draw_ops(target, EAGLE_BODY_OPS, env.lander, self.body_anchor, scale=self.scale)
         _draw_ops(
-            surface,
+            target,
             self._left_leg_ops,
             env.legs[1],
             self._left_leg_anchor,
@@ -48,13 +58,17 @@ class DetailedEagleSkin:
             angle_offset=self.left_leg_rest_angle,
         )
         _draw_ops(
-            surface,
+            target,
             self._right_leg_ops,
             env.legs[0],
             self._right_leg_anchor,
             scale=self.scale,
             angle_offset=self.right_leg_rest_angle,
         )
+        if target is not surface:
+            if _should_draw_halo(surface, env.lander.position, self.halo):
+                _draw_halo(surface, target)
+            surface.blit(target, (0, 0), special_flags=_alpha_blend_flag())
 
 
 def _draw_ops(
@@ -106,6 +120,52 @@ def _source_to_screen(
 
 def _body_to_screen(position) -> tuple[int, int]:
     return round(position[0] * lunar_lander.SCALE), round(lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE)
+
+
+def _transparent_surface_like(surface):
+    import pygame
+
+    return pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+
+
+def _should_draw_halo(surface, lander_position, halo: HaloMode) -> bool:
+    if halo == "always":
+        return True
+    if halo == "never":
+        return False
+    return _mean_luma_around(surface, _body_to_screen(lander_position)) < _HALO_LUMA_THRESHOLD
+
+
+def _draw_halo(surface, source) -> None:
+    import pygame
+
+    mask = pygame.mask.from_surface(source)
+    halo = mask.to_surface(setcolor=_HALO_COLOR, unsetcolor=(0, 0, 0, 0))
+    halo.set_colorkey((0, 0, 0))
+    blend_flag = _alpha_blend_flag()
+    for offset in _HALO_OFFSETS:
+        surface.blit(halo, offset, special_flags=blend_flag)
+
+
+def _alpha_blend_flag() -> int:
+    import pygame
+
+    return getattr(pygame, "BLEND_ALPHA_SDL2", 0)
+
+
+def _mean_luma_around(surface, center: tuple[int, int]) -> float:
+    import pygame
+
+    radius = 36
+    rect = pygame.Rect(center[0] - radius, center[1] - radius, radius * 2, radius * 2)
+    rect.clamp_ip(surface.get_rect())
+    if rect.width <= 0 or rect.height <= 0:
+        return 255.0
+    view = pygame.surfarray.pixels3d(surface.subsurface(rect))
+    try:
+        return float((0.2126 * view[:, :, 0] + 0.7152 * view[:, :, 1] + 0.0722 * view[:, :, 2]).mean())
+    finally:
+        del view
 
 
 def _split_leg_ops(ops: Sequence[Op]) -> tuple[list[Op], list[Op]]:

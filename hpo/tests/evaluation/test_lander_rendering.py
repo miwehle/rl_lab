@@ -140,6 +140,19 @@ class TestLanderRenderWrapper:
         assert frame.shape == (400, 600, 3)
         assert np.any(frame != world_colors(["earth"])[0].sky)
 
+    def test_detailed_eagle_skin_auto_halo_is_only_for_dark_backgrounds(self):
+        moon_auto = _render_skin_frame(World.MOON, DetailedEagleSkin(halo="auto"))
+        moon_never = _render_skin_frame(World.MOON, DetailedEagleSkin(halo="never"))
+        earth_auto = _render_skin_frame(World.EARTH, DetailedEagleSkin(halo="auto"))
+        earth_never = _render_skin_frame(World.EARTH, DetailedEagleSkin(halo="never"))
+
+        assert _frame_delta(moon_auto, moon_never) > 0
+        assert _frame_delta(earth_auto, earth_never) == 0
+
+    def test_detailed_eagle_skin_rejects_unknown_halo_mode(self):
+        with pytest.raises(ValueError, match="unknown halo mode"):
+            DetailedEagleSkin(halo="full neon")  # type: ignore[arg-type]
+
 
 def _render_venus_frame(*, overlay):
     factory = EnvFactory("10d", world_mix={World.VENUS: 1})
@@ -160,3 +173,23 @@ def _render_venus_frame(*, overlay):
         return env.render(), lander_center
     finally:
         env.close()
+
+
+def _render_skin_frame(world: World, skin: DetailedEagleSkin):
+    factory = EnvFactory("10d", world_mix={world: 1})
+    env = LanderRenderWrapper(
+        factory.make_env(world, render_mode="rgb_array"),
+        colors=world_colors([world])[0],
+        skin=skin,
+    )
+    try:
+        env.reset(seed=10_014)
+        for _ in range(45):
+            env.step(0)
+        return env.render()
+    finally:
+        env.close()
+
+
+def _frame_delta(left, right) -> int:
+    return int(np.abs(left.astype(np.int16) - right.astype(np.int16)).sum())
