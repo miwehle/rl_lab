@@ -336,11 +336,11 @@ def _draw_turbulence_indicator(surface, font, env, overlay: LanderOverlay) -> No
     acceleration, _ = turbulence
     color = _force_color(abs(acceleration), _TURBULENCE_COLOR_STOPS)
     if lander_center[1] < 80:
-        center = (_clamp(lander_center[0] + 86, 26, surface.get_width() - 26), 62)
+        center = (_clamp(lander_center[0] + 110, 26, surface.get_width() - 26), 62)
     else:
         center = (
-            _clamp(lander_center[0] + 34, 26, surface.get_width() - 26),
-            _clamp(lander_center[1] - 28, 26, surface.get_height() - 26),
+            _clamp(lander_center[0] + 92, 26, surface.get_width() - 26),
+            _clamp(lander_center[1] - 38, 26, surface.get_height() - 26),
         )
     _draw_torque_arrow(
         surface,
