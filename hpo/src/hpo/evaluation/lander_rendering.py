@@ -232,14 +232,27 @@ def _is_lander_body(obj, env) -> bool:
 def _draw_flags(surface, env, colors: LanderColors, gfxdraw) -> None:
     import pygame
 
+    flag_direction = _wind_flag_direction(env)
     for x in [env.helipad_x1, env.helipad_x2]:
         x = x * lunar_lander.SCALE
         flagy1 = env.helipad_y * lunar_lander.SCALE
         flagy2 = flagy1 + 50
         pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
-        flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
+        flag_points = [(x, flagy2), (x, flagy2 - 10), (x + flag_direction * 25, flagy2 - 5)]
         pygame.draw.polygon(surface, color=colors.flag, points=flag_points)
         gfxdraw.aapolygon(surface, flag_points, colors.flag)
+
+
+def _wind_flag_direction(env) -> int:
+    env = getattr(env, "unwrapped", env)
+    if not getattr(env, "enable_wind", False):
+        return 1
+    wind_idx = getattr(env, "wind_idx", None)
+    if wind_idx is None:
+        return 1
+    wind_power = float(getattr(env, "wind_power", 0.0))
+    wind = _force_wave(wind_idx) * wind_power
+    return 1 if wind >= 0 else -1
 
 
 def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
