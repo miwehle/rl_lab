@@ -473,7 +473,8 @@ def _draw_torque_arrow(
     import pygame
 
     radius = 20
-    span = math.radians(240)
+    strength = min(abs(value) / scale, 1.0)
+    span = math.radians(70 + strength * 210)
     start_angle = math.radians(-120)
     direction = 1 if value >= 0 else -1
     point_count = 22
@@ -484,14 +485,14 @@ def _draw_torque_arrow(
         )
         for index in range(point_count)
     ]
-    width = 2 + round(min(abs(value) / scale, 1.0) * 2)
+    width = 2 + round(strength * 2)
     shadow_points = [(x + 1, y + 1) for x, y in points]
     pygame.draw.lines(surface, shadow_color, False, shadow_points, width + 1)
     pygame.draw.lines(surface, color, False, points, width)
 
     end_angle = start_angle + direction * span
     tangent = (-math.sin(end_angle) * direction, math.cos(end_angle) * direction)
-    _draw_arrow_head(surface, points[-1], tangent, color, size=7)
+    _draw_arrow_head(surface, points[-1], tangent, color, size=11)
 
 
 def _draw_line_arrow(surface, start: tuple[float, float], end: tuple[float, float], color: RGB, *, width: int) -> None:
