@@ -13,7 +13,7 @@ from gymnasium.wrappers import RecordVideo
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.evaluation.checkpoint_robustness import q_net_from_checkpoint
-from hpo.evaluation.lander_rendering import LanderColors, LanderOverlay, LanderRenderWrapper
+from hpo.evaluation.lander_rendering import LanderColors, LanderOverlay, LanderRenderWrapper, LanderSkin
 
 _FINAL_HOLD_FRAMES = 30
 
@@ -30,6 +30,7 @@ def record_checkpoint_video(
     max_steps: int = 1_000,
     render_colors: LanderColors | None = None,
     render_overlay: LanderOverlay | None = None,
+    render_skin: LanderSkin | None = None,
 ) -> Path:
     """Record one greedy episode for a saved checkpoint."""
     if max_steps < 1:
@@ -42,8 +43,8 @@ def record_checkpoint_video(
 
     def make_env():
         env = environment_factory.make_env(world_name, render_mode="rgb_array")
-        if render_colors is not None or render_overlay is not None:
-            env = LanderRenderWrapper(env, colors=render_colors, overlay=render_overlay)
+        if render_colors is not None or render_overlay is not None or render_skin is not None:
+            env = LanderRenderWrapper(env, colors=render_colors, overlay=render_overlay, skin=render_skin)
         return env
 
     q_net = q_net_from_checkpoint(
@@ -85,6 +86,7 @@ def record_checkpoint_videos(
     max_steps: int = 1_000,
     colors_by_world: Iterable[LanderColors | None] | None = None,
     render_overlay: LanderOverlay | None = None,
+    render_skin: LanderSkin | None = None,
     progress: bool = True,
 ) -> list[Path]:
     """Record one greedy episode for each world/seed pair."""
@@ -114,6 +116,7 @@ def record_checkpoint_videos(
             max_steps=max_steps,
             render_colors=render_colors,
             render_overlay=render_overlay,
+            render_skin=render_skin,
         )
         for world, seed, render_colors in _with_progress(
             jobs, enabled=progress, total=len(jobs), desc="Recording videos"

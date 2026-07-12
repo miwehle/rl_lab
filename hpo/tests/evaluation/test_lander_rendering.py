@@ -10,6 +10,7 @@ from hpo.evaluation.lander_rendering import (
     _force_color,
     world_colors,
 )
+from hpo.evaluation.lander_skins import DetailedEagleSkin
 from hpo.solar_system_lander.environment import EnvFactory, World
 
 
@@ -25,6 +26,15 @@ class ScoreEnv(gym.Env):
 
     def step(self, action):
         return [0.0], 1.25, False, False, {}
+
+
+class MarkerSkin:
+    def __init__(self):
+        self.calls = []
+
+    def draw(self, surface, env):
+        self.calls.append(env)
+        surface.set_at((7, 9), (255, 0, 0))
 
 
 def test_world_colors_returns_colors_in_world_order():
@@ -100,6 +110,35 @@ class TestLanderRenderWrapper:
         x, y = lander_center
         lander_neighborhood = np.s_[max(y - 70, 0) : y + 30, x : min(x + 80, overlay_frame.shape[1])]
         assert np.any(overlay_frame[lander_neighborhood] != plain_frame[lander_neighborhood])
+
+    def test_draws_optional_skin_on_screen_oriented_surface(self):
+        skin = MarkerSkin()
+        env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), skin=skin)
+
+        try:
+            env.reset(seed=123)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert len(skin.calls) == 1
+        assert tuple(frame[9, 7]) == (255, 0, 0)
+
+    def test_detailed_eagle_skin_renders_frame(self):
+        env = LanderRenderWrapper(
+            gym.make("LunarLander-v3", render_mode="rgb_array"),
+            colors=world_colors(["earth"])[0],
+            skin=DetailedEagleSkin(),
+        )
+
+        try:
+            env.reset(seed=10_014)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert frame.shape == (400, 600, 3)
+        assert np.any(frame != world_colors(["earth"])[0].sky)
 
 
 def _render_venus_frame(*, overlay):

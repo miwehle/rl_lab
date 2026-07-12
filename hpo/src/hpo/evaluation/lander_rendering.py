@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 import math
+from typing import Protocol
 
 import gymnasium as gym
 import numpy as np
@@ -54,6 +55,13 @@ class LanderOverlay:
     shadow_color: RGB = (0, 0, 0)
 
 
+class LanderSkin(Protocol):
+    """Optional visual replacement for the default Gym lander body."""
+
+    def draw(self, surface, env) -> None:
+        """Draw the lander on an already screen-oriented surface."""
+
+
 _WORLD_COLORS = {
     "earth": LanderColors(sky=(143, 199, 232), ground=(111, 127, 82), ground_outline=(111, 127, 82)),
     "venus": LanderColors(sky=(214, 168, 92), ground=(138, 103, 64), ground_outline=(138, 103, 64)),
@@ -78,10 +86,17 @@ def world_colors(worlds: Iterable[str]) -> list[LanderColors]:
 class LanderRenderWrapper(gym.Wrapper):
     """Render a LunarLander-compatible environment with custom colors."""
 
-    def __init__(self, env, colors: LanderColors | None = None, overlay: LanderOverlay | None = None) -> None:
+    def __init__(
+        self,
+        env,
+        colors: LanderColors | None = None,
+        overlay: LanderOverlay | None = None,
+        skin: LanderSkin | None = None,
+    ) -> None:
         super().__init__(env)
         self.colors = colors or LanderColors()
         self.overlay = overlay
+        self.skin = skin
         self.reset_seed: int | None = None
         self.score = 0.0
 
@@ -96,10 +111,16 @@ class LanderRenderWrapper(gym.Wrapper):
         return observation, reward, terminated, truncated, info
 
     def render(self):
-        return _render_lunar_lander(self.env.unwrapped, self, self.colors, self.overlay)
+        return _render_lunar_lander(self.env.unwrapped, self, self.colors, self.overlay, self.skin)
 
 
-def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderOverlay | None):
+def _render_lunar_lander(
+    env,
+    source_env,
+    colors: LanderColors,
+    overlay: LanderOverlay | None,
+    skin: LanderSkin | None = None,
+):
     if env.render_mode is None:
         assert env.spec is not None
         gym.logger.warn(
@@ -153,6 +174,8 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
         pygame.draw.aaline(env.surf, colors.ground_outline, scaled_poly[0], scaled_poly[1])
 
     for obj in env.particles + env.drawlist:
+        if skin is not None and _is_lander_body(obj, env):
+            continue
         for f in obj.fixtures:
             trans = f.body.transform
             fill, outline = _object_colors(obj, env, colors)
@@ -175,18 +198,11 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
                 gfxdraw.aapolygon(env.surf, path, fill)
                 pygame.draw.aalines(env.surf, color=outline, points=path, closed=True)
 
-            for x in [env.helipad_x1, env.helipad_x2]:
-                x = x * lunar_lander.SCALE
-                flagy1 = env.helipad_y * lunar_lander.SCALE
-                flagy2 = flagy1 + 50
-                pygame.draw.line(
-                    env.surf, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1
-                )
-                flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
-                pygame.draw.polygon(env.surf, color=colors.flag, points=flag_points)
-                gfxdraw.aapolygon(env.surf, flag_points, colors.flag)
+    _draw_flags(env.surf, env, colors, gfxdraw)
 
     env.surf = pygame.transform.flip(env.surf, False, True)
+    if skin is not None:
+        skin.draw(env.surf, env)
     if overlay is not None:
         _draw_overlay(env.surf, source_env, overlay)
 
@@ -204,9 +220,26 @@ def _render_lunar_lander(env, source_env, colors: LanderColors, overlay: LanderO
 
 
 def _object_colors(obj, env, colors: LanderColors) -> tuple[RGB, RGB]:
-    if obj is env.lander or any(obj is leg for leg in env.legs):
+    if _is_lander_body(obj, env):
         return colors.lander_fill, colors.lander_outline
     return obj.color1, obj.color2
+
+
+def _is_lander_body(obj, env) -> bool:
+    return obj is env.lander or any(obj is leg for leg in env.legs)
+
+
+def _draw_flags(surface, env, colors: LanderColors, gfxdraw) -> None:
+    import pygame
+
+    for x in [env.helipad_x1, env.helipad_x2]:
+        x = x * lunar_lander.SCALE
+        flagy1 = env.helipad_y * lunar_lander.SCALE
+        flagy2 = flagy1 + 50
+        pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
+        flag_points = [(x, flagy2), (x, flagy2 - 10), (x + 25, flagy2 - 5)]
+        pygame.draw.polygon(surface, color=colors.flag, points=flag_points)
+        gfxdraw.aapolygon(surface, flag_points, colors.flag)
 
 
 def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
