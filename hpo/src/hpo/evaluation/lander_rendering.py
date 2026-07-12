@@ -22,9 +22,19 @@ _KICK_DIRECTIONS = (
     (1.0, -1.0),
 )
 _WIND_ACCEL_SCALE = 4.0
-_TURBULENCE_ACCEL_SCALE = 3.0
-_FORCE_WEAK_COLOR = (92, 188, 255)
-_FORCE_STRONG_COLOR = (255, 183, 77)
+_TURBULENCE_ACCEL_SCALE = 2.4
+_WIND_COLOR_STOPS = (
+    (0.0, (72, 220, 92)),
+    (1.0, (255, 230, 72)),
+    (2.0, (255, 146, 43)),
+    (3.0, (255, 55, 55)),
+)
+_TURBULENCE_COLOR_STOPS = (
+    (0.0, (72, 220, 92)),
+    (0.7, (255, 230, 72)),
+    (1.4, (255, 146, 43)),
+    (2.1, (255, 55, 55)),
+)
 
 
 @dataclass(frozen=True)
@@ -270,9 +280,9 @@ def _draw_wind_indicator(surface, font, env, overlay: LanderOverlay) -> None:
     if wind is None:
         return
 
-    acceleration, max_acceleration = wind
+    acceleration, _ = wind
     center = (surface.get_width() // 2, 26)
-    color = _force_color(abs(acceleration), max_acceleration)
+    color = _force_color(abs(acceleration), _WIND_COLOR_STOPS)
     _draw_horizontal_force_arrow(
         surface,
         center,
@@ -290,8 +300,8 @@ def _draw_turbulence_indicator(surface, font, env, overlay: LanderOverlay) -> No
     if turbulence is None or lander_center is None:
         return
 
-    acceleration, max_acceleration = turbulence
-    color = _force_color(abs(acceleration), max_acceleration)
+    acceleration, _ = turbulence
+    color = _force_color(abs(acceleration), _TURBULENCE_COLOR_STOPS)
     if lander_center[1] < 80:
         center = (_clamp(lander_center[0] + 86, 26, surface.get_width() - 26), 62)
     else:
@@ -364,12 +374,18 @@ def _has_ground_contact(env) -> bool:
     return any(getattr(leg, "ground_contact", False) for leg in getattr(env, "legs", ()))
 
 
-def _force_color(value: float, max_value: float) -> RGB:
-    ratio = 0.0 if max_value <= 0 else min(value / max_value, 1.0)
-    return tuple(
-        round(weak + (strong - weak) * ratio)
-        for weak, strong in zip(_FORCE_WEAK_COLOR, _FORCE_STRONG_COLOR)
-    )
+def _force_color(value: float, stops: tuple[tuple[float, RGB], ...]) -> RGB:
+    if value <= stops[0][0]:
+        return stops[0][1]
+    for (lower_value, lower_color), (upper_value, upper_color) in zip(stops, stops[1:]):
+        if value <= upper_value:
+            ratio = (value - lower_value) / (upper_value - lower_value)
+            return _interpolate_color(lower_color, upper_color, ratio)
+    return stops[-1][1]
+
+
+def _interpolate_color(lower: RGB, upper: RGB, ratio: float) -> RGB:
+    return tuple(round(low + (high - low) * ratio) for low, high in zip(lower, upper))
 
 
 def _lander_screen_position(env) -> tuple[int, int] | None:
@@ -474,8 +490,10 @@ def _draw_torque_arrow(
 
     radius = 20
     strength = min(abs(value) / scale, 1.0)
-    span = math.radians(70 + strength * 210)
-    start_angle = math.radians(-120)
+    if strength == 0:
+        return
+    span = math.radians(strength * 270)
+    start_angle = math.radians(180)
     direction = 1 if value >= 0 else -1
     point_count = 22
     points = [

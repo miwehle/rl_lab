@@ -7,6 +7,7 @@ from hpo.evaluation.lander_rendering import (
     LanderColors,
     LanderOverlay,
     LanderRenderWrapper,
+    _force_color,
     world_colors,
 )
 from hpo.solar_system_lander.environment import EnvFactory, World
@@ -38,6 +39,15 @@ def test_world_colors_returns_colors_in_world_order():
 def test_world_colors_rejects_unknown_world():
     with pytest.raises(ValueError, match="unknown world color: pluto"):
         world_colors(["pluto"])
+
+
+def test_force_color_uses_absolute_stops():
+    stops = ((0.0, (0, 255, 0)), (1.0, (255, 255, 0)), (2.0, (255, 0, 0)))
+
+    assert _force_color(0.0, stops) == (0, 255, 0)
+    assert _force_color(1.0, stops) == (255, 255, 0)
+    assert _force_color(2.0, stops) == (255, 0, 0)
+    assert _force_color(3.0, stops) == (255, 0, 0)
 
 
 class TestLanderRenderWrapper:
