@@ -28,7 +28,7 @@ The left and right Eagle legs follow the corresponding Gym leg bodies, so Gym su
 
 The healthy reset pose should reconstruct the original detailed Eagle as closely as possible. When suspension, contact, or breakage happens, the legs may and should move relative to the body.
 
-The visual main nozzle and the Gym main impulse point are allowed to differ. The flame should originate from the visual Eagle nozzle; debug/calibration views may still show the Gym impulse point.
+The detailed Eagle main impulse point is estimated inside the nozzle body, between the visual nozzle exit and the Gym main impulse point. The current calibration difference is small enough to accept for now. The flame should originate from the visual Eagle nozzle; debug/calibration views may still show both impulse-point estimates.
 
 ## Proposed API
 
