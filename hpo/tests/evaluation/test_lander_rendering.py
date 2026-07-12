@@ -8,7 +8,7 @@ from hpo.evaluation.lander_rendering import (
     LanderOverlay,
     LanderRenderWrapper,
     _force_color,
-    _wind_flag_direction,
+    _wind_strength,
     world_colors,
 )
 from hpo.evaluation.lander_skins import DetailedEagleSkin
@@ -61,17 +61,21 @@ def test_force_color_uses_absolute_stops():
     assert _force_color(3.0, stops) == (255, 0, 0)
 
 
-def test_wind_flag_direction_follows_current_wind_sign():
+def test_wind_strength_follows_current_wind_sign():
     class Env:
         enable_wind = True
         wind_power = 1.0
 
     env = Env()
     env.wind_idx = 25
-    assert _wind_flag_direction(env) == 1
+    positive, max_wind = _wind_strength(env)
+    assert positive > 0
+    assert max_wind == 1.0
 
     env.wind_idx = 150
-    assert _wind_flag_direction(env) == -1
+    negative, max_wind = _wind_strength(env)
+    assert negative < 0
+    assert max_wind == 1.0
 
 
 class TestLanderRenderWrapper:
