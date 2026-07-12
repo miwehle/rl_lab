@@ -10,6 +10,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 | [[#H4 Observation Mode Is Still Open\|H4]] | Observation Mode Is Still Open | SSL |
 | [[#H5 Good HPs Are Not Enough\|H5]] | Good HPs Are Not Enough | RL, Checkpointing |
 | [[#H6 Ground Side-Thrust Penalty Can Recover Landing Rewards\|H6]] | Ground Side-Thrust Penalty Can Recover Landing Rewards | RL, SSL |
+| [[#H7 Strong Turbulence Can Saturate The Action Channel\|H7]] | Strong Turbulence Can Saturate The Action Channel | RL, SSL |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
@@ -84,3 +85,15 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 **Could be wrong if:** The penalty harms approach control, reduces exploration, or merely shifts failures from side-thrusting on the ground to other low-score behaviors.
 
 **Consequence:** Test this as a small reward-shaping experiment before making it part of larger HPO runs.
+
+## H7 Strong Turbulence Can Saturate The Action Channel
+
+**These:** In high-g worlds with strong turbulence, attitude control and vertical support compete for the single discrete action channel. If the pilot must spend too many steps on side thrust, the main engine duty cycle can fall below what is needed to arrest descent. Some crashes may therefore be action-space/physics-limited rather than policy mistakes.
+
+**Evidence:** In [[observations#O15 Worst Elise-264 Crashes Show Disturbance Reversals|O15]], the worst Elise-264-GSTP videos show strong wind/turbulence and fast descents near touchdown. Two candidate worst-case episodes share `seed=10014`: `venus` scored about `4.9` with `wind=15.63`, `turbulence=1.74`, and `earth` scored about `13.7` with `wind=6.25`, `turbulence=1.74`. With lander inertia around `0.833`, `turbulence=1.74` allows momentary angular acceleration around `2.1 rad/s^2` (`~120 deg/s^2`).
+
+**Prediction:** In these episodes, action traces should show a high side-thrust fraction during final descent, a constrained main-engine fraction, and vertical speed that cannot be reduced enough before ground impact.
+
+**Could be wrong if:** The action trace shows enough main-engine duty cycle but bad timing, unnecessary side thrust, recoverable attitude errors, or late policy choices that a better pilot could avoid.
+
+**Consequence:** Add action-channel auditing to the failure notebook before deciding whether further reward shaping can help or whether these cases are near the physical/action-space limit.

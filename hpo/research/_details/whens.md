@@ -6,6 +6,7 @@ Purpose: Reconstructed dates for research items whose dates are not kept inline.
 |---|---|---|
 | [[../aha#A14 Efficient Pilots Need Dynamic Safety Margin\|A14]] | 2026-07-12 | Recorded Elise-264-GSTP failure-audit lesson from worst crash videos. |
 | [[../aha#A13 Fine-Tune Strong Pilots Into A Model Line\|A13]] | 2026-07-11 | Recorded Elise-264-GSTP as a checkpoint fine-tuning/model-line lesson. |
+| [[../hypotheses#H7 Strong Turbulence Can Saturate The Action Channel\|H7]] | 2026-07-12 | Added action-channel saturation hypothesis for worst Elise-264-GSTP crashes. |
 | [[../aha#A1 Code Complexity Is Part Of The Experiment\|A1]] | 2026-06-29 | Recorded code complexity as part of the experiment. |
 | [[../ideas#Begriffe aus dem Apollo-Programm\|ideas/Apollo]] | 2026-06-29 | Added Apollo-style terminology for checkpoints, campaigns, qualification, and flight testing. |
 | [[../aha#A12 How To Build A Small Good Five-World Lander\|A12]] | 2026-07-01 | Added initial synthesis of how to build a small good five-world lander. |
