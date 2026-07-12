@@ -22,6 +22,10 @@ _HALO_LUMA_THRESHOLD = 45.0
 _HALO_OUTLINE_COLOR = (230, 235, 240)
 _HALO_WIDTH_ADD = 2
 _HALO_MIN_OUTLINE_AREA = 500.0
+_FRONT_GEAR_MIN_Y = 236.0
+_FRONT_GEAR_MAX_Y = 363.0
+_FRONT_GEAR_MIN_X = 190.0
+_FRONT_GEAR_MAX_X = 295.0
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,8 @@ class DetailedEagleSkin:
             raise ValueError(f"unknown halo mode: {self.halo}")
         left_ops, right_ops = _split_leg_ops(EAGLE_LEG_OPS)
         object.__setattr__(self, "_body_outline_ops", _outline_ops(EAGLE_BODY_OPS))
+        object.__setattr__(self, "_front_gear_ops", _front_gear_ops(EAGLE_BODY_OPS))
+        object.__setattr__(self, "_front_gear_outline_ops", _outline_ops(self._front_gear_ops))
         object.__setattr__(self, "_left_leg_ops", left_ops)
         object.__setattr__(self, "_right_leg_ops", right_ops)
         object.__setattr__(self, "_left_leg_outline_ops", _outline_ops(left_ops))
@@ -76,6 +82,15 @@ class DetailedEagleSkin:
             self._right_leg_anchor,
             scale=self.scale,
             angle_offset=self.right_leg_rest_angle,
+            outline_only=outline_only,
+        )
+        front_gear_ops = self._front_gear_outline_ops if outline_only else self._front_gear_ops
+        _draw_ops(
+            surface,
+            front_gear_ops,
+            env.lander,
+            self.body_anchor,
+            scale=self.scale,
             outline_only=outline_only,
         )
 
@@ -176,11 +191,29 @@ def _outline_ops(ops: Sequence[Op]) -> list[Op]:
     return [op for op in ops if _bbox_area(op) >= _HALO_MIN_OUTLINE_AREA]
 
 
+def _front_gear_ops(ops: Sequence[Op]) -> list[Op]:
+    return [op for op in ops if _is_front_gear(op)]
+
+
+def _is_front_gear(op: Op) -> bool:
+    x1, y1, x2, y2 = _bbox(op[4])
+    return (
+        x1 >= _FRONT_GEAR_MIN_X
+        and x2 <= _FRONT_GEAR_MAX_X
+        and y1 >= _FRONT_GEAR_MIN_Y
+        and y2 <= _FRONT_GEAR_MAX_Y
+    )
+
+
 def _bbox_area(op: Op) -> float:
-    points = op[4]
+    x1, y1, x2, y2 = _bbox(op[4])
+    return (x2 - x1) * (y2 - y1)
+
+
+def _bbox(points: Sequence[Point]) -> tuple[float, float, float, float]:
     xs = [point[0] for point in points]
     ys = [point[1] for point in points]
-    return (max(xs) - min(xs)) * (max(ys) - min(ys))
+    return min(xs), min(ys), max(xs), max(ys)
 
 
 def _bbox_center(ops: Sequence[Op]) -> Point:
