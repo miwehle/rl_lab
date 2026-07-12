@@ -266,7 +266,7 @@ def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind: tuple[fl
     for index in range(segment_count + 1):
         t = index / segment_count
         x = anchor[0] + direction * length * t
-        y = anchor[1] + 4 + 18 * droop * (t**1.4)
+        y = anchor[1] + 4 - 18 * droop * (t**1.4)
         centerline.append((x, y))
 
     widths = [10 - 5 * index / segment_count for index in range(segment_count + 1)]
