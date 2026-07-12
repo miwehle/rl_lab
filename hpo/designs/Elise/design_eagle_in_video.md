@@ -1,48 +1,42 @@
-# Eagle In Videos
+# Detailed Eagle Skin In Videos
 
-Goal: keep video generation fast and faithful by default, but allow nicer showcase videos with an Eagle-inspired lander.
+Goal: integrate the detailed Eagle lander graphic into videos without bloating the general rendering and video modules.
 
 ## Decision
 
-The default video rendering stays the spartan Gymnasium lander.
+Use a small optional skin hook in `LanderRenderWrapper`.
 
-Video recording may opt into a lander style:
+`LanderRenderWrapper` remains responsible for the Gym-compatible scene: sky, terrain, flags, particles, score state, overlays, and render mode handling.
 
-```python
-lander_style="gymnasium" | "eagle" | "simplified_eagle"
-```
-
-`"gymnasium"` uses the current fixture-based drawing.
-
-`"eagle"` uses the detailed Eagle drawing from `hpo/_experimental/lander_rendering/detailed/eagle_lander_pygame.py`.
-
-`"simplified_eagle"` uses the compact hand-drawn Pygame version from `hpo/_experimental/lander_rendering/simple/simplified_eagle_pygame.py`.
+The detailed Eagle graphic lives in a separate module, for example `hpo.evaluation.lander_skins.eagle`, and is passed into the wrapper as `skin=DetailedEagleSkin()`.
 
 ## Why
 
-The detailed Eagle looks much closer to the original lunar module and is good for showcase videos.
+The detailed Eagle is presentation logic, not environment logic.
 
-It costs roughly `2 ms/frame` in a local Pygame microbenchmark, about `2 s` for a `1000` frame video. That is acceptable for selected videos but not ideal as the always-on default.
+Keeping it as a skin keeps `hpo.evaluation.lander_rendering` focused on rendering orchestration and keeps `hpo.evaluation.video` focused on recording videos.
 
-The simplified Eagle is much cheaper, roughly `0.2 ms/frame`, and may be useful when the detailed Eagle is too slow or visually too busy.
+The detailed graphic also carries calibration constants, body/leg anchors, leg rest angles, and nozzle locations. Those are Eagle-specific and should not spread through the generic evaluation modules.
 
 ## Rendering Model
 
 Physics stays unchanged.
 
-Only the visual representation of the lander changes.
+The Eagle body follows `env.lander`.
 
-The Gymnasium terrain, particles, flags, overlay text, score, and world colors stay as they are.
+The left and right Eagle legs follow the corresponding Gym leg bodies, so Gym suspension and leg breakage remain visible.
 
-For `"eagle"` and `"simplified_eagle"`, the renderer should draw the chosen Eagle surface at the current Gymnasium lander pose.
+The healthy reset pose should reconstruct the original detailed Eagle as closely as possible. When suspension, contact, or breakage happens, the legs may and should move relative to the body.
 
-The first implementation should prefer a simple, visually useful placement over perfect physical fidelity.
+The visual main nozzle and the Gym main impulse point are allowed to differ. The flame should originate from the visual Eagle nozzle; debug/calibration views may still show the Gym impulse point.
 
-## API Sketch
+## Proposed API
 
 Notebook use:
 
 ```python
+from hpo.evaluation.lander_skins.eagle import DetailedEagleSkin
+
 video_paths = record_checkpoint_videos(
     checkpoint_path=CHECKPOINT_PATH,
     environment_factory=ENV_FACTORY,
@@ -52,27 +46,47 @@ video_paths = record_checkpoint_videos(
     device=device,
     colors_by_world=world_colors(WORLDS),
     render_overlay=LanderOverlay(),
-    lander_style="eagle",
+    render_skin=DetailedEagleSkin(),
 )
 ```
 
 Package flow:
 
 ```text
-record_checkpoint_videos(...)
-  -> record_checkpoint_video(..., lander_style=...)
-  -> LanderRenderWrapper(..., lander_style=...)
+record_checkpoint_videos(..., render_skin=...)
+  -> record_checkpoint_video(..., render_skin=...)
+  -> LanderRenderWrapper(..., skin=render_skin)
   -> _render_lunar_lander(...)
+  -> skin.draw(surface, env)
 ```
+
+## Module Shape
+
+```text
+hpo/src/hpo/evaluation/
+    lander_rendering.py
+    video.py
+    lander_skins/
+        __init__.py
+        eagle.py
+```
+
+`eagle.py` owns the detailed ops imports, anchor constants, leg rest angles, leg side mapping, and draw logic.
+
+`video.py` should only pass `render_skin` through.
+
+`lander_rendering.py` should only know that a skin has a `draw(surface, env)` method.
 
 ## KISS Constraints
 
-Do not replace the environment physics.
+Do not replace or modify Gym physics.
 
 Do not parse SVG at runtime.
 
-Do not make the detailed Eagle the default.
+Do not use the old simplified Eagle path for this integration.
 
-Do not add many style knobs before the three styles above have proven useful.
+Do not build a general sprite engine.
 
-The current target is better videos, not a general sprite engine.
+Do not add many visual knobs before the detailed Eagle skin is useful in real audit/showcase videos.
+
+Keep the default renderer unchanged unless a skin is explicitly passed.
