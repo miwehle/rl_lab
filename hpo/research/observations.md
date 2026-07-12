@@ -2,6 +2,7 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O15 Worst Elise-264 Crashes Show Disturbance Reversals\|O15]]      | Worst Elise-264 Crashes Show Disturbance Reversals        | SSL, RL, Video     |
 | [[#O14 Ground Side-Thrust Can Hide Landing Reward\|O14]]              | Ground Side-Thrust Can Hide Landing Reward                | SSL, RL            |
 | [[#O13 Checkpoint Distribution Cell Is Not Faster On L4\|O13]]        | Checkpoint Distribution Cell Is Not Faster On L4          | PERF, Colab        |
 | [[#O12 253 Pilot Lands Safely In Videos\|O12]]                        | 253 Pilot Lands Safely In Videos                          | SSL, Checkpointing |
@@ -18,6 +19,16 @@
 | [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O15 Worst Elise-264 Crashes Show Disturbance Reversals
+
+**Observation:** Failure-audit videos of Elise-264-GSTP's worst robustness episodes show a fast, fuel-saving descent style with low vertical safety margin. In the worst crash, turbulence changed during landing from about `+2.1` to `-2.2 rad/s^2` (`~+120` to `~-126 deg/s^2`), and wind also changed direction late in the descent.
+
+**When:** 2026-07-12
+
+**Evidence:** The five first failure-audit videos were all `earth` or `venus` cases with negative scores from about `-69` to `-29`. Their episode wind powers were high: Earth up to `14.54`, Venus up to `18.20`; reconstructed maximum horizontal wind accelerations were roughly `2.4..3.8 m/s^2`. Initial kicks were also large in several cases, with `initial_force_abs` up to about `1132`.
+
+**Interpretation:** These failures do not look like random weak piloting in easy conditions. They look like edge cases where strong, changing disturbances invalidate Elise's efficient approach faster than she can recover. The fast descent may be a rational anti-wind tactic because less time airborne means less lateral drift, but it leaves little reserve when wind and turbulence reverse near touchdown.
 
 ## O14 Ground Side-Thrust Can Hide Landing Reward
 

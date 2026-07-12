@@ -2,6 +2,7 @@
 
 | Nr                                                  | Aha                                       | Topics                 |
 | --------------------------------------------------- | ----------------------------------------- | ---------------------- |
+| [[#A14 Efficient Pilots Need Dynamic Safety Margin\|A14]] | Efficient Pilots Need Dynamic Safety Margin | SSL, RL, Video      |
 | [[#A13 Fine-Tune Strong Pilots Into A Model Line\|A13]] | Fine-Tune Strong Pilots Into A Model Line | SSL, RL, HP, Checkpointing |
 | [[#A12 How To Build A Small Good Five-World Lander\|A12]] | How To Build A Small Good Five-World Lander | SSL, RL, HP, OTO       |
 | [[#A11 Preserve Good Pilots Immediately\|A11]]       | Preserve Good Pilots Immediately          | OTO, Checkpointing, LL |
@@ -17,6 +18,16 @@
 | [[#A1 Code Complexity Is Part Of The Experiment\|A1]] | Code Complexity Is Part Of The Experiment | OTO, LL                |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters.
+
+## A14 Efficient Pilots Need Dynamic Safety Margin
+
+Elise-264-GSTP's worst crashes show that a high-scoring pilot can still have a characteristic failure style: efficient, fast, fuel-saving descents with little reserve. This is often the right tactic against wind because it reduces time airborne, but it becomes fragile when wind or turbulence reverses late.
+
+The failure-audit videos made this visible. In the worst crash, turbulence changed from about `+2.1` to `-2.2 rad/s^2`, or roughly `+120` to `-126 deg/s^2`, and wind also reversed near touchdown. Elise had already committed to a fast descent, so the disturbance switch hit during the phase where she had least time and height left to re-stabilize. A turbulence reversal of about `+/-120 deg/s^2` near touchdown is a serious attitude-control problem even on an Armstrong scale.
+
+==Mental model: A strong pilot does not only need skill; it needs adaptive safety margin when the air stops being a partner.==
+
+For future tuning, this argues against a blunt "always descend slower" rule. The more promising direction is conditional caution: be more conservative near the ground when sink rate, rotation, side drift, or changing disturbance cues indicate that the efficient approach has become brittle.
 
 
 ## A13 Fine-Tune Strong Pilots Into A Model Line
