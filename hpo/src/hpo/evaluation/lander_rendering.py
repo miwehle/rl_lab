@@ -36,6 +36,8 @@ _TURBULENCE_COLOR_STOPS = (
     (1.4, (255, 146, 43)),
     (2.1, (255, 55, 55)),
 )
+_WINDSOCK_DEAD_ZONE = 0.4
+_WINDSOCK_FULL_ACCEL = 2.0
 
 
 @dataclass(frozen=True)
@@ -243,30 +245,33 @@ def _draw_flags(surface, env, colors: LanderColors, gfxdraw) -> None:
 
 def _wind_strength(env) -> tuple[float, float]:
     env = getattr(env, "unwrapped", env)
+    lander = getattr(env, "lander", None)
+    mass = getattr(lander, "mass", None)
     if not getattr(env, "enable_wind", False):
         return 0.0, 0.0
     wind_idx = getattr(env, "wind_idx", None)
-    if wind_idx is None:
+    if wind_idx is None or not mass:
         return 0.0, 0.0
     wind_power = float(getattr(env, "wind_power", 0.0))
-    wind = _force_wave(wind_idx) * wind_power
-    return wind, abs(wind_power)
+    wind_acceleration = _force_wave(wind_idx) * wind_power / float(mass)
+    return wind_acceleration, _max_acceleration(wind_power, mass)
 
 
 def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind: tuple[float, float]) -> None:
     import pygame
 
-    wind_value, max_wind = wind
-    direction = 1 if wind_value >= 0 else -1
-    strength = _clamp_float(abs(wind_value) / max_wind if max_wind else 0.0, 0.0, 1.0)
-    length = 18 + 28 * strength
+    wind_acceleration, _ = wind
+    direction = 1 if wind_acceleration >= 0 else -1
+    strength = _windsock_strength(abs(wind_acceleration))
+    length = 16 + 30 * strength
+    horizontal = strength
     droop = 1.0 - strength
     segment_count = 5
     centerline = []
     for index in range(segment_count + 1):
         t = index / segment_count
-        x = anchor[0] + direction * length * t
-        y = anchor[1] + 4 - 18 * droop * (t**1.4)
+        x = anchor[0] + direction * length * horizontal * t
+        y = anchor[1] + 4 - (6 + 22 * droop) * (t**1.25)
         centerline.append((x, y))
 
     widths = [10 - 5 * index / segment_count for index in range(segment_count + 1)]
@@ -290,6 +295,14 @@ def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind: tuple[fl
         pygame.draw.polygon(surface, colors[index], points)
         gfxdraw.aapolygon(surface, points, colors[index])
         pygame.draw.aalines(surface, (0, 0, 0), True, points)
+
+
+def _windsock_strength(wind_acceleration: float) -> float:
+    return _clamp_float(
+        (wind_acceleration - _WINDSOCK_DEAD_ZONE) / (_WINDSOCK_FULL_ACCEL - _WINDSOCK_DEAD_ZONE),
+        0.0,
+        1.0,
+    )
 
 
 def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
