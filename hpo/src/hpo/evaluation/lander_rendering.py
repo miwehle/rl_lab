@@ -279,7 +279,7 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
         if name is not None:
             lines.append((str(name).title(), None))
         if gravity is not None:
-            lines.append((f"g: {abs(float(gravity)):.1f} m/s^2", None))
+            lines.append((f"g: {abs(float(gravity)):.1f} m/s²", None))
 
     lander = getattr(env.unwrapped, "lander", None)
     mass = getattr(lander, "mass", None)
@@ -288,9 +288,10 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
     if weather is not None:
         wind, turbulence = weather
         if mass:
-            lines.append((f"wind max: {abs(float(wind)) / float(mass):.1f} m/s^2", None))
+            lines.append((f"wind max: {abs(float(wind)) / float(mass):.1f} m/s²", None))
         if inertia:
-            lines.append((f"turb max: {abs(float(turbulence)) / float(inertia):.1f} rad/s^2", None))
+            turbulence_degrees = math.degrees(abs(float(turbulence)) / float(inertia))
+            lines.append((f"turb max: {turbulence_degrees:.0f}°/s²", None))
 
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     if kick is not None:
@@ -324,7 +325,7 @@ def _draw_wind_indicator(surface, font, env, overlay: LanderOverlay) -> None:
         color=color,
         shadow_color=overlay.shadow_color,
     )
-    _draw_centered_text(surface, font, f"wind {acceleration:+.1f} m/s^2", (center[0], center[1] + 13), color, overlay)
+    _draw_centered_text(surface, font, f"wind {acceleration:+.1f} m/s²", (center[0], center[1] + 13), color, overlay)
 
 
 def _draw_turbulence_indicator(surface, font, env, overlay: LanderOverlay) -> None:
@@ -350,7 +351,14 @@ def _draw_turbulence_indicator(surface, font, env, overlay: LanderOverlay) -> No
         color=color,
         shadow_color=overlay.shadow_color,
     )
-    _draw_centered_text(surface, font, f"turb {acceleration:+.1f}", (center[0], center[1] + 18), color, overlay)
+    _draw_centered_text(
+        surface,
+        font,
+        f"turb {math.degrees(acceleration):+.0f}°/s²",
+        (center[0], center[1] + 18),
+        color,
+        overlay,
+    )
 
 
 def _draw_centered_text(
