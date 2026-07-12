@@ -88,12 +88,14 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 ## H7 Strong Turbulence Can Saturate The Action Channel
 
-**These:** In high-g worlds with strong turbulence, attitude control and vertical support compete for the single discrete action channel. If the pilot must spend too many steps on side thrust, the main engine duty cycle can fall below what is needed to arrest descent. Some crashes may therefore be action-space/physics-limited rather than policy mistakes.
+**These:** In high-g worlds with strong turbulence, attitude control can saturate the single discrete action channel. Attitude control is a prerequisite for useful vertical support: if the lander rotates hard, main thrust no longer reliably opposes gravity. When turbulence forces many side-thrust steps just to keep the nozzle useful, the remaining main-engine duty cycle can fall below what is needed to arrest descent. Some crashes may therefore be action-space/physics-limited rather than policy mistakes.
 
-**Evidence:** In [[observations#O15 Worst Elise-264 Crashes Show Disturbance Reversals|O15]], the worst Elise-264-GSTP videos show strong wind/turbulence and fast descents near touchdown. Two candidate worst-case episodes share `seed=10014`: `venus` scored about `4.9` with `wind=15.63`, `turbulence=1.74`, and `earth` scored about `13.7` with `wind=6.25`, `turbulence=1.74`. With lander inertia around `0.833`, `turbulence=1.74` allows momentary angular acceleration around `2.1 rad/s^2` (`~120 deg/s^2`).
+**Evidence:** In [[observations#O15 Worst Elise-264 Crashes Show Disturbance Reversals|O15]], the worst Elise-264-GSTP videos show strong wind/turbulence and fast descents near touchdown. Two candidate worst-case episodes share `seed=10014`: `venus` scored about `4.9` with `wind=15.63`, `turbulence=1.74`, and `earth` scored about `13.7` with `wind=6.25`, `turbulence=1.74`. With lander inertia around `0.833`, `turbulence=1.74` allows momentary angular acceleration around `2.1 rad/s^2` (`~120 deg/s^2`). Action-channel audit reproduced both scores exactly and showed `noop_count=0`, `main_fraction~0.52`, `side_fraction~0.48`, and `main_every_n_steps~1.9` in both cases. Contact came early, around step `110` on Venus and `93` on Earth.
 
-**Prediction:** In these episodes, action traces should show a high side-thrust fraction during final descent, a constrained main-engine fraction, and vertical speed that cannot be reduced enough before ground impact.
+**Repro:** Use the database, checkpoint, notebook, and seed pairs linked in [[observations#O15 Worst Elise-264 Crashes Show Disturbance Reversals|O15]]. The decisive notebook cell is `action-channel-audit`.
 
-**Could be wrong if:** The action trace shows enough main-engine duty cycle but bad timing, unnecessary side thrust, recoverable attitude errors, or late policy choices that a better pilot could avoid.
+**Prediction:** Other near-unrecoverable high-g/turbulence failures should show the same signature: exact score reproduction, no or few no-op steps, high side-thrust fraction from the start, constrained main-engine duty cycle, and early ground contact before vertical speed can be made safe.
 
-**Consequence:** Add action-channel auditing to the failure notebook before deciding whether further reward shaping can help or whether these cases are near the physical/action-space limit.
+**Could be wrong if:** The action trace shows enough main-engine duty cycle, unnecessary side thrust, long unused recovery windows, or clear late policy choices that a better pilot could avoid.
+
+**Consequence:** Treat these seed-10014 cases as likely near-unrecoverable under the current discrete action model. Further tuning should focus on whether adaptive safety margin can avoid entering such states, not on expecting perfect final-phase recovery once the action channel is already saturated.

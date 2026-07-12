@@ -2,6 +2,7 @@
 
 | Nr                                                  | Aha                                       | Topics                 |
 | --------------------------------------------------- | ----------------------------------------- | ---------------------- |
+| [[#A15 Artificial Armstrong Is A Narrow Domain Criterion\|A15]] | Artificial Armstrong Is A Narrow Domain Criterion | SSL, RL, Evaluation |
 | [[#A14 Efficient Pilots Need Dynamic Safety Margin\|A14]] | Efficient Pilots Need Dynamic Safety Margin | SSL, RL, Video      |
 | [[#A13 Fine-Tune Strong Pilots Into A Model Line\|A13]] | Fine-Tune Strong Pilots Into A Model Line | SSL, RL, HP, Checkpointing |
 | [[#A12 How To Build A Small Good Five-World Lander\|A12]] | How To Build A Small Good Five-World Lander | SSL, RL, HP, OTO       |
@@ -19,6 +20,16 @@
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters.
 
+## A15 Artificial Armstrong Is A Narrow Domain Criterion
+
+`Artificial Armstrong` is not a claim that Elise has Neil Armstrong's broad human skill, judgment, courage, or creativity. It is a narrow and respectful analogy for one specific aspect: landing a small simulated lander across Moon, Mercury, Mars, Earth, and Venus under the current SolarSystemLander physics.
+
+Elise-264-GSTP is more than a high score. It is a small, robust, fuel-efficient five-world pilot that usually lands in controlled fashion, and whose remaining worst failures increasingly look close to the physical/action-space boundary rather than ordinary pilot mistakes.
+
+In this narrow sense, Elise reaches a surprisingly high fraction of an Armstrong-like landing criterion: broad cross-world competence, efficient control, robustness under disturbance, and failures that can be explained by control authority limits.
+
+==Mental model: Artificial Armstrong is a domain-specific benchmark, not a human equivalence claim.==
+
 ## A14 Efficient Pilots Need Dynamic Safety Margin
 
 Elise-264-GSTP's worst crashes show that a high-scoring pilot can still have a characteristic failure style: efficient, fast, fuel-saving descents with little reserve. This is often the right tactic against wind because it reduces time airborne, but it becomes fragile when wind or turbulence reverses late.
@@ -28,6 +39,8 @@ The failure-audit videos made this visible. In the worst crash, turbulence chang
 ==Mental model: A strong pilot does not only need skill; it needs adaptive safety margin when the air stops being a partner.==
 
 For future tuning, this argues against a blunt "always descend slower" rule. The more promising direction is conditional caution: be more conservative near the ground when sink rate, rotation, side drift, or changing disturbance cues indicate that the efficient approach has become brittle.
+
+The `seed=10014` Earth/Venus failures sharpen this further: some landings may be unrecoverable even on an Armstrong scale within the current discrete action space. Elise used no no-op steps, spent roughly half the episode on the main engine and roughly half on side-thrust attitude control. Attitude control is not optional here; when the lander rotates hard, main thrust cannot reliably oppose gravity. If turbulence consumes nearly half the action budget just to keep the nozzle useful, high-g worlds may leave too little thrust authority to arrest descent at all.
 
 
 ## A13 Fine-Tune Strong Pilots Into A Model Line

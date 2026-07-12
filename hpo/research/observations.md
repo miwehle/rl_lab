@@ -28,6 +28,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Evidence:** The five first failure-audit videos were all `earth` or `venus` cases with negative scores from about `-69` to `-29`. Their episode wind powers were high: Earth up to `14.54`, Venus up to `18.20`; reconstructed maximum horizontal wind accelerations were roughly `2.4..3.8 m/s^2`. Initial kicks were also large in several cases, with `initial_force_abs` up to about `1132`.
 
+**Repro:** Database `[solar_system_lander_10d_elise_stp.db](<G:/Meine Ablage/rl_lab/hpo/solar_system_lander_10d_elise_stp.db>)`, study `side_thrust_penalty_1`, archived checkpoint `[best_eval_checkpoint.pt](<G:/Meine Ablage/rl_lab/hpo/best_checkpoints/solar_system_lander_10d_elise_stp/best_eval_checkpoint.pt>)` with metadata `[best_eval_checkpoint.json](<G:/Meine Ablage/rl_lab/hpo/best_checkpoints/solar_system_lander_10d_elise_stp/best_eval_checkpoint.json>)`. Re-run with `[failure_audit.ipynb](../notebooks/solar_system_lander/failure_audit.ipynb)`, cells `worst-checkpoint-episodes`, `worst-video-jobs`, `action-channel-audit`, and `record-worst-videos`. The key pairs are `venus`, `seed=10014` and `earth`, `seed=10014`; `action-channel-audit` should reproduce scores `4.905` and `13.735` exactly.
+
 **Interpretation:** These failures do not look like random weak piloting in easy conditions. They look like edge cases where strong, changing disturbances invalidate Elise's efficient approach faster than she can recover. The fast descent may be a rational anti-wind tactic because less time airborne means less lateral drift, but it leaves little reserve when wind and turbulence reverse near touchdown.
 
 ## O14 Ground Side-Thrust Can Hide Landing Reward
