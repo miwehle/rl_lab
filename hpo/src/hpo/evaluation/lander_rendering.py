@@ -315,7 +315,7 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
     font = pygame.font.Font(None, 18)
     score = getattr(source_env, "score", None)
     if score is not None:
-        score_text = f"score: {float(score):.1f}"
+        score_text = f"score: {float(score):.0f}"
         _draw_text(surface, font, score_text, (surface.get_width() - 116, 8), overlay)
 
     x, y = 8, 8
@@ -628,7 +628,12 @@ def _draw_line_arrow(surface, start: tuple[float, float], end: tuple[float, floa
 
     pygame.draw.line(surface, color, start, end, width)
     direction = (end[0] - start[0], end[1] - start[1])
-    _draw_arrow_head(surface, end, direction, color, size=8)
+    direction_length = math.hypot(*direction)
+    if direction_length:
+        tip = (end[0] + direction[0] / direction_length * 2, end[1] + direction[1] / direction_length * 2)
+    else:
+        tip = end
+    _draw_arrow_head(surface, tip, direction, color, size=8)
 
 
 def _draw_arrow_head(surface, tip: tuple[float, float], direction: tuple[float, float], color: RGB, *, size: int) -> None:
