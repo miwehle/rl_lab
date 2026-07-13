@@ -40,7 +40,6 @@ def read_env_state(source_env, env) -> EnvState:
     lander = getattr(env, "lander", None)
     mass = getattr(lander, "mass", None)
     inertia = getattr(lander, "inertia", None)
-    wind = _wind_acceleration(env)
     turbulence = _turbulence_acceleration(env)
     weather_turbulence_max_degrees = _weather_turbulence_max(env, inertia)
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
@@ -49,17 +48,29 @@ def read_env_state(source_env, env) -> EnvState:
         gravity=_world_gravity(world),
         score=getattr(source_env, "score", None),
         steps_since_reset=getattr(source_env, "steps_since_reset", 0),
-        wind=WindState(
-            acceleration=None if wind is None else wind[0],
-            windsock_acceleration=_windsock_acceleration(env, mass),
-            max_acceleration=None if wind is None else wind[1],
-        ),
+        wind=_wind_state(env, mass),
         turbulence_acceleration=None if turbulence is None else turbulence[0],
         turbulence_max_acceleration=None if turbulence is None else turbulence[1],
         weather_turbulence_max_degrees=weather_turbulence_max_degrees,
         initial_kick_delta_v=None if kick is None else kick[0],
         initial_kick_direction=None if kick is None else kick[1],
         lander_screen_position=_lander_screen_position(env),
+    )
+
+
+def _wind_state(env, mass) -> WindState:
+    if not getattr(env, "enable_wind", False):
+        return WindState(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
+    wind_idx = getattr(env, "wind_idx", None)
+    if wind_idx is None or not mass:
+        return WindState(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
+
+    wind_power = float(getattr(env, "wind_power", 0.0))
+    acceleration = _force_wave(wind_idx) * wind_power / float(mass)
+    return WindState(
+        acceleration=0.0 if _has_ground_contact(env) else acceleration,
+        windsock_acceleration=acceleration,
+        max_acceleration=_max_acceleration(wind_power, mass),
     )
 
 
@@ -96,21 +107,6 @@ def _weather_turbulence_max(env, inertia) -> float | None:
     return math.degrees(abs(float(turbulence)) / float(inertia))
 
 
-def _wind_acceleration(env) -> tuple[float, float] | None:
-    env = getattr(env, "unwrapped", env)
-    lander = getattr(env, "lander", None)
-    mass = getattr(lander, "mass", None)
-    wind_idx = getattr(env, "wind_idx", None)
-    if not getattr(env, "enable_wind", False) or lander is None or not mass or wind_idx is None:
-        return None
-
-    wind_power = float(getattr(env, "wind_power", 0.0))
-    max_acceleration = _max_acceleration(wind_power, mass)
-    if _has_ground_contact(env):
-        return 0.0, max_acceleration
-    return _force_wave(wind_idx) * wind_power / float(mass), max_acceleration
-
-
 def _turbulence_acceleration(env) -> tuple[float, float] | None:
     env = getattr(env, "unwrapped", env)
     lander = getattr(env, "lander", None)
@@ -124,17 +120,6 @@ def _turbulence_acceleration(env) -> tuple[float, float] | None:
     if _has_ground_contact(env):
         return 0.0, max_acceleration
     return _force_wave(torque_idx) * turbulence_power / float(inertia), max_acceleration
-
-
-def _windsock_acceleration(env, mass) -> float:
-    env = getattr(env, "unwrapped", env)
-    if not getattr(env, "enable_wind", False):
-        return 0.0
-    wind_idx = getattr(env, "wind_idx", None)
-    if wind_idx is None or not mass:
-        return 0.0
-    wind_power = float(getattr(env, "wind_power", 0.0))
-    return _force_wave(wind_idx) * wind_power / float(mass)
 
 
 def _force_wave(index) -> float:
