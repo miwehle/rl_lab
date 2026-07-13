@@ -14,19 +14,17 @@ _WINDSOCK_FULL_ACCEL = 2.0
 def draw_flags(surface, env, colors: LanderColors, wind: WindState, gfxdraw) -> None:
     import pygame
 
-    wind = (wind.windsock_acceleration, wind.windsock_max_acceleration)
     for x in [env.helipad_x1, env.helipad_x2]:
         x = x * lunar_lander.SCALE
         flagy1 = env.helipad_y * lunar_lander.SCALE
         flagy2 = flagy1 + 50
         pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
-        _draw_windsock(surface, gfxdraw, (x, flagy2 - 8), wind)
+        _draw_windsock(surface, gfxdraw, (x, flagy2 - 8), wind.windsock_acceleration)
 
 
-def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind: tuple[float, float]) -> None:
+def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind_acceleration: float) -> None:
     import pygame
 
-    wind_acceleration, _ = wind
     direction = 1 if wind_acceleration >= 0 else -1
     strength = _windsock_strength(abs(wind_acceleration))
     length = 16 + 30 * strength

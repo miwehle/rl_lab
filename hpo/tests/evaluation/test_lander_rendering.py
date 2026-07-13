@@ -10,7 +10,7 @@ from hpo.evaluation.rendering.solar_system_lander import (
     world_colors,
 )
 from hpo.evaluation.rendering.solar_system_lander.colors import _force_color
-from hpo.evaluation.rendering.solar_system_lander.env_state import _wind_strength
+from hpo.evaluation.rendering.solar_system_lander.env_state import _windsock_acceleration, _wind_acceleration
 from hpo.evaluation.rendering.solar_system_lander.skins import DetailedEagleSkin
 from hpo.solar_system_lander.environment import EnvFactory, World
 
@@ -61,7 +61,7 @@ def test_force_color_uses_absolute_stops():
     assert _force_color(3.0, stops) == (255, 0, 0)
 
 
-def test_wind_strength_follows_current_wind_sign():
+def test_wind_state_follows_current_wind_sign():
     class Env:
         enable_wind = True
         wind_power = 1.0
@@ -69,14 +69,16 @@ def test_wind_strength_follows_current_wind_sign():
 
     env = Env()
     env.wind_idx = 25
-    positive, max_wind = _wind_strength(env)
+    positive, max_wind = _wind_acceleration(env)
     assert positive > 0
     assert max_wind == 0.5
+    assert _windsock_acceleration(env, env.lander.mass) == positive
 
     env.wind_idx = 150
-    negative, max_wind = _wind_strength(env)
+    negative, max_wind = _wind_acceleration(env)
     assert negative < 0
     assert max_wind == 0.5
+    assert _windsock_acceleration(env, env.lander.mass) == negative
 
 
 class TestLanderRenderWrapper:

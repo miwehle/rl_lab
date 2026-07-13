@@ -53,8 +53,8 @@ def _overlay_lines(env_state: EnvState) -> list[str]:
         lines.append(env_state.world_name.title())
     if env_state.gravity is not None:
         lines.append(f"g: {abs(env_state.gravity):.1f} m/s²")
-    if env_state.wind.weather_max_acceleration is not None:
-        lines.append(f"wind max: {env_state.wind.weather_max_acceleration:.1f} m/s²")
+    if env_state.wind.max_acceleration is not None:
+        lines.append(f"wind max: {env_state.wind.max_acceleration:.1f} m/s²")
     if env_state.weather_turbulence_max_degrees is not None:
         lines.append(f"turb max: {env_state.weather_turbulence_max_degrees:.0f}°/s²")
     if env_state.initial_kick_delta_v is not None:

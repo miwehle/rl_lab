@@ -12,10 +12,8 @@ class WindState:
     """Render-facing wind state prepared from Gym/env internals."""
 
     acceleration: float | None
-    max_acceleration: float | None
     windsock_acceleration: float
-    windsock_max_acceleration: float
-    weather_max_acceleration: float | None
+    max_acceleration: float | None
 
 
 @dataclass(frozen=True)
@@ -44,8 +42,7 @@ def read_env_state(source_env, env) -> EnvState:
     inertia = getattr(lander, "inertia", None)
     wind = _wind_acceleration(env)
     turbulence = _turbulence_acceleration(env)
-    windsock_wind, windsock_max = _wind_strength(env)
-    weather_wind_max, weather_turbulence_max_degrees = _weather_maxima(env, mass, inertia)
+    weather_turbulence_max_degrees = _weather_turbulence_max(env, inertia)
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     return EnvState(
         world_name=_world_name(world),
@@ -54,10 +51,8 @@ def read_env_state(source_env, env) -> EnvState:
         steps_since_reset=getattr(source_env, "steps_since_reset", 0),
         wind=WindState(
             acceleration=None if wind is None else wind[0],
+            windsock_acceleration=_windsock_acceleration(env, mass),
             max_acceleration=None if wind is None else wind[1],
-            windsock_acceleration=windsock_wind,
-            windsock_max_acceleration=windsock_max,
-            weather_max_acceleration=weather_wind_max,
         ),
         turbulence_acceleration=None if turbulence is None else turbulence[0],
         turbulence_max_acceleration=None if turbulence is None else turbulence[1],
@@ -91,16 +86,14 @@ def _world_gravity(world) -> float | None:
         return None
 
 
-def _weather_maxima(env, mass, inertia) -> tuple[float | None, float | None]:
+def _weather_turbulence_max(env, inertia) -> float | None:
     weather = getattr(env, "_weather", None)
     if weather is None:
-        return None, None
-    wind, turbulence = weather
-    wind_max = None if not mass else abs(float(wind)) / float(mass)
-    turbulence_max = None
-    if inertia:
-        turbulence_max = math.degrees(abs(float(turbulence)) / float(inertia))
-    return wind_max, turbulence_max
+        return None
+    _wind, turbulence = weather
+    if not inertia:
+        return None
+    return math.degrees(abs(float(turbulence)) / float(inertia))
 
 
 def _wind_acceleration(env) -> tuple[float, float] | None:
@@ -133,18 +126,15 @@ def _turbulence_acceleration(env) -> tuple[float, float] | None:
     return _force_wave(torque_idx) * turbulence_power / float(inertia), max_acceleration
 
 
-def _wind_strength(env) -> tuple[float, float]:
+def _windsock_acceleration(env, mass) -> float:
     env = getattr(env, "unwrapped", env)
-    lander = getattr(env, "lander", None)
-    mass = getattr(lander, "mass", None)
     if not getattr(env, "enable_wind", False):
-        return 0.0, 0.0
+        return 0.0
     wind_idx = getattr(env, "wind_idx", None)
     if wind_idx is None or not mass:
-        return 0.0, 0.0
+        return 0.0
     wind_power = float(getattr(env, "wind_power", 0.0))
-    wind_acceleration = _force_wave(wind_idx) * wind_power / float(mass)
-    return wind_acceleration, _max_acceleration(wind_power, mass)
+    return _force_wave(wind_idx) * wind_power / float(mass)
 
 
 def _force_wave(index) -> float:
