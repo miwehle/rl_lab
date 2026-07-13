@@ -5,6 +5,8 @@ being part of the world geometry, such as score, conditions text, and analysis
 vectors.
 """
 
+import math
+
 from hpo.evaluation.rendering.solar_system_lander.colors import LanderOverlay
 from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState
 from hpo.evaluation.rendering.solar_system_lander.overlay.vectors import (
@@ -36,7 +38,7 @@ def draw_overlay(surface, env_state: EnvState, overlay: LanderOverlay) -> None:
     vector_origin = disturbance_vector_origin(surface)
     draw_wind_indicator(surface, font, env_state.wind, overlay, vector_origin)
     draw_kick_indicator(surface, font, env_state, overlay, vector_origin)
-    draw_turbulence_indicator(surface, font, env_state, overlay)
+    draw_turbulence_indicator(surface, font, env_state.turbulence, env_state.lander_screen_position, overlay)
 
 
 def _draw_text(surface, font, line: str, position: tuple[int, int], overlay: LanderOverlay):
@@ -55,8 +57,8 @@ def _overlay_lines(env_state: EnvState) -> list[str]:
         lines.append(f"g: {abs(env_state.gravity):.1f} m/s²")
     if env_state.wind.max_acceleration is not None:
         lines.append(f"wind max: {env_state.wind.max_acceleration:.1f} m/s²")
-    if env_state.weather_turbulence_max_degrees is not None:
-        lines.append(f"turb max: {env_state.weather_turbulence_max_degrees:.0f}°/s²")
+    if env_state.turbulence.max_acceleration is not None:
+        lines.append(f"turb max: {math.degrees(env_state.turbulence.max_acceleration):.0f}°/s²")
     if env_state.initial_kick_delta_v is not None:
         lines.append(f"kick: {env_state.initial_kick_delta_v:.1f} m/s")
     return lines

@@ -31,6 +31,28 @@ class WindState:
 
 
 @dataclass(frozen=True)
+class TurbulenceState:
+    """Render-facing turbulence state prepared from Gym/env internals."""
+
+    acceleration: float | None
+    max_acceleration: float | None
+
+    @classmethod
+    def from_env(cls, env, inertia) -> "TurbulenceState":
+        env = getattr(env, "unwrapped", env)
+        lander = getattr(env, "lander", None)
+        torque_idx = getattr(env, "torque_idx", None)
+        if not getattr(env, "enable_wind", False) or lander is None or not inertia or torque_idx is None:
+            return cls(acceleration=None, max_acceleration=None)
+
+        turbulence_power = float(getattr(env, "turbulence_power", 0.0))
+        return cls(
+            acceleration=_force_wave(torque_idx) * turbulence_power / float(inertia),
+            max_acceleration=_max_acceleration(turbulence_power, inertia),
+        )
+
+
+@dataclass(frozen=True)
 class EnvState:
     """Render-facing env state prepared once per frame from Gym/env internals."""
 
@@ -39,9 +61,7 @@ class EnvState:
     score: float | None
     steps_since_reset: int
     wind: WindState
-    turbulence_acceleration: float | None
-    turbulence_max_acceleration: float | None
-    weather_turbulence_max_degrees: float | None
+    turbulence: TurbulenceState
     initial_kick_delta_v: float | None
     initial_kick_direction: tuple[float, float] | None
     lander_screen_position: tuple[int, int] | None
@@ -63,8 +83,6 @@ class EnvState:
         lander = getattr(env, "lander", None)
         mass = getattr(lander, "mass", None)
         inertia = getattr(lander, "inertia", None)
-        turbulence = _turbulence_acceleration(env)
-        weather_turbulence_max_degrees = _weather_turbulence_max(env, inertia)
         kick = _initial_kick(getattr(wrapper, "reset_seed", None), mass)
         return cls(
             world_name=_world_name(world),
@@ -72,9 +90,7 @@ class EnvState:
             score=getattr(wrapper, "score", None),
             steps_since_reset=getattr(wrapper, "steps_since_reset", 0),
             wind=WindState.from_env(env, mass),
-            turbulence_acceleration=None if turbulence is None else turbulence[0],
-            turbulence_max_acceleration=None if turbulence is None else turbulence[1],
-            weather_turbulence_max_degrees=weather_turbulence_max_degrees,
+            turbulence=TurbulenceState.from_env(env, inertia),
             initial_kick_delta_v=None if kick is None else kick[0],
             initial_kick_direction=None if kick is None else kick[1],
             lander_screen_position=_lander_screen_position(env),
@@ -102,29 +118,6 @@ def _world_gravity(world) -> float | None:
         return float(gravity)
     except TypeError:
         return None
-
-
-def _weather_turbulence_max(env, inertia) -> float | None:
-    weather = getattr(env, "_weather", None)
-    if weather is None:
-        return None
-    _wind, turbulence = weather
-    if not inertia:
-        return None
-    return math.degrees(abs(float(turbulence)) / float(inertia))
-
-
-def _turbulence_acceleration(env) -> tuple[float, float] | None:
-    env = getattr(env, "unwrapped", env)
-    lander = getattr(env, "lander", None)
-    inertia = getattr(lander, "inertia", None)
-    torque_idx = getattr(env, "torque_idx", None)
-    if not getattr(env, "enable_wind", False) or lander is None or not inertia or torque_idx is None:
-        return None
-
-    turbulence_power = float(getattr(env, "turbulence_power", 0.0))
-    max_acceleration = _max_acceleration(turbulence_power, inertia)
-    return _force_wave(torque_idx) * turbulence_power / float(inertia), max_acceleration
 
 
 def _force_wave(index) -> float:

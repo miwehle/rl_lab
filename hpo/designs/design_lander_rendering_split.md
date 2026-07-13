@@ -32,7 +32,7 @@ hpo/src/hpo/evaluation/rendering/
 
 `colors.py`: Owns `LanderColors`, world color lookup, and color constants.
 
-`env_state.py`: Owns `EnvState.from_env(...)`, the render-facing view of the Gym/env state, plus small nested state objects such as `WindState.from_env(...)` when a group of values has shared meaning. It reads Gym/env internals once per frame and prepares simple values for the drawing modules: world, gravity, score, wind, turbulence, kick, step count, mass, inertia, body positions, angles, contacts, and screen positions. Details belong in the module and class docstrings.
+`env_state.py`: Owns `EnvState.from_env(...)`, the render-facing view of the Gym/env state, plus small nested state objects such as `WindState.from_env(...)` and `TurbulenceState.from_env(...)` when a group of values has shared meaning. It reads Gym/env internals once per frame and prepares simple values for the drawing modules: world, gravity, score, wind, turbulence, kick, step count, mass, inertia, body positions, angles, contacts, and screen positions. Details belong in the module and class docstrings.
 
 `lander.py`: Owns the visible lander drawing decision: default Gym lander polygons or optional skin. It hides the default Gym lander when a skin is active.
 

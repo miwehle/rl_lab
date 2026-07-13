@@ -10,7 +10,7 @@ from hpo.evaluation.rendering.solar_system_lander.colors import (
     WIND_COLOR_STOPS,
     _force_color,
 )
-from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState, WindState
+from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState, TurbulenceState, WindState
 
 _WIND_ACCEL_SCALE = 4.0
 _TURBULENCE_ACCEL_SCALE = 2.4
@@ -72,9 +72,10 @@ def disturbance_vector_origin(surface) -> tuple[int, int]:
     return surface.get_width() // 2, _DISTURBANCE_VECTOR_ORIGIN_Y
 
 
-def draw_turbulence_indicator(surface, font, env_state: EnvState, overlay: LanderOverlay) -> None:
-    acceleration = env_state.turbulence_acceleration
-    lander_center = env_state.lander_screen_position
+def draw_turbulence_indicator(
+    surface, font, turbulence: TurbulenceState, lander_center: tuple[int, int] | None, overlay: LanderOverlay
+) -> None:
+    acceleration = turbulence.acceleration
     if acceleration is None or lander_center is None:
         return
 
