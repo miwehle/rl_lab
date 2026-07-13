@@ -8,7 +8,7 @@ Split the current lander rendering code by what is visible in the video: scene, 
 
 ```text
 hpo/src/hpo/evaluation/rendering/
-+-- lander/
++-- solar_system_lander/
     +-- __init__.py
     +-- scene.py
     +-- colors.py
@@ -81,8 +81,8 @@ This is the intended ownership tree between modules. Each module appears exactly
 
 ## Refactor Plan
 
-1. Move current `lander_skins` into `rendering/lander/skins`.
-2. Create `rendering/lander` modules with minimal exports from `__init__.py`.
+1. Move current `lander_skins` into `rendering/solar_system_lander/skins`.
+2. Create `rendering/solar_system_lander` modules with minimal exports from `__init__.py`.
 3. Move code mechanically by visible role, keeping behavior unchanged.
 4. Update imports in production code, notebooks, and tests to the new package.
 5. Run `hpo\tests`.
