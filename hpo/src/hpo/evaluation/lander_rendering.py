@@ -322,12 +322,9 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
 
     x, y = 8, 8
     line_height = font.get_linesize()
-    for index, (line, direction) in enumerate(lines):
+    for index, line in enumerate(lines):
         position = (x, y + index * line_height)
-        text = _draw_text(surface, font, line, position, overlay)
-        if direction is not None:
-            arrow_center = (position[0] + text.get_width() + 12, position[1] + line_height // 2)
-            _draw_arrow(surface, arrow_center, direction, overlay)
+        _draw_text(surface, font, line, position, overlay)
 
     env = getattr(source_env, "env", source_env)
     vector_origin = _disturbance_vector_origin(surface)
@@ -336,7 +333,7 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
     _draw_turbulence_indicator(surface, font, env, overlay)
 
 
-def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
+def _overlay_lines(source_env) -> list[str]:
     lines = []
     env = getattr(source_env, "env", source_env)
     world = getattr(env, "world", None)
@@ -344,9 +341,9 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
         name = getattr(world, "name", None)
         gravity = getattr(world, "gravity", None)
         if name is not None:
-            lines.append((str(name).title(), None))
+            lines.append(str(name).title())
         if gravity is not None:
-            lines.append((f"g: {abs(float(gravity)):.1f} m/s²", None))
+            lines.append(f"g: {abs(float(gravity)):.1f} m/s²")
 
     lander = getattr(env.unwrapped, "lander", None)
     mass = getattr(lander, "mass", None)
@@ -355,15 +352,15 @@ def _overlay_lines(source_env) -> list[tuple[str, tuple[float, float] | None]]:
     if weather is not None:
         wind, turbulence = weather
         if mass:
-            lines.append((f"wind max: {abs(float(wind)) / float(mass):.1f} m/s²", None))
+            lines.append(f"wind max: {abs(float(wind)) / float(mass):.1f} m/s²")
         if inertia:
             turbulence_degrees = math.degrees(abs(float(turbulence)) / float(inertia))
-            lines.append((f"turb max: {turbulence_degrees:.0f}°/s²", None))
+            lines.append(f"turb max: {turbulence_degrees:.0f}°/s²")
 
     kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
     if kick is not None:
-        delta_v, direction = kick
-        lines.append((f"kick: {delta_v:.1f} m/s", direction))
+        delta_v, _direction = kick
+        lines.append(f"kick: {delta_v:.1f} m/s")
 
     return lines
 
@@ -603,40 +600,6 @@ def _initial_force(seed: int) -> tuple[float, float]:
     fx = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
     fy = rng.uniform(-lunar_lander.INITIAL_RANDOM, lunar_lander.INITIAL_RANDOM)
     return float(fx), float(fy)
-
-
-def _draw_arrow(
-    surface, center: tuple[int, int], direction: tuple[float, float], overlay: LanderOverlay
-) -> None:
-    shadow_center = (center[0] + 1, center[1] + 1)
-    _draw_arrow_shape(surface, shadow_center, direction, overlay.shadow_color)
-    _draw_arrow_shape(surface, center, direction, overlay.text_color)
-
-
-def _draw_arrow_shape(surface, center: tuple[int, int], direction: tuple[float, float], color: RGB) -> None:
-    import pygame
-
-    dx, dy = direction
-    length = math.hypot(dx, dy)
-    if not length:
-        return
-    dx /= length
-    dy = -dy / length
-    arrow_length = 12
-    head_length = 4
-    start = (center[0] - dx * arrow_length / 2, center[1] - dy * arrow_length / 2)
-    end = (center[0] + dx * arrow_length / 2, center[1] + dy * arrow_length / 2)
-    angle = math.atan2(dy, dx)
-    left = (
-        end[0] - head_length * math.cos(angle - math.pi / 6),
-        end[1] - head_length * math.sin(angle - math.pi / 6),
-    )
-    right = (
-        end[0] - head_length * math.cos(angle + math.pi / 6),
-        end[1] - head_length * math.sin(angle + math.pi / 6),
-    )
-    pygame.draw.line(surface, color, start, end, 2)
-    pygame.draw.polygon(surface, color, [end, left, right])
 
 
 def _draw_horizontal_force_arrow(
