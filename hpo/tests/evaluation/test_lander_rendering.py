@@ -114,10 +114,12 @@ class TestLanderRenderWrapper:
         env.step(0)
 
         assert env.score == 2.5
+        assert env.steps_since_reset == 2
 
         env.reset(seed=123)
 
         assert env.score == 0.0
+        assert env.steps_since_reset == 0
 
     def test_overlay_draws_wind_and_turbulence_indicators(self):
         plain_frame, _ = _render_venus_frame(overlay=None)
@@ -127,8 +129,9 @@ class TestLanderRenderWrapper:
         assert np.any(overlay_frame[top_center] != plain_frame[top_center])
 
         x, y = lander_center
-        lander_neighborhood = np.s_[max(y - 70, 0) : y + 30, x : min(x + 80, overlay_frame.shape[1])]
-        assert np.any(overlay_frame[lander_neighborhood] != plain_frame[lander_neighborhood])
+        turbulence_x = max(26, min(x + 110, overlay_frame.shape[1] - 26))
+        turbulence_neighborhood = np.s_[32:95, max(turbulence_x - 35, 0) : turbulence_x + 35]
+        assert np.any(overlay_frame[turbulence_neighborhood] != plain_frame[turbulence_neighborhood])
 
     def test_draws_optional_skin_on_screen_oriented_surface(self):
         skin = MarkerSkin()

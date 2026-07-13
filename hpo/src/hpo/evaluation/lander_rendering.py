@@ -24,6 +24,9 @@ _KICK_DIRECTIONS = (
 )
 _WIND_ACCEL_SCALE = 4.0
 _TURBULENCE_ACCEL_SCALE = 2.4
+_KICK_DELTA_V_SCALE = 5.5
+_KICK_VISIBLE_STEPS = 25
+_DISTURBANCE_VECTOR_ORIGIN_Y = 76
 _WIND_COLOR_STOPS = (
     (0.0, (72, 220, 92)),
     (1.0, (255, 230, 72)),
@@ -35,6 +38,12 @@ _TURBULENCE_COLOR_STOPS = (
     (0.7, (255, 230, 72)),
     (1.4, (255, 146, 43)),
     (2.1, (255, 55, 55)),
+)
+_KICK_COLOR_STOPS = (
+    (0.0, (72, 220, 92)),
+    (1.5, (255, 230, 72)),
+    (3.0, (255, 146, 43)),
+    (4.5, (255, 55, 55)),
 )
 _WINDSOCK_DEAD_ZONE = 0.4
 _WINDSOCK_FULL_ACCEL = 2.0
@@ -100,15 +109,18 @@ class LanderRenderWrapper(gym.Wrapper):
         self.overlay = overlay
         self.skin = skin
         self.reset_seed: int | None = None
+        self.steps_since_reset = 0
         self.score = 0.0
 
     def reset(self, *, seed: int | None = None, options=None):
         self.reset_seed = seed
+        self.steps_since_reset = 0
         self.score = 0.0
         return self.env.reset(seed=seed, options=options)
 
     def step(self, action):
         observation, reward, terminated, truncated, info = self.env.step(action)
+        self.steps_since_reset += 1
         self.score += float(reward)
         return observation, reward, terminated, truncated, info
 
@@ -328,7 +340,9 @@ def _draw_overlay(surface, source_env, overlay: LanderOverlay) -> None:
             _draw_arrow(surface, arrow_center, direction, overlay)
 
     env = getattr(source_env, "env", source_env)
-    _draw_wind_indicator(surface, font, env, overlay)
+    vector_origin = _disturbance_vector_origin(surface)
+    _draw_wind_indicator(surface, font, env, overlay, vector_origin)
+    _draw_kick_indicator(surface, font, source_env, env, overlay, vector_origin)
     _draw_turbulence_indicator(surface, font, env, overlay)
 
 
@@ -372,23 +386,88 @@ def _draw_text(surface, font, line: str, position: tuple[int, int], overlay: Lan
     return text
 
 
-def _draw_wind_indicator(surface, font, env, overlay: LanderOverlay) -> None:
+def _draw_wind_indicator(
+    surface, font, env, overlay: LanderOverlay, origin: tuple[int, int]
+) -> None:
     wind = _wind_acceleration(env)
     if wind is None:
         return
 
     acceleration, _ = wind
-    center = (surface.get_width() // 2, 26)
     color = _force_color(abs(acceleration), _WIND_COLOR_STOPS)
     _draw_horizontal_force_arrow(
         surface,
-        center,
+        origin,
         acceleration,
         scale=_WIND_ACCEL_SCALE,
         color=color,
         shadow_color=overlay.shadow_color,
     )
-    _draw_centered_text(surface, font, f"wind {acceleration:+.1f} m/s²", (center[0], center[1] + 13), color, overlay)
+    _draw_centered_text(surface, font, f"wind {acceleration:+.1f} m/s²", (origin[0], origin[1] + 13), color, overlay)
+
+
+def _draw_kick_indicator(
+    surface,
+    font,
+    source_env,
+    env,
+    overlay: LanderOverlay,
+    origin: tuple[int, int],
+) -> None:
+    if getattr(source_env, "steps_since_reset", _KICK_VISIBLE_STEPS) >= _KICK_VISIBLE_STEPS:
+        return
+
+    lander = getattr(env.unwrapped, "lander", None)
+    kick = _initial_kick(getattr(source_env, "reset_seed", None), getattr(lander, "mass", None))
+    if kick is None:
+        return
+
+    delta_v, direction = kick
+    color = _force_color(delta_v, _KICK_COLOR_STOPS)
+    length = 14 + min(delta_v / _KICK_DELTA_V_SCALE, 1.0) * 96
+    screen_direction = _normalized((direction[0], -direction[1]))
+    length = _fit_vector_length(surface, origin, screen_direction, length, margin=6)
+    end = (origin[0] + screen_direction[0] * length, origin[1] + screen_direction[1] * length)
+    _draw_line_arrow(
+        surface,
+        (origin[0] + 1, origin[1] + 1),
+        (end[0] + 1, end[1] + 1),
+        overlay.shadow_color,
+        width=4,
+    )
+    _draw_line_arrow(surface, origin, end, color, width=3)
+    _draw_centered_text(surface, font, f"kick {delta_v:.1f} m/s", (origin[0], origin[1] + 28), color, overlay)
+
+
+def _disturbance_vector_origin(surface) -> tuple[int, int]:
+    return surface.get_width() // 2, _DISTURBANCE_VECTOR_ORIGIN_Y
+
+
+def _normalized(vector: tuple[float, float]) -> tuple[float, float]:
+    length = math.hypot(*vector)
+    if not length:
+        return 0.0, 0.0
+    return vector[0] / length, vector[1] / length
+
+
+def _fit_vector_length(
+    surface,
+    origin: tuple[int, int],
+    direction: tuple[float, float],
+    length: float,
+    *,
+    margin: int,
+) -> float:
+    max_length = length
+    if direction[0] > 0:
+        max_length = min(max_length, (surface.get_width() - margin - origin[0]) / direction[0])
+    elif direction[0] < 0:
+        max_length = min(max_length, (origin[0] - margin) / -direction[0])
+    if direction[1] > 0:
+        max_length = min(max_length, (surface.get_height() - margin - origin[1]) / direction[1])
+    elif direction[1] < 0:
+        max_length = min(max_length, (origin[1] - margin) / -direction[1])
+    return max(0.0, max_length)
 
 
 def _draw_turbulence_indicator(surface, font, env, overlay: LanderOverlay) -> None:
@@ -570,7 +649,7 @@ def _draw_arrow_shape(surface, center: tuple[int, int], direction: tuple[float, 
 
 def _draw_horizontal_force_arrow(
     surface,
-    center: tuple[int, int],
+    origin: tuple[int, int],
     value: float,
     *,
     scale: float,
@@ -579,10 +658,9 @@ def _draw_horizontal_force_arrow(
 ) -> None:
     length = 14 + min(abs(value) / scale, 1.0) * 96
     direction = 1 if value >= 0 else -1
-    start = (center[0] - direction * length / 2, center[1])
-    end = (center[0] + direction * length / 2, center[1])
-    _draw_line_arrow(surface, (start[0] + 1, start[1] + 1), (end[0] + 1, end[1] + 1), shadow_color, width=4)
-    _draw_line_arrow(surface, start, end, color, width=3)
+    end = (origin[0] + direction * length, origin[1])
+    _draw_line_arrow(surface, (origin[0] + 1, origin[1] + 1), (end[0] + 1, end[1] + 1), shadow_color, width=4)
+    _draw_line_arrow(surface, origin, end, color, width=3)
 
 
 def _draw_torque_arrow(
