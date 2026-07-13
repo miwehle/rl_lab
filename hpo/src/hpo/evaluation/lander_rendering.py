@@ -12,16 +12,6 @@ from gymnasium.error import DependencyNotInstalled
 from gymnasium.utils import seeding
 
 RGB = tuple[int, int, int]
-_KICK_DIRECTIONS = (
-    (1.0, 0.0),
-    (1.0, 1.0),
-    (0.0, 1.0),
-    (-1.0, 1.0),
-    (-1.0, 0.0),
-    (-1.0, -1.0),
-    (0.0, -1.0),
-    (1.0, -1.0),
-)
 _WIND_ACCEL_SCALE = 4.0
 _TURBULENCE_ACCEL_SCALE = 2.4
 _KICK_DELTA_V_SCALE = 5.5
@@ -599,8 +589,10 @@ def _initial_kick(seed: int | None, mass) -> tuple[float, tuple[float, float]] |
 
 
 def _kick_direction(fx: float, fy: float) -> tuple[float, float]:
-    index = round(math.atan2(fy, fx) / (math.pi / 4)) % len(_KICK_DIRECTIONS)
-    return _KICK_DIRECTIONS[index]
+    length = math.hypot(fx, fy)
+    if not length:
+        return 0.0, 0.0
+    return fx / length, fy / length
 
 
 def _initial_force(seed: int) -> tuple[float, float]:
