@@ -18,6 +18,7 @@ from hpo.evaluation.rendering.solar_system_lander import (
     LanderOverlay,
     LanderRenderWrapper,
     LanderSkin,
+    RenderConfig,
 )
 
 _FINAL_HOLD_FRAMES = 30
@@ -36,10 +37,17 @@ def record_checkpoint_video(
     render_colors: LanderColors | None = None,
     render_overlay: LanderOverlay | None = None,
     render_skin: LanderSkin | None = None,
+    render_config: RenderConfig | None = None,
 ) -> Path:
     """Record one greedy episode for a saved checkpoint."""
     if max_steps < 1:
         raise ValueError("max_steps must be >= 1")
+    if render_config is not None:
+        if len(render_config.colors_by_world) != 1:
+            raise ValueError("render_config for one video must contain exactly one world color")
+        render_colors = render_config.colors_by_world[0]
+        render_overlay = render_config.overlay
+        render_skin = render_config.skin
 
     checkpoint_path = Path(checkpoint_path)
     output_dir = Path(output_dir)
@@ -92,11 +100,16 @@ def record_checkpoint_videos(
     colors_by_world: Iterable[LanderColors | None] | None = None,
     render_overlay: LanderOverlay | None = None,
     render_skin: LanderSkin | None = None,
+    render_config: RenderConfig | None = None,
     progress: bool = True,
 ) -> list[Path]:
     """Record one greedy episode for each world/seed pair."""
     worlds = tuple(worlds)
     seeds = tuple(seeds)
+    if render_config is not None:
+        colors_by_world = render_config.colors_by_world
+        render_overlay = render_config.overlay
+        render_skin = render_config.skin
     if colors_by_world is None:
         colors_by_world = (None,) * len(worlds)
     else:
@@ -122,6 +135,7 @@ def record_checkpoint_videos(
             render_colors=render_colors,
             render_overlay=render_overlay,
             render_skin=render_skin,
+            render_config=None,
         )
         for world, seed, render_colors in _with_progress(
             jobs, enabled=progress, total=len(jobs), desc="Recording videos"

@@ -12,6 +12,7 @@ hpo/src/hpo/evaluation/rendering/
     +-- __init__.py
     +-- scene.py
     +-- colors.py
+    +-- config.py
     +-- env_state.py
     +-- lander.py
     +-- windsocks.py
@@ -32,6 +33,8 @@ hpo/src/hpo/evaluation/rendering/
 
 `colors.py`: Owns `LanderColors`, world color lookup, and color constants.
 
+`config.py`: Owns `RenderConfig` and `render_config(...)`, the small user-facing preset that hides common video-rendering details such as world colors, overlay construction, and detailed Eagle skin selection.
+
 `env_state.py`: Owns `EnvState.from_env(...)`, the render-facing view of the Gym/env state, plus small nested state objects such as `WindState.from_env(...)` and `TurbulenceState.from_env(...)` when a group of values has shared meaning. It reads Gym/env internals once per frame and prepares simple values for the drawing modules: world, gravity, score, wind, turbulence, kick, step count, mass, inertia, body positions, angles, contacts, and screen positions. Details belong in the module and class docstrings.
 
 `lander.py`: Owns the visible lander drawing decision: default Gym lander polygons or optional skin. It hides the default Gym lander when a skin is active.
@@ -49,18 +52,21 @@ hpo/src/hpo/evaluation/rendering/
 ## Module Tree
 
 ```text
-scene.py
+solar_system_lander/
++-- __init__.py
++-- config.py
 +-- colors.py
-+-- env_state.py
-+-- lander.py
-|   +-- skins/
-|       +-- eagle.py
-|       +-- _eagle_body_pygame.py
-|       +-- _eagle_legs_pygame.py
-+-- windsocks.py
-+-- overlay/
-    +-- overlay.py
-    +-- vectors.py
++-- scene.py
+|   +-- env_state.py
+|   +-- lander.py
+|   |   +-- skins/
+|   |       +-- eagle.py
+|   |       +-- _eagle_body_pygame.py
+|   |       +-- _eagle_legs_pygame.py
+|   +-- windsocks.py
+|   +-- overlay/
+|       +-- overlay.py
+|       +-- vectors.py
 ```
 
 This is the intended ownership tree between modules. Each module appears exactly once. There is no cross-cutting helper module in the first split; small calculations stay close to the visual element or env-state extraction that needs them.

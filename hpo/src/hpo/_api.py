@@ -2,7 +2,7 @@
 
 from hpo.checkpointing import ObjectiveHookFactory, best_checkpoint, load_checkpoint, save_checkpoint
 from hpo.evaluation.checkpoint_robustness import checkpoint_scores, score_summary
-from hpo.evaluation.rendering.solar_system_lander import LanderOverlay, world_colors
+from hpo.evaluation.rendering.solar_system_lander import render_config
 from hpo.evaluation.video import display_video, record_checkpoint_videos, show_video_conditions
 from hpo.hyperparams import HP
 from hpo.notebook import plots
@@ -21,7 +21,6 @@ __all__ = [
     "EnvFactory",
     "GroundThrustPenaltyEnv",
     "HP",
-    "LanderOverlay",
     "ObjectiveConfig",
     "ObjectiveHookFactory",
     "StudyRunner",
@@ -37,9 +36,9 @@ __all__ = [
     "plots",
     "prepare_storage",
     "record_checkpoint_videos",
+    "render_config",
     "save_checkpoint",
     "score_summary",
     "setup_colab",
     "show_video_conditions",
-    "world_colors",
 ]

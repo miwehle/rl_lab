@@ -7,6 +7,7 @@ from hpo.evaluation.rendering.solar_system_lander import (
     LanderColors,
     LanderOverlay,
     LanderRenderWrapper,
+    render_config,
     world_colors,
 )
 from hpo.evaluation.rendering.solar_system_lander.colors import _force_color
@@ -50,6 +51,19 @@ def test_world_colors_returns_colors_in_world_order():
 def test_world_colors_rejects_unknown_world():
     with pytest.raises(ValueError, match="unknown world color: pluto"):
         world_colors(["pluto"])
+
+
+def test_render_config_hides_common_rendering_details():
+    config = render_config([World.EARTH], overlay=True, skin="detailed_eagle")
+
+    assert config.colors_by_world == (world_colors([World.EARTH])[0],)
+    assert config.overlay == LanderOverlay()
+    assert isinstance(config.skin, DetailedEagleSkin)
+
+
+def test_render_config_rejects_unknown_skin():
+    with pytest.raises(ValueError, match="unknown render skin"):
+        render_config([World.EARTH], skin="cardboard_eagle")
 
 
 def test_force_color_uses_absolute_stops():
