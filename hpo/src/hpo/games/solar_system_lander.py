@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "dqn" / "src"))
 sys.path.insert(0, str(ROOT / "hpo" / "src"))
 
-from hpo.evaluation.lander_rendering import LanderOverlay, LanderRenderWrapper, world_colors  # noqa: E402
+from hpo.evaluation.rendering.solar_system_lander import LanderOverlay, LanderRenderWrapper, world_colors  # noqa: E402
 from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World  # noqa: E402
 
 WORLDS = [world.value for world in World]

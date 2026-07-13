@@ -18,7 +18,6 @@ hpo/src/hpo/evaluation/rendering/
     +-- overlay/
         +-- __init__.py
         +-- overlay.py
-        +-- text.py
         +-- vectors.py
     +-- skins/
         +-- __init__.py
@@ -41,8 +40,6 @@ hpo/src/hpo/evaluation/rendering/
 
 `overlay/overlay.py`: Orchestrates visible overlay elements. It should stay thin: read `EnvState`, draw text lines, draw vectors, and call specialized modules.
 
-`overlay/text.py`: Draws text and labels with shadow. It has no Gym/env dependencies.
-
 `overlay/vectors.py`: Draws wind, kick, and turbulence vector/tacho visualizations from simple values. It owns the small vector math needed for drawing.
 
 `windsocks.py`: Draws windsocks at flag poles from wind values. It owns the wind-strength scaling needed for the windsock shape.
@@ -63,7 +60,6 @@ scene.py
 +-- windsocks.py
 +-- overlay/
     +-- overlay.py
-    +-- text.py
     +-- vectors.py
 ```
 
@@ -71,7 +67,7 @@ This is the intended ownership tree between modules. Each module appears exactly
 
 ## Rules
 
-- No upward imports: low-level modules (`overlay/text.py`, `colors.py`) must not import high-level modules (`scene.py`, `overlay/overlay.py`, `lander.py`).
+- No upward imports: low-level modules (`colors.py`) must not import high-level modules (`scene.py`, `overlay/overlay.py`, `lander.py`).
 - `env_state.py` is the main place that reads Gym/env internals for rendering data.
 - `vectors.py` and `windsocks.py` should draw from simple values, not inspect raw envs unless the value is local to that visual element.
 - `scene.py` owns render order.

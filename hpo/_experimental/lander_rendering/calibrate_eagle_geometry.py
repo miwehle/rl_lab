@@ -29,7 +29,7 @@ sys.path.insert(0, str(DETAILED_DIR))
 
 from eagle_body_pygame import EAGLE_BODY_OPS  # noqa: E402
 from eagle_legs_pygame import EAGLE_LEG_OPS  # noqa: E402
-from hpo.evaluation.lander_rendering import LanderColors, LanderRenderWrapper  # noqa: E402
+from hpo.evaluation.rendering.solar_system_lander import LanderColors, LanderRenderWrapper  # noqa: E402
 
 Point: TypeAlias = tuple[float, float]
 Op: TypeAlias = tuple[str, str | None, str | None, float, list[Point]]

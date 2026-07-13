@@ -13,7 +13,12 @@ from gymnasium.wrappers import RecordVideo
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.evaluation.checkpoint_robustness import q_net_from_checkpoint
-from hpo.evaluation.lander_rendering import LanderColors, LanderOverlay, LanderRenderWrapper, LanderSkin
+from hpo.evaluation.rendering.solar_system_lander import (
+    LanderColors,
+    LanderOverlay,
+    LanderRenderWrapper,
+    LanderSkin,
+)
 
 _FINAL_HOLD_FRAMES = 30
 

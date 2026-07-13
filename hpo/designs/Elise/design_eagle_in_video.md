@@ -8,13 +8,13 @@ Use a small optional skin hook in `LanderRenderWrapper`.
 
 `LanderRenderWrapper` remains responsible for the Gym-compatible scene: sky, terrain, flags, particles, score state, overlays, and render mode handling.
 
-The detailed Eagle graphic lives in a separate module, for example `hpo.evaluation.lander_skins.eagle`, and is passed into the wrapper as `skin=DetailedEagleSkin()`.
+The detailed Eagle graphic lives in `hpo.evaluation.rendering.solar_system_lander.skins.eagle` and is passed into the wrapper as `skin=DetailedEagleSkin()`.
 
 ## Why
 
 The detailed Eagle is presentation logic, not environment logic.
 
-Keeping it as a skin keeps `hpo.evaluation.lander_rendering` focused on rendering orchestration and keeps `hpo.evaluation.video` focused on recording videos.
+Keeping it as a skin keeps `hpo.evaluation.rendering.solar_system_lander.scene` focused on rendering orchestration and keeps `hpo.evaluation.video` focused on recording videos.
 
 The detailed graphic also carries calibration constants, body/leg anchors, leg rest angles, and nozzle locations. Those are Eagle-specific and should not spread through the generic evaluation modules.
 
@@ -35,7 +35,7 @@ The detailed Eagle main impulse point is estimated inside the nozzle body, betwe
 Notebook use:
 
 ```python
-from hpo.evaluation.lander_skins.eagle import DetailedEagleSkin
+from hpo.evaluation.rendering.solar_system_lander.skins.eagle import DetailedEagleSkin
 
 video_paths = record_checkpoint_videos(
     checkpoint_path=CHECKPOINT_PATH,
@@ -64,18 +64,20 @@ record_checkpoint_videos(..., render_skin=...)
 
 ```text
 hpo/src/hpo/evaluation/
-    lander_rendering.py
     video.py
-    lander_skins/
-        __init__.py
-        eagle.py
+    rendering/solar_system_lander/
+        scene.py
+        lander.py
+        skins/
+            __init__.py
+            eagle.py
 ```
 
 `eagle.py` owns the detailed ops imports, anchor constants, leg rest angles, leg side mapping, and draw logic.
 
 `video.py` should only pass `render_skin` through.
 
-`lander_rendering.py` should only know that a skin has a `draw(surface, env)` method.
+`lander.py` should only know that a skin has a `draw(surface, env)` method.
 
 ## KISS Constraints
 

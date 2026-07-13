@@ -3,15 +3,15 @@ import numpy as np
 import pytest
 from gymnasium.envs.box2d import lunar_lander
 
-from hpo.evaluation.lander_rendering import (
+from hpo.evaluation.rendering.solar_system_lander import (
     LanderColors,
     LanderOverlay,
     LanderRenderWrapper,
-    _force_color,
-    _wind_strength,
     world_colors,
 )
-from hpo.evaluation.lander_skins import DetailedEagleSkin
+from hpo.evaluation.rendering.solar_system_lander.colors import _force_color
+from hpo.evaluation.rendering.solar_system_lander.env_state import _wind_strength
+from hpo.evaluation.rendering.solar_system_lander.skins import DetailedEagleSkin
 from hpo.solar_system_lander.environment import EnvFactory, World
 
 

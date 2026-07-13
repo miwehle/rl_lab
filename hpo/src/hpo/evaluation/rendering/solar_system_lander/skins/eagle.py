@@ -10,8 +10,8 @@ from typing import TypeAlias
 
 from gymnasium.envs.box2d import lunar_lander
 
-from hpo.evaluation.lander_skins._eagle_body_pygame import EAGLE_BODY_OPS
-from hpo.evaluation.lander_skins._eagle_legs_pygame import EAGLE_LEG_OPS
+from hpo.evaluation.rendering.solar_system_lander.skins._eagle_body_pygame import EAGLE_BODY_OPS
+from hpo.evaluation.rendering.solar_system_lander.skins._eagle_legs_pygame import EAGLE_LEG_OPS
 
 Point: TypeAlias = tuple[float, float]
 Op: TypeAlias = tuple[str, str | None, str | None, float, list[Point]]
