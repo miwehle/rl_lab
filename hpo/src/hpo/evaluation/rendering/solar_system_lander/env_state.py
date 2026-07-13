@@ -8,6 +8,17 @@ from gymnasium.utils import seeding
 
 
 @dataclass(frozen=True)
+class WindState:
+    """Render-facing wind state prepared from Gym/env internals."""
+
+    acceleration: float | None
+    max_acceleration: float | None
+    windsock_acceleration: float
+    windsock_max_acceleration: float
+    weather_max_acceleration: float | None
+
+
+@dataclass(frozen=True)
 class EnvState:
     """Render-facing env state prepared once per frame from Gym/env internals."""
 
@@ -15,13 +26,9 @@ class EnvState:
     gravity: float | None
     score: float | None
     steps_since_reset: int
-    wind_acceleration: float | None
-    wind_max_acceleration: float | None
-    windsock_wind_acceleration: float
-    windsock_max_acceleration: float
+    wind: WindState
     turbulence_acceleration: float | None
     turbulence_max_acceleration: float | None
-    weather_wind_max_acceleration: float | None
     weather_turbulence_max_degrees: float | None
     initial_kick_delta_v: float | None
     initial_kick_direction: tuple[float, float] | None
@@ -45,13 +52,15 @@ def read_env_state(source_env, env) -> EnvState:
         gravity=_world_gravity(world),
         score=getattr(source_env, "score", None),
         steps_since_reset=getattr(source_env, "steps_since_reset", 0),
-        wind_acceleration=None if wind is None else wind[0],
-        wind_max_acceleration=None if wind is None else wind[1],
-        windsock_wind_acceleration=windsock_wind,
-        windsock_max_acceleration=windsock_max,
+        wind=WindState(
+            acceleration=None if wind is None else wind[0],
+            max_acceleration=None if wind is None else wind[1],
+            windsock_acceleration=windsock_wind,
+            windsock_max_acceleration=windsock_max,
+            weather_max_acceleration=weather_wind_max,
+        ),
         turbulence_acceleration=None if turbulence is None else turbulence[0],
         turbulence_max_acceleration=None if turbulence is None else turbulence[1],
-        weather_wind_max_acceleration=weather_wind_max,
         weather_turbulence_max_degrees=weather_turbulence_max_degrees,
         initial_kick_delta_v=None if kick is None else kick[0],
         initial_kick_direction=None if kick is None else kick[1],

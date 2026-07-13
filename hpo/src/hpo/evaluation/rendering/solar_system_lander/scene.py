@@ -87,7 +87,7 @@ def _render_lunar_lander(
     env._clean_particles(False)
     _draw_sky(env, colors, gfxdraw)
     draw_gym_objects(env.surf, env, colors, gfxdraw, hide_lander_body=skin is not None)
-    draw_flags(env.surf, env, colors, env_state, gfxdraw)
+    draw_flags(env.surf, env, colors, env_state.wind, gfxdraw)
 
     env.surf = pygame.transform.flip(env.surf, False, True)
     if skin is not None:

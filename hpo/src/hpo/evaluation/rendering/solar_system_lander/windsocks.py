@@ -5,16 +5,16 @@ import math
 from gymnasium.envs.box2d import lunar_lander
 
 from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors
-from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState
+from hpo.evaluation.rendering.solar_system_lander.env_state import WindState
 
 _WINDSOCK_DEAD_ZONE = 0.4
 _WINDSOCK_FULL_ACCEL = 2.0
 
 
-def draw_flags(surface, env, colors: LanderColors, env_state: EnvState, gfxdraw) -> None:
+def draw_flags(surface, env, colors: LanderColors, wind: WindState, gfxdraw) -> None:
     import pygame
 
-    wind = (env_state.windsock_wind_acceleration, env_state.windsock_max_acceleration)
+    wind = (wind.windsock_acceleration, wind.windsock_max_acceleration)
     for x in [env.helipad_x1, env.helipad_x2]:
         x = x * lunar_lander.SCALE
         flagy1 = env.helipad_y * lunar_lander.SCALE

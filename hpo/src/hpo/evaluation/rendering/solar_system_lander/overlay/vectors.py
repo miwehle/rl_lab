@@ -10,7 +10,7 @@ from hpo.evaluation.rendering.solar_system_lander.colors import (
     WIND_COLOR_STOPS,
     _force_color,
 )
-from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState
+from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState, WindState
 
 _WIND_ACCEL_SCALE = 4.0
 _TURBULENCE_ACCEL_SCALE = 2.4
@@ -20,12 +20,12 @@ _DISTURBANCE_VECTOR_ORIGIN_Y = 76
 
 
 def draw_wind_indicator(
-    surface, font, env_state: EnvState, overlay: LanderOverlay, origin: tuple[int, int]
+    surface, font, wind: WindState, overlay: LanderOverlay, origin: tuple[int, int]
 ) -> None:
-    if env_state.wind_acceleration is None:
+    if wind.acceleration is None:
         return
 
-    acceleration = env_state.wind_acceleration
+    acceleration = wind.acceleration
     color = _force_color(abs(acceleration), WIND_COLOR_STOPS)
     _draw_horizontal_force_arrow(
         surface,
