@@ -94,6 +94,9 @@ def _draw_ops(
     import pygame
 
     for kind, fill_hex, stroke_hex, stroke_width, points in ops:
+        op = (kind, fill_hex, stroke_hex, stroke_width, points)
+        if _draw_lod_op(surface, op, body, source_anchor, scale, angle_offset, outline_only):
+            continue
         transformed = [_source_to_screen(point, body, source_anchor, scale, angle_offset) for point in points]
         fill = _rgb(fill_hex)
         stroke = _rgb(stroke_hex)
@@ -113,6 +116,63 @@ def _draw_ops(
             color = stroke or fill
             if color is not None and len(transformed) >= 2:
                 pygame.draw.lines(surface, color, False, transformed, width)
+
+
+def _draw_lod_op(
+    surface,
+    op: Op,
+    body,
+    source_anchor: Point,
+    scale: float,
+    angle_offset: float,
+    outline_only: bool,
+) -> bool:
+    return _draw_tiny_circle_op(surface, op, body, source_anchor, scale, angle_offset, outline_only)
+
+
+def _draw_tiny_circle_op(
+    surface,
+    op: Op,
+    body,
+    source_anchor: Point,
+    scale: float,
+    angle_offset: float,
+    outline_only: bool,
+) -> bool:
+    kind, fill_hex, stroke_hex, stroke_width, points = op
+    if outline_only or not _is_tiny_circle_op(op, scale):
+        return False
+
+    from pygame import gfxdraw
+
+    min_x, min_y, max_x, max_y = _bbox(points)
+    center = _source_to_screen(((min_x + max_x) / 2, (min_y + max_y) / 2), body, source_anchor, scale, angle_offset)
+    radius = max(1, round(((max_x - min_x) + (max_y - min_y)) * scale / 4))
+    fill = _rgb(fill_hex)
+    stroke = _rgb(stroke_hex)
+
+    if fill is not None:
+        gfxdraw.filled_circle(surface, center[0], center[1], radius, fill)
+        gfxdraw.aacircle(surface, center[0], center[1], radius, fill)
+    if stroke is not None:
+        width = max(1, round(stroke_width * scale))
+        for offset in range(width):
+            gfxdraw.aacircle(surface, center[0], center[1], max(1, radius - offset), stroke)
+    return True
+
+
+def _is_tiny_circle_op(op: Op, scale: float) -> bool:
+    kind, _fill_hex, stroke_hex, _stroke_width, points = op
+    if kind != "polygon" or len(points) < 18:
+        return False
+    if stroke_hex is None:
+        return False
+    min_x, min_y, max_x, max_y = _bbox(points)
+    width = max_x - min_x
+    height = max_y - min_y
+    if min(width, height) <= 0 or abs(width - height) > 2.0:
+        return False
+    return max(width, height) * scale <= 8.0
 
 
 def _source_to_screen(
@@ -178,17 +238,20 @@ def _outline_ops(ops: Sequence[Op]) -> list[Op]:
 
 
 def _bbox_area(op: Op) -> float:
-    points = op[4]
-    xs = [point[0] for point in points]
-    ys = [point[1] for point in points]
-    return (max(xs) - min(xs)) * (max(ys) - min(ys))
+    min_x, min_y, max_x, max_y = _bbox(op[4])
+    return (max_x - min_x) * (max_y - min_y)
 
 
 def _bbox_center(ops: Sequence[Op]) -> Point:
     points = [point for *_rest, op_points in ops for point in op_points]
+    min_x, min_y, max_x, max_y = _bbox(points)
+    return (min_x + max_x) / 2, (min_y + max_y) / 2
+
+
+def _bbox(points: Sequence[Point]) -> tuple[float, float, float, float]:
     xs = [point[0] for point in points]
     ys = [point[1] for point in points]
-    return (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    return min(xs), min(ys), max(xs), max(ys)
 
 
 def _lift_leg_anchor(anchor: Point) -> Point:
