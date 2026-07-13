@@ -10,7 +10,7 @@ from hpo.evaluation.rendering.solar_system_lander import (
     world_colors,
 )
 from hpo.evaluation.rendering.solar_system_lander.colors import _force_color
-from hpo.evaluation.rendering.solar_system_lander.env_state import _wind_state
+from hpo.evaluation.rendering.solar_system_lander.env_state import WindState
 from hpo.evaluation.rendering.solar_system_lander.skins import DetailedEagleSkin
 from hpo.solar_system_lander.environment import EnvFactory, World
 
@@ -69,13 +69,13 @@ def test_wind_state_follows_current_wind_sign():
 
     env = Env()
     env.wind_idx = 25
-    positive = _wind_state(env, env.lander.mass)
+    positive = WindState.from_env(env, env.lander.mass)
     assert positive.acceleration > 0
     assert positive.windsock_acceleration == positive.acceleration
     assert positive.max_acceleration == 0.5
 
     env.wind_idx = 150
-    negative = _wind_state(env, env.lander.mass)
+    negative = WindState.from_env(env, env.lander.mass)
     assert negative.acceleration < 0
     assert negative.windsock_acceleration == negative.acceleration
     assert negative.max_acceleration == 0.5

@@ -15,6 +15,22 @@ class WindState:
     windsock_acceleration: float
     max_acceleration: float | None
 
+    @classmethod
+    def from_env(cls, env, mass) -> "WindState":
+        if not getattr(env, "enable_wind", False):
+            return cls(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
+        wind_idx = getattr(env, "wind_idx", None)
+        if wind_idx is None or not mass:
+            return cls(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
+
+        wind_power = float(getattr(env, "wind_power", 0.0))
+        acceleration = _force_wave(wind_idx) * wind_power / float(mass)
+        return cls(
+            acceleration=0.0 if _has_ground_contact(env) else acceleration,
+            windsock_acceleration=acceleration,
+            max_acceleration=_max_acceleration(wind_power, mass),
+        )
+
 
 @dataclass(frozen=True)
 class EnvState:
@@ -32,46 +48,39 @@ class EnvState:
     initial_kick_direction: tuple[float, float] | None
     lander_screen_position: tuple[int, int] | None
 
+    @classmethod
+    def from_env(cls, *, wrapper, env) -> "EnvState":
+        """Extract render values from the LanderRenderWrapper and unwrapped Gym env.
 
-def read_env_state(source_env, env) -> EnvState:
-    """Extract the values drawing modules need from the wrapped and unwrapped env."""
-    env = getattr(env, "unwrapped", env)
-    world = getattr(env, "world", None)
-    lander = getattr(env, "lander", None)
-    mass = getattr(lander, "mass", None)
-    inertia = getattr(lander, "inertia", None)
-    turbulence = _turbulence_acceleration(env)
-    weather_turbulence_max_degrees = _weather_turbulence_max(env, inertia)
-    kick = _initial_kick(getattr(source_env, "reset_seed", None), mass)
-    return EnvState(
-        world_name=_world_name(world),
-        gravity=_world_gravity(world),
-        score=getattr(source_env, "score", None),
-        steps_since_reset=getattr(source_env, "steps_since_reset", 0),
-        wind=_wind_state(env, mass),
-        turbulence_acceleration=None if turbulence is None else turbulence[0],
-        turbulence_max_acceleration=None if turbulence is None else turbulence[1],
-        weather_turbulence_max_degrees=weather_turbulence_max_degrees,
-        initial_kick_delta_v=None if kick is None else kick[0],
-        initial_kick_direction=None if kick is None else kick[1],
-        lander_screen_position=_lander_screen_position(env),
-    )
+        wrapper:
+            The LanderRenderWrapper. Provides render-time bookkeeping such as
+            reset seed, score, and steps since reset.
 
-
-def _wind_state(env, mass) -> WindState:
-    if not getattr(env, "enable_wind", False):
-        return WindState(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
-    wind_idx = getattr(env, "wind_idx", None)
-    if wind_idx is None or not mass:
-        return WindState(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
-
-    wind_power = float(getattr(env, "wind_power", 0.0))
-    acceleration = _force_wave(wind_idx) * wind_power / float(mass)
-    return WindState(
-        acceleration=0.0 if _has_ground_contact(env) else acceleration,
-        windsock_acceleration=acceleration,
-        max_acceleration=_max_acceleration(wind_power, mass),
-    )
+        env:
+            The unwrapped Gym/Box2D env. Provides world and physics state such
+            as lander body, legs, weather, wind, and turbulence.
+        """
+        env = getattr(env, "unwrapped", env)
+        world = getattr(env, "world", None)
+        lander = getattr(env, "lander", None)
+        mass = getattr(lander, "mass", None)
+        inertia = getattr(lander, "inertia", None)
+        turbulence = _turbulence_acceleration(env)
+        weather_turbulence_max_degrees = _weather_turbulence_max(env, inertia)
+        kick = _initial_kick(getattr(wrapper, "reset_seed", None), mass)
+        return cls(
+            world_name=_world_name(world),
+            gravity=_world_gravity(world),
+            score=getattr(wrapper, "score", None),
+            steps_since_reset=getattr(wrapper, "steps_since_reset", 0),
+            wind=WindState.from_env(env, mass),
+            turbulence_acceleration=None if turbulence is None else turbulence[0],
+            turbulence_max_acceleration=None if turbulence is None else turbulence[1],
+            weather_turbulence_max_degrees=weather_turbulence_max_degrees,
+            initial_kick_delta_v=None if kick is None else kick[0],
+            initial_kick_direction=None if kick is None else kick[1],
+            lander_screen_position=_lander_screen_position(env),
+        )
 
 
 def _world_name(world) -> str | None:

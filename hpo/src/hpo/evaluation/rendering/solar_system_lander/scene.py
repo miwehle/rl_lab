@@ -6,7 +6,7 @@ from gymnasium.envs.box2d import lunar_lander
 from gymnasium.error import DependencyNotInstalled
 
 from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors, LanderOverlay
-from hpo.evaluation.rendering.solar_system_lander.env_state import read_env_state
+from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState
 from hpo.evaluation.rendering.solar_system_lander.lander import LanderSkin, draw_gym_objects
 from hpo.evaluation.rendering.solar_system_lander.overlay import draw_overlay
 from hpo.evaluation.rendering.solar_system_lander.windsocks import draw_flags
@@ -77,7 +77,7 @@ def _render_lunar_lander(
     if env.clock is None:
         env.clock = pygame.time.Clock()
 
-    env_state = read_env_state(source_env, env)
+    env_state = EnvState.from_env(wrapper=source_env, env=env)
     env.surf = pygame.Surface((lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H))
 
     pygame.transform.scale(env.surf, (lunar_lander.SCALE, lunar_lander.SCALE))
