@@ -60,5 +60,5 @@ def _overlay_lines(env_state: EnvState) -> list[str]:
     if env_state.turbulence.max_acceleration is not None:
         lines.append(f"turb max: {math.degrees(env_state.turbulence.max_acceleration):.0f}°/s²")
     if env_state.initial_kick_delta_v is not None:
-        lines.append(f"kick: {env_state.initial_kick_delta_v:.1f} m/s")
+        lines.append(f"kick: {math.hypot(*env_state.initial_kick_delta_v):.1f} m/s")
     return lines

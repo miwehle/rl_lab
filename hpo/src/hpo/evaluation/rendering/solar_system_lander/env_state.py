@@ -62,8 +62,7 @@ class EnvState:
     steps_since_reset: int
     wind: WindState
     turbulence: TurbulenceState
-    initial_kick_delta_v: float | None
-    initial_kick_direction: tuple[float, float] | None
+    initial_kick_delta_v: tuple[float, float] | None
     lander_screen_position: tuple[int, int] | None
 
     @classmethod
@@ -91,8 +90,7 @@ class EnvState:
             steps_since_reset=getattr(wrapper, "steps_since_reset", 0),
             wind=WindState.from_env(env, mass),
             turbulence=TurbulenceState.from_env(env, inertia),
-            initial_kick_delta_v=None if kick is None else kick[0],
-            initial_kick_direction=None if kick is None else kick[1],
+            initial_kick_delta_v=kick,
             lander_screen_position=_lander_screen_position(env),
         )
 
@@ -141,19 +139,12 @@ def _lander_screen_position(env) -> tuple[int, int] | None:
     )
 
 
-def _initial_kick(seed: int | None, mass) -> tuple[float, tuple[float, float]] | None:
+def _initial_kick(seed: int | None, mass) -> tuple[float, float] | None:
     if seed is None or not mass:
         return None
     fx, fy = _initial_force(seed)
-    delta_v = float(math.hypot(fx, fy)) * (1.0 / lunar_lander.FPS) / float(mass)
-    return delta_v, _kick_direction(fx, fy)
-
-
-def _kick_direction(fx: float, fy: float) -> tuple[float, float]:
-    length = math.hypot(fx, fy)
-    if not length:
-        return 0.0, 0.0
-    return fx / length, fy / length
+    scale = (1.0 / lunar_lander.FPS) / float(mass)
+    return fx * scale, fy * scale
 
 
 def _initial_force(seed: int) -> tuple[float, float]:

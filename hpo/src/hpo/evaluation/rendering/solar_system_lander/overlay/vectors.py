@@ -47,14 +47,13 @@ def draw_kick_indicator(
 ) -> None:
     if env_state.steps_since_reset >= _KICK_VISIBLE_STEPS:
         return
-    if env_state.initial_kick_delta_v is None or env_state.initial_kick_direction is None:
+    if env_state.initial_kick_delta_v is None:
         return
 
-    delta_v = env_state.initial_kick_delta_v
-    direction = env_state.initial_kick_direction
+    delta_v = math.hypot(*env_state.initial_kick_delta_v)
     color = _force_color(delta_v, KICK_COLOR_STOPS)
     length = 14 + min(delta_v / _KICK_DELTA_V_SCALE, 1.0) * 96
-    screen_direction = _normalized((direction[0], -direction[1]))
+    screen_direction = _normalized((env_state.initial_kick_delta_v[0], -env_state.initial_kick_delta_v[1]))
     length = _fit_vector_length(surface, origin, screen_direction, length, margin=6)
     end = (origin[0] + screen_direction[0] * length, origin[1] + screen_direction[1] * length)
     _draw_line_arrow(
