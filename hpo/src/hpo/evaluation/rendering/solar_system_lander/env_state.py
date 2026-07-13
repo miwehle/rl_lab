@@ -12,22 +12,20 @@ class WindState:
     """Render-facing wind state prepared from Gym/env internals."""
 
     acceleration: float | None
-    windsock_acceleration: float
     max_acceleration: float | None
 
     @classmethod
     def from_env(cls, env, mass) -> "WindState":
         if not getattr(env, "enable_wind", False):
-            return cls(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
+            return cls(acceleration=None, max_acceleration=None)
         wind_idx = getattr(env, "wind_idx", None)
         if wind_idx is None or not mass:
-            return cls(acceleration=None, windsock_acceleration=0.0, max_acceleration=None)
+            return cls(acceleration=None, max_acceleration=None)
 
         wind_power = float(getattr(env, "wind_power", 0.0))
         acceleration = _force_wave(wind_idx) * wind_power / float(mass)
         return cls(
-            acceleration=0.0 if _has_ground_contact(env) else acceleration,
-            windsock_acceleration=acceleration,
+            acceleration=acceleration,
             max_acceleration=_max_acceleration(wind_power, mass),
         )
 
@@ -126,8 +124,6 @@ def _turbulence_acceleration(env) -> tuple[float, float] | None:
 
     turbulence_power = float(getattr(env, "turbulence_power", 0.0))
     max_acceleration = _max_acceleration(turbulence_power, inertia)
-    if _has_ground_contact(env):
-        return 0.0, max_acceleration
     return _force_wave(torque_idx) * turbulence_power / float(inertia), max_acceleration
 
 
@@ -139,10 +135,6 @@ def _max_acceleration(force: float, divisor: float) -> float:
     if not divisor:
         return 0.0
     return abs(float(force)) / float(divisor)
-
-
-def _has_ground_contact(env) -> bool:
-    return any(getattr(leg, "ground_contact", False) for leg in getattr(env, "legs", ()))
 
 
 def _lander_screen_position(env) -> tuple[int, int] | None:

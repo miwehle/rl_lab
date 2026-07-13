@@ -19,7 +19,7 @@ def draw_flags(surface, env, colors: LanderColors, wind: WindState, gfxdraw) -> 
         flagy1 = env.helipad_y * lunar_lander.SCALE
         flagy2 = flagy1 + 50
         pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
-        _draw_windsock(surface, gfxdraw, (x, flagy2 - 8), wind.windsock_acceleration)
+        _draw_windsock(surface, gfxdraw, (x, flagy2 - 8), wind.acceleration or 0.0)
 
 
 def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind_acceleration: float) -> None:

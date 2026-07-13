@@ -71,13 +71,11 @@ def test_wind_state_follows_current_wind_sign():
     env.wind_idx = 25
     positive = WindState.from_env(env, env.lander.mass)
     assert positive.acceleration > 0
-    assert positive.windsock_acceleration == positive.acceleration
     assert positive.max_acceleration == 0.5
 
     env.wind_idx = 150
     negative = WindState.from_env(env, env.lander.mass)
     assert negative.acceleration < 0
-    assert negative.windsock_acceleration == negative.acceleration
     assert negative.max_acceleration == 0.5
 
 
