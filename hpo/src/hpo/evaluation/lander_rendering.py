@@ -436,7 +436,7 @@ def _draw_kick_indicator(
         width=4,
     )
     _draw_line_arrow(surface, origin, end, color, width=3)
-    _draw_centered_text(surface, font, f"kick {delta_v:.1f} m/s", (origin[0], origin[1] + 28), color, overlay)
+    _draw_centered_text(surface, font, f"kick {delta_v:.1f} m/s", (origin[0], origin[1] - 20), color, overlay)
 
 
 def _disturbance_vector_origin(surface) -> tuple[int, int]:
