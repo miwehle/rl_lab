@@ -59,7 +59,7 @@ class EnvState:
     world_name: str | None
     gravity: float | None
     score: float | None
-    steps_since_reset: int
+    step: int
     wind: WindState
     turbulence: TurbulenceState
     initial_kick_delta_v: tuple[float, float] | None
@@ -87,7 +87,7 @@ class EnvState:
             world_name=_world_name(world),
             gravity=_world_gravity(world),
             score=getattr(wrapper, "score", None),
-            steps_since_reset=getattr(wrapper, "steps_since_reset", 0),
+            step=getattr(wrapper, "steps_since_reset", 0),
             wind=WindState.from_env(env, mass),
             turbulence=TurbulenceState.from_env(env, inertia),
             initial_kick_delta_v=kick,

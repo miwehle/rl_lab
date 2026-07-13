@@ -45,7 +45,7 @@ def draw_kick_indicator(
     overlay: LanderOverlay,
     origin: tuple[int, int],
 ) -> None:
-    if env_state.steps_since_reset >= _KICK_VISIBLE_STEPS:
+    if env_state.step >= _KICK_VISIBLE_STEPS:
         return
     if env_state.initial_kick_delta_v is None:
         return
