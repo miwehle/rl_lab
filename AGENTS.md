@@ -44,7 +44,7 @@ Add them only for a concrete current need or when the user explicitly agrees.
 
 ### Design First
 
-Find the good high-level design first; only then discuss implementation details. Good high-level design is the first practical lever for KISS.
+Find the good design first; only then discuss implementation details. Good design is the first practical lever for KISS.
 
 KISS is king, and simple design is his closest ally.
 
