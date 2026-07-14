@@ -42,6 +42,22 @@ pattern. Treat speculative generalization, optional modes, config flags,
 future-proofing, and indirection as complexity costs and mental load.
 Add them only for a concrete current need or when the user explicitly agrees.
 
+### Design First
+
+Find the good high-level design first; only then discuss implementation details. Good high-level design is the first practical lever for KISS.
+
+KISS is king, and simple design is his closest ally.
+
+If the design is questionable or not KISS, say so plainly. Always prioritize KISS. Do not leave this path, and help the user stay on it too.
+
+If the user appears to be following an unnecessarily complex path, pause and point to the simpler design before implementing.
+
+### Refactoring and Automated Tests
+
+KISS is king. Refactoring keeps the kingdom tidy; automated tests guard the gates. Treat refactoring as an active parallel process that preserves or restores simple design while behavior evolves, and use automated tests to keep that process safe.
+
+Outside the user's explicit `#focus` mode, proactively point out concrete, likely worthwhile simplification or refactoring opportunities; ask whether to schedule or do them soon instead of silently carrying complexity forward.
+
 ### Cost-Aware Alternative Selection
 
 When proposing or comparing implementation alternatives, estimate the likely cost and complexity of each option, especially hidden infrastructure cost such as orchestration, persistence, evaluation, reporting, notebooks, tests, and integration glue.
