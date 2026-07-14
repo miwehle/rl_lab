@@ -52,6 +52,12 @@ If the design is questionable or not KISS, say so plainly. Always prioritize KIS
 
 If the user appears to be following an unnecessarily complex path, pause and point to the simpler design before implementing.
 
+### Deep Modules and Detail Hiding
+
+Prefer deep modules: separate the levers from the details. Prefer deep modules over shallow ones: hide real complexity behind small, clear interfaces. A good API should reduce the caller's cognitive load.
+
+Deep modules and information hiding are very welcome in this workspace. Public APIs should make common use simple, expose the right levers, and keep implementation details under the hood.
+
 ### Refactoring and Automated Tests
 
 KISS is king. Refactoring keeps the kingdom tidy; automated tests guard the gates. Treat refactoring as an active parallel process that preserves or restores simple design while behavior evolves, and use automated tests to keep that process safe.
