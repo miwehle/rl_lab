@@ -7,9 +7,9 @@ vectors.
 
 import math
 
-from hpo.evaluation.rendering.solar_system_lander.colors import LanderOverlay
-from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState
-from hpo.evaluation.rendering.solar_system_lander.overlay.vectors import (
+from hpo.evaluation.rendering.solar_system_lander._colors import LanderOverlay
+from hpo.evaluation.rendering.solar_system_lander._env_state import EnvState
+from hpo.evaluation.rendering.solar_system_lander._overlay.vectors import (
     disturbance_vector_origin,
     draw_kick_indicator,
     draw_turbulence_indicator,

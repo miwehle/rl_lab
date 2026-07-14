@@ -5,11 +5,11 @@ import numpy as np
 from gymnasium.envs.box2d import lunar_lander
 from gymnasium.error import DependencyNotInstalled
 
-from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors, LanderOverlay
-from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState
-from hpo.evaluation.rendering.solar_system_lander.lander import LanderSkin, draw_gym_objects
-from hpo.evaluation.rendering.solar_system_lander.overlay import draw_overlay
-from hpo.evaluation.rendering.solar_system_lander.windsocks import draw_flags
+from hpo.evaluation.rendering.solar_system_lander._colors import LanderColors, LanderOverlay
+from hpo.evaluation.rendering.solar_system_lander._env_state import EnvState
+from hpo.evaluation.rendering.solar_system_lander._lander import LanderSkin, draw_gym_objects
+from hpo.evaluation.rendering.solar_system_lander._overlay import draw_overlay
+from hpo.evaluation.rendering.solar_system_lander._windsocks import draw_flags
 
 
 class LanderRenderWrapper(gym.Wrapper):
@@ -47,11 +47,7 @@ class LanderRenderWrapper(gym.Wrapper):
 
 
 def _render_lunar_lander(
-    env,
-    source_env,
-    colors: LanderColors,
-    overlay: LanderOverlay | None,
-    skin: LanderSkin | None = None,
+    env, source_env, colors: LanderColors, overlay: LanderOverlay | None, skin: LanderSkin | None = None
 ):
     if env.render_mode is None:
         assert env.spec is not None

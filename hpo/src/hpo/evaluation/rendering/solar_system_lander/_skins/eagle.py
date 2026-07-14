@@ -10,8 +10,8 @@ from typing import TypeAlias
 
 from gymnasium.envs.box2d import lunar_lander
 
-from hpo.evaluation.rendering.solar_system_lander.skins._eagle_body_pygame import EAGLE_BODY_OPS
-from hpo.evaluation.rendering.solar_system_lander.skins._eagle_legs_pygame import EAGLE_LEG_OPS
+from hpo.evaluation.rendering.solar_system_lander._skins._eagle_body_pygame import EAGLE_BODY_OPS
+from hpo.evaluation.rendering.solar_system_lander._skins._eagle_legs_pygame import EAGLE_LEG_OPS
 
 Point: TypeAlias = tuple[float, float]
 Op: TypeAlias = tuple[str, str | None, str | None, float, list[Point]]
@@ -60,7 +60,9 @@ class DetailedEagleSkin:
         body_ops = self._body_outline_ops if outline_only else EAGLE_BODY_OPS
         left_leg_ops = self._left_leg_outline_ops if outline_only else self._left_leg_ops
         right_leg_ops = self._right_leg_outline_ops if outline_only else self._right_leg_ops
-        _draw_ops(surface, body_ops, env.lander, self.body_anchor, scale=self.scale, outline_only=outline_only)
+        _draw_ops(
+            surface, body_ops, env.lander, self.body_anchor, scale=self.scale, outline_only=outline_only
+        )
         _draw_ops(
             surface,
             left_leg_ops,
@@ -119,25 +121,13 @@ def _draw_ops(
 
 
 def _draw_lod_op(
-    surface,
-    op: Op,
-    body,
-    source_anchor: Point,
-    scale: float,
-    angle_offset: float,
-    outline_only: bool,
+    surface, op: Op, body, source_anchor: Point, scale: float, angle_offset: float, outline_only: bool
 ) -> bool:
     return _draw_tiny_circle_op(surface, op, body, source_anchor, scale, angle_offset, outline_only)
 
 
 def _draw_tiny_circle_op(
-    surface,
-    op: Op,
-    body,
-    source_anchor: Point,
-    scale: float,
-    angle_offset: float,
-    outline_only: bool,
+    surface, op: Op, body, source_anchor: Point, scale: float, angle_offset: float, outline_only: bool
 ) -> bool:
     kind, fill_hex, stroke_hex, stroke_width, points = op
     if outline_only or not _is_tiny_circle_op(op, scale):
@@ -146,7 +136,9 @@ def _draw_tiny_circle_op(
     from pygame import gfxdraw
 
     min_x, min_y, max_x, max_y = _bbox(points)
-    center = _source_to_screen(((min_x + max_x) / 2, (min_y + max_y) / 2), body, source_anchor, scale, angle_offset)
+    center = _source_to_screen(
+        ((min_x + max_x) / 2, (min_y + max_y) / 2), body, source_anchor, scale, angle_offset
+    )
     radius = max(1, round(((max_x - min_x) + (max_y - min_y)) * scale / 4))
     fill = _rgb(fill_hex)
     stroke = _rgb(stroke_hex)
@@ -176,11 +168,7 @@ def _is_tiny_circle_op(op: Op, scale: float) -> bool:
 
 
 def _source_to_screen(
-    point: Point,
-    body,
-    source_anchor: Point,
-    scale: float,
-    angle_offset: float,
+    point: Point, body, source_anchor: Point, scale: float, angle_offset: float
 ) -> tuple[int, int]:
     dx = (point[0] - source_anchor[0]) * scale
     dy = (point[1] - source_anchor[1]) * scale
@@ -188,14 +176,13 @@ def _source_to_screen(
     cos_a = math.cos(angle)
     sin_a = math.sin(angle)
     origin = _body_to_screen(body.position)
-    return (
-        round(origin[0] + dx * cos_a - dy * sin_a),
-        round(origin[1] + dx * sin_a + dy * cos_a),
-    )
+    return (round(origin[0] + dx * cos_a - dy * sin_a), round(origin[1] + dx * sin_a + dy * cos_a))
 
 
 def _body_to_screen(position) -> tuple[int, int]:
-    return round(position[0] * lunar_lander.SCALE), round(lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE)
+    return round(position[0] * lunar_lander.SCALE), round(
+        lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE
+    )
 
 
 def _should_draw_halo(surface, lander_position, halo: HaloMode) -> bool:

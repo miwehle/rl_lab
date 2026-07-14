@@ -4,8 +4,8 @@ import math
 
 from gymnasium.envs.box2d import lunar_lander
 
-from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors
-from hpo.evaluation.rendering.solar_system_lander.env_state import WindState
+from hpo.evaluation.rendering.solar_system_lander._colors import LanderColors
+from hpo.evaluation.rendering.solar_system_lander._env_state import WindState
 
 _WINDSOCK_DEAD_ZONE = 0.4
 _WINDSOCK_FULL_ACCEL = 2.0
@@ -63,9 +63,7 @@ def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind_accelerat
 
 def _windsock_strength(wind_acceleration: float) -> float:
     return _clamp_float(
-        (wind_acceleration - _WINDSOCK_DEAD_ZONE) / (_WINDSOCK_FULL_ACCEL - _WINDSOCK_DEAD_ZONE),
-        0.0,
-        1.0,
+        (wind_acceleration - _WINDSOCK_DEAD_ZONE) / (_WINDSOCK_FULL_ACCEL - _WINDSOCK_DEAD_ZONE), 0.0, 1.0
     )
 
 

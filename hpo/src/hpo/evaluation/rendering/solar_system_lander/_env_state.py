@@ -24,10 +24,7 @@ class WindState:
 
         wind_power = float(getattr(env, "wind_power", 0.0))
         acceleration = _force_wave(wind_idx) * wind_power / float(mass)
-        return cls(
-            acceleration=acceleration,
-            max_acceleration=_max_acceleration(wind_power, mass),
-        )
+        return cls(acceleration=acceleration, max_acceleration=_max_acceleration(wind_power, mass))
 
 
 @dataclass(frozen=True)

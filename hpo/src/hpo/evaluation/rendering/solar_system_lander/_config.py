@@ -3,10 +3,10 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors, LanderOverlay, world_colors
-from hpo.evaluation.rendering.solar_system_lander.lander import LanderSkin
-from hpo.evaluation.rendering.solar_system_lander.scene import LanderRenderWrapper
-from hpo.evaluation.rendering.solar_system_lander.skins import DetailedEagleSkin
+from hpo.evaluation.rendering.solar_system_lander._colors import LanderColors, LanderOverlay, world_colors
+from hpo.evaluation.rendering.solar_system_lander._lander import LanderSkin
+from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper
+from hpo.evaluation.rendering.solar_system_lander._skins import DetailedEagleSkin
 
 
 @dataclass(frozen=True)

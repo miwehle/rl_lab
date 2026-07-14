@@ -14,14 +14,14 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "dqn" / "src"))
 sys.path.insert(0, str(ROOT / "hpo" / "src"))
 
-from hpo.evaluation.rendering.solar_system_lander import LanderOverlay, LanderRenderWrapper, world_colors  # noqa: E402
+from hpo.evaluation.rendering.solar_system_lander import render_config, wrap_env  # noqa: E402
 from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World  # noqa: E402
 
 WORLDS = [world.value for world in World]
 NORMAL_PERIOD = 3
 BOOST_PERIOD = 1
 WINDOW_TITLE = (
-    "SolarSystemLander | arrows thrust | space boost | R restart | N new seed | " "1-5 world | Esc quit"
+    "SolarSystemLander | arrows thrust | space boost | R restart | N new seed | 1-5 world | Esc quit"
 )
 
 
@@ -46,9 +46,8 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     factory = EnvFactory(args.observation_mode, world_mix=DEFAULT_WORLD_MIX)
-    colors = dict(zip(WORLDS, world_colors(WORLDS), strict=True))
     state = _GameState(world_index=WORLDS.index(args.world), seed=args.seed)
-    env = _make_env(factory, state.world_index, colors)
+    env = _make_env(factory, state.world_index)
     env.reset(seed=state.seed)
 
     running = True
@@ -63,17 +62,17 @@ def main() -> None:
                     elif event.key == pygame.K_r:
                         env.close()
                         state = _GameState(world_index=state.world_index, seed=state.seed)
-                        env = _make_env(factory, state.world_index, colors)
+                        env = _make_env(factory, state.world_index)
                         env.reset(seed=state.seed)
                     elif event.key == pygame.K_n:
                         env.close()
                         state = _GameState(world_index=state.world_index, seed=state.seed + 1)
-                        env = _make_env(factory, state.world_index, colors)
+                        env = _make_env(factory, state.world_index)
                         env.reset(seed=state.seed)
                     elif pygame.K_1 <= event.key <= pygame.K_5:
                         env.close()
                         state = _GameState(world_index=event.key - pygame.K_1, seed=state.seed)
-                        env = _make_env(factory, state.world_index, colors)
+                        env = _make_env(factory, state.world_index)
                         env.reset(seed=state.seed)
 
             if not state.done:
@@ -105,10 +104,10 @@ def _parse_args():
     return parser.parse_args()
 
 
-def _make_env(factory: EnvFactory, world_index: int, colors: dict[str, object]):
+def _make_env(factory: EnvFactory, world_index: int):
     world = WORLDS[world_index]
     env = factory.make_env(world, render_mode="rgb_array")
-    return LanderRenderWrapper(env, colors=colors[world], overlay=LanderOverlay())
+    return wrap_env(env, render_config([world], overlay=True))
 
 
 def _action_from_keys(keys, step: int) -> int:

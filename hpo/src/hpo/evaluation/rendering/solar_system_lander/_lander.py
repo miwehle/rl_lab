@@ -4,7 +4,7 @@ from typing import Protocol
 
 from gymnasium.envs.box2d import lunar_lander
 
-from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors, RGB
+from hpo.evaluation.rendering.solar_system_lander._colors import LanderColors, RGB
 
 
 class LanderSkin(Protocol):

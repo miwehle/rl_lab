@@ -1,17 +1,5 @@
-"""SolarSystemLander rendering helpers."""
+"""SolarSystemLander rendering API."""
 
-from hpo.evaluation.rendering.solar_system_lander.config import RenderConfig, render_config, wrap_env
-from hpo.evaluation.rendering.solar_system_lander.colors import LanderColors, LanderOverlay, world_colors
-from hpo.evaluation.rendering.solar_system_lander.lander import LanderSkin
-from hpo.evaluation.rendering.solar_system_lander.scene import LanderRenderWrapper
+from hpo.evaluation.rendering.solar_system_lander._config import RenderConfig, render_config, wrap_env
 
-__all__ = [
-    "LanderColors",
-    "LanderOverlay",
-    "LanderRenderWrapper",
-    "LanderSkin",
-    "RenderConfig",
-    "render_config",
-    "wrap_env",
-    "world_colors",
-]
+__all__ = ["RenderConfig", "render_config", "wrap_env"]

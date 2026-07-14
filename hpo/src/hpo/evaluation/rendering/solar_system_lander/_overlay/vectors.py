@@ -2,7 +2,7 @@
 
 import math
 
-from hpo.evaluation.rendering.solar_system_lander.colors import (
+from hpo.evaluation.rendering.solar_system_lander._colors import (
     KICK_COLOR_STOPS,
     LanderOverlay,
     RGB,
@@ -10,7 +10,7 @@ from hpo.evaluation.rendering.solar_system_lander.colors import (
     WIND_COLOR_STOPS,
     _force_color,
 )
-from hpo.evaluation.rendering.solar_system_lander.env_state import EnvState, TurbulenceState, WindState
+from hpo.evaluation.rendering.solar_system_lander._env_state import EnvState, TurbulenceState, WindState
 
 _WIND_ACCEL_SCALE = 4.0
 _TURBULENCE_ACCEL_SCALE = 2.4
@@ -28,22 +28,15 @@ def draw_wind_indicator(
     acceleration = wind.acceleration
     color = _force_color(abs(acceleration), WIND_COLOR_STOPS)
     _draw_horizontal_force_arrow(
-        surface,
-        origin,
-        acceleration,
-        scale=_WIND_ACCEL_SCALE,
-        color=color,
-        shadow_color=overlay.shadow_color,
+        surface, origin, acceleration, scale=_WIND_ACCEL_SCALE, color=color, shadow_color=overlay.shadow_color
     )
-    _draw_centered_text(surface, font, f"wind {acceleration:+.1f} m/s²", (origin[0], origin[1] + 13), color, overlay)
+    _draw_centered_text(
+        surface, font, f"wind {acceleration:+.1f} m/s²", (origin[0], origin[1] + 13), color, overlay
+    )
 
 
 def draw_kick_indicator(
-    surface,
-    font,
-    env_state: EnvState,
-    overlay: LanderOverlay,
-    origin: tuple[int, int],
+    surface, font, env_state: EnvState, overlay: LanderOverlay, origin: tuple[int, int]
 ) -> None:
     if env_state.step >= _KICK_VISIBLE_STEPS:
         return
@@ -57,11 +50,7 @@ def draw_kick_indicator(
     length = _fit_vector_length(surface, origin, screen_direction, length, margin=6)
     end = (origin[0] + screen_direction[0] * length, origin[1] + screen_direction[1] * length)
     _draw_line_arrow(
-        surface,
-        (origin[0] + 1, origin[1] + 1),
-        (end[0] + 1, end[1] + 1),
-        overlay.shadow_color,
-        width=4,
+        surface, (origin[0] + 1, origin[1] + 1), (end[0] + 1, end[1] + 1), overlay.shadow_color, width=4
     )
     _draw_line_arrow(surface, origin, end, color, width=3)
     _draw_centered_text(surface, font, f"kick {delta_v:.1f} m/s", (origin[0], origin[1] - 20), color, overlay)
@@ -122,12 +111,7 @@ def _normalized(vector: tuple[float, float]) -> tuple[float, float]:
 
 
 def _fit_vector_length(
-    surface,
-    origin: tuple[int, int],
-    direction: tuple[float, float],
-    length: float,
-    *,
-    margin: int,
+    surface, origin: tuple[int, int], direction: tuple[float, float], length: float, *, margin: int
 ) -> float:
     max_length = length
     if direction[0] > 0:
@@ -142,13 +126,7 @@ def _fit_vector_length(
 
 
 def _draw_horizontal_force_arrow(
-    surface,
-    origin: tuple[int, int],
-    value: float,
-    *,
-    scale: float,
-    color: RGB,
-    shadow_color: RGB,
+    surface, origin: tuple[int, int], value: float, *, scale: float, color: RGB, shadow_color: RGB
 ) -> None:
     length = 14 + min(abs(value) / scale, 1.0) * 96
     direction = 1 if value >= 0 else -1
@@ -158,13 +136,7 @@ def _draw_horizontal_force_arrow(
 
 
 def _draw_torque_arrow(
-    surface,
-    center: tuple[int, int],
-    value: float,
-    *,
-    scale: float,
-    color: RGB,
-    shadow_color: RGB,
+    surface, center: tuple[int, int], value: float, *, scale: float, color: RGB, shadow_color: RGB
 ) -> None:
     import pygame
 
@@ -195,7 +167,9 @@ def _draw_torque_arrow(
     _draw_arrow_head(surface, tip, tangent, color, size=8)
 
 
-def _draw_line_arrow(surface, start: tuple[float, float], end: tuple[float, float], color: RGB, *, width: int) -> None:
+def _draw_line_arrow(
+    surface, start: tuple[float, float], end: tuple[float, float], color: RGB, *, width: int
+) -> None:
     import pygame
 
     pygame.draw.line(surface, color, start, end, width)
@@ -208,7 +182,9 @@ def _draw_line_arrow(surface, start: tuple[float, float], end: tuple[float, floa
     _draw_arrow_head(surface, tip, direction, color, size=8)
 
 
-def _draw_arrow_head(surface, tip: tuple[float, float], direction: tuple[float, float], color: RGB, *, size: int) -> None:
+def _draw_arrow_head(
+    surface, tip: tuple[float, float], direction: tuple[float, float], color: RGB, *, size: int
+) -> None:
     import pygame
 
     dx, dy = direction
@@ -216,14 +192,8 @@ def _draw_arrow_head(surface, tip: tuple[float, float], direction: tuple[float, 
     if not length:
         return
     angle = math.atan2(dy, dx)
-    left = (
-        tip[0] - size * math.cos(angle - math.pi / 6),
-        tip[1] - size * math.sin(angle - math.pi / 6),
-    )
-    right = (
-        tip[0] - size * math.cos(angle + math.pi / 6),
-        tip[1] - size * math.sin(angle + math.pi / 6),
-    )
+    left = (tip[0] - size * math.cos(angle - math.pi / 6), tip[1] - size * math.sin(angle - math.pi / 6))
+    right = (tip[0] - size * math.cos(angle + math.pi / 6), tip[1] - size * math.sin(angle + math.pi / 6))
     pygame.draw.polygon(surface, color, [tip, left, right])
 
 

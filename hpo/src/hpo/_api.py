@@ -3,7 +3,7 @@
 from hpo.checkpointing import ObjectiveHookFactory, best_checkpoint, load_checkpoint, save_checkpoint
 from hpo.evaluation.checkpoint_robustness import checkpoint_scores, score_summary
 from hpo.evaluation.rendering.solar_system_lander import render_config
-from hpo.evaluation.video import display_video, record_checkpoint_videos, record_video, show_video_conditions
+from hpo.evaluation.video import display_video, record_video, show_video_conditions
 from hpo.hyperparams import HP
 from hpo.notebook import plots
 from hpo.notebook.colab import path, prepare_storage, setup_colab
@@ -35,7 +35,6 @@ __all__ = [
     "path",
     "plots",
     "prepare_storage",
-    "record_checkpoint_videos",
     "record_video",
     "render_config",
     "save_checkpoint",
