@@ -33,12 +33,20 @@
 
 ## Rendering-Ziel-API
 
-KISS-Kandidat:
+Aus Notebook-Sicht:
 
-```
+```python
 cfg = render_config(worlds, overlay=True, skin="detailed_eagle")
 record_video(ckpt, model, env, render_cfg=cfg)
 ```
+
+Aus `video.py`-Sicht:
+
+```python
+render_env = wrap_env(env, render_cfg)
+```
+
+`wrap_env` bekommt eine Gymnasium-Env und eine `render_cfg` und liefert eine dekorierte Render-Env: gleicher Env-Kern, aber Render-Ausgabe mit Farben, Overlay, Skin usw.
 
 ## Kriterien
 
