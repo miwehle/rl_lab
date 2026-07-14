@@ -12,6 +12,7 @@ from gymnasium.wrappers import RecordVideo
 
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
+from hpo.checkpointing import load_checkpoint
 from hpo.evaluation.checkpoint_robustness import q_net_from_checkpoint
 from hpo.evaluation.rendering.solar_system_lander import (
     LanderColors,
@@ -19,9 +20,56 @@ from hpo.evaluation.rendering.solar_system_lander import (
     LanderRenderWrapper,
     LanderSkin,
     RenderConfig,
+    wrap_env,
 )
 
 _FINAL_HOLD_FRAMES = 30
+
+
+def record_video(
+    checkpoint_path: str | Path,
+    model_factory: ModelFactory,
+    env,
+    *,
+    seed: int | None = None,
+    max_steps: int = 1_000,
+    render_cfg: RenderConfig | None = None,
+    device=None,
+    output_dir: str | Path,
+) -> Path:
+    """Record one greedy episode in a ready-made env."""
+    if max_steps < 1:
+        raise ValueError("max_steps must be >= 1")
+
+    checkpoint_path = Path(checkpoint_path)
+    output_dir = Path(output_dir)
+    device = resolve_device(device)
+    if render_cfg is not None:
+        env = wrap_env(env, render_cfg)
+
+    q_net = _q_net_from_env_checkpoint(checkpoint_path, env, device=device, model_factory=model_factory)
+    q_net.eval()
+
+    name = _record_video_name(checkpoint_path, env, seed)
+    video_env = RecordVideo(
+        env,
+        video_folder=str(output_dir),
+        episode_trigger=lambda episode_id: episode_id == 0,
+        name_prefix=name,
+        disable_logger=True,
+    )
+    try:
+        observation, _ = video_env.reset(seed=seed)
+        for _ in range(max_steps):
+            action = _greedy_action(q_net, observation, device)
+            observation, _, terminated, truncated, _ = video_env.step(action)
+            if terminated or truncated:
+                _hold_final_frame(video_env)
+                break
+    finally:
+        video_env.close()
+
+    return _final_video_path(output_dir, name)
 
 
 def record_checkpoint_video(
@@ -232,9 +280,51 @@ def _greedy_action(q_net, observation, device) -> int:
         return int(q_net(state).argmax(dim=1).item())
 
 
+def _q_net_from_env_checkpoint(path: str | Path, env, *, device, model_factory: ModelFactory):
+    n_observations = math.prod(tuple(env.observation_space.shape))
+    n_actions = env.action_space.n
+    hidden_size = _checkpoint_hidden_size(path)
+    q_net = (
+        DQN(n_observations, n_actions, hidden_size)
+        if model_factory is DQN
+        else model_factory(n_observations, n_actions)
+    ).to(device)
+    load_checkpoint(q_net, path, device)
+    return q_net
+
+
 def _hold_final_frame(env) -> None:
     for _ in range(_FINAL_HOLD_FRAMES):
         env._capture_frame()
+
+
+def _record_video_name(checkpoint_path: Path, env, seed: int | None) -> str:
+    parts = [checkpoint_path.stem]
+    world_name = _env_world_name(env)
+    if world_name is not None:
+        parts.append(world_name)
+    if seed is not None:
+        parts.append(f"seed_{seed}")
+    return "_".join(parts)
+
+
+def _env_world_name(env) -> str | None:
+    current = env
+    while current is not None:
+        world = getattr(current, "world", None)
+        if world is not None:
+            name = getattr(world, "name", None)
+            if name is not None:
+                return str(name)
+        current = getattr(current, "env", None)
+    return None
+
+
+def _checkpoint_hidden_size(path: str | Path) -> int:
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    metadata = checkpoint.get("metadata", {})
+    training_config = metadata.get("training_config", {})
+    return int(training_config.get("hidden_size", 128))
 
 
 def _video_name(checkpoint_path: Path, world: str, seed: int) -> str:

@@ -7,7 +7,9 @@ from hpo.evaluation.rendering.solar_system_lander import (
     LanderColors,
     LanderOverlay,
     LanderRenderWrapper,
+    RenderConfig,
     render_config,
+    wrap_env,
     world_colors,
 )
 from hpo.evaluation.rendering.solar_system_lander.colors import _force_color
@@ -64,6 +66,26 @@ def test_render_config_hides_common_rendering_details():
 def test_render_config_rejects_unknown_skin():
     with pytest.raises(ValueError, match="unknown render skin"):
         render_config([World.EARTH], skin="cardboard_eagle")
+
+
+def test_wrap_env_returns_decorated_render_env():
+    colors = LanderColors(sky=(1, 2, 3))
+    overlay = LanderOverlay()
+    skin = MarkerSkin()
+
+    env = wrap_env(ScoreEnv(), RenderConfig(colors_by_world=(colors,), overlay=overlay, skin=skin))
+
+    assert isinstance(env, LanderRenderWrapper)
+    assert env.colors == colors
+    assert env.overlay == overlay
+    assert env.skin is skin
+
+
+def test_wrap_env_rejects_multi_world_config():
+    config = RenderConfig(colors_by_world=(LanderColors(), LanderColors()))
+
+    with pytest.raises(ValueError, match="one env"):
+        wrap_env(ScoreEnv(), config)
 
 
 def test_force_color_uses_absolute_stops():
@@ -194,9 +216,7 @@ def _render_venus_frame(*, overlay):
     factory = EnvFactory("10d", world_mix={World.VENUS: 1})
     colors = world_colors([World.VENUS])[0]
     env = LanderRenderWrapper(
-        factory.make_env(World.VENUS, render_mode="rgb_array"),
-        colors=colors,
-        overlay=overlay,
+        factory.make_env(World.VENUS, render_mode="rgb_array"), colors=colors, overlay=overlay
     )
     try:
         env.reset(seed=10_173)
@@ -214,9 +234,7 @@ def _render_venus_frame(*, overlay):
 def _render_skin_frame(world: World, skin: DetailedEagleSkin):
     factory = EnvFactory("10d", world_mix={world: 1})
     env = LanderRenderWrapper(
-        factory.make_env(world, render_mode="rgb_array"),
-        colors=world_colors([world])[0],
-        skin=skin,
+        factory.make_env(world, render_mode="rgb_array"), colors=world_colors([world])[0], skin=skin
     )
     try:
         env.reset(seed=10_014)
