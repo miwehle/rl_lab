@@ -1,0 +1,121 @@
+# Convention Over Configuration
+
+## Goal
+
+Use the simplest solution that keeps incidental details under the hood and exposes the right levers.
+
+For the video notebook, Colab, Drive, checkpoint filenames, metadata filenames, and video directories are incidental details. The notebook should not show them in the normal path.
+
+## Pattern
+
+Functions that need technical defaults should accept a small cfg object with a useful default:
+
+```python
+def record_video(..., cfg=DefaultVideoCfg()):
+    ...
+```
+
+The default cfg is the convention. It is fully usable by itself and contains the standard technical choices. Users can pass another cfg when they want to leave the convention.
+
+## Video Notebook
+
+These details should disappear from the notebook:
+
+```python
+CHECKPOINT_DIR = COLAB.drive_study_dir / "best_checkpoints" / STUDY_NAME
+CHECKPOINT_PATH = CHECKPOINT_DIR / "best_eval_checkpoint.pt"
+CHECKPOINT_METADATA_PATH = CHECKPOINT_DIR / "best_eval_checkpoint.json"
+VIDEO_DIR = COLAB.drive_study_dir / "videos" / STUDY_NAME
+```
+
+They belong under the hood, for example in `DefaultVideoCfg`.
+
+`DefaultVideoCfg` should contain technical conventions, not the current study identity. The current `study_name` is a fachlicher Hebel and stays explicit in the notebook or other using code.
+
+## Responsibilities
+
+Keep fachliche cfg visible in the notebook: model, env, world, seed, skin, overlay, and other choices that define what video is wanted.
+
+Hide technical cfg behind the convention: Drive layout, checkpoint directory names, checkpoint filenames, metadata filenames, video directory names, and path joins.
+
+## Shape
+
+The normal notebook call should move toward:
+
+```python
+record_video(DQN, env, study_name=STUDY_NAME, seed=seed)
+```
+
+Advanced users may override the technical convention:
+
+```python
+record_video(DQN, env, study_name=STUDY_NAME, seed=seed, cfg=custom_video_cfg)
+```
+
+KISS rule: do not add a global config framework, singleton, or large generic convention system. Start with one concrete `DefaultVideoCfg` for this video use case.
+
+## Generalization
+
+Apply the same convention-over-configuration shape symmetrically where it fits: training, video recording, and audit workflows should not each invent their own visible path constants.
+
+A small base cfg is welcome when it removes real duplication and names the shared technical convention:
+
+```python
+@dataclass(frozen=True)
+class IoCfg:
+    drive_study_dir: Path = Path("/content/drive/MyDrive/rl_lab/hpo")
+    local_study_dir: Path = Path("/content/rl_lab/hpo/runs")
+    best_checkpoints_dir: str = "best_checkpoints"
+    videos_dir: str = "videos"
+```
+
+Concrete cfg classes can inherit from it when the relationship is natural. Use the `*IoCfg` naming scheme because these classes are not complete fachliche configs; they hold technical I/O conventions such as paths, filenames, storage layout, backup/restore locations, and artifact directories.
+
+```python
+@dataclass(frozen=True)
+class TrainIoCfg(IoCfg):
+    ...
+
+@dataclass(frozen=True)
+class VideoIoCfg(IoCfg):
+    ...
+
+@dataclass(frozen=True)
+class AuditIoCfg(IoCfg):
+    ...
+```
+
+`TrainIoCfg` should cover training/storage technical defaults such as local and Drive database/log paths, restore, backup, and file naming conventions.
+
+`VideoIoCfg` should cover video technical defaults such as best-eval checkpoint paths, checkpoint metadata paths, video output directories, and video filename conventions.
+
+`AuditIoCfg` should cover audit technical defaults such as audit video scope, audit output directories, and reuse of checkpoint/video conventions needed by failure-audit workflows.
+
+Keep fachliche inputs explicit in the using code: `study_name`, model, env, world, seed, skin, overlay, training hyperparameters, and audit selection policy are not hidden in the under-the-hood cfg by default.
+
+The name `TrainIoCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoIoCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `AuditIoCfg` avoids suggesting audit policy: what to inspect or rank stays outside; only audit I/O placement belongs there.
+
+KISS rule for this generalization: use inheritance only for real shared technical convention. Do not build a large generic config framework, registry, singleton, or speculative hierarchy.
+## Future Domain Configs
+
+The `*IoCfg` classes deliberately cover only technical I/O details. This naming keeps room for future fachliche configs without mixing concerns.
+
+A possible future naming scheme is:
+
+```python
+TrainingSpec   # fachliche training configuration: what to train
+VideoSpec      # fachliche video configuration: what video to record
+AuditSpec      # fachliche audit configuration: what to inspect or rank
+```
+
+`*Spec` is short and emphasizes the domain intent. It should hold domain decisions such as training hyperparameters, model choices, worlds, seeds, rendering choices, or audit selection policy when it becomes useful to bundle them.
+
+`*DomCfg` is another possible naming scheme when the code should say "domain config" more explicitly:
+
+```python
+TrainingDomCfg
+VideoDomCfg
+AuditDomCfg
+```
+
+For now this is only future music. Do not add fachliche config classes until they reduce current complexity or make a real API easier to use.
