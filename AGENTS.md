@@ -76,6 +76,12 @@ Do not bundle simplification with new semantics, new data flows, or extra report
 
 Keep each prose paragraph on one source line; use line breaks only for structure.
 
+### Encoding
+
+Use UTF-8 for text files. When reading German prose or other non-ASCII text through PowerShell, make the command umlaut-safe by setting console output encoding to UTF-8 and reading files as UTF-8, for example: `[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [System.Text.UTF8Encoding]::new(); Get-Content -Raw -Encoding UTF8 path\to\file.md`.
+
+If umlauts or other non-ASCII text appear corrupted in tool output, assume an encoding/display issue first and verify with an UTF-8-safe read before treating it as a content problem.
+
 ### Test Code
 
 For test code, follow `../nmt_lab/translator/how_to_test.md`. Treat it as part of this AGENTS.md.
