@@ -74,15 +74,31 @@ Concrete cfg classes can inherit from it when the relationship is natural. Use t
 ```python
 @dataclass(frozen=True)
 class TrainIoCfg(IoCfg):
-    ...
+    database_suffix: str = ".db"
+    log_suffix: str = ".log"
+
+    def database_path(self, study_name: str) -> Path: ...
+    def drive_database_path(self, study_name: str) -> Path: ...
+    def log_path(self, study_name: str) -> Path: ...
+    def drive_log_path(self, study_name: str) -> Path: ...
+
 
 @dataclass(frozen=True)
 class VideoIoCfg(IoCfg):
-    ...
+    checkpoint_name: str = "best_eval_checkpoint.pt"
+    checkpoint_metadata_name: str = "best_eval_checkpoint.json"
+
+    def checkpoint_dir(self, study_name: str) -> Path: ...
+    def checkpoint_path(self, study_name: str) -> Path: ...
+    def checkpoint_metadata_path(self, study_name: str) -> Path: ...
+    def video_dir(self, study_name: str, purpose: str | None = None) -> Path: ...
+
 
 @dataclass(frozen=True)
-class AuditIoCfg(IoCfg):
-    ...
+class AuditIoCfg(VideoIoCfg):
+    audit_video_scope: str = "failure_audit"
+
+    def audit_video_dir(self, study_name: str) -> Path: ...
 ```
 
 `TrainIoCfg` should cover training/storage technical defaults such as local and Drive database/log paths, restore, backup, and file naming conventions.
@@ -96,6 +112,7 @@ Keep fachliche inputs explicit in the using code: `study_name`, model, env, worl
 The name `TrainIoCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoIoCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `AuditIoCfg` avoids suggesting audit policy: what to inspect or rank stays outside; only audit I/O placement belongs there.
 
 KISS rule for this generalization: use inheritance only for real shared technical convention. Do not build a large generic config framework, registry, singleton, or speculative hierarchy.
+
 ## Future Domain Configs
 
 The `*IoCfg` classes deliberately cover only technical I/O details. This naming keeps room for future fachliche configs without mixing concerns.
