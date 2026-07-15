@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import sqlite3
 
-from hpo.logging import configure_file_logging
+from hpo._logging import configure_file_logging
 
 
 @dataclass(frozen=True)

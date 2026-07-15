@@ -1,6 +1,6 @@
 import logging
 
-from hpo.logging import configure_file_logging, log_call
+from hpo._logging import configure_file_logging, log_call
 
 
 def test_configure_file_logging_writes_hpo_logs_only_to_file(tmp_path) -> None:

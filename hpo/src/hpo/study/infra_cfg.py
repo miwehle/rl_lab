@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from hpo.notebook.colab import Storage, restore_from_drive
-from hpo.logging import configure_file_logging
+from hpo._logging import configure_file_logging
 
 _GOOGLE_DRIVE_MOUNT_CHECKED = False
 
