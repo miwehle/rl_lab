@@ -1,8 +1,11 @@
 """Record and inspect videos for saved HPO checkpoints."""
 
+import json
 import math
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import torch
@@ -17,52 +20,73 @@ from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 
 
 _FINAL_HOLD_FRAMES = 30
+_GOOGLE_DRIVE_MOUNT_CHECKED = False
+
+
+@dataclass(frozen=True)
+class InfraCfg:
+    """Infrastructure conventions for recording videos from archived checkpoints."""
+
+    drive_study_dir: Path = Path("/content/drive/MyDrive/rl_lab/hpo")
+    best_checkpoints_dir: str = "best_checkpoints"
+    videos_dir: str = "videos"
+    checkpoint_name: str = "best_eval_checkpoint.pt"
+    checkpoint_metadata_name: str = "best_eval_checkpoint.json"
+
+    def checkpoint_dir(self, study_name: str) -> Path:
+        return self.drive_study_dir / self.best_checkpoints_dir / study_name
+
+    def checkpoint_path(self, study_name: str) -> Path:
+        return self.checkpoint_dir(study_name) / self.checkpoint_name
+
+    def checkpoint_metadata_path(self, study_name: str) -> Path:
+        return self.checkpoint_dir(study_name) / self.checkpoint_metadata_name
+
+    def video_dir(self, study_name: str, *, purpose: str | None = None) -> Path:
+        path = self.drive_study_dir / self.videos_dir / study_name
+        return path if purpose is None else path / purpose
+
+    def prepare(self) -> None:
+        _mount_google_drive_if_available()
+        self.drive_study_dir.mkdir(parents=True, exist_ok=True)
 
 
 def record_video(
-    checkpoint_path: str | Path,
     model_factory: ModelFactory,
     env,
     *,
+    study_name: str,
     seed: int | None = None,
     max_steps: int = 1_000,
     render_cfg: RenderConfig | None = None,
     device=None,
-    output_dir: str | Path,
+    purpose: str | None = None,
+    cfg: InfraCfg = InfraCfg(),
 ) -> Path:
-    """Record one greedy episode in a ready-made env."""
+    """Record one greedy episode from the conventional archived checkpoint."""
     if max_steps < 1:
         raise ValueError("max_steps must be >= 1")
 
-    checkpoint_path = Path(checkpoint_path)
-    output_dir = Path(output_dir)
-    device = resolve_device(device)
-    if render_cfg is not None:
-        env = wrap_env(env, render_cfg)
-
-    q_net = _q_net_from_env_checkpoint(checkpoint_path, env, device=device, model_factory=model_factory)
-    q_net.eval()
-
-    name = _record_video_name(checkpoint_path, env, seed)
-    video_env = RecordVideo(
+    cfg.prepare()
+    checkpoint_path = cfg.checkpoint_path(study_name)
+    output_dir = cfg.video_dir(study_name, purpose=purpose)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return _record_checkpoint_video(
+        checkpoint_path,
+        model_factory,
         env,
-        video_folder=str(output_dir),
-        episode_trigger=lambda episode_id: episode_id == 0,
-        name_prefix=name,
-        disable_logger=True,
+        seed=seed,
+        max_steps=max_steps,
+        render_cfg=render_cfg,
+        device=device,
+        output_dir=output_dir,
     )
-    try:
-        observation, _ = video_env.reset(seed=seed)
-        for _ in range(max_steps):
-            action = _greedy_action(q_net, observation, device)
-            observation, _, terminated, truncated, _ = video_env.step(action)
-            if terminated or truncated:
-                _hold_final_frame(video_env)
-                break
-    finally:
-        video_env.close()
 
-    return _final_video_path(output_dir, name)
+
+def checkpoint_metadata(study_name: str, *, cfg: InfraCfg = InfraCfg()) -> dict[str, Any]:
+    """Return metadata for the conventional archived checkpoint."""
+    cfg.prepare()
+    return json.loads(cfg.checkpoint_metadata_path(study_name).read_text(encoding="utf-8"))
 
 
 def video_conditions_table(environment_factory, worlds: Iterable[str], seeds: Iterable[int]):
@@ -101,6 +125,63 @@ def show_video_conditions(environment_factory, worlds: Iterable[str], seeds: Ite
 
     table = video_conditions_table(environment_factory, worlds, seeds)
     display(_video_conditions_style(table))
+
+
+def _mount_google_drive_if_available() -> None:
+    global _GOOGLE_DRIVE_MOUNT_CHECKED
+    if _GOOGLE_DRIVE_MOUNT_CHECKED:
+        return
+
+    try:
+        from google.colab import drive
+    except ModuleNotFoundError:
+        _GOOGLE_DRIVE_MOUNT_CHECKED = True
+        return
+
+    drive.mount("/content/drive")
+    _GOOGLE_DRIVE_MOUNT_CHECKED = True
+
+
+def _record_checkpoint_video(
+    checkpoint_path: str | Path,
+    model_factory: ModelFactory,
+    env,
+    *,
+    seed: int | None,
+    max_steps: int,
+    render_cfg: RenderConfig | None,
+    device,
+    output_dir: str | Path,
+) -> Path:
+    checkpoint_path = Path(checkpoint_path)
+    output_dir = Path(output_dir)
+    device = resolve_device(device)
+    if render_cfg is not None:
+        env = wrap_env(env, render_cfg)
+
+    q_net = _q_net_from_env_checkpoint(checkpoint_path, env, device=device, model_factory=model_factory)
+    q_net.eval()
+
+    name = _record_video_name(checkpoint_path, env, seed)
+    video_env = RecordVideo(
+        env,
+        video_folder=str(output_dir),
+        episode_trigger=lambda episode_id: episode_id == 0,
+        name_prefix=name,
+        disable_logger=True,
+    )
+    try:
+        observation, _ = video_env.reset(seed=seed)
+        for _ in range(max_steps):
+            action = _greedy_action(q_net, observation, device)
+            observation, _, terminated, truncated, _ = video_env.step(action)
+            if terminated or truncated:
+                _hold_final_frame(video_env)
+                break
+    finally:
+        video_env.close()
+
+    return _final_video_path(output_dir, name)
 
 
 def _initial_force(seed: int) -> tuple[float, float]:
