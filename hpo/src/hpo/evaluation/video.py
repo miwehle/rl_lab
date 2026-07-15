@@ -42,9 +42,8 @@ class InfraCfg:
     def checkpoint_metadata_path(self, study_name: str) -> Path:
         return self.checkpoint_dir(study_name) / self.checkpoint_metadata_name
 
-    def video_dir(self, study_name: str, *, purpose: str | None = None) -> Path:
-        path = self.drive_study_dir / self.videos_dir / study_name
-        return path if purpose is None else path / purpose
+    def video_dir(self, study_name: str) -> Path:
+        return self.drive_study_dir / self.videos_dir / study_name
 
     def prepare(self) -> None:
         _mount_google_drive_if_available()
@@ -60,7 +59,6 @@ def record_video(
     max_steps: int = 1_000,
     render_cfg: RenderConfig | None = None,
     device=None,
-    purpose: str | None = None,
     cfg: InfraCfg = InfraCfg(),
 ) -> Path:
     """Record one greedy episode from the conventional archived checkpoint."""
@@ -69,7 +67,7 @@ def record_video(
 
     cfg.prepare()
     checkpoint_path = cfg.checkpoint_path(study_name)
-    output_dir = cfg.video_dir(study_name, purpose=purpose)
+    output_dir = cfg.video_dir(study_name)
     output_dir.mkdir(parents=True, exist_ok=True)
     return _record_checkpoint_video(
         checkpoint_path,

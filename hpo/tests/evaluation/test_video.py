@@ -58,7 +58,6 @@ def test_infra_cfg_uses_conventional_video_paths(tmp_path):
     assert cfg.checkpoint_path("study") == tmp_path / "best_checkpoints" / "study" / "best_eval_checkpoint.pt"
     assert cfg.checkpoint_metadata_path("study") == tmp_path / "best_checkpoints" / "study" / "best_eval_checkpoint.json"
     assert cfg.video_dir("study") == tmp_path / "videos" / "study"
-    assert cfg.video_dir("study", purpose="detailed_eagle") == tmp_path / "videos" / "study" / "detailed_eagle"
 
 
 def test_record_video_records_one_greedy_episode(monkeypatch, tmp_path):
@@ -69,17 +68,6 @@ def test_record_video_records_one_greedy_episode(monkeypatch, tmp_path):
     path = video.record_video(video.DQN, FakeEnv(), study_name="study", seed=10_000, cfg=cfg)
 
     assert path == tmp_path / "videos" / "study" / "best_eval_checkpoint_venus_seed_10000.mp4"
-    assert path.read_bytes() == b"video"
-
-
-def test_record_video_uses_purpose_subdirectory(monkeypatch, tmp_path):
-    monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
-    monkeypatch.setattr(video, "_q_net_from_env_checkpoint", lambda *_args, **_kwargs: FakeQNet())
-    cfg = video.InfraCfg(drive_study_dir=tmp_path)
-
-    path = video.record_video(video.DQN, FakeEnv(), study_name="study", purpose="detailed_eagle", cfg=cfg)
-
-    assert path == tmp_path / "videos" / "study" / "detailed_eagle" / "best_eval_checkpoint_venus.mp4"
     assert path.read_bytes() == b"video"
 
 
