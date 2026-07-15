@@ -9,8 +9,8 @@ from hpo.notebook import plots
 from hpo.notebook.dashboard.main import Dashboard
 from hpo.notebook.optuna import db_path
 from hpo.objective import ObjectiveConfig, create_objective, evaluate_greedy_q_net
-from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World
-from hpo.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
+from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory, World
+from hpo.environments.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
 from hpo.study import Baseline, StudyRunner
 
 __all__ = [

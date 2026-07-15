@@ -1,1 +1,1 @@
-"""Tests for hpo.solar_system_lander."""
+"""Tests for hpo.environments.solar_system_lander."""

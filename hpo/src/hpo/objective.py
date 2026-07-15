@@ -9,7 +9,7 @@ from typing import Any, Protocol
 import torch
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig, VectorTrainingResult
-from hpo.lunar_lander.logging import log_call
+from hpo.logging import log_call
 from hpo.hyperparams import HP
 
 logger = logging.getLogger(__name__)

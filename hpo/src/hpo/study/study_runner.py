@@ -6,7 +6,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-from hpo.lunar_lander.logging import log_call
+from hpo.logging import log_call
 from hpo.objective import ObjectiveConfig, create_objective
 from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
 from hpo.hyperparams import HP

@@ -53,6 +53,8 @@ If a study is already fully finished, `StudyRunner.run(...)` prints `Study alrea
 
 `hpo.study.metadata` owns the HPO-specific SQLite table `hpo_study_metadata`, which stores compact runtime metadata such as provider, Python/Torch/Optuna versions, accelerator, and Git state beside Optuna's own tables.
 
+`hpo/src/hpo/environments/` owns the concrete lander environments: `lunar_lander/env.py`, `solar_system_lander/env.py`, and SolarSystemLander `reward_shaping.py`.
+
 `hpo/src/hpo/objective.py` owns the Optuna objective.
 
 The objective uses a Hook Object pattern through `ObjectiveConfig.hooks` so checkpointing and live training progress do not clutter `objective.py`.

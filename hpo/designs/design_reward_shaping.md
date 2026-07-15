@@ -20,7 +20,7 @@ So the HPO spike should reuse that machinery instead of rebuilding a parallel ex
 
 The HPO implementation should have three small parts.
 
-1. A focused reward wrapper in `hpo.solar_system_lander`.
+1. A focused reward wrapper in `hpo.environments.solar_system_lander`.
 2. A small `EnvFactory` hook that can wrap training envs.
 3. A minimal notebook change in `hpo/notebooks/solar_system_lander/train_elise.ipynb`.
 
@@ -45,10 +45,10 @@ Otherwise the shaped reward equals the original Gym reward.
 The first implementation can live in a small module such as:
 
 ```text
-hpo/src/hpo/solar_system_lander/reward_shaping.py
+hpo/src/hpo/environments/solar_system_lander/reward_shaping.py
 ```
 
-Keeping it separate from `environment.py` makes it easy to delete if the hypothesis fails.
+Keeping it separate from `env.py` makes it easy to delete if the hypothesis fails.
 
 ## EnvFactory Hook
 

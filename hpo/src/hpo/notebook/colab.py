@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import sqlite3
 
-from hpo.lunar_lander.logging import configure_file_logging
+from hpo.logging import configure_file_logging
 
 
 @dataclass(frozen=True)

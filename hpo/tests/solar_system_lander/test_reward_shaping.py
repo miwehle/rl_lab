@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import gymnasium as gym
 import pytest
 
-from hpo.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
+from hpo.environments.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
 
 
 class FakeLanderEnv(gym.Env):

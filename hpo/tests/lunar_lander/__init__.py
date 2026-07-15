@@ -1,1 +1,1 @@
-"""Tests for hpo.lunar_lander."""
+"""Tests for hpo.environments.lunar_lander."""

@@ -1,4 +1,4 @@
-"""Logging helpers for LunarLander HPO."""
+"""Logging helpers for HPO infrastructure."""
 
 import logging
 from collections.abc import Callable

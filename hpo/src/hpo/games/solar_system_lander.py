@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "dqn" / "src"))
 sys.path.insert(0, str(ROOT / "hpo" / "src"))
 
 from hpo.evaluation.rendering.solar_system_lander import render_config, wrap_env  # noqa: E402
-from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World  # noqa: E402
+from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory, World  # noqa: E402
 
 WORLDS = [world.value for world in World]
 NORMAL_PERIOD = 3

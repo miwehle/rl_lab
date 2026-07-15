@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-from hpo.solar_system_lander.environment import (
+from hpo.environments.solar_system_lander.env import (
     DEFAULT_WORLD_MIX,
     EnvFactory,
     EnvWrapper,
     World,
     acceleration_vector,
 )
-from hpo.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
+from hpo.environments.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
 
 
 def test_solar_system_lander_factory_balances_world_slots() -> None:

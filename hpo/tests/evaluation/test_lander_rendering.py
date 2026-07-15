@@ -13,7 +13,7 @@ from hpo.evaluation.rendering.solar_system_lander._colors import (
 from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper
 from hpo.evaluation.rendering.solar_system_lander._env_state import WindState
 from hpo.evaluation.rendering.solar_system_lander._skins import DetailedEagleSkin
-from hpo.solar_system_lander.environment import EnvFactory, World
+from hpo.environments.solar_system_lander.env import EnvFactory, World
 
 
 class ScoreEnv(gym.Env):

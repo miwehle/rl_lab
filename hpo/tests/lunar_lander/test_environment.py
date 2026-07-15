@@ -1,4 +1,4 @@
-from hpo.lunar_lander.environment import EnvFactory
+from hpo.environments.lunar_lander.env import EnvFactory
 
 
 def test_lunar_lander_factory_keeps_original_observation() -> None:
