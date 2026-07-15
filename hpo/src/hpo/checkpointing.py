@@ -2,7 +2,7 @@
 
 import json
 import shutil
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +11,7 @@ from torch import nn
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.objective import ObjectiveContext
+from hpo.study_infra import StudyInfraCfg
 from hpo.study_reporting import TrainingProgressFn, TrainingProgressPlotter
 
 CHECKPOINT_VERSION = 1
@@ -175,25 +176,15 @@ class _CheckpointingTrainer(VectorTrainer):
 
 @dataclass(frozen=True)
 class ObjectiveHookFactory:
-    """Create objective hooks for checkpointing one HPO study.
+    """Create objective hooks for checkpointing one HPO study."""
 
-    Parameters:
-        checkpoint_dir: Local write target for new trial and evaluation checkpoints
-            produced by the study.
-        best_eval_archive_dir: Optional durable write target for the best new
-            evaluation checkpoint.
-        initial_checkpoint_path: Optional read source for starting a trial from
-            existing model weights. Useful for fine-tuning an already trained
-            checkpoint.
-    """
-
-    checkpoint_dir: str | Path
+    study_name: str
     window: int = 100
     min_score: float | None = None
     min_score_delta: float = 0.0
     training_progress_fn: TrainingProgressFn | None = None
-    best_eval_archive_dir: str | Path | None = None
-    initial_checkpoint_path: str | Path | None = None
+    initial_checkpoint_study_name: str | None = None
+    cfg: StudyInfraCfg = field(default_factory=StudyInfraCfg)
 
     def __post_init__(self) -> None:
         if self.window < 1:
@@ -213,28 +204,26 @@ class ObjectiveHookFactory:
         trial = ctx.trial
         checkpoint_subdir = getattr(trial, "checkpoint_subdir", "trials")
         checkpoint_stem = getattr(trial, "checkpoint_stem", f"trial_{trial.number:04d}")
+        checkpoint_dir = self._checkpoint_dir()
         recorder = BestCheckpointRecorder(
-            Path(self.checkpoint_dir) / checkpoint_subdir / f"{checkpoint_stem}_best.pt",
+            checkpoint_dir / checkpoint_subdir / f"{checkpoint_stem}_best.pt",
             window=self.window,
             min_score=self.min_score,
             min_score_delta=self.min_score_delta,
             metadata={"trial_number": trial.number, "training_config": asdict(ctx.training_config)},
         )
         evaluation_recorder = EvaluationBestCheckpointRecorder(
-            Path(self.checkpoint_dir) / checkpoint_subdir / f"{checkpoint_stem}_eval_best.pt",
+            checkpoint_dir / checkpoint_subdir / f"{checkpoint_stem}_eval_best.pt",
             min_score=self.min_score,
             min_score_delta=self.min_score_delta,
         )
-        archive = (
-            None
-            if self.best_eval_archive_dir is None
-            else _BestEvalCheckpointArchive(self.best_eval_archive_dir)
-        )
+        best_eval_archive_dir = self._best_eval_archive_dir()
+        archive = None if best_eval_archive_dir is None else _BestEvalCheckpointArchive(best_eval_archive_dir)
         return _ObjectiveHooks(
             recorder=recorder,
             evaluation_recorder=evaluation_recorder,
             best_eval_archive=archive,
-            initial_checkpoint_path=self.initial_checkpoint_path,
+            initial_checkpoint_path=self._initial_checkpoint_path(),
             trial_number=trial.number,
             target_episodes=ctx.training_config.num_episodes,
             training_progress_fn=self.training_progress_fn,
@@ -244,16 +233,32 @@ class ObjectiveHookFactory:
 
     def study_attrs(self) -> dict[str, Any]:
         attrs = {
-            "checkpoint_dir": str(self.checkpoint_dir),
+            "checkpoint_dir": str(self._checkpoint_dir()),
             "checkpoint_window": self.window,
             "checkpoint_min_score": self.min_score,
             "checkpoint_min_score_delta": self.min_score_delta,
         }
-        if self.best_eval_archive_dir is not None:
-            attrs["best_eval_archive_dir"] = str(self.best_eval_archive_dir)
-        if self.initial_checkpoint_path is not None:
-            attrs["initial_checkpoint_path"] = str(self.initial_checkpoint_path)
+        best_eval_archive_dir = self._best_eval_archive_dir()
+        if best_eval_archive_dir is not None:
+            attrs["best_eval_archive_dir"] = str(best_eval_archive_dir)
+        initial_checkpoint_path = self._initial_checkpoint_path()
+        if initial_checkpoint_path is not None:
+            attrs["initial_checkpoint_path"] = str(initial_checkpoint_path)
         return attrs
+
+    def _checkpoint_dir(self) -> Path:
+        self.cfg.prepare()
+        return self.cfg.checkpoint_dir(self.study_name)
+
+    def _best_eval_archive_dir(self) -> Path:
+        self.cfg.prepare()
+        return self.cfg.best_eval_archive_dir(self.study_name)
+
+    def _initial_checkpoint_path(self) -> Path | None:
+        if self.initial_checkpoint_study_name is None:
+            return None
+        self.cfg.prepare()
+        return self.cfg.best_eval_checkpoint_path(self.initial_checkpoint_study_name)
 
 
 @dataclass

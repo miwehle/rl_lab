@@ -10,13 +10,13 @@ from hpo.lunar_lander.logging import log_call
 from hpo.objective import ObjectiveConfig, create_objective
 from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
 from hpo.hyperparams import HP
+from hpo.study_infra import StudyInfraCfg
 from hpo.study_metadata import record_study_metadata
 from hpo.study_reporting import StudyReporter, TrainingProgressFn
 
 logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[..., None]
-DatabasePathFn = Callable[[str], str | Path]
 BackupFn = Callable[[], None]
 
 
@@ -56,28 +56,34 @@ class Baseline:
 class StudyRunner:
     """Run a study and keep its incumbent."""
 
-    database_path: DatabasePathFn
+    storage_name: str
     objective_cfg: ObjectiveConfig
     reporter: StudyReporter
     baseline: Baseline
+    cfg: StudyInfraCfg = field(default_factory=StudyInfraCfg)
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     robust_eval_episodes: int = 50
     runtime_provider: str | None = None
-    backup_fn: BackupFn | None = None
     incumbent_params: dict[str, Any] = field(init=False)
     incumbent_score: float | None = field(init=False)
+    _storage: Any = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self._storage = self.cfg.storage(self.storage_name)
         self.incumbent_params = dict(self.baseline.params)
         self.incumbent_score = self.baseline.score
+
+    @property
+    def database_path(self) -> Path:
+        return self._storage.database_path
 
     def run(self, study_name: str, suggest_parameter_values: Any, n_trials: int) -> None:
         """Run or resume the named Optuna study in the configured storage.
 
         study_name: Name of the Optuna study inside the storage.
         """
-        database_path = self.database_path(study_name)
+        database_path = self.database_path
         objective_cfg = self.objective_cfg
         if self.incumbent_score is not None:
             objective_cfg = _with_checkpoint_min_score(objective_cfg, self.incumbent_score)
@@ -103,7 +109,7 @@ class StudyRunner:
             objective_cfg=objective_cfg,
             study_attrs=self.study_attrs,
             progress_fn=self.reporter.report_optimization,
-            backup_fn=self.backup_fn,
+            backup_fn=self._storage.backup,
         )
         checkpoint_results = _evaluate_checkpoint_robustness(
             study=study,
@@ -121,8 +127,7 @@ class StudyRunner:
 
         study.set_user_attr("incumbent_params", self.incumbent_params)
         study.set_user_attr("incumbent_score", self.incumbent_score)
-        if self.backup_fn is not None:
-            self.backup_fn()
+        self._storage.backup()
         self.reporter.set_incumbent_context(incumbent_params=self.incumbent_params)
         self.reporter.report_optimization(study, target_trials=n_trials)
 

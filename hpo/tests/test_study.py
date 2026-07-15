@@ -6,6 +6,7 @@ import pytest
 from hpo import study as study_module
 from hpo.checkpointing import ObjectiveHookFactory
 from hpo.study import Baseline, StudyRunner, run_study
+from hpo.study_infra import StudyInfraCfg
 from hpo.study_reporting import RobustnessProgress
 from common import objective_config
 
@@ -36,6 +37,28 @@ class FakeStudy:
 class FakeEnvironmentFactory:
     pass
 
+
+
+@dataclass
+class FakeStorage:
+    database_path: Path
+    backup_calls: list = field(default_factory=list)
+
+    def backup(self) -> None:
+        self.backup_calls.append(None)
+
+
+@dataclass
+class FakeStudyInfraCfg:
+    backup_calls: list = field(default_factory=list)
+
+    def storage(self, storage_name: str) -> FakeStorage:
+        return FakeStorage(Path("runs") / f"{storage_name}.db", self.backup_calls)
+
+
+def hook_factory(tmp_path, **kwargs) -> ObjectiveHookFactory:
+    cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+    return ObjectiveHookFactory("elise", cfg=cfg, **kwargs)
 
 def fake_checkpoint_robustness(
     study: FakeStudy, *, trial_number: int = 0, robust_score: float = 9.0
@@ -74,11 +97,13 @@ def study_runner(
     baseline: Baseline | None = None,
     objective_cfg=None,
     reporter: FakeReporter | None = None,
-    database_path=None,
+    storage_name: str = "study",
+    cfg=None,
     **kwargs,
 ) -> StudyRunner:
     return StudyRunner(
-        database_path=database_path or (lambda _name: Path("runs/study.db")),
+        storage_name=storage_name,
+        cfg=cfg or FakeStudyInfraCfg(),
         objective_cfg=objective_cfg or objective_config(environment_factory=FakeEnvironmentFactory()),
         baseline=baseline or Baseline(params={"x": 1}),
         reporter=reporter or FakeReporter(),
@@ -134,6 +159,21 @@ class TestBaseline:
 
 
 class TestStudyRunner:
+    def test_accepts_storage_name(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setattr("hpo.study_infra.configure_file_logging", lambda *_args, **_kwargs: None)
+        cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+
+        runner = StudyRunner(
+            storage_name="elise",
+            cfg=cfg,
+            objective_cfg=objective_config(environment_factory=FakeEnvironmentFactory()),
+            baseline=Baseline(params={"x": 1}),
+            reporter=FakeReporter(),
+        )
+
+        assert runner.database_path == tmp_path / "local" / "elise.db"
+
+
     def test_reuses_context_and_updates_incumbent(self, monkeypatch) -> None:
         studies = [FakeStudy([FakeTrial(0, 1.0, {"x": 2})]), FakeStudy([FakeTrial(0, 2.0, {"x": 3})])]
         run_calls = []
@@ -154,14 +194,13 @@ class TestStudyRunner:
         objective_cfg = objective_config(environment_factory=environment_factory, device="cpu")
         reporter = FakeReporter()
         runner = study_runner(
-            database_path=lambda name: Path("runs") / f"{name}.db",
+            cfg=FakeStudyInfraCfg(backup_calls),
             objective_cfg=objective_cfg,
             baseline=Baseline(params={"x": 1}, score=0.0),
             reporter=reporter,
             study_attrs={"mode": "8d"},
             robust_candidates=5,
             robust_eval_episodes=7,
-            backup_fn=lambda: backup_calls.append(None),
         )
 
         runner.run("s1", suggest_parameter_values="suggest-values", n_trials=4)
@@ -172,7 +211,7 @@ class TestStudyRunner:
         assert run_calls[1]["study"] is studies[1]
         assert run_calls[1]["objective_cfg"].environment_factory is environment_factory
         assert run_calls[1]["study_attrs"] == {"mode": "8d"}
-        assert run_calls[1]["backup_fn"] is runner.backup_fn
+        assert run_calls[1]["backup_fn"].__self__ is runner._storage
         assert robust_calls[0]["study"] is studies[0]
         assert robust_calls[0]["top_n"] == 5
         assert robust_calls[0]["eval_episodes"] == 7
@@ -222,7 +261,7 @@ class TestStudyRunner:
         run_calls, robust_calls = patch_study_runner_dependencies(monkeypatch, current)
         runner = study_runner(
             objective_cfg=objective_config(
-                environment_factory=FakeEnvironmentFactory(), hooks=ObjectiveHookFactory(tmp_path, window=2)
+                environment_factory=FakeEnvironmentFactory(), hooks=hook_factory(tmp_path, window=2)
             ),
             baseline=Baseline(params={"x": 1}),
         )
@@ -261,7 +300,7 @@ class TestStudyRunner:
     def test_uses_incumbent_as_checkpoint_min_score(self, monkeypatch, tmp_path) -> None:
         current = FakeStudy([FakeTrial(0, 9.0, {"x": 2})])
         cfg = objective_config(
-            environment_factory=FakeEnvironmentFactory(), hooks=ObjectiveHookFactory(tmp_path, window=2)
+            environment_factory=FakeEnvironmentFactory(), hooks=hook_factory(tmp_path, window=2)
         )
         run_calls, robust_calls = patch_study_runner_dependencies(monkeypatch, current)
         runner = study_runner(objective_cfg=cfg, baseline=Baseline(params={"x": 1}, score=10.0))

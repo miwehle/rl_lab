@@ -56,7 +56,7 @@ KISS rule: do not add a global config framework, singleton, or large generic con
 
 ## Generalization
 
-Apply the same convention-over-configuration shape symmetrically where it fits: training, video recording, and crash-analysis workflows should not each invent their own visible path constants.
+Apply the same convention-over-configuration shape symmetrically where it fits: study, video recording, and crash-analysis workflows should not each invent their own visible path constants.
 
 A small base cfg is welcome when it removes real duplication and names the shared infrastructure convention:
 
@@ -73,7 +73,7 @@ Concrete cfg classes can inherit from it when the relationship is natural. Use t
 
 ```python
 @dataclass(frozen=True)
-class TrainInfraCfg(InfraCfg):
+class StudyInfraCfg(InfraCfg):
     database_suffix: str = ".db"
     log_suffix: str = ".log"
 
@@ -101,7 +101,7 @@ class CrashAnalysisInfraCfg(VideoInfraCfg):
     def crash_analysis_video_dir(self, study_name: str) -> Path: ...
 ```
 
-`TrainInfraCfg` should cover training infrastructure defaults such as local and Drive database/log paths, restore, backup, and file naming conventions.
+`StudyInfraCfg` should cover study infrastructure defaults such as local and Drive database/log paths, restore, backup, checkpoint directories, and file naming conventions.
 
 `VideoInfraCfg` should cover video infrastructure defaults such as best-eval checkpoint paths, checkpoint metadata paths, video output directories, and video filename conventions.
 
@@ -109,7 +109,7 @@ class CrashAnalysisInfraCfg(VideoInfraCfg):
 
 Keep fachliche inputs explicit in the using code: `study_name`, model, env, world, seed, skin, overlay, training hyperparameters, and crash-analysis selection policy are not hidden in the under-the-hood cfg by default.
 
-The name `TrainInfraCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoInfraCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `CrashAnalysisInfraCfg` avoids suggesting crash-analysis policy: what to inspect or rank stays outside; only crash-analysis infrastructure placement belongs there.
+The name `StudyInfraCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoInfraCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `CrashAnalysisInfraCfg` avoids suggesting crash-analysis policy: what to inspect or rank stays outside; only crash-analysis infrastructure placement belongs there.
 
 KISS rule for this generalization: use inheritance only for real shared infrastructure convention. Do not build a large generic config framework, registry, singleton, or speculative hierarchy.
 

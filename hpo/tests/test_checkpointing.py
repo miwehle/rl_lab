@@ -18,6 +18,7 @@ from hpo.checkpointing import (
     save_checkpoint,
 )
 from hpo.objective import ObjectiveContext
+from hpo.study_infra import StudyInfraCfg
 
 
 class FakeTrainer:
@@ -86,10 +87,16 @@ def loaded_weight(path, *, device=torch.device("cpu")) -> tuple[float, dict]:
     return first_weight(restored), metadata
 
 
-def archive_hooks(tmp_path, archive_dir):
-    return ObjectiveHookFactory(tmp_path / "checkpoints", best_eval_archive_dir=archive_dir).for_trial(
-        objective_context()
-    )
+def study_cfg(tmp_path) -> StudyInfraCfg:
+    return StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+
+
+def hook_factory(tmp_path, **kwargs) -> ObjectiveHookFactory:
+    return ObjectiveHookFactory("elise", cfg=study_cfg(tmp_path), **kwargs)
+
+
+def archive_hooks(tmp_path, cfg=None):
+    return ObjectiveHookFactory("elise", cfg=cfg or study_cfg(tmp_path)).for_trial(objective_context())
 
 
 def wrapped_env_label(name: str):
@@ -176,26 +183,51 @@ class TestObjectiveHookFactory:
         assert _env_labels(env) == ["earth", "moon"]
 
     def test_reports_study_attrs(self, tmp_path) -> None:
-        factory = ObjectiveHookFactory(
+        factory = hook_factory(
             tmp_path,
             window=50,
             min_score=100.0,
             min_score_delta=5.0,
-            best_eval_archive_dir=tmp_path / "archive",
-            initial_checkpoint_path=tmp_path / "initial.pt",
+            initial_checkpoint_study_name="initial",
         )
 
         assert factory.study_attrs() == {
-            "checkpoint_dir": str(tmp_path),
+            "checkpoint_dir": str(tmp_path / "local" / "elise_checkpoints"),
             "checkpoint_window": 50,
             "checkpoint_min_score": 100.0,
             "checkpoint_min_score_delta": 5.0,
-            "best_eval_archive_dir": str(tmp_path / "archive"),
-            "initial_checkpoint_path": str(tmp_path / "initial.pt"),
+            "best_eval_archive_dir": str(tmp_path / "drive" / "best_checkpoints" / "elise"),
+            "initial_checkpoint_path": str(tmp_path / "drive" / "best_checkpoints" / "initial" / "best_eval_checkpoint.pt"),
         }
 
+    def test_uses_study_infra_defaults(self, tmp_path) -> None:
+        cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+        factory = ObjectiveHookFactory(
+            study_name="elise",
+            initial_checkpoint_study_name="elise_accel",
+            cfg=cfg,
+            window=2,
+        )
+
+        attrs = factory.study_attrs()
+        hooks = factory.for_trial(objective_context())
+
+        assert attrs["checkpoint_dir"] == str(tmp_path / "local" / "elise_checkpoints")
+        assert attrs["best_eval_archive_dir"] == str(
+            tmp_path / "drive" / "best_checkpoints" / "elise"
+        )
+        assert attrs["initial_checkpoint_path"] == str(
+            tmp_path / "drive" / "best_checkpoints" / "elise_accel" / "best_eval_checkpoint.pt"
+        )
+        assert hooks.recorder.path == tmp_path / "local" / "elise_checkpoints" / "trials" / "trial_0003_best.pt"
+        assert hooks.best_eval_archive.archive_dir == tmp_path / "drive" / "best_checkpoints" / "elise"
+        assert (
+            hooks.initial_checkpoint_path
+            == tmp_path / "drive" / "best_checkpoints" / "elise_accel" / "best_eval_checkpoint.pt"
+        )
+
     def test_copies_with_min_score(self, tmp_path) -> None:
-        factory = ObjectiveHookFactory(tmp_path, window=50, min_score=100.0)
+        factory = hook_factory(tmp_path, window=50, min_score=100.0)
 
         copied = factory.with_min_score(120.0)
 
@@ -206,7 +238,7 @@ class TestObjectiveHookFactory:
     def test_for_trial_creates_training_plotter(self, tmp_path) -> None:
         progress_calls = []
         hooks = (
-            ObjectiveHookFactory(tmp_path, window=2, min_score=10.0)
+            hook_factory(tmp_path, window=2, min_score=10.0)
             .with_training_progress(progress_calls.append)
             .for_trial(objective_context())
         )
@@ -229,11 +261,12 @@ class TestObjectiveHookFactory:
     def test_for_trial_loads_initial_checkpoint_into_q_and_target_net(self, tmp_path) -> None:
         initial = DQN(4, 2, 128)
         set_weights(initial, 4.0)
-        initial_path = tmp_path / "initial.pt"
+        cfg = study_cfg(tmp_path)
+        initial_path = cfg.best_eval_checkpoint_path("initial")
         save_checkpoint(initial, initial_path)
-        hooks = ObjectiveHookFactory(tmp_path, window=2, initial_checkpoint_path=initial_path).for_trial(
-            objective_context()
-        )
+        hooks = ObjectiveHookFactory(
+            "elise", cfg=cfg, window=2, initial_checkpoint_study_name="initial"
+        ).for_trial(objective_context())
         env = cartpole_vector_env()
 
         try:
@@ -254,7 +287,7 @@ class TestObjectiveHookFactory:
             assert torch.equal(q_tensor, target_tensor)
 
     def test_for_trial_loads_best_checkpoint_and_saves_attrs(self, tmp_path) -> None:
-        hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context())
+        hooks = hook_factory(tmp_path, window=2).for_trial(objective_context())
         trainer = FakeTrainer()
 
         set_weights(trainer.q_net, 7.0)
@@ -272,13 +305,13 @@ class TestObjectiveHookFactory:
         hooks.finalize_trial(ctx)
         attrs = ctx.trial.user_attrs
 
-        assert attrs["checkpoint_path"] == str(tmp_path / "trials" / "trial_0003_best.pt")
+        assert attrs["checkpoint_path"] == str(tmp_path / "local" / "elise_checkpoints" / "trials" / "trial_0003_best.pt")
         assert attrs["checkpoint_score"] == pytest.approx(2.0)
         assert attrs["checkpoint_episode"] == 2
         assert attrs["checkpoint_window"] == 2
 
     def test_for_trial_uses_robustness_checkpoint_dir(self, tmp_path) -> None:
-        hooks = ObjectiveHookFactory(tmp_path, window=2).for_trial(objective_context(trial=FakeRobustTrial()))
+        hooks = hook_factory(tmp_path, window=2).for_trial(objective_context(trial=FakeRobustTrial()))
         trainer = FakeTrainer()
 
         hooks.recorder.after_episode(trainer, [1.0, 3.0])
@@ -287,11 +320,12 @@ class TestObjectiveHookFactory:
         hooks.finalize_trial(ctx)
         attrs = ctx.trial.user_attrs
 
-        assert attrs["checkpoint_path"] == str(tmp_path / "robustness" / "trial_0003_seed_1001_best.pt")
+        assert attrs["checkpoint_path"] == str(tmp_path / "local" / "elise_checkpoints" / "robustness" / "trial_0003_seed_1001_best.pt")
 
     def test_for_trial_archives_best_eval_checkpoint(self, tmp_path) -> None:
-        archive_dir = tmp_path / "archive"
-        hooks = archive_hooks(tmp_path, archive_dir)
+        cfg = study_cfg(tmp_path)
+        archive_dir = cfg.best_eval_archive_dir("elise")
+        hooks = archive_hooks(tmp_path, cfg)
         ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0, 2.0, 3.0])
 
         hooks.finalize_trial(ctx)
@@ -303,15 +337,18 @@ class TestObjectiveHookFactory:
         assert ctx.trial.user_attrs["evaluation_checkpoint_archive_path"] == str(archive_path)
         assert weight == pytest.approx(9.0)
         assert metadata["score"] == pytest.approx(211.0)
-        assert metadata["source_path"] == str(tmp_path / "checkpoints" / "trials" / "trial_0003_eval_best.pt")
+        assert metadata["source_path"] == str(
+            tmp_path / "local" / "elise_checkpoints" / "trials" / "trial_0003_eval_best.pt"
+        )
 
     def test_for_trial_keeps_archived_eval_checkpoint_when_score_is_lower(self, tmp_path) -> None:
-        archive_dir = tmp_path / "archive"
-        high_hooks = archive_hooks(tmp_path, archive_dir)
+        cfg = study_cfg(tmp_path)
+        archive_dir = cfg.best_eval_archive_dir("elise")
+        high_hooks = archive_hooks(tmp_path, cfg)
         high_ctx = objective_context(q_net=linear_with_weight(9.0), score=211.0, episode_returns=[1.0])
         high_hooks.finalize_trial(high_ctx)
 
-        low_hooks = archive_hooks(tmp_path, archive_dir)
+        low_hooks = archive_hooks(tmp_path, cfg)
         low_ctx = objective_context(q_net=linear_with_weight(3.0), score=200.0, episode_returns=[1.0])
 
         low_hooks.finalize_trial(low_ctx)

@@ -6,13 +6,13 @@ from hpo.evaluation.rendering.solar_system_lander import render_config
 from hpo.evaluation.video import display_video, record_video, show_video_conditions
 from hpo.hyperparams import HP
 from hpo.notebook import plots
-from hpo.notebook.colab import path, prepare_storage, setup_colab
 from hpo.notebook.dashboard.main import Dashboard
 from hpo.notebook.optuna import db_path
 from hpo.objective import ObjectiveConfig, create_objective, evaluate_greedy_q_net
 from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World
 from hpo.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
 from hpo.study import Baseline, StudyRunner
+from hpo.study_infra import StudyInfraCfg
 
 __all__ = [
     "Baseline",
@@ -23,6 +23,7 @@ __all__ = [
     "HP",
     "ObjectiveConfig",
     "ObjectiveHookFactory",
+    "StudyInfraCfg",
     "StudyRunner",
     "World",
     "best_checkpoint",
@@ -32,13 +33,10 @@ __all__ = [
     "display_video",
     "evaluate_greedy_q_net",
     "load_checkpoint",
-    "path",
     "plots",
-    "prepare_storage",
     "record_video",
     "render_config",
     "save_checkpoint",
     "score_summary",
-    "setup_colab",
     "show_video_conditions",
 ]
