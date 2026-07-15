@@ -5,8 +5,8 @@ import pytest
 from hpo.checkpointing import ObjectiveHookFactory
 from hpo.evaluation import hp_robustness as hp_robustness_module
 from hpo.evaluation.hp_robustness import select_robust_best
-from hpo.study_infra import StudyInfraCfg
-from hpo.study_reporting import RobustnessProgress, TrainingProgress
+from hpo.study.infra_cfg import InfraCfg
+from hpo.study.reporting import RobustnessProgress, TrainingProgress
 from common import objective_config
 
 
@@ -165,7 +165,7 @@ def test_select_robust_best_reports_training_progress(monkeypatch, tmp_path) -> 
             environment_factory=FakeEnvironmentFactory(),
             hooks=ObjectiveHookFactory(
                 "elise",
-                cfg=StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local"),
+                cfg=InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local"),
                 window=2,
             ).with_training_progress(training_calls.append),
         ),

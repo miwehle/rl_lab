@@ -6,7 +6,7 @@ title Objective-Checkpointing-Kette fuer Training und Nachpruefung
 
 hide footbox
 
-participant "study.py" as Study
+participant "study_runner.py" as Study
 participant "hp_robustness.py" as HPRobustness
 participant "trial\nOptuna oder _FixedParamTrial" as Trial
 participant "objective" as Objective
@@ -14,9 +14,9 @@ participant "checkpointing.py" as Checkpointing
 participant "trainer" as Trainer
 participant "recorder" as Recorder
 
-url of Study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
-url of HPRobustness is [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:1:1]]
-url of Trial is [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:115:1]]
+url of Study is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:1:1]]
+url of HPRobustness is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:1:1]]
+url of Trial is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:107:1]]
 url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1]]
 url of Checkpointing is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:1:1]]
 url of Trainer is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:72:1]]
@@ -25,14 +25,14 @@ url of Recorder is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:23:1]]
 alt normaler Study-Lauf
     Study -> Objective: objective(Optuna Trial)
 else robuste Nachpruefung #FFE6E6
-    HPRobustness -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:69:1 fixed_trial = _FixedParamTrial(...)]]
+    HPRobustness -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:60:1 fixed_trial = _FixedParamTrial(...)]]
     note right of Trial #CCFFCC
         Fix:
         _FixedParamTrial traegt trial.number,
         checkpoint_subdir = robustness
         und einen seed-spezifischen Stem.
     end note
-    HPRobustness -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:75:1 objective(fixed_trial)]]
+    HPRobustness -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:66:1 objective(fixed_trial)]]
 end
 
 Objective -> Trial: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:143:1 suggest_parameter_values(...)]]

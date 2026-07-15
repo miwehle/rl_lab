@@ -4,7 +4,7 @@ import pytest
 
 from hpo import Dashboard
 from hpo.notebook.dashboard import main as dashboard_main
-from hpo.study_reporting import RobustnessProgress, TrainingProgress
+from hpo.study.reporting import RobustnessProgress, TrainingProgress
 
 
 @dataclass

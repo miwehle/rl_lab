@@ -10,33 +10,33 @@ actor Human as Human
 participant "notebook" as Notebook
 participant ":StudyRunner" as Runner
 participant ":Dashboard" as Dashboard
-participant "study.py" as StudyModule
+participant "study_runner.py" as StudyModule
 participant "Optuna Study" as Study
 participant "objective.py" as Objective
 participant ":VectorTrainer" as Trainer
 participant "hp_robustness.py" as HPRobustness
 
-url of Notebook is [[WORKSPACE_ROOT/hpo/notebooks/HPO_SolarSystemLander.ipynb]]
-url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:55:1]]
-url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:143:1]]
-url of StudyModule is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
+url of Notebook is [[WORKSPACE_ROOT/hpo/notebooks/solar_system_lander/train_elise.ipynb]]
+url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:56:1]]
+url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:159:1]]
+url of StudyModule is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:1:1]]
 url of Study is [[https://optuna.readthedocs.io/]]
 url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:139:1]]
 url of Trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:124:1]]
-url of HPRobustness is [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:14:1]]
+url of HPRobustness is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:14:1]]
 
 Human -> Notebook : start or resume study
-Notebook -> Runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:74:1 run(study_name, suggest, n_trials)]]
+Notebook -> Runner : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:79:1 run(study_name, suggest, n_trials)]]
 activate Runner
 
-Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:184:1 _create_or_load_study(...)]]
+Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:178:1 _create_or_load_study(...)]]
 StudyModule --> Runner : study
 
-Runner -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:85:1 set_incumbent_context(...)]]
-Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:139:1 run_study(...)]]
+Runner -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:85:1 set_incumbent_context(...)]]
+Runner -> StudyModule : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:134:1 run_study(...)]]
 activate StudyModule
 
-StudyModule -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:63:1 report_optimization(...)]]
+StudyModule -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:87:1 report_optimization(...)]]
 
 loop until finished trial count reaches target
     StudyModule -> Study : optimize one trial
@@ -45,7 +45,7 @@ loop until finished trial count reaches target
     activate Objective
     Objective -> Trainer : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:175:1 train(training_config, plotter)]]
     activate Trainer
-    Trainer -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:76:1 report_training_progress(...)]]
+    Trainer -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:91:1 report_training_progress(...)]]
     Trainer --> Objective : TrainingResult
     deactivate Trainer
     Objective -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:228:1 evaluate_greedy_q_net(...)]]
@@ -53,16 +53,16 @@ loop until finished trial count reaches target
     deactivate Objective
     Study --> StudyModule : trial complete
     deactivate Study
-    StudyModule -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:63:1 report_optimization(...)]]
+    StudyModule -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:87:1 report_optimization(...)]]
 end
 
 StudyModule --> Runner : study
 deactivate StudyModule
 
-Runner -> HPRobustness : [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:14:1 select_robust_best(...)]]
+Runner -> HPRobustness : [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:14:1 select_robust_best(...)]]
 activate HPRobustness
 loop top candidates and extra seeds
-    HPRobustness -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:70:1 report_robustness_evaluation(...)]]
+    HPRobustness -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:89:1 report_robustness_evaluation(...)]]
     HPRobustness -> Objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:147:1 objective(fixed_trial)]]
     Objective --> HPRobustness : score
 end

@@ -14,25 +14,25 @@ participant "study:Optuna Study" as Study #FFF2CC
 participant "trial:Optuna Trial" as Trial #FFF2CC
 participant "trainer" as Trainer
 
-url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:52:1]]
+url of Runner is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:56:1]]
 url of Objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1]]
-url of Study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:279:1]]
+url of Study is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:237:1]]
 url of Trial is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1]]
 url of Trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:115:1]]
 
 create Runner
 Caller -> Runner: new StudyRunner(...)
 
-Caller -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:71:1 run(...)]]
+Caller -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:79:1 run(...)]]
 activate Runner
 
 create Objective
 Runner -> Objective: [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1 create_objective(...)]]
 
 create Study
-Runner -> Study: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:279:1 create_study(..., load_if_exists=True)]]
+Runner -> Study: [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:237:1 create_study(..., load_if_exists=True)]]
 
-Runner -> Study: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:173:1 optimize(objective)]]
+Runner -> Study: [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:169:1 optimize(objective)]]
 activate Study
 
 loop pro Trial
@@ -76,8 +76,8 @@ end note
 
 deactivate Study
 
-Runner -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:114:1 incumbent_score aktualisieren]]
-Runner -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study.py:123:1 study in studies ablegen]]
+Runner -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:114:1 incumbent_score aktualisieren]]
+Runner -> Runner: [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:123:1 study in studies ablegen]]
 
 deactivate Runner
 

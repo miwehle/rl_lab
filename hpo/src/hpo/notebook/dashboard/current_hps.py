@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from hpo.study_reporting import TrainingProgress
+from hpo.study.reporting import TrainingProgress
 
 
 def current_params(

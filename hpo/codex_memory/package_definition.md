@@ -33,7 +33,7 @@ A baseline is the complete HP starting point for a study or resumed study: param
 
 An incumbent is the current title holder; it seeds future trials through `incumbent_params`, sets the checkpoint minimum score, and is written to study user attrs when a study finishes.
 
-The current optimization is deliberately simple: `StudyRunner.run(...)` is still the main orchestration point; do not add a hook layer to `study.py` without a strong current need.
+The current optimization is deliberately simple: `StudyRunner.run(...)` is still the main orchestration point; do not add a hook layer to `study_runner.py` without a strong current need.
 
 KISS rule for this package: prefer small orchestration helpers and explicit data flow over speculative framework code.
 
@@ -41,9 +41,9 @@ KISS does not mean avoiding good libraries or future reuse; it means avoiding co
 
 ## Main Modules
 
-`hpo/src/hpo/study.py` owns HPO study orchestration.
+`hpo/src/hpo/study/study_runner.py` owns HPO study orchestration.
 
-Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
+Important objects in `study_runner.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_checkpoint_min_score`, `_with_training_progress`, and `_study_already_finished`.
 
 `StudyRunner.run(...)` loads or creates the current study, briefs the reporter with incumbent context, runs Optuna until the target finished trial count, runs checkpoint robustness on saved challenger checkpoints, updates incumbent attrs, backs up DB/log if configured, and updates the dashboard.
 
@@ -51,7 +51,7 @@ Important objects in `study.py`: `Baseline`, `StudyRunner`, `run_study`, `_with_
 
 If a study is already fully finished, `StudyRunner.run(...)` prints `Study already finished.` and returns before checkpoint robustness; the finished criterion is enough finished trials plus `checkpoint_robustness` and `incumbent_score` attrs. `checkpoint_robustness=[]` means robustness was completed but no challenger checkpoints qualified.
 
-`hpo.study_metadata` owns the HPO-specific SQLite table `hpo_study_metadata`, which stores compact runtime metadata such as provider, Python/Torch/Optuna versions, accelerator, and Git state beside Optuna's own tables.
+`hpo.study.metadata` owns the HPO-specific SQLite table `hpo_study_metadata`, which stores compact runtime metadata such as provider, Python/Torch/Optuna versions, accelerator, and Git state beside Optuna's own tables.
 
 `hpo/src/hpo/objective.py` owns the Optuna objective.
 
@@ -67,7 +67,7 @@ The objective saves `trained_episodes` so planned vs. actual training length is 
 
 `hpo/src/hpo/checkpointing.py` owns training-time checkpoints and HPO objective hooks.
 
-`ObjectiveHookFactory` can copy itself with `with_min_score(...)` and `with_training_progress(...)`; `study.py` uses small `_with_*` helpers to apply those hook-copy methods while keeping the objective config immutable.
+`ObjectiveHookFactory` can copy itself with `with_min_score(...)` and `with_training_progress(...)`; `study_runner.py` uses small `_with_*` helpers to apply those hook-copy methods while keeping the objective config immutable.
 
 `CheckpointingTrainer` subclasses `VectorTrainer` and records checkpoints after episodes before delegating to the base trainer's `_after_episode`.
 
@@ -95,7 +95,7 @@ Checkpoint robustness currently optimizes for mean score across evaluation episo
 
 The user may prefer "class over mass": a future selection policy might consider `max` or top-k mean across seeds, but this is not implemented yet.
 
-`hpo/src/hpo/study_reporting.py` owns the reporting protocol and small reporting data classes.
+`hpo/src/hpo/study/reporting.py` owns the reporting protocol and small reporting data classes.
 
 `StudyReporter` is implemented by the dashboard and has methods for incumbent context, optimization progress, robustness progress, and live training progress.
 

@@ -18,7 +18,7 @@ from hpo.notebook.dashboard.current_study import add_current_study
 from hpo.notebook.dashboard.robustness import add_checkpoint_robustness_evaluation, add_robustness_evaluation
 from hpo.notebook.dashboard.style import NO_DATA_TEXT, hide_empty_xaxis, set_empty_score_yaxis
 from hpo.notebook.dashboard.training_progress import add_training_progress
-from hpo.study_reporting import RobustnessProgress, StudyReporter, TrainingProgress
+from hpo.study.reporting import RobustnessProgress, StudyReporter, TrainingProgress
 
 DashboardRenderMode = Literal["safe"]
 

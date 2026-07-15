@@ -62,18 +62,19 @@ A small base cfg is welcome when it removes real duplication and names the share
 
 ```python
 @dataclass(frozen=True)
-class InfraCfg:
+class BaseInfraCfg:
     drive_study_dir: Path = Path("/content/drive/MyDrive/rl_lab/hpo")
     local_study_dir: Path = Path("/content/rl_lab/hpo/runs")
     best_checkpoints_dir: str = "best_checkpoints"
     videos_dir: str = "videos"
 ```
 
-Concrete cfg classes can inherit from it when the relationship is natural. Use the `*InfraCfg` naming scheme because these classes are not complete fachliche configs; they hold infrastructure conventions such as runtime setup, paths, filenames, storage layout, backup/restore locations, and artifact directories.
+Concrete cfg classes can inherit from it when the relationship is natural. In implementation modules, the public name may simply be `InfraCfg` because the module or package namespace disambiguates it, for example `hpo.study.InfraCfg` and `hpo.evaluation.video.InfraCfg`.
 
 ```python
+# hpo.study.InfraCfg
 @dataclass(frozen=True)
-class StudyInfraCfg(InfraCfg):
+class InfraCfg(BaseInfraCfg):
     database_suffix: str = ".db"
     log_suffix: str = ".log"
 
@@ -83,8 +84,9 @@ class StudyInfraCfg(InfraCfg):
     def drive_log_path(self, study_name: str) -> Path: ...
 
 
+# hpo.evaluation.video.InfraCfg
 @dataclass(frozen=True)
-class VideoInfraCfg(InfraCfg):
+class InfraCfg(BaseInfraCfg):
     checkpoint_name: str = "best_eval_checkpoint.pt"
     checkpoint_metadata_name: str = "best_eval_checkpoint.json"
 
@@ -95,27 +97,27 @@ class VideoInfraCfg(InfraCfg):
 
 
 @dataclass(frozen=True)
-class CrashAnalysisInfraCfg(VideoInfraCfg):
+class CrashAnalysisInfraCfg(InfraCfg):
     video_scope: str = "crash_analysis"
 
     def crash_analysis_video_dir(self, study_name: str) -> Path: ...
 ```
 
-`StudyInfraCfg` should cover study infrastructure defaults such as local and Drive database/log paths, restore, backup, checkpoint directories, and file naming conventions.
+`hpo.study.InfraCfg` should cover study infrastructure defaults such as local and Drive database/log paths, restore, backup, checkpoint directories, and file naming conventions.
 
-`VideoInfraCfg` should cover video infrastructure defaults such as best-eval checkpoint paths, checkpoint metadata paths, video output directories, and video filename conventions.
+`hpo.evaluation.video.InfraCfg` should cover video infrastructure defaults such as best-eval checkpoint paths, checkpoint metadata paths, video output directories, and video filename conventions.
 
 `CrashAnalysisInfraCfg` should cover crash-analysis infrastructure defaults such as video scope, output directories, and reuse of checkpoint/video conventions.
 
 Keep fachliche inputs explicit in the using code: `study_name`, model, env, world, seed, skin, overlay, training hyperparameters, and crash-analysis selection policy are not hidden in the under-the-hood cfg by default.
 
-The name `StudyInfraCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoInfraCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `CrashAnalysisInfraCfg` avoids suggesting crash-analysis policy: what to inspect or rank stays outside; only crash-analysis infrastructure placement belongs there.
+The name `hpo.study.InfraCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoInfraCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `CrashAnalysisInfraCfg` avoids suggesting crash-analysis policy: what to inspect or rank stays outside; only crash-analysis infrastructure placement belongs there.
 
 KISS rule for this generalization: use inheritance only for real shared infrastructure convention. Do not build a large generic config framework, registry, singleton, or speculative hierarchy.
 
 ## Future Domain Configs
 
-The `*InfraCfg` classes deliberately cover only infrastructure details. This naming keeps room for future fachliche configs without mixing concerns.
+The namespaced `InfraCfg` classes deliberately cover only infrastructure details. This naming keeps room for future fachliche configs without mixing concerns.
 
 A possible future naming scheme is:
 

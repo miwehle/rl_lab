@@ -12,7 +12,7 @@ from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.checkpointing import load_checkpoint, trial_best_checkpoint_score
 from hpo.objective import ObjectiveConfig
-from hpo.study_reporting import RobustnessProgress
+from hpo.study.reporting import RobustnessProgress
 
 
 @dataclass(frozen=True)

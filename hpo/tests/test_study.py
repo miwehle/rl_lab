@@ -3,11 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from hpo import study as study_module
+import hpo.study.study_runner as study_module
 from hpo.checkpointing import ObjectiveHookFactory
-from hpo.study import Baseline, StudyRunner, run_study
-from hpo.study_infra import StudyInfraCfg
-from hpo.study_reporting import RobustnessProgress
+from hpo.study import Baseline, InfraCfg, StudyRunner, run_study
+from hpo.study.reporting import RobustnessProgress
 from common import objective_config
 
 
@@ -49,7 +48,7 @@ class FakeStorage:
 
 
 @dataclass
-class FakeStudyInfraCfg:
+class FakeInfraCfg:
     backup_calls: list = field(default_factory=list)
 
     def storage(self, storage_name: str) -> FakeStorage:
@@ -57,7 +56,7 @@ class FakeStudyInfraCfg:
 
 
 def hook_factory(tmp_path, **kwargs) -> ObjectiveHookFactory:
-    cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+    cfg = InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
     return ObjectiveHookFactory("elise", cfg=cfg, **kwargs)
 
 def fake_checkpoint_robustness(
@@ -103,7 +102,7 @@ def study_runner(
 ) -> StudyRunner:
     return StudyRunner(
         storage_name=storage_name,
-        cfg=cfg or FakeStudyInfraCfg(),
+        cfg=cfg or FakeInfraCfg(),
         objective_cfg=objective_cfg or objective_config(environment_factory=FakeEnvironmentFactory()),
         baseline=baseline or Baseline(params={"x": 1}),
         reporter=reporter or FakeReporter(),
@@ -160,8 +159,8 @@ class TestBaseline:
 
 class TestStudyRunner:
     def test_accepts_storage_name(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("hpo.study_infra.configure_file_logging", lambda *_args, **_kwargs: None)
-        cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+        monkeypatch.setattr("hpo.study.infra_cfg.configure_file_logging", lambda *_args, **_kwargs: None)
+        cfg = InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
 
         runner = StudyRunner(
             storage_name="elise",
@@ -194,7 +193,7 @@ class TestStudyRunner:
         objective_cfg = objective_config(environment_factory=environment_factory, device="cpu")
         reporter = FakeReporter()
         runner = study_runner(
-            cfg=FakeStudyInfraCfg(backup_calls),
+            cfg=FakeInfraCfg(backup_calls),
             objective_cfg=objective_cfg,
             baseline=Baseline(params={"x": 1}, score=0.0),
             reporter=reporter,

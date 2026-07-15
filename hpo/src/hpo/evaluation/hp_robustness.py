@@ -6,7 +6,7 @@ from typing import Any
 
 from hpo.checkpointing import trial_best_checkpoint_score
 from hpo.objective import ObjectiveConfig, create_objective
-from hpo.study_reporting import RobustnessProgress
+from hpo.study.reporting import RobustnessProgress
 
 RobustnessProgressFn = Callable[..., None]
 

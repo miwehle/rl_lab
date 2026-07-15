@@ -20,8 +20,8 @@ url of HookFactory is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:113:1]]
 url of Hooks is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:177:1]]
 url of Trainer is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:82:1]]
 url of Recorder is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:33:1]]
-url of Plotter is [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:31:1]]
-url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:143:1]]
+url of Plotter is [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:40:1]]
+url of Dashboard is [[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:159:1]]
 url of EvalBest is [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:83:1]]
 
 Objective -> HookFactory : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:181:1 for_trial(ctx)]]
@@ -51,8 +51,8 @@ loop after one or more episodes finish
     alt trailing training mean improves
         Recorder -> Recorder : [[WORKSPACE_ROOT/hpo/src/hpo/checkpointing.py:241:1 save_checkpoint(...)]]
     end
-    Trainer -> Plotter : [[WORKSPACE_ROOT/hpo/src/hpo/study_reporting.py:39:1 plot_returns(...)]]
-    Plotter -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/dashboard.py:201:1 report_training_progress(...)]]
+    Trainer -> Plotter : [[WORKSPACE_ROOT/hpo/src/hpo/study/reporting.py:51:1 plot_returns(...)]]
+    Plotter -> Dashboard : [[WORKSPACE_ROOT/hpo/src/hpo/notebook/dashboard/main.py:193:1 report_training_progress(...)]]
     alt target reached and Armstrong momentum is high
         Trainer -> Trainer : [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:363:1 _should_extend_training(...)]]
     end

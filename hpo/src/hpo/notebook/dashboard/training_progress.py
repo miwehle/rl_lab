@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from hpo.study_reporting import TrainingProgress
+from hpo.study.reporting import TrainingProgress
 
 _ENV_LABELS = {
     "mercury": ("Mercury", "#4f4f4f"),

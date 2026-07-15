@@ -5,7 +5,7 @@
 hide footbox
 
 participant ":StudyRunner" as runner
-participant "study.py" as study_module
+participant "study_runner.py" as study_module
 participant "hp_robustness.py" as hp_robustness
 participant "study:Study" as study
 participant "objective.py" as objective
@@ -14,25 +14,25 @@ participant ":EnvironmentFactory" as environment_factory
 participant ":VectorTrainer" as trainer
 participant ":Trial" as trial
 
-url of runner is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:52:1]]
-url of study_module is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:1:1]]
-url of hp_robustness is [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:1:1]]
-url of study is [[WORKSPACE_ROOT/hpo/src/hpo/study.py:182:1]]
+url of runner is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:56:1]]
+url of study_module is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:1:1]]
+url of hp_robustness is [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:1:1]]
+url of study is [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:237:1]]
 url of objective is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:134:1]]
 url of suggest_parameter_values is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:18:1]]
 url of environment_factory is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:23:1]]
 url of trainer is [[WORKSPACE_ROOT/dqn/src/dqn/vector_training.py:115:1]]
 url of trial is [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1]]
 
-[-> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:71:1 run(...)]]
+[-> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:79:1 run(...)]]
 activate runner
 
-runner -> study_module : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:127:1 run_study(...)]]
+runner -> study_module : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:134:1 run_study(...)]]
 activate study_module
 
-study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:182:1 _create_study(...)]]
+study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:237:1 _create_study(...)]]
 
-study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:173:1 optimize(...)]]
+study_module -> study : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:169:1 optimize(...)]]
 activate study
 
 study -> objective : [[WORKSPACE_ROOT/hpo/src/hpo/objective.py:142:1 objective(trial)]]
@@ -74,13 +74,13 @@ deactivate study
 study_module --> runner : study
 deactivate study_module
 
-runner -> hp_robustness : [[WORKSPACE_ROOT/hpo/src/hpo/hp_robustness.py:14:1 select_robust_best(...)]]
+runner -> hp_robustness : [[WORKSPACE_ROOT/hpo/src/hpo/evaluation/hp_robustness.py:14:1 select_robust_best(...)]]
 activate hp_robustness
 hp_robustness --> runner : selected\nparameters
 deactivate hp_robustness
 
-runner -> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:114:1 incumbent_score\naktualisieren]]
-runner -> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study.py:123:1 study in\nstudies ablegen]]
+runner -> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:114:1 incumbent_score\naktualisieren]]
+runner -> runner : [[WORKSPACE_ROOT/hpo/src/hpo/study/study_runner.py:123:1 study in\nstudies ablegen]]
 deactivate runner
 
 @enduml

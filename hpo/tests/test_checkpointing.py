@@ -18,7 +18,7 @@ from hpo.checkpointing import (
     save_checkpoint,
 )
 from hpo.objective import ObjectiveContext
-from hpo.study_infra import StudyInfraCfg
+from hpo.study.infra_cfg import InfraCfg
 
 
 class FakeTrainer:
@@ -87,8 +87,8 @@ def loaded_weight(path, *, device=torch.device("cpu")) -> tuple[float, dict]:
     return first_weight(restored), metadata
 
 
-def study_cfg(tmp_path) -> StudyInfraCfg:
-    return StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+def study_cfg(tmp_path) -> InfraCfg:
+    return InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
 
 
 def hook_factory(tmp_path, **kwargs) -> ObjectiveHookFactory:
@@ -200,8 +200,8 @@ class TestObjectiveHookFactory:
             "initial_checkpoint_path": str(tmp_path / "drive" / "best_checkpoints" / "initial" / "best_eval_checkpoint.pt"),
         }
 
-    def test_uses_study_infra_defaults(self, tmp_path) -> None:
-        cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+    def test_uses_infra_cfg_defaults(self, tmp_path) -> None:
+        cfg = InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
         factory = ObjectiveHookFactory(
             study_name="elise",
             initial_checkpoint_study_name="elise_accel",

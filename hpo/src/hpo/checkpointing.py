@@ -11,8 +11,8 @@ from torch import nn
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
 from hpo.objective import ObjectiveContext
-from hpo.study_infra import StudyInfraCfg
-from hpo.study_reporting import TrainingProgressFn, TrainingProgressPlotter
+from hpo.study.infra_cfg import InfraCfg
+from hpo.study.reporting import TrainingProgressFn, TrainingProgressPlotter
 
 CHECKPOINT_VERSION = 1
 
@@ -184,7 +184,7 @@ class ObjectiveHookFactory:
     min_score_delta: float = 0.0
     training_progress_fn: TrainingProgressFn | None = None
     initial_checkpoint_study_name: str | None = None
-    cfg: StudyInfraCfg = field(default_factory=StudyInfraCfg)
+    cfg: InfraCfg = field(default_factory=InfraCfg)
 
     def __post_init__(self) -> None:
         if self.window < 1:

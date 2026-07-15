@@ -12,7 +12,6 @@ from hpo.objective import ObjectiveConfig, create_objective, evaluate_greedy_q_n
 from hpo.solar_system_lander.environment import DEFAULT_WORLD_MIX, EnvFactory, World
 from hpo.solar_system_lander.reward_shaping import GroundThrustPenaltyEnv
 from hpo.study import Baseline, StudyRunner
-from hpo.study_infra import StudyInfraCfg
 
 __all__ = [
     "Baseline",
@@ -23,7 +22,6 @@ __all__ = [
     "HP",
     "ObjectiveConfig",
     "ObjectiveHookFactory",
-    "StudyInfraCfg",
     "StudyRunner",
     "World",
     "best_checkpoint",

@@ -10,9 +10,9 @@ from hpo.lunar_lander.logging import log_call
 from hpo.objective import ObjectiveConfig, create_objective
 from hpo.evaluation.checkpoint_robustness import evaluate_checkpoint_robustness
 from hpo.hyperparams import HP
-from hpo.study_infra import StudyInfraCfg
-from hpo.study_metadata import record_study_metadata
-from hpo.study_reporting import StudyReporter, TrainingProgressFn
+from hpo.study.infra_cfg import InfraCfg
+from hpo.study.metadata import record_study_metadata
+from hpo.study.reporting import StudyReporter, TrainingProgressFn
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class StudyRunner:
     objective_cfg: ObjectiveConfig
     reporter: StudyReporter
     baseline: Baseline
-    cfg: StudyInfraCfg = field(default_factory=StudyInfraCfg)
+    cfg: InfraCfg = field(default_factory=InfraCfg)
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     robust_eval_episodes: int = 50

@@ -1,11 +1,11 @@
-﻿"""Study infrastructure conventions."""
+"""Study infrastructure conventions."""
 
-from hpo.study_infra import StudyInfraCfg
+from hpo.study.infra_cfg import InfraCfg
 
 
-def test_study_infra_uses_conventional_paths(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("hpo.study_infra.configure_file_logging", lambda *_args, **_kwargs: None)
-    cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+def test_infra_cfg_uses_conventional_paths(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("hpo.study.infra_cfg.configure_file_logging", lambda *_args, **_kwargs: None)
+    cfg = InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
 
     (tmp_path / "drive").mkdir()
     (tmp_path / "drive" / "elise.db").write_text("db", encoding="utf-8")
@@ -21,8 +21,8 @@ def test_study_infra_uses_conventional_paths(tmp_path, monkeypatch) -> None:
     assert storage.log_path.read_text(encoding="utf-8") == "log"
 
 
-def test_study_infra_checkpoint_conventions(tmp_path) -> None:
-    cfg = StudyInfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
+def test_infra_cfg_checkpoint_conventions(tmp_path) -> None:
+    cfg = InfraCfg(drive_study_dir=tmp_path / "drive", local_study_dir=tmp_path / "local")
 
     assert cfg.checkpoint_dir("elise") == tmp_path / "local" / "elise_checkpoints"
     assert cfg.best_eval_archive_dir("elise") == tmp_path / "drive" / "best_checkpoints" / "elise"
