@@ -67,16 +67,14 @@ class StudyRunner:
     runtime_provider: str | None = None
     incumbent_params: dict[str, Any] = field(init=False)
     incumbent_score: float | None = field(init=False)
-    _storage: Any = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        self._storage = self.cfg.storage(self.storage_name)
         self.incumbent_params = dict(self.baseline.params)
         self.incumbent_score = self.baseline.score
 
     @property
     def database_path(self) -> Path:
-        return self._storage.database_path
+        return self.cfg.storage(self.storage_name).database_path
 
     def run(self, study_name: str, suggest_parameter_values: Any, n_trials: int) -> None:
         """Run or resume the named Optuna study in the configured storage.
@@ -109,7 +107,7 @@ class StudyRunner:
             objective_cfg=objective_cfg,
             study_attrs=self.study_attrs,
             progress_fn=self.reporter.report_optimization,
-            backup_fn=self._storage.backup,
+            backup_fn=lambda: self.cfg.storage(self.storage_name).backup(),
         )
         checkpoint_results = _evaluate_checkpoint_robustness(
             study=study,
@@ -127,7 +125,7 @@ class StudyRunner:
 
         study.set_user_attr("incumbent_params", self.incumbent_params)
         study.set_user_attr("incumbent_score", self.incumbent_score)
-        self._storage.backup()
+        self.cfg.storage(self.storage_name).backup()
         self.reporter.set_incumbent_context(incumbent_params=self.incumbent_params)
         self.reporter.report_optimization(study, target_trials=n_trials)
 

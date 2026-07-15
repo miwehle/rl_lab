@@ -211,7 +211,7 @@ class TestStudyRunner:
         assert run_calls[1]["study"] is studies[1]
         assert run_calls[1]["objective_cfg"].environment_factory is environment_factory
         assert run_calls[1]["study_attrs"] == {"mode": "8d"}
-        assert run_calls[1]["backup_fn"].__self__ is runner._storage
+        run_calls[1]["backup_fn"]()
         assert robust_calls[0]["study"] is studies[0]
         assert robust_calls[0]["top_n"] == 5
         assert robust_calls[0]["eval_episodes"] == 7
@@ -225,7 +225,7 @@ class TestStudyRunner:
         robust_calls[0]["progress_fn"](progress)
         assert reporter.robustness_calls[0][0] == (progress,)
         assert reporter.context_calls[-1][1]["incumbent_params"] == {"x": 3}
-        assert len(backup_calls) == 2
+        assert len(backup_calls) == 3
         assert studies[-1].user_attrs["incumbent_params"] == {"x": 3}
         assert studies[-1].user_attrs["incumbent_score"] == 2.0
 
