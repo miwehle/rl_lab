@@ -100,3 +100,24 @@ Idea: compare the current 10D acceleration observation with a proper-acceleratio
 Reason: A lander pilot would also feel gravitational force, not just net velocity change. This may help one shared agent behave more consistently across worlds with different gravity.
 
 Status: loose idea; turn into a hypothesis only after defining scaling, clipping, and a fair comparison.
+
+## Coupled Batch Size And Optimize-Every Search
+
+Idea: test a small coupled Optuna axis for GPU-efficient DQN updates:
+
+```python
+trial.suggest_categorical("batch_opt_pair", [
+    (512, 2),
+    (1024, 4),
+    (2048, 8),
+    (4096, 16),
+])
+```
+
+Rationale: larger batches use the GPU much more efficiently per replay sample, while larger `optimize_every` reduces update frequency and wall time. Coupling both keeps the rough replay-samples-per-env-step budget comparable, but changes the learning dynamics: fewer, larger, more strongly averaged gradient steps.
+
+Risk: the mean loss over large batches may remove useful stochasticity and make DQN learning slower or worse, even if the wall-clock throughput improves.
+
+KISS test: start with this coupled axis only, not a full Cartesian product. If it looks promising, later decide whether to decouple `batch_size` and `optimize_every`.
+
+Related observations: [[observations#O16 AsyncVectorEnv Speeds Up SSL Env Stepping On Colab|O16]] and [[observations#O17 AsyncVectorEnv Gives Small VectorTrainer Speedup On L4|O17]]. The update microbenchmark showed that batch `4096` costs only about `1.28x` as much per update as batch `512`, while processing `8x` as many replay samples.

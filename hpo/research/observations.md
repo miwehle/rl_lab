@@ -2,6 +2,8 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O17 AsyncVectorEnv Gives Small VectorTrainer Speedup On L4\|O17]]   | AsyncVectorEnv Gives Small VectorTrainer Speedup On L4    | PERF, SSL, Colab   |
+| [[#O16 AsyncVectorEnv Speeds Up SSL Env Stepping On Colab\|O16]]     | AsyncVectorEnv Speeds Up SSL Env Stepping On Colab        | PERF, SSL, Colab   |
 | [[#O15 Worst Elise-264 Crashes Show Disturbance Reversals\|O15]]      | Worst Elise-264 Crashes Show Disturbance Reversals        | SSL, RL, Video     |
 | [[#O14 Ground Side-Thrust Can Hide Landing Reward\|O14]]              | Ground Side-Thrust Can Hide Landing Reward                | SSL, RL            |
 | [[#O13 Checkpoint Distribution Cell Is Not Faster On L4\|O13]]        | Checkpoint Distribution Cell Is Not Faster On L4          | PERF, Colab        |
@@ -19,6 +21,51 @@
 | [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O17 AsyncVectorEnv Gives Small VectorTrainer Speedup On L4
+
+**Observation:** In a short SolarSystemLander `VectorTrainer.train(...)` benchmark on Colab L4, `AsyncVectorEnv` was only slightly faster than `SyncVectorEnv`, even though the isolated env-step benchmark in [[#O16 AsyncVectorEnv Speeds Up SSL Env Stepping On Colab|O16]] showed a much larger `AsyncVectorEnv` advantage.
+
+**When:** 2026-07-15
+
+**Benchmark:** Notebook `hpo/_experimental/performance_tuning/vector_trainer_benchmark.ipynb`, `OBSERVATION_MODE="10d"`, five-world default mix, `num_episodes=200`, `batch_size=512`, `learning_starts=2500`, `optimize_every=2`, Elise-like HPs, `REPEATS=1`. The benchmark includes env stepping, replay sampling, CPU-GPU batch transfer, forward/backward passes, and optimizer updates, but excludes Optuna, StudyRunner, dashboard, checkpointing, and greedy evaluation.
+
+| Num Envs | Sync Seconds | Async Seconds | Speedup | Sync Env-Steps/s | Async Env-Steps/s |
+|---:|---:|---:|---:|---:|---:|
+| 15 | 37.13 | 34.87 | 1.06 | 872 | 928 |
+| 25 | 36.39 | 35.45 | 1.03 | 916 | 940 |
+| 50 | 37.27 | 36.56 | 1.02 | 928 | 946 |
+
+**Interpretation:** The full trainer is not dominated by raw environment stepping in this configuration. The `AsyncVectorEnv` advantage is mostly absorbed by replay sampling, CPU-GPU transfer, forward/backward passes, and optimizer work. This argues against rushing an `AsyncVectorEnv` production switch solely from the env-step benchmark.
+
+**Details:** [[_details/O17|Raw trainer benchmark tables]]
+
+**Next:** Repeat on A100 and then decide whether the small speedup is worth a production API switch. If the A100 result is similar, the next performance question should shift from VectorEnv parallelism to replay/GPU training throughput.
+
+## O16 AsyncVectorEnv Speeds Up SSL Env Stepping On Colab
+
+**Observation:** In the isolated SolarSystemLander VectorEnv step benchmark on Colab L4 and A100 runtimes, `AsyncVectorEnv` was clearly faster than `SyncVectorEnv` once the vector env count rose above one slot per world.
+
+**When:** 2026-07-15
+
+**Benchmark:** Notebook `hpo/_experimental/performance_tuning/vector_env_step_benchmark.ipynb`, `OBSERVATION_MODE="10d"`, five-world default mix, `WARMUP_STEPS=50`, `MEASURE_STEPS=500`, `REPEATS=3`. The benchmark measures only `env.step(...)` throughput, not replay buffer sampling, DQN optimization, StudyRunner, or dashboard cost.
+
+| Runtime | Num Envs | Sync Mean Env-Steps/s | Async Mean Env-Steps/s | Async/Sync |
+|---|---:|---:|---:|---:|
+| L4 | 5 | 11104 | 10663 | 0.96 |
+| L4 | 15 | 11991 | 16595 | 1.38 |
+| L4 | 25 | 12131 | 18270 | 1.51 |
+| L4 | 50 | 12159 | 19901 | 1.64 |
+| A100 | 5 | 11186 | 12064 | 1.08 |
+| A100 | 15 | 11662 | 15161 | 1.30 |
+| A100 | 25 | 12153 | 18071 | 1.49 |
+| A100 | 50 | 12024 | 19920 | 1.66 |
+
+**Interpretation:** `SyncVectorEnv` plateaued around `12k env-steps/s`, while `AsyncVectorEnv` scaled up to about `20k env-steps/s` on both runtimes. The similar L4 and A100 results suggest that this benchmark is CPU/env-step-bound rather than GPU-bound. It does not yet prove the full trainer will speed up by the same factor, because DQN optimization, CPU-GPU transfer, replay sampling, checkpointing, and dashboard updates are outside this benchmark.
+
+**Details:** [[_details/O16|Raw benchmark tables]]
+
+**Next:** Run a short end-to-end trainer benchmark with identical HPs and `num_envs=25` or `50` to measure actual training wall time.
 
 ## O15 Worst Elise-264 Crashes Show Disturbance Reversals
 
