@@ -56,7 +56,7 @@ KISS rule: do not add a global config framework, singleton, or large generic con
 
 ## Generalization
 
-Apply the same convention-over-configuration shape symmetrically where it fits: training, video recording, and audit workflows should not each invent their own visible path constants.
+Apply the same convention-over-configuration shape symmetrically where it fits: training, video recording, and crash-analysis workflows should not each invent their own visible path constants.
 
 A small base cfg is welcome when it removes real duplication and names the shared infrastructure convention:
 
@@ -95,21 +95,21 @@ class VideoInfraCfg(InfraCfg):
 
 
 @dataclass(frozen=True)
-class AuditInfraCfg(VideoInfraCfg):
-    audit_video_scope: str = "failure_audit"
+class CrashAnalysisInfraCfg(VideoInfraCfg):
+    video_scope: str = "crash_analysis"
 
-    def audit_video_dir(self, study_name: str) -> Path: ...
+    def crash_analysis_video_dir(self, study_name: str) -> Path: ...
 ```
 
 `TrainInfraCfg` should cover training infrastructure defaults such as local and Drive database/log paths, restore, backup, and file naming conventions.
 
 `VideoInfraCfg` should cover video infrastructure defaults such as best-eval checkpoint paths, checkpoint metadata paths, video output directories, and video filename conventions.
 
-`AuditInfraCfg` should cover audit infrastructure defaults such as audit video scope, audit output directories, and reuse of checkpoint/video conventions needed by failure-audit workflows.
+`CrashAnalysisInfraCfg` should cover crash-analysis infrastructure defaults such as video scope, output directories, and reuse of checkpoint/video conventions.
 
-Keep fachliche inputs explicit in the using code: `study_name`, model, env, world, seed, skin, overlay, training hyperparameters, and audit selection policy are not hidden in the under-the-hood cfg by default.
+Keep fachliche inputs explicit in the using code: `study_name`, model, env, world, seed, skin, overlay, training hyperparameters, and crash-analysis selection policy are not hidden in the under-the-hood cfg by default.
 
-The name `TrainInfraCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoInfraCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `AuditInfraCfg` avoids suggesting audit policy: what to inspect or rank stays outside; only audit infrastructure placement belongs there.
+The name `TrainInfraCfg` avoids suggesting a full training configuration: learning rate, episodes, model architecture, early stopping, and similar training decisions stay outside. `VideoInfraCfg` avoids suggesting render semantics: skin, overlay, world, and seed stay outside. `CrashAnalysisInfraCfg` avoids suggesting crash-analysis policy: what to inspect or rank stays outside; only crash-analysis infrastructure placement belongs there.
 
 KISS rule for this generalization: use inheritance only for real shared infrastructure convention. Do not build a large generic config framework, registry, singleton, or speculative hierarchy.
 
@@ -122,17 +122,17 @@ A possible future naming scheme is:
 ```python
 TrainingSpec   # fachliche training configuration: what to train
 VideoSpec      # fachliche video configuration: what video to record
-AuditSpec      # fachliche audit configuration: what to inspect or rank
+CrashAnalysisSpec      # fachliche crash-analysis configuration: what to inspect or rank
 ```
 
-`*Spec` is short and emphasizes the domain intent. It should hold domain decisions such as training hyperparameters, model choices, worlds, seeds, rendering choices, or audit selection policy when it becomes useful to bundle them.
+`*Spec` is short and emphasizes the domain intent. It should hold domain decisions such as training hyperparameters, model choices, worlds, seeds, rendering choices, or crash-analysis selection policy when it becomes useful to bundle them.
 
 `*DomCfg` is another possible naming scheme when the code should say "domain config" more explicitly:
 
 ```python
 TrainingDomCfg
 VideoDomCfg
-AuditDomCfg
+CrashAnalysisDomCfg
 ```
 
 For now this is only future music. Do not add fachliche config classes until they reduce current complexity or make a real API easier to use.
@@ -161,6 +161,6 @@ record_video(DQN, env, study_name=STUDY_NAME, seed=seed, cfg=custom_video_infra_
 
 No Colab, Drive, path, logging, device, backup, checkpoint filename, or artifact layout code should appear in the notebook normal path.
 
-Keep fachliche DL/HPO choices explicit: model, env, study name, worlds, seeds, rendering intent, HP ranges, training decisions, and audit policy.
+Keep fachliche DL/HPO choices explicit: model, env, study name, worlds, seeds, rendering intent, HP ranges, training decisions, and crash-analysis policy.
 
 KISS rule: optimize for the simplest notebook end state with the best learning/HPO signal. Hide infrastructure mechanics by default; expose them only as explicit advanced overrides.

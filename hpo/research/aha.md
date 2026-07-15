@@ -34,7 +34,7 @@ In this narrow sense, Elise reaches a surprisingly high fraction of an Armstrong
 
 Elise-264-GSTP's worst crashes show that a high-scoring pilot can still have a characteristic failure style: efficient, fast, fuel-saving descents with little reserve. This is often the right tactic against wind because it reduces time airborne, but it becomes fragile when wind or turbulence reverses late.
 
-The failure-audit videos made this visible. In the worst crash, turbulence changed from about `+2.1` to `-2.2 rad/s^2`, or roughly `+120` to `-126 deg/s^2`, and wind also reversed near touchdown. Elise had already committed to a fast descent, so the disturbance switch hit during the phase where she had least time and height left to re-stabilize. A turbulence reversal of about `+/-120 deg/s^2` near touchdown is a serious attitude-control problem even on an Armstrong scale.
+The crash-analysis videos made this visible. In the worst crash, turbulence changed from about `+2.1` to `-2.2 rad/s^2`, or roughly `+120` to `-126 deg/s^2`, and wind also reversed near touchdown. Elise had already committed to a fast descent, so the disturbance switch hit during the phase where she had least time and height left to re-stabilize. A turbulence reversal of about `+/-120 deg/s^2` near touchdown is a serious attitude-control problem even on an Armstrong scale.
 
 ==Mental model: A strong pilot does not only need skill; it needs adaptive safety margin when the air stops being a partner.==
 
