@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from hpo.evaluation.rendering.solar_system_lander._colors import LanderColors, LanderOverlay, world_colors
 from hpo.evaluation.rendering.solar_system_lander._lander import LanderSkin
 from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper
-from hpo.evaluation.rendering.solar_system_lander._skins import DetailedEagleSkin
+from hpo.evaluation.rendering.solar_system_lander._skins import ColoredEagleSkin, DetailedEagleSkin
 
 
 @dataclass(frozen=True)
@@ -21,6 +21,8 @@ def render_config(worlds: Iterable[str], *, overlay: bool = False, skin: str | N
     render_skin: LanderSkin | None
     if skin is None:
         render_skin = None
+    elif skin == "colored_eagle":
+        render_skin = ColoredEagleSkin()
     elif skin == "detailed_eagle":
         render_skin = DetailedEagleSkin()
     else:

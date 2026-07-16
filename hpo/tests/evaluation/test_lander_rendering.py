@@ -12,7 +12,7 @@ from hpo.evaluation.rendering.solar_system_lander._colors import (
 )
 from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper
 from hpo.evaluation.rendering.solar_system_lander._env_state import WindState
-from hpo.evaluation.rendering.solar_system_lander._skins import DetailedEagleSkin
+from hpo.evaluation.rendering.solar_system_lander._skins import ColoredEagleSkin, DetailedEagleSkin
 from hpo.environments.solar_system_lander.env import EnvFactory, World
 
 
@@ -59,6 +59,14 @@ def test_render_config_hides_common_rendering_details():
     assert config.colors_by_world == (world_colors([World.EARTH])[0],)
     assert config.overlay == LanderOverlay()
     assert isinstance(config.skin, DetailedEagleSkin)
+
+
+def test_render_config_selects_colored_eagle_skin():
+    config = render_config([World.EARTH], overlay=True, skin="colored_eagle")
+
+    assert config.colors_by_world == (world_colors([World.EARTH])[0],)
+    assert config.overlay == LanderOverlay()
+    assert isinstance(config.skin, ColoredEagleSkin)
 
 
 def test_render_config_rejects_unknown_skin():
@@ -196,6 +204,22 @@ class TestLanderRenderWrapper:
         assert frame.shape == (400, 600, 3)
         assert np.any(frame != world_colors(["earth"])[0].sky)
 
+    def test_colored_eagle_skin_renders_frame(self):
+        env = LanderRenderWrapper(
+            gym.make("LunarLander-v3", render_mode="rgb_array"),
+            colors=world_colors(["earth"])[0],
+            skin=ColoredEagleSkin(),
+        )
+
+        try:
+            env.reset(seed=10_014)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert frame.shape == (400, 600, 3)
+        assert np.any(frame != world_colors(["earth"])[0].sky)
+
     def test_detailed_eagle_skin_auto_halo_is_only_for_dark_backgrounds(self):
         moon_auto = _render_skin_frame(World.MOON, DetailedEagleSkin(halo="auto"))
         moon_never = _render_skin_frame(World.MOON, DetailedEagleSkin(halo="never"))
@@ -229,7 +253,7 @@ def _render_venus_frame(*, overlay):
         env.close()
 
 
-def _render_skin_frame(world: World, skin: DetailedEagleSkin):
+def _render_skin_frame(world: World, skin):
     factory = EnvFactory("10d", world_mix={world: 1})
     env = LanderRenderWrapper(
         factory.make_env(world, render_mode="rgb_array"), colors=world_colors([world])[0], skin=skin
