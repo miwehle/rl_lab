@@ -2,8 +2,8 @@
   <defs>
     <mask id="body-without-side-legs" maskUnits="userSpaceOnUse">
       <rect x="0" y="0" width="502" height="481" fill="white" />
-      <polygon points="0,481 0,270 130,270 130,481" fill="black" />
-      <polygon points="502,481 502,270 372,270 372,481" fill="black" />
+      <polygon points="0,481 0,270 104,270 130,310 130,481" fill="black" />
+      <polygon points="502,481 502,270 398,270 372,310 372,481" fill="black" />
     </mask>
   </defs>
   <g mask="url(#body-without-side-legs)">

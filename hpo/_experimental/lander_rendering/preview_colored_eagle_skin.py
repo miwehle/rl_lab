@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from types import SimpleNamespace
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
@@ -20,7 +21,10 @@ import pygame  # noqa: E402
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory, World  # noqa: E402
 from hpo.evaluation.rendering.solar_system_lander._colors import LanderOverlay, world_colors  # noqa: E402
 from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper  # noqa: E402
-from hpo.evaluation.rendering.solar_system_lander._skins.colored_eagle import ColoredEagleSkin, _assets  # noqa: E402
+from hpo.evaluation.rendering.solar_system_lander._skins.colored_eagle import (  # noqa: E402
+    ColoredEagleSkin,
+    _assets,
+)
 
 
 DEFAULT_OUT_DIR = Path(r"C:\tmp\eagle_skin_preview") if os.name == "nt" else Path("/tmp/eagle_skin_preview")
@@ -68,9 +72,19 @@ def main() -> None:
             steps=args.steps,
             overlay=args.overlay,
         )
+        upright_paths = _save_upright_pose(out_dir, skin=skin, world=World(args.world), seed=args.seed)
 
         summary_path = out_dir / "summary.txt"
-        summary_path.write_text("\n".join(lines + ["", "Frames:"] + [str(path) for path in frame_paths]) + "\n")
+        summary_path.write_text(
+            "\n".join(
+                lines
+                + ["", "Frames:"]
+                + [str(path) for path in frame_paths]
+                + ["", "Upright:"]
+                + [str(path) for path in upright_paths]
+            )
+            + "\n"
+        )
     finally:
         pygame.quit()
 
@@ -165,6 +179,48 @@ def _save_lander_frames(
     finally:
         env.close()
     return paths
+
+
+def _save_upright_pose(out_dir: Path, *, skin: ColoredEagleSkin, world: World, seed: int) -> list[Path]:
+    factory = EnvFactory("10d", world_mix=DEFAULT_WORLD_MIX)
+    env = factory.make_env(world, render_mode="rgb_array")
+    try:
+        env.reset(seed=seed)
+        lander = env.unwrapped.lander
+        right_leg, left_leg = env.unwrapped.legs
+        right_rel = (right_leg.position.x - lander.position.x, right_leg.position.y - lander.position.y)
+        left_rel = (left_leg.position.x - lander.position.x, left_leg.position.y - lander.position.y)
+    finally:
+        env.close()
+
+    body_position = (10.0, 6.7)
+    fake_env = SimpleNamespace(
+        lander=SimpleNamespace(position=body_position, angle=0.0),
+        legs=[
+            SimpleNamespace(
+                position=(body_position[0] + right_rel[0], body_position[1] + right_rel[1]),
+                angle=skin.right_leg_rest_angle,
+            ),
+            SimpleNamespace(
+                position=(body_position[0] + left_rel[0], body_position[1] + left_rel[1]),
+                angle=skin.left_leg_rest_angle,
+            ),
+        ],
+    )
+
+    surface = pygame.Surface((600, 400))
+    surface.fill(SKY)
+    skin.draw(surface, fake_env)
+
+    upright_path = out_dir / "upright_pose.png"
+    pygame.image.save(surface, upright_path)
+
+    crop = pygame.Surface((150, 150))
+    crop.blit(surface, (0, 0), (225, 105, 150, 150))
+    crop = pygame.transform.scale(crop, (crop.get_width() * 4, crop.get_height() * 4))
+    crop_path = out_dir / "upright_pose_4x.png"
+    pygame.image.save(crop, crop_path)
+    return [upright_path, crop_path]
 
 
 def _scaled_size(surface, scale: float) -> tuple[int, int]:

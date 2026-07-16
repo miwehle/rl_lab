@@ -14,7 +14,10 @@ Point: TypeAlias = tuple[float, float]
 _ASSET_DIR = Path(__file__).resolve().parents[1] / "_skin_assets" / "eagle_colored"
 _BODY_PNG = _ASSET_DIR / "eagle_colored_body.png"
 _SIDE_LEGS_PNG = _ASSET_DIR / "eagle_colored_side_legs.png"
-_LEG_ANCHOR_Y_OFFSET = 18.75
+_LEG_ANCHOR_X_OUTWARD_OFFSET = 12.5
+_LEG_ANCHOR_Y_OFFSET = -45.0
+_RIGHT_LEG_ANCHOR_X_INWARD_OFFSET = 6.25
+_RIGHT_LEG_ANCHOR_Y_OFFSET = -6.25
 
 
 @dataclass(frozen=True)
@@ -89,7 +92,13 @@ def _crop_half(surface, *, left: bool) -> _Asset:
     rect = pygame.Rect(half_rect.x + bbox.x, bbox.y, bbox.width, bbox.height)
     cropped = pygame.Surface(rect.size, pygame.SRCALPHA)
     cropped.blit(surface, (0, 0), rect)
-    full_anchor = (rect.centerx, rect.centery + _LEG_ANCHOR_Y_OFFSET)
+    x_offset = (
+        _LEG_ANCHOR_X_OUTWARD_OFFSET
+        if left
+        else -_LEG_ANCHOR_X_OUTWARD_OFFSET + _RIGHT_LEG_ANCHOR_X_INWARD_OFFSET
+    )
+    y_offset = _LEG_ANCHOR_Y_OFFSET if left else _LEG_ANCHOR_Y_OFFSET + _RIGHT_LEG_ANCHOR_Y_OFFSET
+    full_anchor = (rect.centerx + x_offset, rect.centery + y_offset)
     return _Asset(cropped, (full_anchor[0] - rect.x, full_anchor[1] - rect.y))
 
 
