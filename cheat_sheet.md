@@ -17,3 +17,9 @@ Alt-D
 
 ## Obsidian
 
+# Gimp
+
+Select -> None
+
+Windows → New Toolbox   Strg + B
+Windows → Dockable Dialogs → Tool Options
