@@ -191,6 +191,10 @@ Drive policy stays intentional: local runtime may keep all trial and robustness 
 
 For emergency preservation, copying the whole local checkpoint directory to Drive is acceptable when it is tiny.
 
+Best-eval checkpoints in Drive are precious, expensive, hard-won artifacts. Never delete, overwrite, rename, or replace `best_eval_checkpoint.pt` or related checkpoint archives unless the user explicitly asks for that exact destructive action after a clear warning.
+
+If an old checkpoint cannot be loaded because of stale Python module paths or pickle metadata, do not solve it by deleting the artifact. Preserve the original and, if needed, create a copied/migrated checkpoint beside it. The project may stay greenfield in code, but checkpoint preservation is paramount.
+
 ## Colab Lessons
 
 Colab can disconnect during long studies; the package is intended to resume studies through Optuna storage.

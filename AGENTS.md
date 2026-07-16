@@ -72,6 +72,12 @@ If the user chooses an option that appears significantly more complex or costly 
 
 Do not treat "go" as overriding this warning when the selected option conflicts with KISS/YAGNI or appears to create avoidable infrastructure duplication. First confirm that the user intentionally accepts the extra complexity.
 
+### Valuable Artifacts
+
+HPO best-eval checkpoints, especially Drive archives such as `best_eval_checkpoint.pt`, are expensive and hard-won artifacts. Treat them as gold. Never delete, overwrite, rename, or replace them unless the user explicitly asks for that exact destructive action after being warned.
+
+If a high-value checkpoint has an old or incompatible format, preserve the original and create a copied/migrated artifact beside it. This especially applies to best-eval archives, Drive-preserved pilots, and checkpoints the user identifies as hard-won or lucky finds. Runtime compatibility shims should still be avoided unless explicitly agreed, but preservation of these high-value artifacts is paramount.
+
 ### Explicit Simplification Tasks
 
 When the task is explicitly to simplify, set a LOC budget before implementation: production-code diff should be net negative unless the user explicitly accepts a tradeoff.
