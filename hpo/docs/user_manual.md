@@ -1,5 +1,16 @@
 # HPO User Manual
 
+---
+**Vorab**: Status dieses Manuals: 10% fertige Blockhütte in der chaotischen Entstehung.
+
+> [!quote] Codex:
+> Später können wir die anderen Bausteine drumherum sortieren: Flow, Setup, Optimize, Analyze, Appendix.
+
+Das schöne Dashboard hat Codex nicht genannt (der wertschätzt das stets geringer als ich).
+Naja, man kann es als wichtiges Tool innerhalb von Optimize sehen (vielleicht meinte er es so).
+
+---
+
 Purpose: a short handout for using the `hpo` package from notebooks or small Python modules.
 
 
@@ -20,15 +31,13 @@ Esc      Ende
 
 ## Typical Notebook Flow
 
-## Connect Storage
-
-### Local Runtime
-
-### Google Drive
-
-### Study Database
-
 ## Define The Study Setup
+
+### Convention over Configuration
+
+You normally do not configure HPO infrastructure in notebooks. HPO uses convention over configuration for local paths, Drive paths, database/log files, checkpoints, videos, and artifact layout.
+
+Define the study choices here: study name, environment, worlds, baseline/incumbent, search space, objective settings, and dashboard. If you need to change the infrastructure convention, override `InfraCfg`; see [Appendix: Infrastructure Overrides](#appendix-infrastructure-overrides).
 
 ### Environment Factory
 
@@ -69,3 +78,23 @@ This keeps Optuna's `trial.params` meaningful: it roughly means "Optuna optimize
 ## Colab Reconnects
 
 ## Minimal Examples
+
+## Appendix: Infrastructure Overrides
+
+HPO's notebook-facing APIs use default infrastructure conventions. Treat `InfraCfg` as an escape hatch, not as part of the normal study setup.
+
+`StudyRunner` uses its default study infrastructure config unless you pass another one:
+
+```python
+runner = StudyRunner(...)
+runner = StudyRunner(..., cfg=custom_study_infra_cfg)
+```
+
+Video recording follows the same idea:
+
+```python
+record_video(...)
+record_video(..., cfg=custom_video_infra_cfg)
+```
+
+Override `cfg` only for infrastructure concerns such as storage roots, artifact names, directory layout, or runtime-specific paths. Keep domain choices outside `InfraCfg`: study names, worlds, seeds, models, training parameters, objective settings, and search spaces stay explicit in the notebook.
