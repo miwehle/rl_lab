@@ -1,4 +1,4 @@
-"""Colored Eagle SVG skin for LunarLander-compatible rendering."""
+"""Colored Eagle skin for LunarLander-compatible rendering."""
 
 from __future__ import annotations
 
@@ -12,14 +12,14 @@ from gymnasium.envs.box2d import lunar_lander
 Point: TypeAlias = tuple[float, float]
 
 _ASSET_DIR = Path(__file__).resolve().parents[1] / "_skin_assets" / "eagle_colored"
-_BODY_SVG = _ASSET_DIR / "eagle_colored_body.svg"
-_SIDE_LEGS_SVG = _ASSET_DIR / "eagle_colored_side_legs.svg"
+_BODY_PNG = _ASSET_DIR / "eagle_colored_body.png"
+_SIDE_LEGS_PNG = _ASSET_DIR / "eagle_colored_side_legs.png"
 _LEG_ANCHOR_Y_OFFSET = 18.75
 
 
 @dataclass(frozen=True)
 class ColoredEagleSkin:
-    """Draw the colored Eagle body and Gym-coupled side legs from SVG assets."""
+    """Draw the colored Eagle body and Gym-coupled side legs from PNG assets."""
 
     scale: float = 0.16
     body_anchor: Point = (251.0, 282.0)
@@ -65,8 +65,8 @@ def _assets() -> tuple[_Asset, _Asset, _Asset]:
     if _CACHED_ASSETS is None:
         import pygame
 
-        body = pygame.image.load(str(_BODY_SVG))
-        side_legs = pygame.image.load(str(_SIDE_LEGS_SVG))
+        body = pygame.image.load(str(_BODY_PNG))
+        side_legs = pygame.image.load(str(_SIDE_LEGS_PNG))
         left_leg = _crop_half(side_legs, left=True)
         right_leg = _crop_half(side_legs, left=False)
         _CACHED_ASSETS = (
@@ -84,7 +84,7 @@ def _crop_half(surface, *, left: bool) -> _Asset:
     half_rect = pygame.Rect(0 if left else half_width, 0, half_width, surface.get_height())
     bbox = surface.subsurface(half_rect).get_bounding_rect(1)
     if bbox.width <= 0 or bbox.height <= 0:
-        raise ValueError("colored Eagle side-leg SVG does not contain visible pixels")
+        raise ValueError("colored Eagle side-leg asset does not contain visible pixels")
 
     rect = pygame.Rect(half_rect.x + bbox.x, bbox.y, bbox.width, bbox.height)
     cropped = pygame.Surface(rect.size, pygame.SRCALPHA)
