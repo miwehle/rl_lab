@@ -14,6 +14,7 @@ Point: TypeAlias = tuple[float, float]
 _ASSET_DIR = Path(__file__).resolve().parents[1] / "_skin_assets" / "eagle_colored"
 _BODY_PNG = _ASSET_DIR / "eagle_colored_body.png"
 _SIDE_LEGS_PNG = _ASSET_DIR / "eagle_colored_side_legs.png"
+_LANDING_Y_OFFSET = 50.0
 
 
 @dataclass(frozen=True)
@@ -21,7 +22,7 @@ class ColoredEagleSkin:
     """Draw the colored Eagle body and Gym-coupled side legs from PNG assets."""
 
     scale: float = 0.16
-    body_anchor: Point = (251.0, 282.0)
+    body_anchor: Point = (251.0, 282.0 + _LANDING_Y_OFFSET)
     right_leg_rest_angle: float = 0.492
     left_leg_rest_angle: float = -0.492
 
@@ -52,8 +53,8 @@ def _assets() -> tuple[_Asset, _Asset]:
         body = pygame.image.load(str(_BODY_PNG))
         side_legs = pygame.image.load(str(_SIDE_LEGS_PNG))
         _CACHED_ASSETS = (
-            _Asset(body, (251.0, 282.0)),
-            _Asset(side_legs, (251.0, 282.0)),
+            _Asset(body, (251.0, 282.0 + _LANDING_Y_OFFSET)),
+            _Asset(side_legs, (251.0, 282.0 + _LANDING_Y_OFFSET)),
         )
     return _CACHED_ASSETS
 
