@@ -54,15 +54,14 @@ def main() -> None:
     if args.refresh_assets:
         _refresh_assets(args.inkscape)
 
-    pygame.init()
+        pygame.init()
     try:
         skin = ColoredEagleSkin(scale=args.scale)
-        body, left_leg, right_leg = _assets()
-        lines = _asset_summary(skin, body, left_leg, right_leg)
+        body, side_legs = _assets()
+        lines = _asset_summary(skin, body, side_legs)
 
         _save_asset_previews(out_dir, skin, body.surface, "body")
-        _save_asset_previews(out_dir, skin, left_leg.surface, "left_leg")
-        _save_asset_previews(out_dir, skin, right_leg.surface, "right_leg")
+        _save_asset_previews(out_dir, skin, side_legs.surface, "side_legs")
 
         frame_paths = _save_lander_frames(
             out_dir,
@@ -130,15 +129,13 @@ def _clean_out_dir(out_dir: Path) -> None:
             path.unlink()
 
 
-def _asset_summary(skin, body, left_leg, right_leg) -> list[str]:
+def _asset_summary(skin, body, side_legs) -> list[str]:
     return [
         f"skin scale: {skin.scale}",
         f"body loaded: {body.surface.get_size()}, anchor: {body.anchor}",
-        f"left leg crop: {left_leg.surface.get_size()}, anchor: {left_leg.anchor}",
-        f"right leg crop: {right_leg.surface.get_size()}, anchor: {right_leg.anchor}",
+        f"side legs loaded: {side_legs.surface.get_size()}, anchor: {side_legs.anchor}",
         f"body target: {_scaled_size(body.surface, skin.scale)}",
-        f"left leg target: {_scaled_size(left_leg.surface, skin.scale)}",
-        f"right leg target: {_scaled_size(right_leg.surface, skin.scale)}",
+        f"side legs target: {_scaled_size(side_legs.surface, skin.scale)}",
     ]
 
 

@@ -14,10 +14,6 @@ Point: TypeAlias = tuple[float, float]
 _ASSET_DIR = Path(__file__).resolve().parents[1] / "_skin_assets" / "eagle_colored"
 _BODY_PNG = _ASSET_DIR / "eagle_colored_body.png"
 _SIDE_LEGS_PNG = _ASSET_DIR / "eagle_colored_side_legs.png"
-_LEG_ANCHOR_X_OUTWARD_OFFSET = 12.5
-_LEG_ANCHOR_Y_OFFSET = -45.0
-_RIGHT_LEG_ANCHOR_X_INWARD_OFFSET = 6.25
-_RIGHT_LEG_ANCHOR_Y_OFFSET = -6.25
 
 
 @dataclass(frozen=True)
@@ -34,24 +30,9 @@ class ColoredEagleSkin:
         if getattr(env, "lander", None) is None or len(getattr(env, "legs", ())) < 2:
             return
 
-        body, left_leg, right_leg = _assets()
+        body, side_legs = _assets()
+        _blit_on_body(surface, side_legs.surface, env.lander, side_legs.anchor, self.scale)
         _blit_on_body(surface, body.surface, env.lander, self.body_anchor, self.scale)
-        _blit_on_body(
-            surface,
-            left_leg.surface,
-            env.legs[1],
-            left_leg.anchor,
-            self.scale,
-            angle_offset=self.left_leg_rest_angle,
-        )
-        _blit_on_body(
-            surface,
-            right_leg.surface,
-            env.legs[0],
-            right_leg.anchor,
-            self.scale,
-            angle_offset=self.right_leg_rest_angle,
-        )
 
 
 @dataclass(frozen=True)
@@ -60,46 +41,21 @@ class _Asset:
     anchor: Point
 
 
-_CACHED_ASSETS: tuple[_Asset, _Asset, _Asset] | None = None
+_CACHED_ASSETS: tuple[_Asset, _Asset] | None = None
 
 
-def _assets() -> tuple[_Asset, _Asset, _Asset]:
+def _assets() -> tuple[_Asset, _Asset]:
     global _CACHED_ASSETS
     if _CACHED_ASSETS is None:
         import pygame
 
         body = pygame.image.load(str(_BODY_PNG))
         side_legs = pygame.image.load(str(_SIDE_LEGS_PNG))
-        left_leg = _crop_half(side_legs, left=True)
-        right_leg = _crop_half(side_legs, left=False)
         _CACHED_ASSETS = (
             _Asset(body, (251.0, 282.0)),
-            left_leg,
-            right_leg,
+            _Asset(side_legs, (251.0, 282.0)),
         )
     return _CACHED_ASSETS
-
-
-def _crop_half(surface, *, left: bool) -> _Asset:
-    import pygame
-
-    half_width = surface.get_width() // 2
-    half_rect = pygame.Rect(0 if left else half_width, 0, half_width, surface.get_height())
-    bbox = surface.subsurface(half_rect).get_bounding_rect(1)
-    if bbox.width <= 0 or bbox.height <= 0:
-        raise ValueError("colored Eagle side-leg asset does not contain visible pixels")
-
-    rect = pygame.Rect(half_rect.x + bbox.x, bbox.y, bbox.width, bbox.height)
-    cropped = pygame.Surface(rect.size, pygame.SRCALPHA)
-    cropped.blit(surface, (0, 0), rect)
-    x_offset = (
-        _LEG_ANCHOR_X_OUTWARD_OFFSET
-        if left
-        else -_LEG_ANCHOR_X_OUTWARD_OFFSET + _RIGHT_LEG_ANCHOR_X_INWARD_OFFSET
-    )
-    y_offset = _LEG_ANCHOR_Y_OFFSET if left else _LEG_ANCHOR_Y_OFFSET + _RIGHT_LEG_ANCHOR_Y_OFFSET
-    full_anchor = (rect.centerx + x_offset, rect.centery + y_offset)
-    return _Asset(cropped, (full_anchor[0] - rect.x, full_anchor[1] - rect.y))
 
 
 def _blit_on_body(surface, image, body, source_anchor: Point, scale: float, angle_offset: float = 0.0) -> None:
