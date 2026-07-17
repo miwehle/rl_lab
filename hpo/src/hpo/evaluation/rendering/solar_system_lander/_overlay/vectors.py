@@ -15,7 +15,7 @@ from hpo.evaluation.rendering.solar_system_lander._env_state import EnvState, Tu
 _WIND_ACCEL_SCALE = 4.0
 _TURBULENCE_ACCEL_SCALE = 2.4
 _KICK_DELTA_V_SCALE = 5.5
-_KICK_VISIBLE_STEPS = 25
+_KICK_VISIBLE_STEPS = 50
 _DISTURBANCE_VECTOR_ORIGIN_Y = 76
 
 
