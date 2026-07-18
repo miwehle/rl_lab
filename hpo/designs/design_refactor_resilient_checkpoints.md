@@ -2,45 +2,33 @@
 
 ## Goal
 
-HPO checkpoints should survive package refactorings. Improving module structure must not make hard-won model artifacts unusable.
+HPO best-eval checkpoints should keep working after small package refactorings.
 
 ## Problem
 
-PyTorch checkpoints can contain pickle data. Pickle may store Python module paths for custom objects, dataclasses, enums, or configs. If a package later moves, for example from `hpo.solar_system_lander` to `hpo.environments.solar_system_lander`, loading an old checkpoint can fail even though the model weights are still valuable.
+`torch.load(..., weights_only=False)` can unpickle Python objects and their old module paths. If checkpoint metadata contains custom objects from moved modules, loading can fail even though the model weights are still usable.
 
-## Design Rule
+## Format
 
-Long-lived checkpoints must store only refactor-resilient data:
-
-- model `state_dict`
-- primitive metadata: `str`, `int`, `float`, `bool`, `None`, `list`, `dict`
-- tensors
-
-Do not store Python objects such as environments, dataclass instances, enums, callables, or custom config objects in durable checkpoint metadata.
-
-## Shape
-
-Preferred archive shape:
+Use one source of truth for each concern:
 
 ```text
-best_eval_checkpoint.pt      model weights/state_dict
-best_eval_checkpoint.json    score, hidden_size, training config, world scores, study/trial info
+best_eval_checkpoint.pt    model state_dict only
+best_eval_checkpoint.json  metadata and config
 ```
 
-The JSON sidecar should be the normal source for metadata needed by notebooks and video recording. Loading a video should not need to unpickle old metadata just to discover `hidden_size`.
+The JSON sidecar contains values needed by notebooks and video recording, including `hidden_size`, score, training config, world scores, and study/trial info.
 
-## Implementation Direction
+## Implementation
 
-Keep `save_checkpoint(...)` simple, but make metadata JSON-safe before writing durable artifacts. A small guard such as `json.dumps(metadata)` is enough to catch accidental custom objects early.
+- Save checkpoints as `q_net.state_dict()`.
+- Load checkpoints with `torch.load(..., weights_only=True)`.
+- Read checkpoint metadata from the JSON file beside the checkpoint.
+- Do not read metadata from `.pt` files.
+- Do not add runtime compatibility code for old module paths or old checkpoint formats.
 
-If a high-value legacy checkpoint contains pickle references to old modules, do not mutate it. Preserve the original and create a migrated copy beside it using the current durable format.
+## Existing Artifacts
 
-## Non-Goals
+Existing JSON-safe `.pt` files in the old `{version, model_state_dict, metadata}` shape can still be read with `weights_only=True`; use only their `model_state_dict` and ignore `.pt` metadata.
 
-- No runtime compatibility layer for old module paths by default.
-- No generic artifact migration framework.
-- No deleting, overwriting, renaming, or replacing hard-won best-eval checkpoints.
-
-## KISS Rule
-
-Greenfield code is welcome. Greenfield treatment of valuable artifacts is not. Keep the checkpoint format boring, primitive, and explicit.
+When converting an old checkpoint, first verify the new-format copy and then delete the old artifact only when that is intentional.
