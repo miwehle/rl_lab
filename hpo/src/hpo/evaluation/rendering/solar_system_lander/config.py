@@ -32,7 +32,7 @@ def render_config(worlds: Iterable[str], *, overlay: bool = False, skin: str | N
         render_skin = ColoredEagleSkin()
     elif skin == "detailed_eagle":
         render_skin = DetailedEagleSkin()
-    elif skin == "eagle_photorealistic":
+    elif skin == "photorealistic_eagle":
         render_skin = PhotorealisticEagleSkin()
     else:
         raise ValueError(f"unknown render skin: {skin}")

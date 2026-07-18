@@ -75,7 +75,7 @@ def test_render_config_selects_colored_eagle_skin():
 
 
 def test_render_config_selects_photorealistic_eagle_skin():
-    config = render_config([World.EARTH], skin="eagle_photorealistic")
+    config = render_config([World.EARTH], skin="photorealistic_eagle")
 
     assert isinstance(config.skin, PhotorealisticEagleSkin)
 
