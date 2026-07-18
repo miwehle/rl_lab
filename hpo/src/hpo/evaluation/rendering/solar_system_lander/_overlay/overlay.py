@@ -17,34 +17,35 @@ from hpo.evaluation.rendering.solar_system_lander._overlay.vectors import (
 )
 
 
-def draw_overlay(surface, env_state: EnvState, overlay: LanderOverlay) -> None:
+def draw_overlay(surface, env_state: EnvState, overlay: LanderOverlay, *, render_scale: int = 1) -> None:
     import pygame
 
     lines = _overlay_lines(env_state)
 
     if not pygame.font.get_init():
         pygame.font.init()
-    font = pygame.font.Font(None, 18)
+    font = pygame.font.Font(None, 18 * render_scale)
     if env_state.score is not None:
         score_text = f"score: {float(env_state.score):.0f}"
-        _draw_text(surface, font, score_text, (surface.get_width() - 116, 8), overlay)
+        _draw_text(surface, font, score_text, (surface.get_width() - 116 * render_scale, 8 * render_scale), overlay)
 
-    x, y = 8, 8
+    x, y = 8 * render_scale, 8 * render_scale
     line_height = font.get_linesize()
     for index, line in enumerate(lines):
         position = (x, y + index * line_height)
         _draw_text(surface, font, line, position, overlay)
 
-    vector_origin = disturbance_vector_origin(surface)
-    draw_wind_indicator(surface, font, env_state.wind, overlay, vector_origin)
-    draw_kick_indicator(surface, font, env_state, overlay, vector_origin)
-    draw_turbulence_indicator(surface, font, env_state.turbulence, env_state.lander_screen_position, overlay)
+    vector_origin = disturbance_vector_origin(surface, render_scale=render_scale)
+    draw_wind_indicator(surface, font, env_state.wind, overlay, vector_origin, render_scale=render_scale)
+    draw_kick_indicator(surface, font, env_state, overlay, vector_origin, render_scale=render_scale)
+    draw_turbulence_indicator(surface, font, env_state.turbulence, env_state.lander_screen_position, overlay, render_scale=render_scale)
 
 
 def _draw_text(surface, font, line: str, position: tuple[int, int], overlay: LanderOverlay):
     shadow = font.render(line, True, overlay.shadow_color)
     text = font.render(line, True, overlay.text_color)
-    surface.blit(shadow, (position[0] + 1, position[1] + 1))
+    shadow_offset = max(1, round(font.get_height() / 18))
+    surface.blit(shadow, (position[0] + shadow_offset, position[1] + shadow_offset))
     surface.blit(text, position)
     return text
 

@@ -21,11 +21,15 @@ class LanderRenderWrapper(gym.Wrapper):
         colors: LanderColors | None = None,
         overlay: LanderOverlay | None = None,
         skin: LanderSkin | None = None,
+        render_scale: int = 1,
     ) -> None:
         super().__init__(env)
+        if render_scale < 1:
+            raise ValueError("render_scale must be >= 1")
         self.colors = colors or LanderColors()
         self.overlay = overlay
         self.skin = skin
+        self.render_scale = render_scale
         self.reset_seed: int | None = None
         self.steps_since_reset = 0
         self.score = 0.0
@@ -43,12 +47,14 @@ class LanderRenderWrapper(gym.Wrapper):
         return observation, reward, terminated, truncated, info
 
     def render(self):
-        return _render_lunar_lander(self.env.unwrapped, self, self.colors, self.overlay, self.skin)
+        return _render_lunar_lander(self.env.unwrapped, self, self.colors, self.overlay, self.skin, render_scale=self.render_scale)
 
 
 def _render_lunar_lander(
-    env, source_env, colors: LanderColors, overlay: LanderOverlay | None, skin: LanderSkin | None = None
+    env, source_env, colors: LanderColors, overlay: LanderOverlay | None, skin: LanderSkin | None = None, *, render_scale: int = 1
 ):
+    width = lunar_lander.VIEWPORT_W * render_scale
+    height = lunar_lander.VIEWPORT_H * render_scale
     if env.render_mode is None:
         assert env.spec is not None
         gym.logger.warn(
@@ -69,27 +75,27 @@ def _render_lunar_lander(
     if env.screen is None and env.render_mode == "human":
         pygame.init()
         pygame.display.init()
-        env.screen = pygame.display.set_mode((lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H))
+        env.screen = pygame.display.set_mode((width, height))
     if env.clock is None:
         env.clock = pygame.time.Clock()
 
-    env_state = EnvState.from_env(wrapper=source_env, env=env)
-    env.surf = pygame.Surface((lunar_lander.VIEWPORT_W, lunar_lander.VIEWPORT_H))
+    env_state = EnvState.from_env(wrapper=source_env, env=env, render_scale=render_scale)
+    env.surf = pygame.Surface((width, height))
 
     pygame.transform.scale(env.surf, (lunar_lander.SCALE, lunar_lander.SCALE))
     pygame.draw.rect(env.surf, colors.ground, env.surf.get_rect())
 
     _prepare_particles(env)
     env._clean_particles(False)
-    _draw_sky(env, colors, gfxdraw)
-    draw_gym_objects(env.surf, env, colors, gfxdraw, hide_lander_body=skin is not None)
-    draw_flags(env.surf, env, colors, env_state.wind, gfxdraw)
+    _draw_sky(env, colors, gfxdraw, render_scale=render_scale)
+    draw_gym_objects(env.surf, env, colors, gfxdraw, hide_lander_body=skin is not None, render_scale=render_scale)
+    draw_flags(env.surf, env, colors, env_state.wind, gfxdraw, render_scale=render_scale)
 
     env.surf = pygame.transform.flip(env.surf, False, True)
     if skin is not None:
-        skin.draw(env.surf, env)
+        skin.draw(env.surf, env, render_scale=render_scale)
     if overlay is not None:
-        draw_overlay(env.surf, env_state, overlay)
+        draw_overlay(env.surf, env_state, overlay, render_scale=render_scale)
 
     if env.render_mode == "human":
         assert env.screen is not None
@@ -119,13 +125,11 @@ def _prepare_particles(env) -> None:
         )
 
 
-def _draw_sky(env, colors: LanderColors, gfxdraw) -> None:
+def _draw_sky(env, colors: LanderColors, gfxdraw, *, render_scale: int) -> None:
     import pygame
 
     for polygon in env.sky_polys:
-        scaled_poly = []
-        for coord in polygon:
-            scaled_poly.append((coord[0] * lunar_lander.SCALE, coord[1] * lunar_lander.SCALE))
+        scaled_poly = [(coord[0] * lunar_lander.SCALE * render_scale, coord[1] * lunar_lander.SCALE * render_scale) for coord in polygon]
         pygame.draw.polygon(env.surf, colors.sky, scaled_poly)
         gfxdraw.aapolygon(env.surf, scaled_poly, colors.sky)
         pygame.draw.aaline(env.surf, colors.ground_outline, scaled_poly[0], scaled_poly[1])

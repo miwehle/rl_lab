@@ -14,10 +14,13 @@ class RenderConfig:
     colors_by_world: tuple[LanderColors | None, ...]
     overlay: LanderOverlay | None = None
     skin: LanderSkin | None = None
+    scale: int = 1
 
 
-def render_config(worlds: Iterable[str], *, overlay: bool = False, skin: str | None = None) -> RenderConfig:
+def render_config(worlds: Iterable[str], *, overlay: bool = False, skin: str | None = None, scale: int = 1) -> RenderConfig:
     """Build the usual SolarSystemLander video render configuration."""
+    if scale < 1:
+        raise ValueError("render scale must be >= 1")
     render_skin: LanderSkin | None
     if skin is None:
         render_skin = None
@@ -32,6 +35,7 @@ def render_config(worlds: Iterable[str], *, overlay: bool = False, skin: str | N
         colors_by_world=tuple(world_colors(worlds)),
         overlay=LanderOverlay() if overlay else None,
         skin=render_skin,
+        scale=scale,
     )
 
 
@@ -39,6 +43,4 @@ def wrap_env(env, render_cfg: RenderConfig):
     """Return env wrapped for custom SolarSystemLander rendering."""
     if len(render_cfg.colors_by_world) != 1:
         raise ValueError("render_cfg for one env must contain exactly one world color")
-    return LanderRenderWrapper(
-        env, colors=render_cfg.colors_by_world[0], overlay=render_cfg.overlay, skin=render_cfg.skin
-    )
+    return LanderRenderWrapper(env, colors=render_cfg.colors_by_world[0], overlay=render_cfg.overlay, skin=render_cfg.skin, render_scale=render_cfg.scale)

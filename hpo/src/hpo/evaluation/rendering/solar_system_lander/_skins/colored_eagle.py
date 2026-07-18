@@ -26,14 +26,15 @@ class ColoredEagleSkin:
     right_leg_rest_angle: float = 0.492
     left_leg_rest_angle: float = -0.492
 
-    def draw(self, surface, env) -> None:
+    def draw(self, surface, env, *, render_scale: int = 1) -> None:
         """Draw the skin on an already screen-oriented LunarLander surface."""
         if getattr(env, "lander", None) is None or len(getattr(env, "legs", ())) < 2:
             return
 
         body, side_legs = _assets()
-        _blit_on_body(surface, side_legs.surface, env.lander, side_legs.anchor, self.scale)
-        _blit_on_body(surface, body.surface, env.lander, self.body_anchor, self.scale)
+        scale = self.scale * render_scale
+        _blit_on_body(surface, side_legs.surface, env.lander, side_legs.anchor, scale, render_scale=render_scale)
+        _blit_on_body(surface, body.surface, env.lander, self.body_anchor, scale, render_scale=render_scale)
 
 
 @dataclass(frozen=True)
@@ -59,7 +60,9 @@ def _assets() -> tuple[_Asset, _Asset]:
     return _CACHED_ASSETS
 
 
-def _blit_on_body(surface, image, body, source_anchor: Point, scale: float, angle_offset: float = 0.0) -> None:
+def _blit_on_body(
+    surface, image, body, source_anchor: Point, scale: float, angle_offset: float = 0.0, *, render_scale: int = 1
+) -> None:
     import pygame
 
     scaled_size = (
@@ -71,7 +74,7 @@ def _blit_on_body(surface, image, body, source_anchor: Point, scale: float, angl
     angle = math.degrees(float(body.angle) - angle_offset)
     rotated = pygame.transform.rotate(scaled, angle)
     rotated_anchor = _rotated_anchor(scaled.get_size(), rotated.get_size(), scaled_anchor, angle)
-    target_anchor = _body_to_screen(body.position)
+    target_anchor = _body_to_screen(body.position, render_scale=render_scale)
     surface.blit(rotated, (round(target_anchor[0] - rotated_anchor[0]), round(target_anchor[1] - rotated_anchor[1])))
 
 
@@ -88,7 +91,7 @@ def _rotated_anchor(
     return rotated_center[0] + dx * cos_a - dy * sin_a, rotated_center[1] + dx * sin_a + dy * cos_a
 
 
-def _body_to_screen(position) -> tuple[int, int]:
-    return round(position[0] * lunar_lander.SCALE), round(
-        lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE
+def _body_to_screen(position, *, render_scale: int = 1) -> tuple[int, int]:
+    return round(position[0] * lunar_lander.SCALE * render_scale), round(
+        (lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE) * render_scale
     )

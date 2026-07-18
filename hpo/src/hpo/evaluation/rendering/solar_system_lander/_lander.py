@@ -10,11 +10,14 @@ from hpo.evaluation.rendering.solar_system_lander._colors import LanderColors, R
 class LanderSkin(Protocol):
     """Optional visual replacement for the default Gym lander body."""
 
-    def draw(self, surface, env) -> None:
+    def draw(self, surface, env, *, render_scale: int = 1) -> None:
         """Draw the lander on an already screen-oriented surface."""
 
 
-def draw_gym_objects(surface, env, colors: LanderColors, gfxdraw, *, hide_lander_body: bool) -> None:
+def draw_gym_objects(
+    surface, env, colors: LanderColors, gfxdraw, *, hide_lander_body: bool, render_scale: int = 1
+) -> None:
+    scale = lunar_lander.SCALE * render_scale
     for obj in env.particles + env.drawlist:
         if hide_lander_body and is_lander_body(obj, env):
             continue
@@ -22,11 +25,11 @@ def draw_gym_objects(surface, env, colors: LanderColors, gfxdraw, *, hide_lander
             trans = fixture.body.transform
             fill, outline = _object_colors(obj, env, colors)
             if type(fixture.shape) is lunar_lander.circleShape:
-                center = trans * fixture.shape.pos * lunar_lander.SCALE
-                radius = fixture.shape.radius * lunar_lander.SCALE
+                center = trans * fixture.shape.pos * scale
+                radius = fixture.shape.radius * scale
                 _draw_circle(surface, center, radius, fill, outline)
             else:
-                path = [trans * vertex * lunar_lander.SCALE for vertex in fixture.shape.vertices]
+                path = [trans * vertex * scale for vertex in fixture.shape.vertices]
                 _draw_polygon(surface, gfxdraw, path, fill, outline)
 
 

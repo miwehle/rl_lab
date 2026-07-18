@@ -47,28 +47,28 @@ class DetailedEagleSkin:
         object.__setattr__(self, "_left_leg_anchor", _lift_leg_anchor(_bbox_center(left_ops)))
         object.__setattr__(self, "_right_leg_anchor", _lift_leg_anchor(_bbox_center(right_ops)))
 
-    def draw(self, surface, env) -> None:
+    def draw(self, surface, env, *, render_scale: int = 1) -> None:
         """Draw the skin on an already screen-oriented LunarLander surface."""
         if getattr(env, "lander", None) is None or len(getattr(env, "legs", ())) < 2:
             return
 
-        if _should_draw_halo(surface, env.lander.position, self.halo):
-            self._draw(surface, env, outline_only=True)
-        self._draw(surface, env, outline_only=False)
+        scale = self.scale * render_scale
+        if _should_draw_halo(surface, env.lander.position, self.halo, render_scale=render_scale):
+            self._draw(surface, env, scale=scale, render_scale=render_scale, outline_only=True)
+        self._draw(surface, env, scale=scale, render_scale=render_scale, outline_only=False)
 
-    def _draw(self, surface, env, *, outline_only: bool) -> None:
+    def _draw(self, surface, env, *, scale: float, render_scale: int, outline_only: bool) -> None:
         body_ops = self._body_outline_ops if outline_only else EAGLE_BODY_OPS
         left_leg_ops = self._left_leg_outline_ops if outline_only else self._left_leg_ops
         right_leg_ops = self._right_leg_outline_ops if outline_only else self._right_leg_ops
-        _draw_ops(
-            surface, body_ops, env.lander, self.body_anchor, scale=self.scale, outline_only=outline_only
-        )
+        _draw_ops(surface, body_ops, env.lander, self.body_anchor, scale=scale, render_scale=render_scale, outline_only=outline_only)
         _draw_ops(
             surface,
             left_leg_ops,
             env.legs[1],
             self._left_leg_anchor,
-            scale=self.scale,
+            scale=scale,
+            render_scale=render_scale,
             angle_offset=self.left_leg_rest_angle,
             outline_only=outline_only,
         )
@@ -77,7 +77,8 @@ class DetailedEagleSkin:
             right_leg_ops,
             env.legs[0],
             self._right_leg_anchor,
-            scale=self.scale,
+            scale=scale,
+            render_scale=render_scale,
             angle_offset=self.right_leg_rest_angle,
             outline_only=outline_only,
         )
@@ -90,6 +91,7 @@ def _draw_ops(
     source_anchor: Point,
     *,
     scale: float,
+    render_scale: int = 1,
     angle_offset: float = 0.0,
     outline_only: bool = False,
 ) -> None:
@@ -97,15 +99,15 @@ def _draw_ops(
 
     for kind, fill_hex, stroke_hex, stroke_width, points in ops:
         op = (kind, fill_hex, stroke_hex, stroke_width, points)
-        if _draw_lod_op(surface, op, body, source_anchor, scale, angle_offset, outline_only):
+        if _draw_tiny_circle_op(surface, op, body, source_anchor, scale, render_scale, angle_offset, outline_only):
             continue
-        transformed = [_source_to_screen(point, body, source_anchor, scale, angle_offset) for point in points]
+        transformed = [_source_to_screen(point, body, source_anchor, scale, render_scale, angle_offset) for point in points]
         fill = _rgb(fill_hex)
         stroke = _rgb(stroke_hex)
         if outline_only:
             stroke = _HALO_OUTLINE_COLOR
             fill = None
-            width = max(1, round(stroke_width * scale)) + _HALO_WIDTH_ADD
+            width = max(1, round(stroke_width * scale)) + _HALO_WIDTH_ADD * render_scale
         else:
             width = max(1, round(stroke_width * scale))
 
@@ -120,15 +122,7 @@ def _draw_ops(
                 pygame.draw.lines(surface, color, False, transformed, width)
 
 
-def _draw_lod_op(
-    surface, op: Op, body, source_anchor: Point, scale: float, angle_offset: float, outline_only: bool
-) -> bool:
-    return _draw_tiny_circle_op(surface, op, body, source_anchor, scale, angle_offset, outline_only)
-
-
-def _draw_tiny_circle_op(
-    surface, op: Op, body, source_anchor: Point, scale: float, angle_offset: float, outline_only: bool
-) -> bool:
+def _draw_tiny_circle_op(surface, op: Op, body, source_anchor: Point, scale: float, render_scale: int, angle_offset: float, outline_only: bool) -> bool:
     kind, fill_hex, stroke_hex, stroke_width, points = op
     if outline_only or not _is_tiny_circle_op(op, scale):
         return False
@@ -137,7 +131,7 @@ def _draw_tiny_circle_op(
 
     min_x, min_y, max_x, max_y = _bbox(points)
     center = _source_to_screen(
-        ((min_x + max_x) / 2, (min_y + max_y) / 2), body, source_anchor, scale, angle_offset
+        ((min_x + max_x) / 2, (min_y + max_y) / 2), body, source_anchor, scale, render_scale, angle_offset
     )
     radius = max(1, round(((max_x - min_x) + (max_y - min_y)) * scale / 4))
     fill = _rgb(fill_hex)
@@ -168,29 +162,29 @@ def _is_tiny_circle_op(op: Op, scale: float) -> bool:
 
 
 def _source_to_screen(
-    point: Point, body, source_anchor: Point, scale: float, angle_offset: float
+    point: Point, body, source_anchor: Point, scale: float, render_scale: int, angle_offset: float
 ) -> tuple[int, int]:
     dx = (point[0] - source_anchor[0]) * scale
     dy = (point[1] - source_anchor[1]) * scale
     angle = -(float(body.angle) - angle_offset)
     cos_a = math.cos(angle)
     sin_a = math.sin(angle)
-    origin = _body_to_screen(body.position)
+    origin = _body_to_screen(body.position, render_scale=render_scale)
     return (round(origin[0] + dx * cos_a - dy * sin_a), round(origin[1] + dx * sin_a + dy * cos_a))
 
 
-def _body_to_screen(position) -> tuple[int, int]:
-    return round(position[0] * lunar_lander.SCALE), round(
-        lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE
+def _body_to_screen(position, *, render_scale: float = 1.0) -> tuple[int, int]:
+    return round(position[0] * lunar_lander.SCALE * render_scale), round(
+        (lunar_lander.VIEWPORT_H - position[1] * lunar_lander.SCALE) * render_scale
     )
 
 
-def _should_draw_halo(surface, lander_position, halo: HaloMode) -> bool:
+def _should_draw_halo(surface, lander_position, halo: HaloMode, *, render_scale: int = 1) -> bool:
     if halo == "always":
         return True
     if halo == "never":
         return False
-    return _mean_luma_around(surface, _body_to_screen(lander_position)) < _HALO_LUMA_THRESHOLD
+    return _mean_luma_around(surface, _body_to_screen(lander_position, render_scale=render_scale)) < _HALO_LUMA_THRESHOLD
 
 
 def _mean_luma_around(surface, center: tuple[int, int]) -> float:

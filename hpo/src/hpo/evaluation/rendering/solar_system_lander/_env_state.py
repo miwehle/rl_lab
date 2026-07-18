@@ -65,7 +65,7 @@ class EnvState:
     lander_screen_position: tuple[int, int] | None
 
     @classmethod
-    def from_env(cls, *, wrapper, env) -> "EnvState":
+    def from_env(cls, *, wrapper, env, render_scale: int = 1) -> "EnvState":
         """Extract render values from the LanderRenderWrapper and unwrapped Gym env.
 
         wrapper:
@@ -91,7 +91,7 @@ class EnvState:
             wind=WindState.from_env(env, mass),
             turbulence=TurbulenceState.from_env(env, inertia),
             initial_kick_delta_v=kick,
-            lander_screen_position=_lander_screen_position(env),
+            lander_screen_position=_lander_screen_position(env, render_scale=render_scale),
         )
 
 
@@ -115,14 +115,14 @@ def _max_acceleration(force: float, divisor: float) -> float:
     return abs(float(force)) / float(divisor)
 
 
-def _lander_screen_position(env) -> tuple[int, int] | None:
+def _lander_screen_position(env, *, render_scale: int = 1) -> tuple[int, int] | None:
     env = getattr(env, "unwrapped", env)
     lander = getattr(env, "lander", None)
     if lander is None:
         return None
     return (
-        int(lander.position.x * lunar_lander.SCALE),
-        int(lunar_lander.VIEWPORT_H - lander.position.y * lunar_lander.SCALE),
+        int(lander.position.x * lunar_lander.SCALE * render_scale),
+        int((lunar_lander.VIEWPORT_H - lander.position.y * lunar_lander.SCALE) * render_scale),
     )
 
 

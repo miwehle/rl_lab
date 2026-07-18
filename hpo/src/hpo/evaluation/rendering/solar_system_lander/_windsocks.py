@@ -11,23 +11,23 @@ _WINDSOCK_DEAD_ZONE = 0.4
 _WINDSOCK_FULL_ACCEL = 2.0
 
 
-def draw_flags(surface, env, colors: LanderColors, wind: WindState, gfxdraw) -> None:
+def draw_flags(surface, env, colors: LanderColors, wind: WindState, gfxdraw, *, render_scale: int = 1) -> None:
     import pygame
 
     for x in [env.helipad_x1, env.helipad_x2]:
-        x = x * lunar_lander.SCALE
-        flagy1 = env.helipad_y * lunar_lander.SCALE
-        flagy2 = flagy1 + 50
-        pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=1)
-        _draw_windsock(surface, gfxdraw, (x, flagy2 - 8), wind.acceleration or 0.0)
+        x = x * lunar_lander.SCALE * render_scale
+        flagy1 = env.helipad_y * lunar_lander.SCALE * render_scale
+        flagy2 = flagy1 + 50 * render_scale
+        pygame.draw.line(surface, color=colors.flag_pole, start_pos=(x, flagy1), end_pos=(x, flagy2), width=render_scale)
+        _draw_windsock(surface, gfxdraw, (x, flagy2 - 8 * render_scale), wind.acceleration or 0.0, render_scale)
 
 
-def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind_acceleration: float) -> None:
+def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind_acceleration: float, render_scale: int) -> None:
     import pygame
 
     direction = 1 if wind_acceleration >= 0 else -1
     strength = _windsock_strength(abs(wind_acceleration))
-    length = 16 + 30 * strength
+    length = (16 + 30 * strength) * render_scale
     horizontal = strength
     droop = 1.0 - strength
     segment_count = 5
@@ -35,10 +35,10 @@ def _draw_windsock(surface, gfxdraw, anchor: tuple[float, float], wind_accelerat
     for index in range(segment_count + 1):
         t = index / segment_count
         x = anchor[0] + direction * length * horizontal * t
-        y = anchor[1] + 4 - (6 + 22 * droop) * (t**1.25)
+        y = anchor[1] + 4 * render_scale - (6 + 22 * droop) * render_scale * (t**1.25)
         centerline.append((x, y))
 
-    widths = [10 - 5 * index / segment_count for index in range(segment_count + 1)]
+    widths = [(10 - 5 * index / segment_count) * render_scale for index in range(segment_count + 1)]
     colors = ((220, 0, 0), (245, 245, 245), (220, 0, 0), (245, 245, 245), (220, 0, 0))
     for index in range(segment_count):
         p0 = centerline[index]

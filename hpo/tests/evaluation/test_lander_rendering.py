@@ -34,9 +34,9 @@ class MarkerSkin:
     def __init__(self):
         self.calls = []
 
-    def draw(self, surface, env):
-        self.calls.append(env)
-        surface.set_at((7, 9), (255, 0, 0))
+    def draw(self, surface, env, *, render_scale: int = 1):
+        self.calls.append((env, render_scale))
+        surface.set_at((7 * render_scale, 9 * render_scale), (255, 0, 0))
 
 
 def test_world_colors_returns_colors_in_world_order():
@@ -54,11 +54,12 @@ def test_world_colors_rejects_unknown_world():
 
 
 def test_render_config_hides_common_rendering_details():
-    config = render_config([World.EARTH], overlay=True, skin="detailed_eagle")
+    config = render_config([World.EARTH], overlay=True, skin="detailed_eagle", scale=2)
 
     assert config.colors_by_world == (world_colors([World.EARTH])[0],)
     assert config.overlay == LanderOverlay()
     assert isinstance(config.skin, DetailedEagleSkin)
+    assert config.scale == 2
 
 
 def test_render_config_selects_colored_eagle_skin():
@@ -72,6 +73,11 @@ def test_render_config_selects_colored_eagle_skin():
 def test_render_config_rejects_unknown_skin():
     with pytest.raises(ValueError, match="unknown render skin"):
         render_config([World.EARTH], skin="cardboard_eagle")
+
+
+def test_render_config_rejects_invalid_scale():
+    with pytest.raises(ValueError, match="scale"):
+        render_config([World.EARTH], scale=0)
 
 
 def test_wrap_env_returns_decorated_render_env():
@@ -136,6 +142,17 @@ class TestLanderRenderWrapper:
         assert tuple(frame[10, 10]) == colors.sky
         assert tuple(frame[390, 10]) == colors.ground
 
+    def test_scales_frame_natively(self):
+        env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), render_scale=2)
+
+        try:
+            env.reset(seed=123)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert frame.shape == (800, 1200, 3)
+
     def test_does_not_draw_vertical_sky_polygon_seams(self):
         colors = LanderColors(sky=(10, 20, 30), ground=(40, 50, 60), ground_outline=(40, 50, 60))
         env = LanderRenderWrapper(gym.make("LunarLander-v3", render_mode="rgb_array"), colors)
@@ -196,6 +213,7 @@ class TestLanderRenderWrapper:
             env.close()
 
         assert len(skin.calls) == 1
+        assert skin.calls[0][1] == 1
         assert tuple(frame[9, 7]) == (255, 0, 0)
 
     def test_detailed_eagle_skin_renders_frame(self):
