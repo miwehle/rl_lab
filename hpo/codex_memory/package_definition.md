@@ -191,9 +191,11 @@ Drive policy stays intentional: local runtime may keep all trial and robustness 
 
 Best-eval checkpoints live in Google Drive, not normally in the repo. On the user's Windows machine, Google Drive is mounted locally as `G:`, so Drive paths and `G:` paths refer to the same physical artifacts.
 
+The active `solar_system_lander_10d_elise_stp` best-eval checkpoint folder in Drive is the converted/new-format folder and is used by the video notebook. Old not-directly-readable checkpoint folders were moved to `G:\Meine Ablage\rl_lab\hpo\best_checkpoints\_archive\old_checkpoints_in_old_format`.
+
 For emergency preservation, copying the whole local checkpoint directory to Drive is acceptable when it is tiny.
 
-Best-eval checkpoints in Drive are hard-won artifacts. Do not delete, overwrite, rename, or replace `best_eval_checkpoint.pt` or related checkpoint archives unless the user explicitly asks for that exact destructive action.
+Best-eval checkpoints in Drive are hard-won artifacts. Do not delete, overwrite, rename, or replace checkpoint archives unless the user explicitly asks for that exact destructive action.
 
 For HPO source code, prefer greenfield simplicity over runtime backward compatibility. If old checkpoint artifacts are migrated, verify the new-format copy first; after that, old-format artifacts do not need to be kept forever and may be deleted when the user intentionally chooses that.
 

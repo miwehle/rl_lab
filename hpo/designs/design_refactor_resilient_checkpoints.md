@@ -31,4 +31,8 @@ The JSON sidecar contains values needed by notebooks and video recording, includ
 
 Existing JSON-safe `.pt` files in the old `{version, model_state_dict, metadata}` shape can still be read with `weights_only=True`; use only their `model_state_dict` and ignore `.pt` metadata.
 
+Some older `.pt` files contain pickled custom objects in metadata and cannot be read with `weights_only=True`. Do not add source-code compatibility for them; convert them once outside the normal runtime path.
+
+The active Drive folder `best_checkpoints/solar_system_lander_10d_elise_stp` now contains the converted checkpoint used by the video notebook. Old not-directly-readable checkpoint folders were moved to `G:\Meine Ablage\rl_lab\hpo\best_checkpoints\_archive\old_checkpoints_in_old_format`.
+
 When converting an old checkpoint, first verify the new-format copy and then delete the old artifact only when that is intentional.

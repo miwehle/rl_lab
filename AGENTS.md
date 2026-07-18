@@ -77,9 +77,9 @@ Do not treat "go" as overriding this warning when the selected option conflicts 
 
 ### Valuable Artifacts
 
-HPO best-eval checkpoints, especially Drive archives such as `best_eval_checkpoint.pt`, are expensive and hard-won artifacts. Treat them as gold. Never delete, overwrite, rename, or replace them unless the user explicitly asks for that exact destructive action after being warned.
+HPO best-eval checkpoints, especially Drive archives, are expensive and hard-won artifacts. Treat them carefully. Never delete, overwrite, rename, or replace them unless the user explicitly asks for that exact destructive action after being warned.
 
-If a high-value checkpoint has an old or incompatible format, preserve the original and create a copied/migrated artifact beside it. This especially applies to best-eval archives, Drive-preserved pilots, and checkpoints the user identifies as hard-won or lucky finds. Runtime compatibility shims should still be avoided unless explicitly agreed, but preservation of these high-value artifacts is paramount.
+If a high-value checkpoint has an old or incompatible format, first create and verify a copied/migrated artifact beside it. After the new-format copy works, old-format artifacts do not need to be kept forever and may be deleted when the user intentionally chooses that. Runtime compatibility shims should still be avoided unless explicitly agreed.
 
 ### Explicit Simplification Tasks
 
