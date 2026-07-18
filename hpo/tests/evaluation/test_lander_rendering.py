@@ -10,8 +10,8 @@ from hpo.evaluation.rendering.solar_system_lander._colors import (
     _force_color,
     world_colors,
 )
+from hpo.evaluation.rendering.solar_system_lander._env_state import EnvState, WindState
 from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper
-from hpo.evaluation.rendering.solar_system_lander._env_state import WindState
 from hpo.evaluation.rendering.solar_system_lander._skins import ColoredEagleSkin, DetailedEagleSkin
 from hpo.environments.solar_system_lander.env import EnvFactory, World
 
@@ -174,6 +174,16 @@ class TestLanderRenderWrapper:
         turbulence_x = max(26, min(x + 110, overlay_frame.shape[1] - 26))
         turbulence_neighborhood = np.s_[32:95, max(turbulence_x - 35, 0) : turbulence_x + 35]
         assert np.any(overlay_frame[turbulence_neighborhood] != plain_frame[turbulence_neighborhood])
+
+    def test_env_state_keeps_world_context_through_render_wrapper(self):
+        env = LanderRenderWrapper(EnvFactory("10d", world_mix={World.VENUS: 1}).make_env(World.VENUS))
+        try:
+            state = EnvState.from_env(wrapper=env, env=env.env.unwrapped)
+        finally:
+            env.close()
+
+        assert state.world_name == "venus"
+        assert state.gravity == pytest.approx(-9.0)
 
     def test_draws_optional_skin_on_screen_oriented_surface(self):
         skin = MarkerSkin()

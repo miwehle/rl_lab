@@ -37,6 +37,22 @@ WORLDS = (
 DEFAULT_WORLD_MIX = {world.name: 1 for world in WORLDS}
 
 
+def env_world(env):
+    """Return the SolarSystemLander world through Gym wrapper layers."""
+    while env is not None:
+        world = getattr(env, "world", None)
+        if world is not None:
+            return world
+        env = getattr(env, "env", None)
+    return None
+
+
+def env_world_name(env) -> str | None:
+    world = env_world(env)
+    name = getattr(world, "name", None)
+    return None if name is None else str(name)
+
+
 def acceleration_vector(previous_observation: np.ndarray, observation: np.ndarray) -> np.ndarray:
     """Return clipped velocity delta from two LunarLander observations."""
     previous_velocity = previous_observation[2:4]

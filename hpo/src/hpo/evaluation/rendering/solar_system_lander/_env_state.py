@@ -6,6 +6,8 @@ import math
 from gymnasium.envs.box2d import lunar_lander
 from gymnasium.utils import seeding
 
+from hpo.environments.solar_system_lander.env import env_world, env_world_name
+
 
 @dataclass(frozen=True)
 class WindState:
@@ -74,14 +76,15 @@ class EnvState:
             The unwrapped Gym/Box2D env. Provides world and physics state such
             as lander body, legs, weather, wind, and turbulence.
         """
+        world = env_world(wrapper)
+        world_name = env_world_name(wrapper)
         env = getattr(env, "unwrapped", env)
-        world = getattr(env, "world", None)
         lander = getattr(env, "lander", None)
         mass = getattr(lander, "mass", None)
         inertia = getattr(lander, "inertia", None)
         kick = _initial_kick(getattr(wrapper, "reset_seed", None), mass)
         return cls(
-            world_name=_world_name(world),
+            world_name=world_name,
             gravity=_world_gravity(world),
             score=getattr(wrapper, "score", None),
             step=getattr(wrapper, "steps_since_reset", 0),
@@ -92,20 +95,7 @@ class EnvState:
         )
 
 
-def _world_name(world) -> str | None:
-    if world is None:
-        return None
-    name = getattr(world, "name", None)
-    if name is None:
-        return None
-    return str(name)
-
-
 def _world_gravity(world) -> float | None:
-    if world is None:
-        return None
-    if _world_name(world) is None:
-        return None
     gravity = getattr(world, "gravity", None)
     if gravity is None:
         return None

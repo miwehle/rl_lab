@@ -17,6 +17,7 @@ from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
 from hpo.checkpointing import checkpoint_metadata as load_checkpoint_metadata
 from hpo.checkpointing import load_checkpoint
+from hpo.environments.solar_system_lander.env import env_world_name
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 
 
@@ -237,24 +238,12 @@ def _hold_final_frame(env) -> None:
 
 def _record_video_name(checkpoint_path: Path, env, seed: int | None) -> str:
     parts = [checkpoint_path.stem]
-    world_name = _env_world_name(env)
+    world_name = env_world_name(env)
     if world_name is not None:
         parts.append(world_name)
     if seed is not None:
         parts.append(f"seed_{seed}")
     return "_".join(parts)
-
-
-def _env_world_name(env) -> str | None:
-    current = env
-    while current is not None:
-        world = getattr(current, "world", None)
-        if world is not None:
-            name = getattr(world, "name", None)
-            if name is not None:
-                return str(name)
-        current = getattr(current, "env", None)
-    return None
 
 
 def _checkpoint_hidden_size(path: str | Path) -> int:

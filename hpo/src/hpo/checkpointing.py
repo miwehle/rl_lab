@@ -9,6 +9,7 @@ import torch
 from torch import nn
 
 from dqn.vector_training import VectorTrainer, VectorTrainingConfig
+from hpo.environments.solar_system_lander.env import env_world_name
 from hpo.objective import ObjectiveContext
 from hpo.study.infra_cfg import InfraCfg
 from hpo.study.reporting import TrainingProgressFn, TrainingProgressPlotter
@@ -353,16 +354,7 @@ def _env_labels(env: Any) -> list[str | None] | None:
     envs = getattr(env, "envs", None)
     if envs is None:
         return None
-    return [_env_label(sub_env) for sub_env in envs]
-
-
-def _env_label(env: Any) -> str | None:
-    while env is not None:
-        world = getattr(env, "world", None)
-        if world is not None:
-            return getattr(world, "name", None)
-        env = getattr(env, "env", None)
-    return None
+    return [env_world_name(sub_env) for sub_env in envs]
 
 
 def save_checkpoint(q_net: nn.Module, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
