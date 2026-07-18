@@ -71,7 +71,10 @@ def _blit_on_body(
     )
     scaled = pygame.transform.smoothscale(image, scaled_size)
     scaled_anchor = (source_anchor[0] * scale, source_anchor[1] * scale)
-    angle = math.degrees(float(body.angle) - angle_offset)
+    angle_rad = float(body.angle) - angle_offset
+    if abs(angle_rad) < math.radians(0.5):
+        angle_rad = 0.0
+    angle = math.degrees(angle_rad)
     rotated = pygame.transform.rotate(scaled, angle)
     rotated_anchor = _rotated_anchor(scaled.get_size(), rotated.get_size(), scaled_anchor, angle)
     target_anchor = _body_to_screen(body.position, render_scale=render_scale)
