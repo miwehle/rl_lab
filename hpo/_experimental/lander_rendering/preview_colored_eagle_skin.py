@@ -35,9 +35,10 @@ DEFAULT_INKSCAPE = Path(
     )
 )
 ASSET_DIR = REPO_ROOT / "hpo" / "src" / "hpo" / "evaluation" / "rendering" / "solar_system_lander" / "_skin_assets" / "eagle_colored"
+SOURCE_DIR = ASSET_DIR / "_archive"
 SVG_TO_PNG = (
-    (ASSET_DIR / "eagle_colored_body.svg", ASSET_DIR / "eagle_colored_body.png"),
-    (ASSET_DIR / "eagle_colored_side_legs.svg", ASSET_DIR / "eagle_colored_side_legs.png"),
+    (SOURCE_DIR / "eagle_colored_body.svg", ASSET_DIR / "eagle_colored_body.png"),
+    (SOURCE_DIR / "eagle_colored_side_legs.svg", ASSET_DIR / "eagle_colored_side_legs.png"),
 )
 SKY = (143, 199, 232)
 CHECKER_A = (214, 219, 224)
