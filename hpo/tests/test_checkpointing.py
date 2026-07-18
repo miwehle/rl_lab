@@ -12,6 +12,7 @@ from hpo.checkpointing import (
     BestCheckpointRecorder,
     EvaluationBestCheckpointRecorder,
     ObjectiveHookFactory,
+    checkpoint_metadata,
     _env_labels,
     best_checkpoint,
     load_checkpoint,
@@ -83,8 +84,8 @@ def cartpole_vector_env():
 
 def loaded_weight(path, *, device=torch.device("cpu")) -> tuple[float, dict]:
     restored = torch.nn.Linear(1, 1)
-    metadata = load_checkpoint(restored, path, device)
-    return first_weight(restored), metadata
+    load_checkpoint(restored, path, device)
+    return first_weight(restored), checkpoint_metadata(path)
 
 
 def study_cfg(tmp_path) -> InfraCfg:
@@ -170,10 +171,26 @@ class TestEvaluationBestCheckpointRecorder:
         recorder.after_evaluation(ctx)
 
         weight, metadata = loaded_weight(path)
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+
         assert weight == pytest.approx(9.0)
+        assert list(checkpoint) == ["weight", "bias"]
         assert metadata["score"] == pytest.approx(211.0)
         assert metadata["episode"] == 3
         assert metadata["window"] is None
+
+    def test_load_checkpoint_reads_json_safe_old_container_shape(self, tmp_path) -> None:
+        path = tmp_path / "old.pt"
+        model = linear_with_weight(6.0)
+        torch.save(
+            {"version": 1, "model_state_dict": model.state_dict(), "metadata": {"score": 211.0}},
+            path,
+        )
+        restored = torch.nn.Linear(1, 1)
+
+        load_checkpoint(restored, path)
+
+        assert first_weight(restored) == pytest.approx(6.0)
 
 
 class TestObjectiveHookFactory:

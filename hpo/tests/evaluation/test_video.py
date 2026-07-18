@@ -114,6 +114,13 @@ def test_checkpoint_metadata_reads_conventional_metadata(tmp_path):
     assert video.checkpoint_metadata("study", cfg=cfg) == {"score": 253.0, "trial_number": 17}
 
 
+def test_checkpoint_hidden_size_reads_sidecar_metadata(tmp_path):
+    path = tmp_path / "best_eval_checkpoint.pt"
+    path.with_suffix(".json").write_text('{"training_config": {"hidden_size": 256}}\n', encoding="utf-8")
+
+    assert video._checkpoint_hidden_size(path) == 256
+
+
 def test_show_video_conditions_formats_floats_with_two_decimals(monkeypatch):
     displayed = []
     table = pd.DataFrame({"nr": [0], "world": ["earth"], "seed": [7], "gravity": [-10.0], "wind": [1.2]})

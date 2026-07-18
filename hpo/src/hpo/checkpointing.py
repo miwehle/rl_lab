@@ -1,7 +1,6 @@
 """Checkpoint the best concrete model produced during an HPO trial."""
 
 import json
-import shutil
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any
@@ -137,7 +136,9 @@ class _BestEvalCheckpointArchive:
             return None
 
         self.archive_dir.mkdir(parents=True, exist_ok=True)
-        _replace_with_copy(checkpoint.path, self.checkpoint_path)
+        state = torch.load(checkpoint.path, map_location="cpu", weights_only=True)
+        state_dict = state["model_state_dict"] if "model_state_dict" in state else state
+        torch.save(state_dict, self.checkpoint_path)
         self._write_metadata(checkpoint.metadata | {"source_path": str(checkpoint.path)})
         return self.checkpoint_path
 
@@ -367,23 +368,25 @@ def _env_label(env: Any) -> str | None:
 def save_checkpoint(q_net: nn.Module, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {"version": CHECKPOINT_VERSION, "model_state_dict": q_net.state_dict(), "metadata": metadata or {}},
-        path,
-    )
+    torch.save(q_net.state_dict(), path)
+    if metadata is not None:
+        _write_checkpoint_metadata(path, metadata)
 
 
-def _replace_with_copy(source: str | Path, destination: str | Path) -> None:
-    source = Path(source)
-    destination = Path(destination)
-    temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.unlink(missing_ok=True)
+def checkpoint_metadata_path(path: str | Path) -> Path:
+    return Path(path).with_suffix(".json")
 
-    try:
-        shutil.copy2(source, temporary)
-        temporary.replace(destination)
-    finally:
-        temporary.unlink(missing_ok=True)
+
+def checkpoint_metadata(path: str | Path) -> dict[str, Any]:
+    return json.loads(checkpoint_metadata_path(path).read_text(encoding="utf-8"))
+
+
+def _write_checkpoint_metadata(path: str | Path, metadata: dict[str, Any]) -> None:
+    json.dumps(metadata)
+    metadata_path = checkpoint_metadata_path(path)
+    temporary = metadata_path.with_suffix(metadata_path.suffix + ".tmp")
+    temporary.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(metadata_path)
 
 
 def best_checkpoint(study: Any) -> BestCheckpoint:
@@ -407,11 +410,7 @@ def _checkpoint_references(checkpoint_dir: Path, *, pattern: str) -> list[BestCh
 
 
 def _checkpoint_reference(path: Path) -> BestCheckpoint:
-    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    if checkpoint.get("version") != CHECKPOINT_VERSION:
-        raise ValueError(f"unsupported checkpoint version: {checkpoint.get('version')}")
-
-    metadata = checkpoint["metadata"]
+    metadata = checkpoint_metadata(path)
     return BestCheckpoint(
         path=path,
         score=metadata["score"],
@@ -421,10 +420,7 @@ def _checkpoint_reference(path: Path) -> BestCheckpoint:
     )
 
 
-def load_checkpoint(q_net: nn.Module, path: str | Path, device=None) -> dict[str, Any]:
-    checkpoint = torch.load(path, map_location=device, weights_only=False)
-    if checkpoint.get("version") != CHECKPOINT_VERSION:
-        raise ValueError(f"unsupported checkpoint version: {checkpoint.get('version')}")
-
-    q_net.load_state_dict(checkpoint["model_state_dict"])
-    return checkpoint["metadata"]
+def load_checkpoint(q_net: nn.Module, path: str | Path, device=None) -> None:
+    checkpoint = torch.load(path, map_location=device, weights_only=True)
+    state_dict = checkpoint["model_state_dict"] if "model_state_dict" in checkpoint else checkpoint
+    q_net.load_state_dict(state_dict)

@@ -15,6 +15,7 @@ from gymnasium.wrappers import RecordVideo
 
 from dqn.model import DQN
 from dqn.training import ModelFactory, resolve_device
+from hpo.checkpointing import checkpoint_metadata as load_checkpoint_metadata
 from hpo.checkpointing import load_checkpoint
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 
@@ -257,8 +258,7 @@ def _env_world_name(env) -> str | None:
 
 
 def _checkpoint_hidden_size(path: str | Path) -> int:
-    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    metadata = checkpoint.get("metadata", {})
+    metadata = load_checkpoint_metadata(path)
     training_config = metadata.get("training_config", {})
     return int(training_config.get("hidden_size", 128))
 
