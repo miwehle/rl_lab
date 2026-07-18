@@ -16,7 +16,7 @@ class PhotorealisticEagleSkin:
     """Draw a freestanding photorealistic Eagle PNG as a single sprite."""
 
     scale: float = 0.08
-    anchor: tuple[float, float] = (512.0, 580.0)
+    anchor: tuple[float, float] = (512.0, 560.0)
 
     def draw(self, surface, env, *, render_scale: int = 1) -> None:
         if getattr(env, "lander", None) is None:
