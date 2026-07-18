@@ -12,7 +12,11 @@ from hpo.evaluation.rendering.solar_system_lander._colors import (
 )
 from hpo.evaluation.rendering.solar_system_lander._env_state import EnvState, WindState
 from hpo.evaluation.rendering.solar_system_lander._scene import LanderRenderWrapper
-from hpo.evaluation.rendering.solar_system_lander._skins import ColoredEagleSkin, DetailedEagleSkin
+from hpo.evaluation.rendering.solar_system_lander._skins import (
+    ColoredEagleSkin,
+    DetailedEagleSkin,
+    PhotorealisticEagleSkin,
+)
 from hpo.environments.solar_system_lander.env import EnvFactory, World
 
 
@@ -68,6 +72,12 @@ def test_render_config_selects_colored_eagle_skin():
     assert config.colors_by_world == (world_colors([World.EARTH])[0],)
     assert config.overlay == LanderOverlay()
     assert isinstance(config.skin, ColoredEagleSkin)
+
+
+def test_render_config_selects_photorealistic_eagle_skin():
+    config = render_config([World.EARTH], skin="eagle_photorealistic")
+
+    assert isinstance(config.skin, PhotorealisticEagleSkin)
 
 
 def test_render_config_rejects_unknown_skin():
@@ -237,6 +247,22 @@ class TestLanderRenderWrapper:
             gym.make("LunarLander-v3", render_mode="rgb_array"),
             colors=world_colors(["earth"])[0],
             skin=ColoredEagleSkin(),
+        )
+
+        try:
+            env.reset(seed=10_014)
+            frame = env.render()
+        finally:
+            env.close()
+
+        assert frame.shape == (400, 600, 3)
+        assert np.any(frame != world_colors(["earth"])[0].sky)
+
+    def test_photorealistic_eagle_skin_renders_frame(self):
+        env = LanderRenderWrapper(
+            gym.make("LunarLander-v3", render_mode="rgb_array"),
+            colors=world_colors(["earth"])[0],
+            skin=PhotorealisticEagleSkin(),
         )
 
         try:
