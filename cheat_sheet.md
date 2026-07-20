@@ -17,7 +17,10 @@ Alt-D
 
 ## Obsidian
 
-# Gimp
+Strg+P Befehlspalette
+
+
+## Gimp
 
 Select -> None
 
