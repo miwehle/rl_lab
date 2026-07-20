@@ -11,6 +11,8 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 | [[#H5 Good HPs Are Not Enough\|H5]] | Good HPs Are Not Enough | RL, Checkpointing |
 | [[#H6 Ground Side-Thrust Penalty Can Recover Landing Rewards\|H6]] | Ground Side-Thrust Penalty Can Recover Landing Rewards | RL, SSL |
 | [[#H7 Strong Turbulence Can Saturate The Action Channel\|H7]] | Strong Turbulence Can Saturate The Action Channel | RL, SSL |
+| [[#H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk\|H8]] | H1-80 Ist Das Wichtigste Neuron Im Netzwerk | RL, SSL, NN Viz |
+| [[#H9 H1-80 Ist Ein Control-Pressure-Neuron\|H9]] | H1-80 Ist Ein Control-Pressure-Neuron | RL, SSL, NN Viz |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
@@ -99,3 +101,42 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 **Could be wrong if:** The action trace shows enough main-engine duty cycle, unnecessary side thrust, long unused recovery windows, or clear late policy choices that a better pilot could avoid.
 
 **Consequence:** Treat these seed-10014 cases as likely near-unrecoverable under the current discrete action model. Further tuning should focus on whether adaptive safety margin can avoid entering such states, not on expecting perfect final-phase recovery once the action channel is already saturated.
+
+## H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk
+
+**These:** `H1-80` ist das wichtigste Neuron im Netzwerk.
+
+**Evidence:** In den bisherigen NN-Visualisierungen fällt `H1-80` als besonders stark angebundenes Hidden-1-Neuron auf.
+
+![Elise weight heatmaps](../_experimental/nn_viz/direct/elise_weight_heatmaps.png)
+
+![Elise top-k network](../_experimental/nn_viz/direct/elise_topk_network.svg)
+
+**Prediction:** Weitere Gewichtungs- und Ablationsanalysen sollten zeigen, dass `H1-80` für die Policy überdurchschnittlich wichtig ist.
+
+**Could be wrong if:** Das Neuron visuell nur wegen der gewählten Darstellung auffällt, aber Ablation, Pruning oder Sensitivitätsanalysen kaum Effekt zeigen.
+
+## H9 H1-80 Ist Ein Control-Pressure-Neuron
+
+**These:** `H1-80` ist ein Control-Pressure-Neuron, also ungefähr ein Fight-or-Relax-Neuron. Scotty würde vermutlich sagen: "Aye, that wee neuron tells ye how hard she's fightin' the planet."
+
+**Evidence:** Die Eingangsgewichte von `H1-80`, absteigend nach Betrag sortiert:
+
+```text
+dv_y              +1.175703
+left leg          -0.596181
+vy                +0.592430
+x                 +0.462476
+dv_x              +0.449895
+right leg         -0.304298
+y                 +0.164270
+angle             -0.103623
+angular velocity  -0.101461
+vx                -0.011047
+```
+
+Das passt zur Interpretation: Touchdown dämpft das Signal, während `dv_y`, `vy`, `x` und `dv_x` den Handlungsdruck erhöhen. In Kurzform: `touchdown => nichts tun`; sonst hängt die Intensität des Tuns in erster Linie von `dv_y` und in zweiter Linie von `vy` ab, mit `x` und `dv_x` als horizontalen Korrektursignalen.
+
+**Prediction:** Elise-264 entstand aus Elise-253 per GSTP (Ground Side-Thrust Penalty). Wenn diese Hypothese stimmt, sollten die Gewichte für `left leg` und `right leg` bei Elise-264 kleiner sein als bei Elise-253.
+
+**Could be wrong if:** Die Bein-Gewichte zwischen Elise-253 und Elise-264 nicht kleiner werden, oder wenn gezielte Ablation von `H1-80` keine passende Änderung im Fight-or-Relax-Verhalten zeigt.
