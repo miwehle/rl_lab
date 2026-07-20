@@ -21,15 +21,17 @@
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters.
 
-## A16 Elise Has A Fight-Or-Relax Neuron
+## ~~A16 Elise Has A Fight-Or-Relax Neuron~~
+
+**Update:** ==This Aha is likely wrong in its original form.== Later activation analysis in [[observations#O18 H1-80 Is Strongly Wired But Inactive In Greedy Flights|O18]] showed that `H1-80` stays inactive in tested Elise-264-GSTP greedy rollouts, including hard Earth/Venus no-noop cases. The better current hypothesis is [[hypotheses#H10 H1-80 Ist Ein Alter Low-G-Overcontrol-Guard|H10]]: `H1-80` may be a dormant or rarely used low-g overcontrol guard rather than the active Fight-or-Relax neuron.
 
 Neuron `H1-80` in Elise-264-GSTP is a surprisingly central hidden feature. In the `layer2.weight` matrix, it is the strongest hidden-1 source by a large margin: `sum(abs outgoing weights)) ~= 293.7`, versus about `156.6` for the next strongest H1 neuron. It is the strongest incoming H1 connection for `83/128` hidden-2 neurons.
 
 Its input weights also make semantic sense. Sorted by absolute value, the strongest inputs are `dv_y = +1.176`, `left leg = -0.596`, `vy = +0.592`, `x = +0.462`, `dv_x = +0.450`, and `right leg = -0.304`. This suggests a coarse but useful signal: touchdown damps it, while vertical dynamics, vertical velocity, horizontal target offset, and horizontal disturbance increase it.
 
-==Mental model: H1-80 is Elise's Fight-or-Relax neuron: are we settled enough to relax, or is control pressure high enough that the pilot must fight?==
+==Mental model: H1-80 is Elise's Fight-or-Relax neuron: are we settled enough to relax, or is control urgency high enough that the pilot must fight?==
 
-This refines the popometer idea. The added `dv_x/dt` and `dv_y/dt` observations did not merely improve aggregate score; the trained network appears to have built a central internal control-pressure feature around them, especially around vertical acceleration.
+This refines the popometer idea. The added `dv_x/dt` and `dv_y/dt` observations did not merely improve aggregate score; the trained network appears to have built a central internal control-urgency feature around them, especially around vertical acceleration.
 
 ## A15 Artificial Armstrong Is A Narrow Domain Criterion
 

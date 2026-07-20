@@ -2,17 +2,18 @@
 
 Each hypothesis should stay attackable: what should happen if it is true, and what would make us update or drop it?
 
-| Nr | Hypothesis | Topics |
-|---|---|---|
-| [[#H1 Earth Is Learnable\|H1]] | Earth Is Learnable | SSL |
-| [[#H2 Hard Worlds Need Flight Hours\|H2]] | Hard Worlds Need Flight Hours | SSL |
-| [[#H3 Sampling Should Favor Hard Worlds\|H3]] | Sampling Should Favor Hard Worlds | SSL, Sampling |
-| [[#H4 Observation Mode Is Still Open\|H4]] | Observation Mode Is Still Open | SSL |
-| [[#H5 Good HPs Are Not Enough\|H5]] | Good HPs Are Not Enough | RL, Checkpointing |
-| [[#H6 Ground Side-Thrust Penalty Can Recover Landing Rewards\|H6]] | Ground Side-Thrust Penalty Can Recover Landing Rewards | RL, SSL |
-| [[#H7 Strong Turbulence Can Saturate The Action Channel\|H7]] | Strong Turbulence Can Saturate The Action Channel | RL, SSL |
-| [[#H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk\|H8]] | H1-80 Ist Das Wichtigste Neuron Im Netzwerk | RL, SSL, NN Viz |
-| [[#H9 H1-80 Ist Ein Control-Pressure-Neuron\|H9]] | H1-80 Ist Ein Control-Pressure-Neuron | RL, SSL, NN Viz |
+| Nr                                                                 | Hypothesis                                             | Topics                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------ | -------------------------------- |
+| [[#H1 Earth Is Learnable\|H1]]                                     | Earth Is Learnable                                     | SSL                              |
+| [[#H2 Hard Worlds Need Flight Hours\|H2]]                          | Hard Worlds Need Flight Hours                          | SSL                              |
+| [[#H3 Sampling Should Favor Hard Worlds\|H3]]                      | Sampling Should Favor Hard Worlds                      | SSL, Sampling                    |
+| [[#H4 Observation Mode Is Still Open\|H4]]                         | Observation Mode Is Still Open                         | SSL                              |
+| [[#H5 Good HPs Are Not Enough\|H5]]                                | Good HPs Are Not Enough                                | RL, Checkpointing                |
+| [[#H6 Ground Side-Thrust Penalty Can Recover Landing Rewards\|H6]] | Ground Side-Thrust Penalty Can Recover Landing Rewards | RL, SSL                          |
+| [[#H7 Strong Turbulence Can Saturate The Action Channel\|H7]]      | Strong Turbulence Can Saturate The Action Channel      | RL, SSL                          |
+| [[#H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk\|H8]]            | ~~H1-80 Ist Das Wichtigste Neuron Im Netzwerk~~        | RL, SSL, NN Viz, largely refuted |
+| [[#H9 H1-80 Ist Ein Control-Urgency-Neuron\|H9]]                   | ~~H1-80 Ist Ein Control-Urgency-Neuron~~               | RL, SSL, NN Viz, largely refuted |
+| [[#H10 H1-80 Ist Ein Alter Low-G-Overcontrol-Guard\|H10]]          | H1-80 Ist Ein Alter Low-G-Overcontrol-Guard            | RL, SSL, NN Viz                  |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
@@ -102,7 +103,9 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 **Consequence:** Treat these seed-10014 cases as likely near-unrecoverable under the current discrete action model. Further tuning should focus on whether adaptive safety margin can avoid entering such states, not on expecting perfect final-phase recovery once the action channel is already saturated.
 
-## H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk
+## ~~H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk~~
+
+**Status:** ==Largely refuted as an active greedy-policy importance claim.== Weight-only importance made `H1-80` look central, but activation measurements show that this was misleading for the tested greedy state distribution.
 
 **These:** `H1-80` ist das wichtigste Neuron im Netzwerk.
 
@@ -114,11 +117,15 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 **Prediction:** Weitere Gewichtungs- und Ablationsanalysen sollten zeigen, dass `H1-80` für die Policy überdurchschnittlich wichtig ist.
 
-**Could be wrong if:** Das Neuron visuell nur wegen der gewählten Darstellung auffällt, aber Ablation, Pruning oder Sensitivitätsanalysen kaum Effekt zeigen.
+**Counterevidence:** In [[observations#O18 H1-80 Is Strongly Wired But Inactive In Greedy Flights|O18]], `H1-80` stayed inactive in tested Elise-264-GSTP greedy rollouts. Its pre-ReLU value remained negative even in hard Earth/Venus `seed=10014` cases with `noop=0%`, so the post-ReLU activation was always `0`.
 
-## H9 H1-80 Ist Ein Control-Pressure-Neuron
+**Could be wrong if:** Das Neuron visuell nur wegen der gewählten Darstellung auffällt, aber Ablation, Pruning oder Sensitivitätsanalysen kaum Effekt zeigen. Das ist nach O18 nun die wahrscheinlichere Lesart.
 
-**These:** `H1-80` ist ein Control-Pressure-Neuron, also ungefähr ein Fight-or-Relax-Neuron. Scotty würde vermutlich sagen: "Aye, that wee neuron tells ye how hard she's fightin' the planet."
+## ~~H9 H1-80 Ist Ein Control-Urgency-Neuron~~
+
+**Status:** ==Largely refuted for `H1-80` itself.== The Control-Urgency idea may still be useful, but the active neuron is probably not `H1-80`.
+
+**These:** `H1-80` ist ein Control-Urgency-Neuron, also ungefähr ein Fight-or-Relax-Neuron. Scotty würde vermutlich sagen: "Aye, that wee neuron tells ye how hard she's fightin' the planet."
 
 **Evidence:** Die Eingangsgewichte von `H1-80`, absteigend nach Betrag sortiert:
 
@@ -139,4 +146,18 @@ Das passt zur Interpretation: Touchdown dämpft das Signal, während `dv_y`, `vy
 
 **Prediction:** Elise-264 entstand aus Elise-253 per GSTP (Ground Side-Thrust Penalty). Wenn diese Hypothese stimmt, sollten die Gewichte für `left leg` und `right leg` bei Elise-264 kleiner sein als bei Elise-253.
 
+**Counterevidence:** In [[observations#O18 H1-80 Is Strongly Wired But Inactive In Greedy Flights|O18]], `H1-80` did not fire in the tested greedy policy state distribution, including hard no-noop Earth/Venus cases. This is strong counterevidence against `H1-80` itself being the active Control-Urgency neuron in Elise-264-GSTP's normal greedy behavior.
+
 **Could be wrong if:** Die Bein-Gewichte zwischen Elise-253 und Elise-264 nicht kleiner werden, oder wenn gezielte Ablation von `H1-80` keine passende Änderung im Fight-or-Relax-Verhalten zeigt.
+
+## H10 H1-80 Ist Ein Alter Low-G-Overcontrol-Guard
+
+**Nickname:** Don't Fight The Sky, Grasshopper.
+
+**These:** `H1-80` ist kein aktives Fight-or-Relax-Neuron der Black-Belt-Elise, sondern ein alter Low-G-Overcontrol-Guard aus einer früheren Lernphase. In einer Green-Belt-Phase könnte es angezeigt haben: "Elise, du machst gerade Bullshit; don't do it" - insbesondere wenn Erd-/Venus-artige Schubmuster auf leichten Welten wie dem Mond zu starker Aufwärtsbeschleunigung geführt hätten.
+
+**Evidence:** `H1-80` ist stark mit `dv_y`, `vy`, `x`, `dv_x` und Beinstatus verdrahtet. Synthetische Observations zeigen, dass es bei hoher positiver Vertikalbeschleunigung oder positiver Vertikalgeschwindigkeit feuern kann, z. B. `dv_y=1 -> pre-ReLU ~= +0.630`. In echten Greedy-Flügen bleibt es aber aus, auch in harten no-noop Earth/Venus-Fällen. Das passt zu einem seltenen Guard, dessen Auslösezustände die fertige Policy inzwischen vermeidet.
+
+**Prediction:** `H1-80` sollte eher in Low-g- oder Übersteuerungszuständen feuern, in denen Elise nach oben beschleunigt oder zu viel Haupttriebwerk nutzt, nicht in normalen Abstiegs- oder High-g-Kampfzuständen. Es könnte in früheren Checkpoints, während epsilon-Exploration oder bei synthetisch erzwungenem Mond-Overcontrol häufiger aktiv sein.
+
+**Could be wrong if:** `H1-80` auch in gezielt erzeugten Low-g-Overcontrol-Zuständen nicht feuert, in früheren Checkpoints nicht aktiver war, oder Ablation/Pruning keinerlei Unterschied in Moon/Mercury-Übersteuerungsfällen macht.

@@ -2,6 +2,7 @@
 
 | Nr                                                                    | Observation                                               | Topics             |
 | --------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| [[#O18 H1-80 Is Strongly Wired But Inactive In Greedy Flights\|O18]]   | H1-80 Is Strongly Wired But Inactive In Greedy Flights    | SSL, RL, NN Viz    |
 | [[#O17 AsyncVectorEnv Gives Small VectorTrainer Speedup On L4\|O17]]   | AsyncVectorEnv Gives Small VectorTrainer Speedup On L4    | PERF, SSL, Colab   |
 | [[#O16 AsyncVectorEnv Speeds Up SSL Env Stepping On Colab\|O16]]     | AsyncVectorEnv Speeds Up SSL Env Stepping On Colab        | PERF, SSL, Colab   |
 | [[#O15 Worst Elise-264 Crashes Show Disturbance Reversals\|O15]]      | Worst Elise-264 Crashes Show Disturbance Reversals        | SSL, RL, Video     |
@@ -21,6 +22,18 @@
 | [[#O1 VectorTrainer Throughput Depends Mostly On optimize_every\|O1]] | VectorTrainer Throughput Depends Mostly On optimize_every | PERF               |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimize the Optimizer, `LL` = Lessons Learned, `HP` = Hyperparameters, `PERF` = Performance/Throughput.
+
+## O18 H1-80 Is Strongly Wired But Inactive In Greedy Flights
+
+**Observation:** `H1-80` is strongly wired by outgoing weights, but its ReLU activation stayed at `0` in the tested Elise-264-GSTP greedy rollouts, including hard Earth/Venus cases with no `noop` actions.
+
+**When:** 2026-07-20
+
+**Evidence:** In ordinary greedy rollouts over all five worlds, the `H1-80` pre-ReLU value was always negative (`min ~= -1.895`, `median ~= -0.639`, `max ~= -0.009`), so the post-ReLU activation was always `0`. A harder test used Earth/Venus with maximal weather (`wind=20`, `turbulence=2`) and strong downward initial kicks (`kick_dy ~= -4.14`); `H1-80` still never activated. The known hard `seed=10014` crash-like cases also had `noop=0%`, but `H1-80` stayed inactive: Earth pre-ReLU `min=-1.868`, `median=-0.888`, `max=-0.491`; Venus pre-ReLU `min=-1.787`, `median=-0.832`, `max=-0.490`.
+
+**Interpretation:** Weight-only importance can be misleading for ReLU networks. `H1-80` may have been useful during training with epsilon exploration, may represent a dormant branch, or may be an artifact of the learned parameterization. The current greedy policy appears not to use it in the tested state distribution, even when Elise is fighting hard.
+
+**Next:** Re-rank hidden neurons by activation-aware importance, for example `mean(ReLU(h1_i)) * sum(abs(layer2[:, i]))`, and look for the active Control-Urgency candidate there. Earlier sampling pointed to `H1-49` as a stronger active candidate than `H1-80`.
 
 ## O17 AsyncVectorEnv Gives Small VectorTrainer Speedup On L4
 
