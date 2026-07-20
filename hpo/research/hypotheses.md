@@ -115,7 +115,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 ![Elise top-k network](../_experimental/nn_viz/direct/elise_topk_network.svg)
 
-**Prediction:** Weitere Gewichtungs- und Ablationsanalysen sollten zeigen, dass `H1-80` für die Policy überdurchschnittlich wichtig ist.
+**Prediction:** Wenn `H1-80` wirklich wichtig ist, sollte es in relevanten Rollouts aktiv werden oder bei Ablation messbaren Policy-/Score-Schaden verursachen. Reine statische Gewichtungsanalysen reichen dafür nicht aus.
 
 **Counterevidence:** In [[observations#O18 H1-80 Is Strongly Wired But Inactive In Greedy Flights|O18]], `H1-80` stayed inactive in tested Elise-264-GSTP greedy rollouts. Its pre-ReLU value remained negative even in hard Earth/Venus `seed=10014` cases with `noop=0%`, so the post-ReLU activation was always `0`.
 
