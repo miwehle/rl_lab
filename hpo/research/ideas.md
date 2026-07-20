@@ -14,6 +14,35 @@
 
 - Videos sollten optional ==weltabhaengige, realistischere Farben== bekommen, z. B. blauer Himmel und gruener Boden fuer Earth, gelbliche Venus, roetlicher Mars, grauer Moon/Mercury. Das macht Videos intuitiver lesbar und hilft, Landungen pro Welt schneller einzuordnen.
 
+### Sound-Effekte
+
+Idee: Videos koennten optional einen einfachen Wind-Soundtrack bekommen. Das HUD zeigt Wind/Kick/Turbulenz schon visuell; ein dezenter Audiotrack koennte die Umweltkraefte noch intuitiver fuehlbar machen.
+
+Demo-Charakter, der gut klang: weicher Grundwind plus langsam wandernde Boeen, kein rhythmisches Tremolo. Die erste Demo mit weissem Rauschen und 7-Hz-Tremolo klang eher nach Dampflok; besser war gefiltertes Rauschen mit langsamer zufaelliger Huellkurve.
+
+Reproduzierbarer Ansatz:
+
+- Nach dem Video-Recording pro Step Wind/Turbulenz mitschreiben.
+- Aus Rauschen einen Audiotrack erzeugen, z. B. `sample_rate = 44100`.
+- Weisses Rauschen mit einem einpoligen Tiefpass weich machen:
+  `acc += alpha * (white - acc)`, z. B. `alpha = 0.018` fuer tiefen Grundwind.
+- Einen zweiten, etwas hoeheren Layer optional mit groesserem `alpha`, z. B. `0.055`, leise dazumischen.
+- Eine langsame Boeen-Huellkurve aus wenigen zufaelligen Kontrollpunkten bauen, z. B. 3 Punkte pro Sekunde, per Moving Average glaetten und auf Samples interpolieren.
+- Gesamtlautstaerke mit `abs(wind)` oder normierter Windstaerke skalieren; Turbulenz spaeter eher als leichte Filter-/Boeenvariation, nicht als periodisches Pumpen.
+- Mit `moviepy`/`imageio-ffmpeg` den Audiotrack nachtraeglich ins MP4 muxen. Colab hat meist ffmpeg; lokal kann `moviepy` ueber `imageio-ffmpeg` reichen.
+
+Haupttriebwerk-Demo, die plausibel klang:
+
+- Sound eher als "auf Erde / cockpit-artige Inszenierung" verstehen, nicht als physikalisch korrektes Aussenmikrofon im Vakuum.
+- Throttle-Huellkurve mit sanftem Hochlauf, Plateau und Runterfahren; Demo z. B. Attack ~1.1 s, Shutdown ~1.7 s.
+- Tiefer Rumble aus zwei leicht verstimmten Sinus-Oszillatoren, z. B. ca. `54 Hz` und `81 Hz`.
+- Frequenz leicht wobbeln, damit es nicht wie ein sauberer Synth klingt, z. B. langsame Sinusmodulation um wenige Prozent.
+- Dazu tief/mittel gefiltertes Verbrennungsrauschen: weisses Rauschen durch einpolige Tiefpaesse, z. B. `alpha = 0.035` und `alpha = 0.11`, den hoeheren Layer leiser beimischen.
+- Summe mit der Throttle-Huellkurve multiplizieren und per `tanh` weich begrenzen, damit es auf Laptop-Lautsprechern nicht hart clippt.
+- Fuer echte Videos spaeter Lautstaerke direkt aus der Aktion ableiten: Haupttriebwerk an -> Rumble hoch; Seitenduesen separat als kurze, hoehere Rauschimpulse.
+
+KISS-Entscheidung offen: Sound nicht in die normale Render-Schicht mischen. Besser als optionaler Postprocessing-Schritt nach `record_video(...)`, damit stumme Videos und Bild-Rendering einfach bleiben.
+
 ## Dashboard
 ### Daten aus DB lesen
 
