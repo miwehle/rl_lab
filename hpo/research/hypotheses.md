@@ -13,7 +13,7 @@ Each hypothesis should stay attackable: what should happen if it is true, and wh
 | [[#H7 Strong Turbulence Can Saturate The Action Channel\|H7]]      | Strong Turbulence Can Saturate The Action Channel      | RL, SSL                          |
 | [[#H8 H1-80 Ist Das Wichtigste Neuron Im Netzwerk\|H8]]            | ~~H1-80 Ist Das Wichtigste Neuron Im Netzwerk~~        | RL, SSL, NN Viz, largely refuted |
 | [[#H9 H1-80 Ist Ein Control-Urgency-Neuron\|H9]]                   | ~~H1-80 Ist Ein Control-Urgency-Neuron~~               | RL, SSL, NN Viz, largely refuted |
-| [[#H10 H1-80 Ist Ein Alter Low-G-Overcontrol-Guard\|H10]]          | H1-80 Ist Ein Alter Low-G-Overcontrol-Guard            | RL, SSL, NN Viz                  |
+| [[#H10 H1-80 ist ein alter Low-G-Overcontrol-Guard\|H10]]          | H1-80 ist ein alter Low-G-Overcontrol-Guard            | RL, SSL, NN Viz                  |
 
 Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
@@ -150,7 +150,7 @@ Das passt zur Interpretation: Touchdown dämpft das Signal, während `dv_y`, `vy
 
 **Could be wrong if:** Die Bein-Gewichte zwischen Elise-253 und Elise-264 nicht kleiner werden, oder wenn gezielte Ablation von `H1-80` keine passende Änderung im Fight-or-Relax-Verhalten zeigt.
 
-## H10 H1-80 Ist Ein Alter Low-G-Overcontrol-Guard
+## H10 H1-80 ist ein alter Low-G-Overcontrol-Guard
 
 **Nickname:** Don't Fight The Sky, Grasshopper.
 
