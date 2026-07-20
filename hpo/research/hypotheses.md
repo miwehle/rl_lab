@@ -106,7 +106,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander.
 
 **These:** `H1-80` ist das wichtigste Neuron im Netzwerk.
 
-**Evidence:** In den bisherigen NN-Visualisierungen fällt `H1-80` als besonders stark angebundenes Hidden-1-Neuron auf.
+**Evidence:** In den bisherigen NN-Visualisierungen fällt `H1-80` als besonders stark angebundenes Hidden-1-Neuron auf. Die Zahlen dahinter sind noch deutlicher: In `layer2.weight` ist `H1-80` die stärkste H1-Quelle mit `sum(abs outgoing weights)) ~= 293.7`; der zweitstärkste H1-Kandidat liegt bei etwa `156.6`. Für `83/128` H2-Neuronen ist `H1-80` die stärkste eingehende H1-Verbindung.
 
 ![Elise weight heatmaps](../_experimental/nn_viz/direct/elise_weight_heatmaps.png)
 
