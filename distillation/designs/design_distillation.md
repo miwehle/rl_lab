@@ -35,7 +35,7 @@ Die Nutzung soll aus einem Notebook mit wenigen Zeilen möglich sein, analog zum
 
 ```python
 from distillation import collect_teacher_dataset, train_student, evaluate_student, evaluate_teacher
-from distillation import plot_score_gaps, plot_score_quantiles, score_comparison_table
+from distillation import collect_teacher_dataset_parallel, plot_score_gaps, plot_score_quantiles, score_comparison_table
 
 dataset = collect_teacher_dataset()
 student = train_student(dataset)
@@ -323,6 +323,8 @@ Optuna
 ```
 
 Gym-heavy Dataset-Sammlung und robuste Student-Evaluation bleiben zunächst Notebook-/Integration-Checks. Tests prüfen die Nähte und Artefaktkonventionen, nicht die fliegerische Qualität.
+
+Falls Dataset-Sammlung zum Engpass wird, bleibt `collect_teacher_dataset(...)` die einfache Referenzversion. Zusätzlich kann das Notebook auf `collect_teacher_dataset_parallel(..., num_envs=16)` umschalten; diese Variante lebt in einem eigenen Modul und nutzt `AsyncVectorEnv` batchweise, damit die einfache Version nicht verschachtelt wird.
 
 ## Artefakte
 
