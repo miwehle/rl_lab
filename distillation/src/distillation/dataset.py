@@ -10,6 +10,7 @@ from typing import Sequence
 
 import numpy as np
 import torch
+from tqdm.auto import tqdm
 
 from dqn.model import DQN
 from dqn.training import resolve_device
@@ -38,6 +39,7 @@ def collect_teacher_dataset(
     dataset_name: str | None = None,
     device=None,
     cfg: InfraCfg = InfraCfg(),
+    progress: bool = True,
 ) -> DatasetRef:
     """Collect observations and teacher Q-values from teacher rollouts."""
     if not 0.0 <= epsilon <= 1.0:
@@ -66,27 +68,27 @@ def collect_teacher_dataset(
     scenario_labels = []
     episode_rows = []
 
-    for world in selected_worlds:
-        for seed in seeds:
-            episode_return = _collect_episode(
-                teacher,
-                env_factory.make_env(world),
-                int(seed),
-                world,
-                epsilon,
-                max_steps,
-                rng,
-                device,
-                observations,
-                teacher_q_values,
-                teacher_actions,
-                rollout_actions,
-                world_labels,
-                seed_values,
-                step_values,
-                scenario_labels,
-            )
-            episode_rows.append({"world": world, "seed": int(seed), **episode_return})
+    episodes = [(world, int(seed)) for world in selected_worlds for seed in seeds]
+    for world, seed in tqdm(episodes, desc="Collect teacher dataset", disable=not progress):
+        episode_return = _collect_episode(
+            teacher,
+            env_factory.make_env(world),
+            seed,
+            world,
+            epsilon,
+            max_steps,
+            rng,
+            device,
+            observations,
+            teacher_q_values,
+            teacher_actions,
+            rollout_actions,
+            world_labels,
+            seed_values,
+            step_values,
+            scenario_labels,
+        )
+        episode_rows.append({"world": world, "seed": seed, **episode_return})
 
     metadata = {
         "created_at": datetime.now(timezone.utc).isoformat(),

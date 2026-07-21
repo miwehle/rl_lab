@@ -34,15 +34,18 @@ eigene SolarSystemLander-Env
 Die Nutzung soll aus einem Notebook mit wenigen Zeilen möglich sein, analog zum Stil in `hpo/notebooks/solar_system_lander`. Der Normalfall kennt keine Infrastrukturdetails, keine Drive-Pfade und keine `InfraCfg`:
 
 ```python
-from distillation import collect_teacher_dataset, train_student, evaluate_student
+from distillation import collect_teacher_dataset, train_student, evaluate_student, evaluate_teacher
+from distillation import plot_score_gaps, plot_score_quantiles
 
 dataset = collect_teacher_dataset()
 student = train_student(dataset)
-summary = evaluate_student(student)
-summary
+student_summary = evaluate_student(student)
+teacher_summary = evaluate_teacher()
+plot_score_quantiles(teacher_summary, student_summary)
+plot_score_gaps(teacher_summary, student_summary)
 ```
 
-Für häufige Abläufe sind die Defaults ausreichend. Explizite Parameter sind nur dort nötig, wo experimentiert wird, z. B. `epsilon`, `seeds`, `student_hidden_sizes` oder `eval_episodes_per_world`. Teacher-Name, Dataset-Name und Run-Name haben Konventionen und sind nur optionale Overrides.
+Für häufige Abläufe sind die Defaults ausreichend. Explizite Parameter sind nur dort nötig, wo experimentiert wird, z. B. `epsilon`, `seeds`, `student_hidden_sizes` oder `eval_episodes_per_world`. Teacher-Name, Dataset-Name und Run-Name haben Konventionen und sind nur optionale Overrides. Lange Notebook-Funktionen zeigen per Default eine Progressbar und können mit `progress=False` ruhig gestellt werden.
 
 ## Infrastruktur-Konventionen
 
@@ -256,6 +259,8 @@ Für V1 reicht: mean score plus world_scores separat anschauen. Keine Metrikmagi
 summary = evaluate_student(student, eval_episodes_per_world=100)
 ```
 
+`evaluate_teacher(...)` nutzt dieselbe Evaluation für den Teacher-Checkpoint und gibt dieselbe Summary-Struktur zurück. Dadurch können Teacher und Student direkt verglichen werden.
+
 Die Funktion speichert `evaluation_summary.json` im Run-Ordner und gibt dieselbe Zusammenfassung als Dict zurück:
 
 ```text
@@ -276,7 +281,16 @@ dataset_path
 student_hidden_sizes
 ```
 
-Optional kann später ein Teacher-Vergleich ergänzt werden, aber V1 hält es schlicht: Student greedy evaluieren, Scores pro Welt anschauen, fertig.
+V1 hält es schlicht: Teacher und Student greedy evaluieren, Scores pro Welt anschauen, fertig.
+
+Für den Notebook-Vergleich gibt es zwei kompakte Plot-Helfer:
+
+```text
+plot_score_quantiles(teacher_summary, student_summary)
+plot_score_gaps(teacher_summary, student_summary)
+```
+
+Beide zeigen die einzelnen Welten plus eine Zeile bzw. Spalte über alle Welten. Der Quantile-Plot nutzt das Robustness-Muster: q05..q95, q25..q75, Median und Mean.
 
 ## Tests
 
@@ -287,6 +301,8 @@ InfraCfg-Pfadkonventionen ohne Drive-Mount
 DQN-Shape für Student-Größe: [batch, 10] -> [batch, 4]
 Dataset speichern/laden mit kleinem künstlichem Dataset
 train_student smoke test mit synthetischem Dataset und wenigen Epochs
+evaluate_teacher/evaluate_student smoke tests mit Fake-Env
+Plot-Helfer mit synthetischen Summaries
 ```
 
 Nicht in V1 automatisiert:

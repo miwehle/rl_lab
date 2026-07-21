@@ -3,3 +3,4 @@ optuna>=4.0
 plotly
 nbformat
 pandas
+tqdm

@@ -4,7 +4,7 @@ import torch
 from dqn.model import DQN
 from hpo.checkpointing import save_checkpoint
 
-from distillation.evaluate import evaluate_student
+from distillation.evaluate import evaluate_student, evaluate_teacher
 from distillation.infra_cfg import InfraCfg
 from distillation.train import StudentRef
 
@@ -59,10 +59,30 @@ def test_evaluate_student_writes_summary(monkeypatch, tmp_path):
         drive_distillation_dir=tmp_path / "drive",
     )
 
-    summary = evaluate_student(student, eval_episodes_per_world=2, worlds=("moon",), cfg=cfg)
+    summary = evaluate_student(student, eval_episodes_per_world=2, worlds=("moon",), cfg=cfg, progress=False)
 
     assert summary["episodes"] == 2
     assert summary["mean"] == 1.5
     assert summary["world_scores"] == {"moon": 1.5}
     assert summary["teacher_name"] == "teacher"
     assert (checkpoint_path.parent / "evaluation_summary.json").exists()
+
+
+def test_evaluate_teacher_returns_student_compatible_summary(monkeypatch, tmp_path):
+    monkeypatch.setattr("distillation.evaluate.EnvFactory", FakeEnvFactory)
+    checkpoint_path = tmp_path / "teachers" / "teacher" / "best_eval_checkpoint.pt"
+    model = DQN(10, 4, hidden_size=8)
+    save_checkpoint(model, checkpoint_path, {"training_config": {"hidden_size": 8}})
+    cfg = InfraCfg(
+        teacher_archive_dir=tmp_path / "teachers",
+        local_distillation_dir=tmp_path / "local",
+        drive_distillation_dir=tmp_path / "drive",
+    )
+
+    summary = evaluate_teacher(teacher_name="teacher", eval_episodes_per_world=2, worlds=("moon",), cfg=cfg, progress=False)
+
+    assert summary["episodes"] == 2
+    assert summary["mean"] == 1.5
+    assert summary["world_scores"] == {"moon": 1.5}
+    assert summary["teacher_name"] == "teacher"
+    assert summary["checkpoint_path"] == str(checkpoint_path)

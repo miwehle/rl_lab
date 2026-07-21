@@ -8,12 +8,14 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from tqdm.auto import tqdm
 
 from dqn.model import DQN
 from dqn.training import resolve_device
-from hpo.checkpointing import load_checkpoint
+from hpo.checkpointing import checkpoint_metadata, load_checkpoint
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory
 
+from distillation.dataset import DEFAULT_TEACHER_NAME
 from distillation.infra_cfg import InfraCfg
 from distillation.train import StudentRef
 
@@ -27,6 +29,7 @@ def evaluate_student(
     worlds: tuple[str, ...] | None = None,
     device=None,
     cfg: InfraCfg = InfraCfg(),
+    progress: bool = True,
 ) -> dict:
     """Evaluate a student greedily and save an evaluation summary beside the checkpoint."""
     if eval_episodes_per_world < 1:
@@ -39,13 +42,85 @@ def evaluate_student(
     env_factory = EnvFactory("10d", world_mix=DEFAULT_WORLD_MIX)
     selected_worlds = tuple(worlds or DEFAULT_WORLD_MIX.keys())
     q_net = _load_student(student, env_factory, selected_worlds[0], device=device)
+    summary = _evaluate_q_net(
+        q_net,
+        env_factory,
+        selected_worlds,
+        eval_episodes_per_world=eval_episodes_per_world,
+        eval_seed=eval_seed,
+        max_steps=max_steps,
+        device=device,
+        label="Evaluate student",
+        progress=progress,
+    )
+    summary.update(
+        {
+            "checkpoint_path": str(student.checkpoint_path),
+            "teacher_name": student.metadata.get("dataset_metadata", {}).get("teacher_name"),
+            "dataset_path": student.metadata.get("dataset_path"),
+            "student_hidden_sizes": student.metadata.get("student_hidden_sizes"),
+        }
+    )
+    path = student.checkpoint_path.parent / "evaluation_summary.json"
+    path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return summary
 
+
+def evaluate_teacher(
+    *,
+    teacher_name: str = DEFAULT_TEACHER_NAME,
+    eval_episodes_per_world: int = 100,
+    eval_seed: int = 0,
+    max_steps: int = 1000,
+    worlds: tuple[str, ...] | None = None,
+    device=None,
+    cfg: InfraCfg = InfraCfg(),
+    progress: bool = True,
+) -> dict:
+    """Evaluate the teacher greedily and return a student-compatible summary."""
+    if eval_episodes_per_world < 1:
+        raise ValueError("eval_episodes_per_world must be >= 1")
+    if max_steps < 1:
+        raise ValueError("max_steps must be >= 1")
+
+    cfg.prepare()
+    device = resolve_device(device)
+    env_factory = EnvFactory("10d", world_mix=DEFAULT_WORLD_MIX)
+    selected_worlds = tuple(worlds or DEFAULT_WORLD_MIX.keys())
+    teacher_path = cfg.teacher_checkpoint_path(teacher_name)
+    q_net = _load_teacher(teacher_path, env_factory, selected_worlds[0], device=device)
+    summary = _evaluate_q_net(
+        q_net,
+        env_factory,
+        selected_worlds,
+        eval_episodes_per_world=eval_episodes_per_world,
+        eval_seed=eval_seed,
+        max_steps=max_steps,
+        device=device,
+        label="Evaluate teacher",
+        progress=progress,
+    )
+    summary.update({"checkpoint_path": str(teacher_path), "teacher_name": teacher_name})
+    return summary
+
+
+def _evaluate_q_net(
+    q_net: DQN,
+    env_factory: EnvFactory,
+    selected_worlds: tuple[str, ...],
+    *,
+    eval_episodes_per_world: int,
+    eval_seed: int,
+    max_steps: int,
+    device,
+    label: str,
+    progress: bool,
+) -> dict:
     rows = []
-    for world in selected_worlds:
-        for episode in range(eval_episodes_per_world):
-            seed = eval_seed + episode
-            score = _episode_return(q_net, env_factory.make_env(world), device, seed=seed, max_steps=max_steps)
-            rows.append({"world": str(world), "episode": episode, "seed": seed, "score": score})
+    episodes = [(world, episode, eval_seed + episode) for world in selected_worlds for episode in range(eval_episodes_per_world)]
+    for world, episode, seed in tqdm(episodes, desc=label, disable=not progress):
+        score = _episode_return(q_net, env_factory.make_env(world), device, seed=seed, max_steps=max_steps)
+        rows.append({"world": str(world), "episode": episode, "seed": seed, "score": score})
 
     scores = np.array([row["score"] for row in rows], dtype=np.float64)
     world_scores = {
@@ -53,7 +128,6 @@ def evaluate_student(
         for world in selected_worlds
     }
     summary = {
-        "checkpoint_path": str(student.checkpoint_path),
         "eval_episodes_per_world": eval_episodes_per_world,
         "episodes": len(rows),
         "mean": float(np.mean(scores)),
@@ -65,13 +139,8 @@ def evaluate_student(
         "q95": float(np.quantile(scores, 0.95)),
         "max": float(np.max(scores)),
         "world_scores": world_scores,
-        "teacher_name": student.metadata.get("dataset_metadata", {}).get("teacher_name"),
-        "dataset_path": student.metadata.get("dataset_path"),
-        "student_hidden_sizes": student.metadata.get("student_hidden_sizes"),
         "rows": rows,
     }
-    path = student.checkpoint_path.parent / "evaluation_summary.json"
-    path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return summary
 
 
@@ -82,6 +151,20 @@ def _load_student(student: StudentRef, env_factory: EnvFactory, world: str, *, d
         hidden_sizes = tuple(int(value) for value in student.metadata["student_hidden_sizes"])
         q_net = DQN(math.prod(tuple(observation.shape)), env.action_space.n, hidden_sizes=hidden_sizes).to(device)
         load_checkpoint(q_net, student.checkpoint_path, device)
+        q_net.eval()
+        return q_net
+    finally:
+        env.close()
+
+
+def _load_teacher(path: Path, env_factory: EnvFactory, world: str, *, device) -> DQN:
+    env = env_factory.make_env(world)
+    try:
+        observation, _ = env.reset(seed=0)
+        metadata = checkpoint_metadata(path)
+        hidden_size = int(metadata.get("training_config", {}).get("hidden_size", 128))
+        q_net = DQN(math.prod(tuple(observation.shape)), env.action_space.n, hidden_size=hidden_size).to(device)
+        load_checkpoint(q_net, path, device)
         q_net.eval()
         return q_net
     finally:

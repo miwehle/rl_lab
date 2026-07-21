@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
+from tqdm.auto import tqdm
 
 from dqn.model import DQN
 from dqn.training import resolve_device
@@ -38,6 +39,7 @@ def train_student(
     seed: int = 0,
     device=None,
     cfg: InfraCfg = InfraCfg(),
+    progress: bool = True,
 ) -> StudentRef:
     """Train a student to imitate stored teacher Q-values."""
     if epochs < 1:
@@ -59,7 +61,8 @@ def train_student(
     train_loader = _loader(observations[train_idx], teacher_q_values[train_idx], batch_size=batch_size, shuffle=True)
 
     history = []
-    for epoch in range(1, epochs + 1):
+    epoch_iter = tqdm(range(1, epochs + 1), desc="Train student", disable=not progress)
+    for epoch in epoch_iter:
         student.train()
         losses = []
         for obs_batch, q_batch in train_loader:
@@ -72,6 +75,11 @@ def train_student(
             losses.append(float(loss.detach().cpu()))
         val = _validation_metrics(student, observations[val_idx], teacher_q_values[val_idx], device)
         history.append({"epoch": epoch, "train_loss": float(np.mean(losses)), **val})
+        epoch_iter.set_postfix(
+            train_loss=f"{history[-1]['train_loss']:.4g}",
+            val_loss=f"{history[-1]['val_loss']:.4g}",
+            agreement=f"{history[-1]['val_argmax_agreement']:.3f}",
+        )
 
     run_name = run_name or _run_name(dataset, hidden_sizes)
     checkpoint_path = cfg.student_checkpoint_path(run_name)

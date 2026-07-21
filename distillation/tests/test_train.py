@@ -27,7 +27,7 @@ def test_train_student_smoke_test_writes_checkpoint_and_metadata(tmp_path):
         drive_distillation_dir=tmp_path / "drive",
     )
 
-    student = train_student(dataset, hidden_sizes=(8, 6), epochs=2, batch_size=8, run_name="run", cfg=cfg)
+    student = train_student(dataset, hidden_sizes=(8, 6), epochs=2, batch_size=8, run_name="run", cfg=cfg, progress=False)
 
     assert student.checkpoint_path == tmp_path / "drive" / "runs" / "run" / "student_checkpoint.pt"
     assert student.checkpoint_path.exists()
