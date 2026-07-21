@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from functools import partial
+import json
 
 import gymnasium as gym
 import numpy as np
@@ -16,6 +17,7 @@ from dqn.training import resolve_device
 from hpo.checkpointing import checkpoint_metadata
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory, EnvWrapper, WORLDS
 
+from distillation.clock import get_clock, lap, reset_clocks, stop, total_lap_times, total_time
 from distillation.dataset import (
     DEFAULT_SEEDS,
     DEFAULT_TEACHER_NAME,
@@ -51,13 +53,17 @@ def collect_teacher_dataset_parallel(
     if num_envs < 1:
         raise ValueError("num_envs must be >= 1")
 
+    reset_clocks()
+    collect_clock = get_clock("collect_teacher_dataset_parallel")
     cfg.prepare()
     device = resolve_device(device)
     selected_worlds = _worlds_from_mix(world_mix)
     env_factory = EnvFactory("10d", world_mix=dict.fromkeys(selected_worlds, 1))
     teacher_path = cfg.teacher_checkpoint_path(teacher_name)
     teacher_metadata = checkpoint_metadata(teacher_path)
+    lap(collect_clock, "setup")
     teacher = _load_teacher(teacher_path, env_factory, selected_worlds[0], device=device, metadata=teacher_metadata)
+    lap(collect_clock, "load_teacher")
     rng = np.random.default_rng(0)
 
     observations = []
@@ -96,6 +102,7 @@ def collect_teacher_dataset_parallel(
             )
     finally:
         episode_progress.close()
+    lap(collect_clock, "collect_batches")
 
     metadata = {
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -112,18 +119,21 @@ def collect_teacher_dataset_parallel(
         "episode_rows": episode_rows,
     }
     path = cfg.dataset_path(dataset_name or _dataset_name(teacher_name, epsilon, seeds, selected_worlds))
-    save_dataset(
-        path,
-        metadata=metadata,
-        observations=np.asarray(observations, dtype=np.float32),
-        teacher_q_values=np.asarray(teacher_q_values, dtype=np.float32),
-        teacher_actions=np.asarray(teacher_actions, dtype=np.int64),
-        rollout_actions=np.asarray(rollout_actions, dtype=np.int64),
-        worlds=np.asarray(world_labels),
-        seeds=np.asarray(seed_values, dtype=np.int64),
-        steps=np.asarray(step_values, dtype=np.int64),
-        scenarios=np.asarray(scenario_labels),
-    )
+    arrays = {
+        "observations": np.asarray(observations, dtype=np.float32),
+        "teacher_q_values": np.asarray(teacher_q_values, dtype=np.float32),
+        "teacher_actions": np.asarray(teacher_actions, dtype=np.int64),
+        "rollout_actions": np.asarray(rollout_actions, dtype=np.int64),
+        "worlds": np.asarray(world_labels),
+        "seeds": np.asarray(seed_values, dtype=np.int64),
+        "steps": np.asarray(step_values, dtype=np.int64),
+        "scenarios": np.asarray(scenario_labels),
+    }
+    lap(collect_clock, "prepare_arrays")
+    save_dataset(path, metadata=metadata, **arrays)
+    stop(collect_clock, "save_dataset")
+    metadata["profile"] = _profile()
+    path.with_suffix(".json").write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return DatasetRef(path=path, metadata=metadata)
 
 
@@ -144,12 +154,15 @@ def _collect_batch(
     scenario_labels,
     progress,
 ) -> list[dict[str, float | int | str]]:
+    batch_clock = get_clock("collect_batch")
     vector_env = AsyncVectorEnv(
         [partial(_make_env, world) for world, _ in episodes],
         autoreset_mode=AutoresetMode.SAME_STEP,
     )
+    lap(batch_clock, "create_vector_env")
     try:
         observation, _ = vector_env.reset(seed=[seed for _, seed in episodes])
+        lap(batch_clock, "reset")
         active = np.ones(len(episodes), dtype=bool)
         returns = np.zeros(len(episodes), dtype=np.float64)
         steps = np.zeros(len(episodes), dtype=np.int64)
@@ -160,6 +173,7 @@ def _collect_batch(
                 break
             actions = np.zeros(len(episodes), dtype=np.int64)
             q_values = _teacher_q_values(teacher, observation[active_indexes], device)
+            lap(batch_clock, "teacher_forward")
             greedy_actions = np.argmax(q_values, axis=1).astype(np.int64)
             actions[active_indexes] = greedy_actions
             exploration = epsilon > 0.0 and rng.random(len(active_indexes)) < epsilon
@@ -167,6 +181,7 @@ def _collect_batch(
                 actions[active_indexes[exploration]] = rng.integers(
                     0, vector_env.single_action_space.n, size=int(np.sum(exploration))
                 )
+            lap(batch_clock, "choose_actions")
 
             _append_frames(
                 observation,
@@ -185,7 +200,9 @@ def _collect_batch(
                 step_values,
                 scenario_labels,
             )
+            lap(batch_clock, "append_frames")
             observation, rewards, terminated, truncated, _ = vector_env.step(actions)
+            lap(batch_clock, "env_step")
             returns[active_indexes] += rewards[active_indexes]
             steps[active_indexes] += 1
             finished = active & (terminated | truncated)
@@ -199,6 +216,7 @@ def _collect_batch(
         return rows
     finally:
         vector_env.close()
+        stop(batch_clock, "close_vector_env")
 
 
 def _teacher_q_values(teacher, observations, device) -> np.ndarray:
@@ -255,3 +273,12 @@ def _make_env(world_name: str):
         world,
         "10d",
     )
+
+
+def _profile() -> dict[str, object]:
+    return {
+        "total_seconds": total_time("collect_teacher_dataset_parallel"),
+        "lap_seconds": total_lap_times("collect_teacher_dataset_parallel"),
+        "batch_total_seconds": total_time("collect_batch"),
+        "batch_lap_seconds": total_lap_times("collect_batch"),
+    }

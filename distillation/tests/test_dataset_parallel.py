@@ -33,8 +33,16 @@ def test_collect_teacher_dataset_parallel_writes_weighted_world_mix(monkeypatch,
     assert dataset.metadata["worlds"] == ["venus", "venus", "earth"]
     assert dataset.metadata["episodes"] == 3
     assert dataset.metadata["num_envs"] == 2
+    assert set(dataset.metadata["profile"]) == {
+        "batch_lap_seconds",
+        "batch_total_seconds",
+        "lap_seconds",
+        "total_seconds",
+    }
     assert [row["world"] for row in dataset.metadata["episode_rows"]] == ["venus", "venus", "earth"]
-    assert json.loads(dataset.path.with_suffix(".json").read_text(encoding="utf-8"))["episodes"] == 3
+    saved_metadata = json.loads(dataset.path.with_suffix(".json").read_text(encoding="utf-8"))
+    assert saved_metadata["episodes"] == 3
+    assert "profile" in saved_metadata
     np.testing.assert_array_equal(arrays["worlds"], np.array(["venus", "venus", "earth"]))
     assert arrays["observations"].shape == (3, 10)
     assert arrays["teacher_q_values"].shape == (3, 4)
