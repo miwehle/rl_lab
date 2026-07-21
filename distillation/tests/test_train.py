@@ -1,7 +1,7 @@
 import numpy as np
 
 from distillation.dataset import save_dataset
-from distillation.infra import InfraCfg
+from distillation.infra_cfg import InfraCfg
 from distillation.train import train_student
 
 

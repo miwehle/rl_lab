@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from distillation.infra import InfraCfg
+from distillation.infra_cfg import InfraCfg
 
 
 def test_infra_cfg_derives_conventional_paths(tmp_path):

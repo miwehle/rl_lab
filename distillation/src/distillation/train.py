@@ -17,7 +17,7 @@ from dqn.training import resolve_device
 from hpo.checkpointing import save_checkpoint
 
 from distillation.dataset import DatasetRef, dataset_arrays
-from distillation.infra import InfraCfg
+from distillation.infra_cfg import InfraCfg
 
 
 @dataclass(frozen=True)

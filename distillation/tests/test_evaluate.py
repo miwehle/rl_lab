@@ -5,7 +5,7 @@ from dqn.model import DQN
 from hpo.checkpointing import save_checkpoint
 
 from distillation.evaluate import evaluate_student
-from distillation.infra import InfraCfg
+from distillation.infra_cfg import InfraCfg
 from distillation.train import StudentRef
 
 

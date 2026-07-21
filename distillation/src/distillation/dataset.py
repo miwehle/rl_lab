@@ -16,7 +16,7 @@ from dqn.training import resolve_device
 from hpo.checkpointing import checkpoint_metadata, load_checkpoint
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory
 
-from distillation.infra import InfraCfg
+from distillation.infra_cfg import InfraCfg
 
 DEFAULT_TEACHER_NAME = "solar_system_lander_10d_elise_stp"
 DEFAULT_SEEDS = tuple(range(100))
