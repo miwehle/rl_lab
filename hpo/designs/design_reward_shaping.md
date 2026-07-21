@@ -8,7 +8,7 @@ The question is whether a training-only penalty for ground side-thrust can teach
 
 ## Motivation
 
-The separate `reward_shaping` project proved the domain core is tiny, while a standalone experiment harness costs a lot of code.
+The former separate `reward_shaping` project proved the domain core is tiny, while a standalone experiment harness costs a lot of code. That project has been deleted; the compact implementation now lives in HPO.
 
 For this first hypothesis, HPO already has the useful machinery: `StudyRunner`, `VectorTrainer`, Optuna, checkpointing, robustness evaluation, dashboard, DB/log handling, and Colab storage.
 
@@ -26,7 +26,7 @@ The HPO implementation should have three small parts.
 
 ## Reward Wrapper
 
-The useful core from `reward_shaping.ground_thrust_penalty` should be reused or ported.
+The useful core is the HPO wrapper `GroundThrustPenaltyEnv`.
 
 The wrapper applies a penalty only during training when all of these conditions hold:
 
@@ -87,8 +87,7 @@ For diagnosis, we may also count ground side-thrust steps before/after, but that
 ## Implementation
 
 ### Approach
-- Neues HPO-Modul für Reward Shaping anlegen, grob als Port/Kopie von `reward_shaping/src/reward_shaping/ground_thrust_penalty.py`.
-- Darin liegt der eigentliche Wrapper: `RewardShapingEnv`, ein `gym.Wrapper`.
+- Das HPO-Modul `hpo.environments.solar_system_lander.reward_shaping` enthält den fokussierten Wrapper `GroundThrustPenaltyEnv`.
 - `EnvFactory` bekommt diesen Wrapper bzw. eine passende Wrapper-Funktion als optionales Argument und speichert sie als Attribut.
 - Wenn dieses Attribut gesetzt ist, wendet `make_training_env()` den Wrapper auf die Trainings-Envs an.
 - Evaluation bleibt dadurch unshaped, solange `evaluation_envs()` unverändert bleibt.
@@ -115,7 +114,7 @@ The design target is a compact spike, not a generic reward-shaping framework.
 
 ## Boundary
 
-Do not move the standalone harness into HPO.
+Do not reintroduce a standalone reward-shaping harness.
 
 Use HPO because the experiment machinery already exists there.
 
