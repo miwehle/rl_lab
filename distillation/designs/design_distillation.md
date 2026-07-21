@@ -90,7 +90,7 @@ Student-Checkpoints nach Drive sichern
 Damit muss das Notebook keine Google-Drive- oder Checkpoint-Pfade enthalten:
 
 ```python
-dataset = collect_teacher_dataset(epsilon=0.05, seeds=[7, 42, 1911, 4711])
+dataset = collect_teacher_dataset(epsilon=0.05, seeds=[7, 42, 1911, 4711], world_mix=WORLD_MIX)
 student = train_student(dataset, hidden_sizes=(64, 64))
 summary = evaluate_student(student, eval_episodes_per_world=100)
 ```
@@ -103,6 +103,7 @@ def collect_teacher_dataset(
     teacher_name: str = "solar_system_lander_10d_elise_stp",
     epsilon: float,
     seeds: Sequence[int],
+    world_mix: Mapping[str, int],
     cfg: InfraCfg = InfraCfg(),
 ): ...
 
@@ -115,7 +116,7 @@ def train_student(
 ): ...
 ```
 
-Konventionen gelten für Pfade und Artefaktablage. Fachliche Parameter wie `epsilon`, `seeds`, `hidden_sizes`, `worlds` und `eval_episodes_per_world` sind keine InfraCfg-Defaults, sondern sichtbare Experimenthebel.
+Konventionen gelten für Pfade und Artefaktablage. Fachliche Parameter wie `epsilon`, `seeds`, `hidden_sizes`, `world_mix` und `eval_episodes_per_world` sind keine InfraCfg-Defaults, sondern sichtbare Experimenthebel.
 
 Die High-Level-Funktionen geben kleine Referenzobjekte zurück, keine nackten Pfade:
 
@@ -176,8 +177,10 @@ optional Starkwetter/Down-Kick-Szenarien
 
 ```python
 seeds = list(range(1000, 2000)) + [7, 42, 1911, 10014]
-dataset = collect_teacher_dataset(epsilon=0.05, seeds=seeds)
+dataset = collect_teacher_dataset(epsilon=0.05, seeds=seeds, world_mix=WORLD_MIX)
 ```
+
+Wie im HPO-Trainingsnotebook kann `world_mix` schwere Welten stärker gewichten, z. B. `{World.MERCURY: 1, World.VENUS: 4, World.EARTH: 4, World.MOON: 1, World.MARS: 1}`.
 
 `epsilon` ist ein Dataset-Parameter, aber noch kein Grund für Optuna. Erst kleine manuelle Sweeps testen, z. B. `0.00`, `0.05`, `0.10`.
 

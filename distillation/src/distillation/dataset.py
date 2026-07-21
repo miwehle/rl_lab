@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Mapping, Sequence
 
 import numpy as np
 import torch
@@ -34,7 +34,7 @@ def collect_teacher_dataset(
     teacher_name: str = DEFAULT_TEACHER_NAME,
     epsilon: float = 0.05,
     seeds: Sequence[int] = DEFAULT_SEEDS,
-    worlds: Sequence[str] | None = None,
+    world_mix: Mapping[str, int] = DEFAULT_WORLD_MIX,
     max_steps: int = 1000,
     dataset_name: str | None = None,
     device=None,
@@ -51,8 +51,8 @@ def collect_teacher_dataset(
 
     cfg.prepare()
     device = resolve_device(device)
-    env_factory = EnvFactory("10d", world_mix=DEFAULT_WORLD_MIX)
-    selected_worlds = tuple(str(world) for world in (worlds or DEFAULT_WORLD_MIX.keys()))
+    selected_worlds = _worlds_from_mix(world_mix)
+    env_factory = EnvFactory("10d", world_mix=dict.fromkeys(selected_worlds, 1))
     teacher_path = cfg.teacher_checkpoint_path(teacher_name)
     teacher_metadata = checkpoint_metadata(teacher_path)
     teacher = _load_teacher(teacher_path, env_factory, selected_worlds[0], device=device, metadata=teacher_metadata)
@@ -202,6 +202,21 @@ def _collect_episode(
 
 def _metadata_path(path: Path) -> Path:
     return path.with_suffix(".json")
+
+
+def _world_name(world) -> str:
+    return str(getattr(world, "value", world))
+
+
+def _worlds_from_mix(world_mix: Mapping[str, int]) -> tuple[str, ...]:
+    if not world_mix:
+        raise ValueError("world_mix must not be empty")
+    worlds = []
+    for world, count in world_mix.items():
+        if count < 1:
+            raise ValueError(f"world_mix count must be >= 1: {world}")
+        worlds.extend([_world_name(world)] * count)
+    return tuple(worlds)
 
 
 def _dataset_name(teacher_name: str, epsilon: float, seeds: Sequence[int], worlds: Sequence[str]) -> str:
