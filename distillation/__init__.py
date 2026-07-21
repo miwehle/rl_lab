@@ -7,7 +7,7 @@ __path__.append(str(Path(__file__).resolve().parent / "src" / "distillation"))
 from distillation.dataset import DatasetRef, collect_teacher_dataset, load_dataset, save_dataset
 from distillation.evaluate import evaluate_student, evaluate_teacher
 from distillation.infra_cfg import InfraCfg
-from distillation.plots import plot_score_gaps, plot_score_quantiles
+from distillation.plots import plot_score_gaps, plot_score_quantiles, score_comparison_table
 from distillation.train import StudentRef, train_student
 
 __all__ = [
@@ -21,5 +21,6 @@ __all__ = [
     "plot_score_gaps",
     "plot_score_quantiles",
     "save_dataset",
+    "score_comparison_table",
     "train_student",
 ]

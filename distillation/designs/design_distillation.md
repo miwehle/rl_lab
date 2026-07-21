@@ -35,7 +35,7 @@ Die Nutzung soll aus einem Notebook mit wenigen Zeilen möglich sein, analog zum
 
 ```python
 from distillation import collect_teacher_dataset, train_student, evaluate_student, evaluate_teacher
-from distillation import plot_score_gaps, plot_score_quantiles
+from distillation import plot_score_gaps, plot_score_quantiles, score_comparison_table
 
 dataset = collect_teacher_dataset()
 student = train_student(dataset)
@@ -43,6 +43,7 @@ student_summary = evaluate_student(student)
 teacher_summary = evaluate_teacher()
 plot_score_quantiles(teacher_summary, student_summary)
 plot_score_gaps(teacher_summary, student_summary)
+score_comparison_table(teacher_summary, student_summary, min_diff=25.0)
 ```
 
 Für häufige Abläufe sind die Defaults ausreichend. Explizite Parameter sind nur dort nötig, wo experimentiert wird, z. B. `epsilon`, `seeds`, `student_hidden_sizes` oder `eval_episodes_per_world`. Teacher-Name, Dataset-Name und Run-Name haben Konventionen und sind nur optionale Overrides. Lange Notebook-Funktionen zeigen per Default eine Progressbar und können mit `progress=False` ruhig gestellt werden.
@@ -288,9 +289,12 @@ Für den Notebook-Vergleich gibt es zwei kompakte Plot-Helfer:
 ```text
 plot_score_quantiles(teacher_summary, student_summary)
 plot_score_gaps(teacher_summary, student_summary)
+score_comparison_table(teacher_summary, student_summary, min_diff=25.0)
 ```
 
 Beide zeigen die einzelnen Welten plus eine Zeile bzw. Spalte über alle Welten. Der Quantile-Plot nutzt das Robustness-Muster: q05..q95, q25..q75, Median und Mean.
+
+Die Tabelle paart Teacher und Student nach `(world, seed)`, zeigt `teacher_score`, `student_score` und `teacher_minus_student`, filtert kleine Differenzen über `min_diff` heraus und kann mit `ascending=True` die Fälle zeigen, in denen der Student besser ist.
 
 ## Tests
 
@@ -303,6 +307,7 @@ Dataset speichern/laden mit kleinem künstlichem Dataset
 train_student smoke test mit synthetischem Dataset und wenigen Epochs
 evaluate_teacher/evaluate_student smoke tests mit Fake-Env
 Plot-Helfer mit synthetischen Summaries
+Score-Vergleichstabelle mit synthetischen Summaries
 ```
 
 Nicht in V1 automatisiert:

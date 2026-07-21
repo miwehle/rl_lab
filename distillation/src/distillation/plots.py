@@ -7,6 +7,36 @@ from collections.abc import Sequence
 import numpy as np
 
 
+def score_comparison_table(
+    teacher_summary: dict,
+    student_summary: dict,
+    *,
+    min_diff: float = 0.0,
+    ascending: bool = False,
+):
+    """Return paired teacher/student scores sorted by teacher-student diff."""
+    import pandas as pd
+
+    teacher_scores = _paired_scores(teacher_summary)
+    student_scores = _paired_scores(student_summary)
+    rows = []
+    for key in sorted(teacher_scores.keys() & student_scores.keys()):
+        teacher_score = teacher_scores[key]
+        student_score = student_scores[key]
+        diff = teacher_score - student_score
+        if abs(diff) > min_diff:
+            rows.append(
+                {
+                    "world": key[0],
+                    "seed": key[1],
+                    "teacher_score": teacher_score,
+                    "student_score": student_score,
+                    "teacher_minus_student": diff,
+                }
+            )
+    return pd.DataFrame(rows).sort_values("teacher_minus_student", ascending=ascending, ignore_index=True)
+
+
 def plot_score_quantiles(teacher_summary: dict, student_summary: dict, worlds: Sequence[str] | None = None):
     """Plot teacher/student score distributions per world plus all worlds."""
     import plotly.graph_objects as go
@@ -136,6 +166,10 @@ def _labels(teacher_summary: dict, student_summary: dict, worlds: Sequence[str] 
 
 def _ordered_worlds(summary: dict) -> list[str]:
     return list(dict.fromkeys(row["world"] for row in summary["rows"]))
+
+
+def _paired_scores(summary: dict) -> dict[tuple[str, int], float]:
+    return {(str(row["world"]), int(row["seed"])): float(row["score"]) for row in summary["rows"]}
 
 
 def _interval_x(values: dict[str, dict[str, float]], labels: Sequence[str], low: str, high: str) -> list[float | None]:
