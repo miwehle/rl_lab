@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 
+from dqn.model import DQN
 from hpo.checkpointing import save_checkpoint
 
 from distillation.evaluate import evaluate_student
 from distillation.infra import InfraCfg
-from distillation.models import StudentDQN
 from distillation.train import StudentRef
 
 
@@ -43,7 +43,7 @@ class FakeEnvFactory:
 def test_evaluate_student_writes_summary(monkeypatch, tmp_path):
     monkeypatch.setattr("distillation.evaluate.EnvFactory", FakeEnvFactory)
     checkpoint_path = tmp_path / "drive" / "runs" / "run" / "student_checkpoint.pt"
-    model = StudentDQN(10, 4, hidden_sizes=(8, 6))
+    model = DQN(10, 4, hidden_sizes=(8, 6))
     save_checkpoint(model, checkpoint_path, {"student_hidden_sizes": [8, 6]})
     student = StudentRef(
         checkpoint_path=checkpoint_path,

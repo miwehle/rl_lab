@@ -9,12 +9,12 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from dqn.model import DQN
 from dqn.training import resolve_device
 from hpo.checkpointing import load_checkpoint
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory
 
 from distillation.infra import InfraCfg
-from distillation.models import StudentDQN
 from distillation.train import StudentRef
 
 
@@ -75,12 +75,12 @@ def evaluate_student(
     return summary
 
 
-def _load_student(student: StudentRef, env_factory: EnvFactory, world: str, *, device) -> StudentDQN:
+def _load_student(student: StudentRef, env_factory: EnvFactory, world: str, *, device) -> DQN:
     env = env_factory.make_env(world)
     try:
         observation, _ = env.reset(seed=0)
         hidden_sizes = tuple(int(value) for value in student.metadata["student_hidden_sizes"])
-        q_net = StudentDQN(math.prod(tuple(observation.shape)), env.action_space.n, hidden_sizes).to(device)
+        q_net = DQN(math.prod(tuple(observation.shape)), env.action_space.n, hidden_sizes=hidden_sizes).to(device)
         load_checkpoint(q_net, student.checkpoint_path, device)
         q_net.eval()
         return q_net

@@ -15,7 +15,7 @@ rl_lab/distillation/
 Das Projekt darf `hpo` und `dqn` importieren. Das vermeidet eine zweite SolarSystemLander-Implementierung und hält HPO trotzdem klein.
 
 ```text
-dqn -> DQN-Modellbasis
+dqn -> DQN-Modellbasis, inklusive kleiner Studenten mit hidden_sizes=(64, 64)
 hpo -> SolarSystemLander EnvFactory/Worlds/10D Observation, Checkpoint-Loading, ggf. Evaluation-Helfer
 ```
 
@@ -179,13 +179,13 @@ dataset = collect_teacher_dataset(epsilon=0.05, seeds=seeds)
 
 ## Training
 
-`train_student(...)` trainiert einen kleinen `StudentDQN` per supervised learning auf gespeicherte Teacher-Q-Werte:
+`train_student(...)` trainiert einen kleinen `dqn.model.DQN` per supervised learning auf gespeicherte Teacher-Q-Werte:
 
 ```python
 student = train_student(dataset, hidden_sizes=(64, 64))
 ```
 
-V1-Modell:
+V1-Student-Modell:
 
 ```text
 input 10
@@ -195,6 +195,8 @@ output 4 Q-values
 ReLU zwischen den linearen Layers
 linearer Output-Layer
 ```
+
+Der Student nutzt dieselbe `DQN`-Klasse wie der Teacher, nur mit `hidden_sizes=(64, 64)` statt Elises größerem symmetrischem Netz. Dadurch gibt es keinen duplizierten Modellcode in `distillation`.
 
 Loss:
 
@@ -282,7 +284,7 @@ Automatisierte Tests bleiben in V1 klein und schnell:
 
 ```text
 InfraCfg-Pfadkonventionen ohne Drive-Mount
-StudentDQN-Shape: [batch, 10] -> [batch, 4]
+DQN-Shape für Student-Größe: [batch, 10] -> [batch, 4]
 Dataset speichern/laden mit kleinem künstlichem Dataset
 train_student smoke test mit synthetischem Dataset und wenigen Epochs
 ```

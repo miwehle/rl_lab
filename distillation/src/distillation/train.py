@@ -12,12 +12,12 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
+from dqn.model import DQN
 from dqn.training import resolve_device
 from hpo.checkpointing import save_checkpoint
 
 from distillation.dataset import DatasetRef, dataset_arrays
 from distillation.infra import InfraCfg
-from distillation.models import StudentDQN
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,7 @@ def train_student(
     teacher_q_values = arrays["teacher_q_values"].astype(np.float32)
     train_idx, val_idx = _split_indices(len(observations), validation_fraction=validation_fraction, seed=seed)
 
-    student = StudentDQN(observations.shape[1], teacher_q_values.shape[1], hidden_sizes).to(device)
+    student = DQN(observations.shape[1], teacher_q_values.shape[1], hidden_sizes=hidden_sizes).to(device)
     optimizer = torch.optim.AdamW(student.parameters(), lr=learning_rate)
     train_loader = _loader(observations[train_idx], teacher_q_values[train_idx], batch_size=batch_size, shuffle=True)
 
@@ -109,7 +109,7 @@ def _loader(obs: np.ndarray, q_values: np.ndarray, *, batch_size: int, shuffle: 
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
-def _validation_metrics(student: StudentDQN, obs: np.ndarray, q_values: np.ndarray, device) -> dict[str, float]:
+def _validation_metrics(student: DQN, obs: np.ndarray, q_values: np.ndarray, device) -> dict[str, float]:
     student.eval()
     with torch.no_grad():
         obs_tensor = torch.from_numpy(obs).to(device)
