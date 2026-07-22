@@ -12,7 +12,7 @@ F12
 F11
 Vollbild-Modus (toggle)
 
-PlantUML
+### PlantUML
 Alt-D
 
 ## Obsidian
