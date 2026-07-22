@@ -86,9 +86,9 @@ class StudyReporter(Protocol):
     def set_incumbent_context(self, *, incumbent_params: dict[str, Any]) -> None: ...
 
     def report_optimization(self, study: Any, *, target_trials: int) -> None:
-        """Report on all trials (overview)."""
+        """Report on the study (overview of its trials)."""
 
     def report_robustness_evaluation(self, progress: RobustnessProgress) -> None: ...
 
     def report_training_progress(self, progress: TrainingProgress) -> None:
-        """Report on one training (detail)."""
+        """Report on training progress of one trial (detail)."""
