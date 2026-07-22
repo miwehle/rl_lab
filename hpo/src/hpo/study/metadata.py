@@ -72,7 +72,7 @@ def _detect_runtime_provider() -> str:
         return "colab"
     if os.environ.get("RUNPOD_POD_ID"):
         return "runpod"
-    return "local"
+    return platform.node() or "unknown"
 
 
 def _device_name(device: Any) -> str:

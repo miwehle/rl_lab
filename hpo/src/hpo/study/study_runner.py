@@ -64,7 +64,6 @@ class StudyRunner:
     study_attrs: dict[str, Any] = field(default_factory=dict)
     robust_candidates: int = 3
     robust_eval_episodes: int = 50
-    runtime_provider: str | None = None
     incumbent_params: dict[str, Any] = field(init=False)
     incumbent_score: float | None = field(init=False)
 
@@ -90,7 +89,6 @@ class StudyRunner:
         study = _create_or_load_study(
             study_name=study_name,
             database_path=database_path,
-            runtime_provider=self.runtime_provider,
             device=objective_cfg.device,
         )
         if _study_already_finished(study, n_trials):
@@ -175,15 +173,13 @@ def run_study(
     return study
 
 
-def _create_or_load_study(
-    *, study_name: str, database_path: str | Path, runtime_provider: str | None = None, device: Any = None
-) -> Any:
+def _create_or_load_study(*, study_name: str, database_path: str | Path, device: Any = None) -> Any:
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
     study = _create_study(
         study_name=study_name, direction="maximize", storage=f"sqlite:///{database_path}", load_if_exists=True
     )
-    record_study_metadata(database_path, study_name, runtime_provider=runtime_provider, device=device)
+    record_study_metadata(database_path, study_name, device=device)
     return study
 
 
