@@ -87,9 +87,7 @@ class StudyRunner:
         objective_cfg = _with_training_progress(objective_cfg, self.reporter.report_training_progress)
 
         study = _create_or_load_study(
-            study_name=study_name,
-            database_path=database_path,
-            device=objective_cfg.device,
+            study_name=study_name, database_path=database_path, device=objective_cfg.device
         )
         if _study_already_finished(study, n_trials):
             print("Study already finished.")
@@ -97,6 +95,7 @@ class StudyRunner:
 
         self.reporter.set_incumbent_context(incumbent_params=self.incumbent_params)
 
+        # core
         run_study(
             study=study,
             suggest_parameter_values=suggest_parameter_values,
@@ -107,6 +106,7 @@ class StudyRunner:
             progress_fn=self.reporter.report_optimization,
             backup_fn=lambda: self.cfg.storage(self.storage_name).backup(),
         )
+
         checkpoint_results = _evaluate_checkpoint_robustness(
             study=study,
             objective_cfg=objective_cfg,
@@ -164,7 +164,7 @@ def run_study(
 
     while _finished_trial_count(study) < n_trials:
         logger.info("study.optimize")
-        study.optimize(objective, n_trials=1)
+        study.optimize(objective, n_trials=1)  # core
         if backup_fn is not None:
             backup_fn()
         if progress_fn is not None:
