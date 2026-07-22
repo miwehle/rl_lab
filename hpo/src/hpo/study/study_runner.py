@@ -54,7 +54,15 @@ class Baseline:
 
 @dataclass
 class StudyRunner:
-    """Run a study and keep its incumbent."""
+    """Run an Optuna study.
+
+    This includes:
+    - Optimization
+    - Checkpointing
+    - Evaluation
+    - Keeping an incumbent
+    - Reporting
+    """
 
     storage_name: str
     objective_cfg: ObjectiveConfig
