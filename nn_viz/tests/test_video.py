@@ -1,7 +1,93 @@
 import numpy as np
 import pytest
+import torch
+import gymnasium as gym
 
-from nn_viz.video import _crop_to_visible_alpha, compose_bottom_overlay
+from nn_viz.video import (
+    _crop_to_visible_alpha,
+    compose_bottom_overlay,
+    draw_step_label,
+    record_network_overlay_video,
+)
+
+
+class FakeEnvFactory:
+    def __init__(self, env):
+        self.env = env
+        self.calls = []
+
+    def make_env(self, world, render_mode=None):
+        self.calls.append((world, render_mode))
+        return self.env
+
+
+class FakeEnv(gym.Env):
+    def __init__(self):
+        super().__init__()
+        self.step_count = 0
+        self.actions = []
+        self.observation_space = gym.spaces.Box(-np.inf, np.inf, shape=(10,), dtype=np.float32)
+        self.action_space = gym.spaces.Discrete(4)
+
+    def reset(self, *, seed=None, options=None):
+        self.seed = seed
+        return np.arange(10, dtype=np.float32), {}
+
+    def step(self, action):
+        self.actions.append(action)
+        self.step_count += 1
+        observation = np.arange(10, dtype=np.float32) + self.step_count
+        terminated = self.step_count >= 2
+        return observation, 0.0, terminated, False, {}
+
+    def render(self):
+        return np.zeros((24, 32, 3), dtype=np.uint8)
+
+    def close(self):
+        pass
+
+
+class FakeRecordVideo:
+    def __init__(self, env, *, video_folder, name_prefix, **_kwargs):
+        self.env = env
+        self.path = video_folder / f"{name_prefix}-episode-0.mp4" if hasattr(video_folder, "__truediv__") else None
+        self.video_folder = video_folder
+        self.name_prefix = name_prefix
+
+    def reset(self, *, seed=None):
+        return self.env.reset(seed=seed)
+
+    def step(self, action):
+        return self.env.step(action)
+
+    def _capture_frame(self):
+        self.env.render()
+
+    def close(self):
+        from pathlib import Path
+
+        path = Path(self.video_folder) / f"{self.name_prefix}-episode-0.mp4"
+        path.write_bytes(b"video")
+        self.env.close()
+
+
+class TinyQNet(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = torch.nn.Linear(10, 2)
+        self.layer2 = torch.nn.Linear(2, 3)
+        self.layer3 = torch.nn.Linear(3, 4)
+        with torch.no_grad():
+            self.layer1.weight.zero_()
+            self.layer1.bias.copy_(torch.tensor([1.0, 2.0]))
+            self.layer2.weight.copy_(torch.tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]))
+            self.layer2.bias.zero_()
+            self.layer3.weight.zero_()
+            self.layer3.bias.copy_(torch.tensor([0.1, 0.4, 0.2, 0.3]))
+
+
+class MinimalLayout:
+    pass
 
 
 def test_compose_bottom_overlay_blends_only_bottom_band():
@@ -34,3 +120,53 @@ def test_crop_to_visible_alpha_removes_transparent_margins():
 
     assert cropped.shape == (3, 3, 4)
     assert np.all(cropped[:, :, 3] == 255)
+
+
+def test_draw_step_label_changes_frame_without_changing_shape():
+    frame = np.zeros((24, 32, 3), dtype=np.uint8)
+
+    labeled = draw_step_label(frame, 7)
+
+    assert labeled.shape == frame.shape
+    assert labeled.dtype == np.uint8
+    assert np.any(labeled != frame)
+
+
+def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):
+    import nn_viz.video as video
+
+    monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
+    monkeypatch.setattr(
+        video,
+        "render_layout_rgba",
+        lambda _layout, *, width, height: np.zeros((height, width, 4), dtype=np.uint8),
+    )
+    env = FakeEnv()
+    output_path = tmp_path / "earth_seed_0_nn_overlay.mp4"
+
+    recorded_path = record_network_overlay_video(
+        TinyQNet(),
+        FakeEnvFactory(env),
+        MinimalLayout(),
+        world="earth",
+        seed=123,
+        output_path=output_path,
+        max_steps=3,
+    )
+
+    assert recorded_path == output_path
+    assert output_path.read_bytes() == b"video"
+    trace = np.load(tmp_path / "earth_seed_0_nn_overlay_trace.npz")
+    assert trace["steps"].tolist() == [0, 1]
+    assert trace["observations"].shape == (2, 10)
+    assert trace["h1"].shape == (2, 2)
+    assert trace["h2"].shape == (2, 3)
+    assert trace["q_values"].shape == (2, 4)
+    np.testing.assert_array_equal(trace["actions"], np.argmax(trace["q_values"], axis=1))
+
+    summary_rows = (tmp_path / "earth_seed_0_nn_overlay_trace_summary.csv").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    assert summary_rows[0] == "step,action,q_left,q_up,q_noop,q_right"
+    assert len(summary_rows) == 3
+    assert summary_rows[1].startswith("0,left,")

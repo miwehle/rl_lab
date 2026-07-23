@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
+import csv
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
-import torch
 from gymnasium.wrappers import RecordVideo
 
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
+from nn_viz.activations import ACTION_LABELS, _forward_activations
 from nn_viz.layout import NetworkLayout
 from nn_viz.plot import plot_network_layout
 
 _FINAL_HOLD_FRAMES = 30
+_CSV_Q_COLUMNS = (("q_left", 1), ("q_up", 2), ("q_noop", 0), ("q_right", 3))
 
 
 def record_network_overlay_video(
@@ -37,28 +40,35 @@ def record_network_overlay_video(
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    trace_path = output_path.with_name(f"{output_path.stem}_trace.npz")
+    summary_path = output_path.with_name(f"{output_path.stem}_trace_summary.csv")
     q_net.eval()
 
     env = env_factory.make_env(world, render_mode="rgb_array")
     if render_cfg is not None:
         env = wrap_env(env, render_cfg)
-    env = StaticNetworkOverlayWrapper(
+    overlay_env = StaticNetworkOverlayWrapper(
         env,
         layout,
         overlay_height_ratio=overlay_height_ratio,
         overlay_alpha=overlay_alpha,
     )
+    overlay_env.set_step(0)
     video_env = RecordVideo(
-        env,
+        overlay_env,
         video_folder=str(output_path.parent),
         episode_trigger=lambda episode_id: episode_id == 0,
         name_prefix=output_path.stem,
         disable_logger=True,
     )
+    trace = VideoTrace()
     try:
         observation, _ = video_env.reset(seed=seed)
-        for _ in range(max_steps):
-            action = _greedy_action(q_net, observation, device)
+        for step in range(max_steps):
+            h1, h2, q_values = _forward_activations(q_net, observation, device)
+            action = int(np.argmax(q_values))
+            trace.append(step, observation, action, h1, h2, q_values)
+            overlay_env.set_step(step)
             observation, _, terminated, truncated, _ = video_env.step(action)
             if terminated or truncated:
                 _hold_final_frame(video_env)
@@ -66,10 +76,69 @@ def record_network_overlay_video(
     finally:
         video_env.close()
 
+    trace.save(trace_path)
+    trace.save_summary(summary_path)
+
     raw_path = output_path.parent / f"{output_path.stem}-episode-0.mp4"
     if raw_path.exists():
         raw_path.replace(output_path)
     return output_path
+
+
+@dataclass
+class VideoTrace:
+    """Per-step NN state collected while recording one video."""
+
+    steps: list[int] = field(default_factory=list)
+    observations: list[np.ndarray] = field(default_factory=list)
+    actions: list[int] = field(default_factory=list)
+    h1: list[np.ndarray] = field(default_factory=list)
+    h2: list[np.ndarray] = field(default_factory=list)
+    q_values: list[np.ndarray] = field(default_factory=list)
+
+    def append(
+        self,
+        step: int,
+        observation: np.ndarray,
+        action: int,
+        h1: np.ndarray,
+        h2: np.ndarray,
+        q_values: np.ndarray,
+    ) -> None:
+        self.steps.append(step)
+        self.observations.append(np.asarray(observation, dtype=np.float32))
+        self.actions.append(action)
+        self.h1.append(np.asarray(h1, dtype=np.float32))
+        self.h2.append(np.asarray(h2, dtype=np.float32))
+        self.q_values.append(np.asarray(q_values, dtype=np.float32))
+
+    def arrays(self) -> dict[str, np.ndarray]:
+        return {
+            "steps": np.asarray(self.steps, dtype=np.int64),
+            "observations": np.vstack(self.observations).astype(np.float32, copy=False),
+            "actions": np.asarray(self.actions, dtype=np.int64),
+            "h1": np.vstack(self.h1).astype(np.float32, copy=False),
+            "h2": np.vstack(self.h2).astype(np.float32, copy=False),
+            "q_values": np.vstack(self.q_values).astype(np.float32, copy=False),
+        }
+
+    def save(self, path: Path) -> None:
+        np.savez(path, **self.arrays())
+
+    def save_summary(self, path: Path) -> None:
+        arrays = self.arrays()
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["step", "action", *(name for name, _ in _CSV_Q_COLUMNS)])
+            for row_index, step in enumerate(arrays["steps"]):
+                q_values = arrays["q_values"][row_index]
+                writer.writerow(
+                    [
+                        int(step),
+                        ACTION_LABELS[int(arrays["actions"][row_index])],
+                        *(f"{float(q_values[action_index]):.6g}" for _, action_index in _CSV_Q_COLUMNS),
+                    ]
+                )
 
 
 class StaticNetworkOverlayWrapper(gym.Wrapper):
@@ -93,6 +162,10 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         self.overlay_alpha = overlay_alpha
         self._overlay_rgba: np.ndarray | None = None
         self._overlay_size: tuple[int, int] | None = None
+        self._step: int | None = None
+
+    def set_step(self, step: int | None) -> None:
+        self._step = step
 
     def render(self):
         frame = self.env.render()
@@ -101,7 +174,10 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         height, width = frame.shape[:2]
         overlay_height = max(1, int(round(height * self.overlay_height_ratio)))
         overlay = self._overlay_for(width, overlay_height)
-        return compose_bottom_overlay(frame, overlay, alpha=self.overlay_alpha)
+        composed = compose_bottom_overlay(frame, overlay, alpha=self.overlay_alpha)
+        if self._step is not None:
+            return draw_step_label(composed, self._step)
+        return composed
 
     def _overlay_for(self, width: int, height: int) -> np.ndarray:
         size = (width, height)
@@ -158,6 +234,27 @@ def render_layout_rgba(layout: NetworkLayout, *, width: int, height: int) -> np.
     return np.asarray(canvas, dtype=np.uint8)
 
 
+def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
+    """Return an RGB frame with a small step label in the top-left corner."""
+    from PIL import Image, ImageDraw
+
+    if frame.ndim != 3 or frame.shape[2] != 3:
+        raise ValueError("frame must have shape HxWx3")
+    image = Image.fromarray(frame).convert("RGBA")
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    text = f"step: {step}"
+    bbox = draw.textbbox((0, 0), text)
+    padding = 5
+    left = 8
+    top = 8
+    right = left + (bbox[2] - bbox[0]) + padding * 2
+    bottom = top + (bbox[3] - bbox[1]) + padding * 2
+    draw.rounded_rectangle((left, top, right, bottom), radius=3, fill=(0, 0, 0, 150))
+    draw.text((left + padding, top + padding), text, fill=(255, 255, 255, 230))
+    return np.asarray(Image.alpha_composite(image, overlay).convert("RGB"), dtype=np.uint8)
+
+
 def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
     alpha = rgba[:, :, 3]
     visible = np.argwhere(alpha > 0)
@@ -166,13 +263,6 @@ def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
     top, left = visible.min(axis=0)
     bottom, right = visible.max(axis=0) + 1
     return rgba[top:bottom, left:right]
-
-
-def _greedy_action(q_net, observation, device) -> int:
-    state = torch.as_tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
-    with torch.no_grad():
-        return int(q_net(state).argmax(dim=1).item())
-
 
 def _hold_final_frame(env) -> None:
     for _ in range(_FINAL_HOLD_FRAMES):
