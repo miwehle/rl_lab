@@ -101,3 +101,38 @@ def test_plot_labels_every_hidden_neuron_with_index():
         assert labels == ["left", "up", "0", "9", "10", "0", "10", "11"]
     finally:
         plt.close(fig)
+
+
+def test_plot_places_inputs_as_centered_t():
+    layout = NetworkLayout(
+        nodes=(
+            Node("out", 0, "left", 0.0, 0.0, 1.0),
+            Node("h2", 0, "H2-0", 0.0, 1.0, 0.2, 0),
+            Node("h2", 1, "H2-1", 1.0, 1.0, 0.2, 0),
+            Node("h1", 0, "H1-0", 0.0, 2.0, 0.1),
+            Node("in", 0, "x", 0.0, 3.0, 0.1),
+            Node("in", 1, "y", 1.0, 3.0, 0.1),
+            Node("in", 2, "vx", 2.0, 3.0, 0.1),
+            Node("in", 3, "vy", 3.0, 3.0, 0.1),
+            Node("in", 4, "ang", 4.0, 3.0, 0.1),
+            Node("in", 5, "vang", 5.0, 3.0, 0.1),
+            Node("in", 6, "ftl", 6.0, 3.0, 0.1),
+            Node("in", 7, "ftr", 7.0, 3.0, 0.1),
+            Node("in", 8, "ax", 8.0, 3.0, 0.1),
+            Node("in", 9, "ay", 9.0, 3.0, 0.1),
+        ),
+        edges=(),
+    )
+
+    fig = plot_network_layout(layout)
+
+    try:
+        input_offsets = np.asarray(fig.axes[0].collections[0].get_offsets())
+        labels = [text.get_text() for text in fig.axes[0].texts]
+
+        assert labels[-10:] == ["y", "vy", "ay", "ftl", "ftr", "x", "vx", "ax", "ang", "vang"]
+        assert np.allclose(input_offsets[:5, 1], 0.9)
+        assert np.allclose(input_offsets[5:, 0], 0.5)
+        assert np.allclose(input_offsets[5:, 1], [1.15, 1.4, 1.65, 1.9, 2.15])
+    finally:
+        plt.close(fig)

@@ -13,6 +13,8 @@ from nn_viz.layout import Edge, NetworkLayout, Node
 
 _NODE_SIZE = 78.0
 _LAYER_Y = {"out": 0.0, "h2": 0.25, "h1": 0.5}
+_INPUT_TOP = (1, 3, 9, 6, 7)
+_INPUT_STEM = (0, 2, 8, 4, 5)
 
 
 def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None = None):
@@ -40,6 +42,7 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
     output_span = _span(output_nodes)
     h2_nodes = [node for node in nodes if node.layer == "h2"]
     h1_nodes = [node for node in nodes if node.layer == "h1"]
+    input_nodes = [node for node in nodes if node.layer == "in"]
     hidden_frame = _hidden_frame(h2_nodes, fallback_span=output_span)
     output_ordered = sorted(output_nodes, key=lambda node: (node.x, node.index))
     h2_ordered = tuple(node for group in _output_groups(h2_nodes, output_ordered) for node in group)
@@ -48,6 +51,7 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
         _group_start_nodes(output_ordered, h2_nodes, h2_display_nodes, fallback_span=output_span)
         + h2_display_nodes
         + _equidistant_nodes(h1_nodes, center=hidden_frame[2], spacing=hidden_frame[3])
+        + _input_nodes(input_nodes, center=hidden_frame[2], spacing=hidden_frame[3] * 6)
     )
 
 
@@ -118,6 +122,22 @@ def _display_node(node: Node, *, x: float) -> Node:
     return replace(node, x=x, y=_LAYER_Y[node.layer])
 
 
+def _input_nodes(nodes: list[Node], *, center: float, spacing: float) -> tuple[Node, ...]:
+    by_index = {node.index: node for node in nodes}
+    top_xs = center + (np.arange(len(_INPUT_TOP)) - (len(_INPUT_TOP) - 1) / 2) * spacing
+    displayed = [
+        replace(by_index[index], x=float(x), y=0.9)
+        for index, x in zip(_INPUT_TOP, top_xs)
+        if index in by_index
+    ]
+    displayed.extend(
+        replace(by_index[index], x=float(center), y=1.15 + position * 0.25)
+        for position, index in enumerate(_INPUT_STEM)
+        if index in by_index
+    )
+    return tuple(displayed)
+
+
 def _span(nodes: list[Node]) -> tuple[float, float]:
     if not nodes:
         return 0.0, 1.0
@@ -151,7 +171,7 @@ def _draw_edges(ax, edges: tuple[Edge, ...], nodes: dict[tuple[str, int], Node])
 
 def _draw_nodes(ax, nodes: tuple[Node, ...]) -> None:
     max_activity = max((node.activity for node in nodes if node.layer != "out"), default=1.0)
-    for layer, color in [("h1", "#8a8f98"), ("h2", "#2b6cb0"), ("out", "#dd6b20")]:
+    for layer, color in [("in", "#6b7280"), ("h1", "#8a8f98"), ("h2", "#2b6cb0"), ("out", "#dd6b20")]:
         selected = [node for node in nodes if node.layer == layer]
         if not selected:
             continue
@@ -188,6 +208,8 @@ def _label_hidden_nodes(ax, nodes: tuple[Node, ...]) -> None:
     for node in nodes:
         if node.layer in {"h1", "h2"}:
             ax.text(node.x, node.y + 0.07, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
+        if node.layer == "in":
+            ax.text(node.x, node.y + 0.07, node.label, ha="center", va="center", fontsize=7, color="#111827")
 
 
 def _x_limits(nodes: tuple[Node, ...]) -> tuple[float, float]:

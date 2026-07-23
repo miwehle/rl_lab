@@ -9,6 +9,8 @@ import numpy as np
 from dqn.model import DQN
 from nn_viz.activations import ACTION_LABELS, ACTION_ORDER, ActivationRollouts
 
+INPUT_LABELS = ("x", "y", "vx", "vy", "ang", "vang", "ftl", "ftr", "ax", "ay")
+
 
 @dataclass(frozen=True)
 class Node:
@@ -53,8 +55,10 @@ def compute_activity_layout(
     if output_edges_per_target < 1:
         raise ValueError("output_edges_per_target must be >= 1")
 
+    w1 = q_net.layer1.weight.detach().cpu().numpy()
     w2 = q_net.layer2.weight.detach().cpu().numpy()
     w3 = q_net.layer3.weight.detach().cpu().numpy()
+    input_to_h1 = _mean_abs_contribution(rollouts.observations, w1)
     h1_to_h2 = _mean_abs_contribution(rollouts.h1, w2)
     h2_to_out = _mean_abs_contribution(rollouts.h2, w3)
     h2_output_specificity = _target_specificity(h2_to_out)
@@ -62,10 +66,13 @@ def compute_activity_layout(
     output_nodes = _output_nodes(rollouts.q_values)
     h2_nodes = _hidden2_nodes(rollouts.h2, h2_output_specificity, output_nodes)
     h1_nodes = _hidden1_nodes(rollouts.h1, h1_to_h2, h2_nodes)
+    input_nodes = _input_nodes(rollouts.observations)
     edges = _top_edges("h2", "out", h2_to_out, h2_output_specificity, w3, output_edges_per_target) + _top_edges(
         "h1", "h2", h1_to_h2, h1_to_h2, w2, top_edges_per_target
+    ) + _top_edges(
+        "in", "h1", input_to_h1, input_to_h1, w1, top_edges_per_target
     )
-    return NetworkLayout(nodes=output_nodes + h2_nodes + h1_nodes, edges=tuple(edges))
+    return NetworkLayout(nodes=output_nodes + h2_nodes + h1_nodes + input_nodes, edges=tuple(edges))
 
 
 def _mean_abs_contribution(
@@ -88,6 +95,13 @@ def _output_nodes(q_values: np.ndarray) -> tuple[Node, ...]:
     return tuple(
         Node("out", action, ACTION_LABELS[action], output_x[action], 0.0, float(np.mean(q_values[:, action])))
         for action in ACTION_ORDER
+    )
+
+
+def _input_nodes(observations: np.ndarray) -> tuple[Node, ...]:
+    return tuple(
+        Node("in", index, label, float(index), 3.0, float(np.mean(np.abs(observations[:, index]))))
+        for index, label in enumerate(INPUT_LABELS)
     )
 
 

@@ -32,6 +32,8 @@ def test_collect_activations_records_one_row_per_environment_step():
     rollouts = collect_activations(q_net, FakeEnvFactory(), [RolloutSpec("moon", seed=7)])
 
     assert rollouts.frame_count == 2
+    assert rollouts.observations.shape == (2, 10)
+    assert np.allclose(rollouts.observations[0], 7.0)
     assert rollouts.h1.shape == (2, 3)
     assert rollouts.h2.shape == (2, 2)
     assert rollouts.q_values.shape == (2, 4)

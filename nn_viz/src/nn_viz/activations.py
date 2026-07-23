@@ -26,6 +26,7 @@ class RolloutSpec:
 
 @dataclass(frozen=True)
 class ActivationRollouts:
+    observations: np.ndarray
     h1: np.ndarray
     h2: np.ndarray
     q_values: np.ndarray
@@ -54,6 +55,7 @@ def collect_activations(
     h1_values: list[np.ndarray] = []
     h2_values: list[np.ndarray] = []
     q_values: list[np.ndarray] = []
+    observations: list[np.ndarray] = []
     actions: list[int] = []
     rows: list[dict[str, float | int | str]] = []
     q_net.eval()
@@ -67,6 +69,7 @@ def collect_activations(
             h1_values,
             h2_values,
             q_values,
+            observations,
             actions,
             rows,
         )
@@ -74,6 +77,7 @@ def collect_activations(
     if not actions:
         raise ValueError("collect_activations needs at least one environment step")
     return ActivationRollouts(
+        observations=np.vstack(observations),
         h1=np.vstack(h1_values),
         h2=np.vstack(h2_values),
         q_values=np.vstack(q_values),
@@ -90,6 +94,7 @@ def _collect_episode(
     h1_values: list[np.ndarray],
     h2_values: list[np.ndarray],
     q_values: list[np.ndarray],
+    observations: list[np.ndarray],
     actions: list[int],
     rows: list[dict[str, float | int | str]],
 ) -> None:
@@ -99,6 +104,7 @@ def _collect_episode(
         for step in range(spec.max_steps):
             h1, h2, q = _forward_activations(q_net, observation, device)
             action = int(np.argmax(q))
+            observations.append(np.asarray(observation, dtype=np.float32))
             h1_values.append(h1)
             h2_values.append(h2)
             q_values.append(q)
