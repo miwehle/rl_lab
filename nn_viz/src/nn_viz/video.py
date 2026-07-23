@@ -53,7 +53,7 @@ def record_network_overlay_video(
         overlay_height_ratio=overlay_height_ratio,
         overlay_alpha=overlay_alpha,
     )
-    overlay_env.set_step(0)
+    overlay_env.set_step_info(0)
     video_env = RecordVideo(
         overlay_env,
         video_folder=str(output_path.parent),
@@ -68,7 +68,7 @@ def record_network_overlay_video(
             h1, h2, q_values = _forward_activations(q_net, observation, device)
             action = int(np.argmax(q_values))
             trace.append(step, observation, action, h1, h2, q_values)
-            overlay_env.set_step(step)
+            overlay_env.set_step_info(step, ACTION_LABELS[action])
             observation, _, terminated, truncated, _ = video_env.step(action)
             if terminated or truncated:
                 _hold_final_frame(video_env)
@@ -163,9 +163,14 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         self._overlay_rgba: np.ndarray | None = None
         self._overlay_size: tuple[int, int] | None = None
         self._step: int | None = None
+        self._action_label: str | None = None
 
     def set_step(self, step: int | None) -> None:
+        self.set_step_info(step)
+
+    def set_step_info(self, step: int | None, action_label: str | None = None) -> None:
         self._step = step
+        self._action_label = action_label
 
     def render(self):
         frame = self.env.render()
@@ -176,7 +181,7 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         overlay = self._overlay_for(width, overlay_height)
         composed = compose_bottom_overlay(frame, overlay, alpha=self.overlay_alpha)
         if self._step is not None:
-            return draw_step_label(composed, self._step)
+            return draw_step_label(composed, self._step, action_label=self._action_label)
         return composed
 
     def _overlay_for(self, width: int, height: int) -> np.ndarray:
@@ -234,7 +239,7 @@ def render_layout_rgba(layout: NetworkLayout, *, width: int, height: int) -> np.
     return np.asarray(canvas, dtype=np.uint8)
 
 
-def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
+def draw_step_label(frame: np.ndarray, step: int, *, action_label: str | None = None) -> np.ndarray:
     """Return an RGB frame with a visible step label in the upper-right corner."""
     from PIL import Image, ImageDraw, ImageFont
 
@@ -245,8 +250,11 @@ def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
     draw = ImageDraw.Draw(overlay)
     font_size = max(10, image.height // 34)
     font = ImageFont.truetype("arial.ttf", font_size) if _font_exists("arial.ttf") else ImageFont.load_default(font_size)
-    text = f"step: {step:03d}"
-    bbox = draw.textbbox((0, 0), text, font=font)
+    lines = [f"step: {step:03d}"]
+    if action_label is not None:
+        lines.append(f"action: {action_label}")
+    text = "\n".join(lines)
+    bbox = draw.multiline_textbbox((0, 0), text, font=font, spacing=2)
     padding_x = max(10, font_size // 2)
     padding_y = max(6, font_size // 4)
     margin = max(4, min(image.width, image.height) // 50)
@@ -257,7 +265,7 @@ def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
     top = min(max(48, image.height // 15), max(margin, image.height - label_height - margin))
     bottom = min(image.height - margin, top + label_height)
     draw.rounded_rectangle((left, top, right, bottom), radius=5, fill=(0, 0, 0, 180))
-    draw.text((left + padding_x, top + padding_y), text, font=font, fill=(255, 255, 255, 245))
+    draw.multiline_text((left + padding_x, top + padding_y), text, font=font, fill=(255, 255, 255, 245), spacing=2)
     return np.asarray(Image.alpha_composite(image, overlay).convert("RGB"), dtype=np.uint8)
 
 
