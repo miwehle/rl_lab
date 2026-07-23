@@ -12,6 +12,7 @@ from matplotlib.colors import to_rgb
 from nn_viz.layout import Edge, NetworkLayout, Node
 
 _NODE_SIZE = 78.0
+_LAYER_Y = {"out": 0.0, "h2": 0.5, "h1": 1.0}
 
 
 def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None = None):
@@ -68,7 +69,7 @@ def _spread_nodes(nodes: list[Node], *, left: float, right: float) -> tuple[Node
         xs = [(left + right) / 2]
     else:
         xs = np.linspace(left, right, num=len(ordered))
-    return tuple(replace(node, x=float(x)) for node, x in zip(ordered, xs))
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
 
 
 def _block_center_nodes(
@@ -83,7 +84,7 @@ def _block_center_nodes(
     source_ordered = sorted(source_nodes, key=lambda node: (node.x, node.index))
     blocks = np.array_split(source_ordered, len(ordered))
     xs = [np.mean([source.x for source in block]) for block in blocks]
-    return tuple(replace(node, x=float(x)) for node, x in zip(ordered, xs))
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
 
 
 def _equidistant_nodes(nodes: list[Node], *, center: float, spacing: float) -> tuple[Node, ...]:
@@ -95,7 +96,11 @@ def _equidistant_nodes(nodes: list[Node], *, center: float, spacing: float) -> t
     else:
         offsets = (np.arange(len(ordered)) - (len(ordered) - 1) / 2) * spacing
         xs = center + offsets
-    return tuple(replace(node, x=float(x)) for node, x in zip(ordered, xs))
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
+
+
+def _display_node(node: Node, *, x: float) -> Node:
+    return replace(node, x=x, y=_LAYER_Y[node.layer])
 
 
 def _span(nodes: list[Node]) -> tuple[float, float]:
@@ -131,13 +136,13 @@ def _draw_edges(ax, edges: tuple[Edge, ...], nodes: dict[tuple[str, int], Node])
 
 def _draw_nodes(ax, nodes: tuple[Node, ...]) -> None:
     max_activity = max((node.activity for node in nodes if node.layer != "out"), default=1.0)
-    for layer, color, y in [("h1", "#8a8f98", 2.0), ("h2", "#2b6cb0", 1.0), ("out", "#dd6b20", 0.0)]:
+    for layer, color in [("h1", "#8a8f98"), ("h2", "#2b6cb0"), ("out", "#dd6b20")]:
         selected = [node for node in nodes if node.layer == layer]
         if not selected:
             continue
         ax.scatter(
             [node.x for node in selected],
-            [y] * len(selected),
+            [node.y for node in selected],
             s=_NODE_SIZE,
             color=[_node_color(node, color, max_activity) for node in selected],
             edgecolors="#111827",
@@ -161,13 +166,13 @@ def _node_color(node: Node, color: str, max_activity: float) -> tuple[float, flo
 def _label_outputs(ax, nodes: tuple[Node, ...]) -> None:
     for node in nodes:
         if node.layer == "out":
-            ax.text(node.x, node.y - 0.16, node.label, ha="center", va="center", fontsize=10, weight="bold")
+            ax.text(node.x, node.y - 0.08, node.label, ha="center", va="center", fontsize=10, weight="bold")
 
 
 def _label_hidden_nodes(ax, nodes: tuple[Node, ...]) -> None:
     for node in nodes:
         if node.layer in {"h1", "h2"}:
-            ax.text(node.x, node.y + 0.13, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
+            ax.text(node.x, node.y + 0.065, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
 
 
 def _x_limits(nodes: tuple[Node, ...]) -> tuple[float, float]:

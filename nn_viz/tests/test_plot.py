@@ -64,6 +64,10 @@ def test_plot_places_hidden_layers_equidistant_with_constant_node_size():
         assert np.allclose(h2_spacing, 1.0)
         assert np.allclose(h1_offsets[:, 0], h2_offsets[:, 0])
         assert np.allclose(output_offsets[:, 0], [4.0, 6.0, 8.0, 10.0])
+        assert np.allclose(h1_offsets[:, 1], 1.0)
+        assert np.allclose(h2_offsets[:, 1], 0.5)
+        assert np.allclose(output_offsets[:, 1], 0.0)
+        assert np.allclose(fig.axes[0].get_ylim(), (2.35, -0.35))
         assert len(set(h1_sizes)) == 1
         assert len(set(h2_sizes)) == 1
     finally:
