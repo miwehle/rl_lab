@@ -16,9 +16,12 @@ from nn_viz.ablation import (
 from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout
 from nn_viz.plot import plot_network_layout
 from nn_viz.video import (
+    LiveOverlaySmoother,
+    LiveOverlayState,
     StaticNetworkOverlayWrapper,
     compose_bottom_overlay,
     record_network_overlay_video,
+    render_live_layout_rgba,
     render_layout_rgba,
 )
 
@@ -29,6 +32,8 @@ __all__ = [
     "DEFAULT_INPUT_ABLATIONS",
     "Edge",
     "InputAblation",
+    "LiveOverlaySmoother",
+    "LiveOverlayState",
     "NetworkLayout",
     "Node",
     "RolloutSpec",
@@ -40,5 +45,6 @@ __all__ = [
     "load_student_network",
     "plot_network_layout",
     "record_network_overlay_video",
+    "render_live_layout_rgba",
     "render_layout_rgba",
 ]

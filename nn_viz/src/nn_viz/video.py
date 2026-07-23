@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import gymnasium as gym
 import numpy as np
@@ -13,11 +13,12 @@ from gymnasium.wrappers import RecordVideo
 
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 from nn_viz.activations import ACTION_LABELS, _forward_activations
-from nn_viz.layout import NetworkLayout
-from nn_viz.plot import plot_network_layout
+from nn_viz.layout import Edge, NetworkLayout, Node
+from nn_viz.plot import _display_nodes, plot_network_layout
 
 _FINAL_HOLD_FRAMES = 30
 _CSV_Q_COLUMNS = (("q_left", 1), ("q_up", 2), ("q_noop", 0), ("q_right", 3))
+_LIVE_ALPHA_DEFAULT = 0.15
 
 
 def record_network_overlay_video(
@@ -31,10 +32,12 @@ def record_network_overlay_video(
     max_steps: int = 1000,
     overlay_height_ratio: float = 0.32,
     overlay_alpha: float = 0.70,
+    live_overlay: bool = False,
+    live_ema_alpha: float = _LIVE_ALPHA_DEFAULT,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
-    """Record one greedy landing video with a static NN layout in the bottom band."""
+    """Record one greedy landing video with an NN layout in the bottom band."""
     if max_steps < 1:
         raise ValueError("max_steps must be >= 1")
 
@@ -47,13 +50,25 @@ def record_network_overlay_video(
     env = env_factory.make_env(world, render_mode="rgb_array")
     if render_cfg is not None:
         env = wrap_env(env, render_cfg)
+    live_smoother = LiveOverlaySmoother(live_ema_alpha) if live_overlay else None
     overlay_env = StaticNetworkOverlayWrapper(
         env,
         layout,
         overlay_height_ratio=overlay_height_ratio,
         overlay_alpha=overlay_alpha,
+        overlay_provider=(
+            lambda width, height: render_live_layout_rgba(
+                layout,
+                live_smoother.state,
+                width=width,
+                height=height,
+            )
+            if live_smoother is not None and live_smoother.state is not None
+            else render_layout_rgba(layout, width=width, height=height)
+        )
+        if live_overlay
+        else None,
     )
-    overlay_env.set_step_info(0)
     video_env = RecordVideo(
         overlay_env,
         video_folder=str(output_path.parent),
@@ -68,6 +83,8 @@ def record_network_overlay_video(
             h1, h2, q_values = _forward_activations(q_net, observation, device)
             action = int(np.argmax(q_values))
             trace.append(step, observation, action, h1, h2, q_values)
+            if live_smoother is not None:
+                live_smoother.update(observation, h1, h2, q_values, action)
             overlay_env.set_step_info(step, ACTION_LABELS[action])
             observation, _, terminated, truncated, _ = video_env.step(action)
             if terminated or truncated:
@@ -141,6 +158,235 @@ class VideoTrace:
                 )
 
 
+@dataclass(frozen=True)
+class LiveOverlayState:
+    """Smoothed NN state used only for live video rendering."""
+
+    input_abs: np.ndarray
+    h1: np.ndarray
+    h2: np.ndarray
+    q_values: np.ndarray
+    action: int
+
+
+class LiveOverlaySmoother:
+    """EMA smoother for per-step NN values shown in the moving video."""
+
+    def __init__(self, alpha: float) -> None:
+        if not 0.0 < alpha <= 1.0:
+            raise ValueError("alpha must be in (0, 1]")
+        self.alpha = alpha
+        self.state: LiveOverlayState | None = None
+
+    def update(
+        self,
+        observation: np.ndarray,
+        h1: np.ndarray,
+        h2: np.ndarray,
+        q_values: np.ndarray,
+        action: int,
+    ) -> LiveOverlayState:
+        current = LiveOverlayState(
+            input_abs=np.abs(np.asarray(observation, dtype=np.float32)),
+            h1=np.asarray(h1, dtype=np.float32),
+            h2=np.asarray(h2, dtype=np.float32),
+            q_values=np.asarray(q_values, dtype=np.float32),
+            action=action,
+        )
+        if self.state is None:
+            self.state = current
+            return current
+        self.state = LiveOverlayState(
+            input_abs=_ema(self.state.input_abs, current.input_abs, self.alpha),
+            h1=_ema(self.state.h1, current.h1, self.alpha),
+            h2=_ema(self.state.h2, current.h2, self.alpha),
+            q_values=_ema(self.state.q_values, current.q_values, self.alpha),
+            action=action,
+        )
+        return self.state
+
+
+def render_live_layout_rgba(
+    layout: NetworkLayout,
+    live_state: LiveOverlayState,
+    *,
+    width: int,
+    height: int,
+) -> np.ndarray:
+    """Render the existing layout as a dynamic RGBA overlay."""
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGBA", (width, height), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(image, "RGBA")
+    nodes = _display_nodes(layout.nodes)
+    node_by_key = {(node.layer, node.index): node for node in nodes}
+    transform = _layout_transform(nodes, width=width, height=height)
+
+    edge_values = _edge_signal_values(layout.edges, live_state)
+    _draw_live_edges(draw, layout.edges, node_by_key, edge_values, transform, height)
+    _draw_live_nodes(draw, nodes, live_state, transform, height)
+    _draw_live_labels(draw, nodes, live_state, transform, height)
+    return np.asarray(image, dtype=np.uint8)
+
+
+def _ema(previous: np.ndarray, current: np.ndarray, alpha: float) -> np.ndarray:
+    return previous * (1.0 - alpha) + current * alpha
+
+
+def _layout_transform(
+    nodes: tuple[Node, ...],
+    *,
+    width: int,
+    height: int,
+) -> Callable[[float, float], tuple[float, float]]:
+    if not nodes:
+        return lambda _x, _y: (width / 2, height / 2)
+    xs = np.asarray([node.x for node in nodes], dtype=np.float64)
+    ys = np.asarray([node.y for node in nodes], dtype=np.float64)
+    x_min = float(np.min(xs) - 0.35)
+    x_max = float(np.max(xs) + 0.35)
+    y_min = float(np.min(ys) - 0.22)
+    y_max = float(np.max(ys) + 0.18)
+    margin = max(4.0, min(width, height) * 0.03)
+    usable_width = max(1.0, width - margin * 2)
+    usable_height = max(1.0, height - margin * 2)
+
+    def transform(x: float, y: float) -> tuple[float, float]:
+        px = margin + (x - x_min) / max(1e-9, x_max - x_min) * usable_width
+        py = margin + (y - y_min) / max(1e-9, y_max - y_min) * usable_height
+        return float(px), float(py)
+
+    return transform
+
+
+def _draw_live_edges(
+    draw,
+    edges: tuple[Edge, ...],
+    nodes: dict[tuple[str, int], Node],
+    edge_values: dict[Edge, float],
+    transform: Callable[[float, float], tuple[float, float]],
+    height: int,
+) -> None:
+    max_width_value = max((abs(edge.weight) for edge in edges), default=1.0)
+    max_edge_signal = max(edge_values.values(), default=1.0)
+    for edge in edges:
+        source = nodes.get((edge.source_layer, edge.source_index))
+        target = nodes.get((edge.target_layer, edge.target_index))
+        if source is None or target is None:
+            continue
+        sx, sy = transform(source.x, source.y)
+        tx, ty = transform(target.x, target.y)
+        base = (47, 133, 90) if edge.weight >= 0.0 else (184, 50, 50)
+        alpha = int(25 + 185 * _safe_ratio(edge_values[edge], max_edge_signal))
+        line_width = max(1, int(round((0.35 + 2.3 * abs(edge.weight) / max_width_value) * height / 260)))
+        draw.line((sx, sy, tx, ty), fill=(*base, alpha), width=line_width)
+
+
+def _draw_live_nodes(
+    draw,
+    nodes: tuple[Node, ...],
+    live_state: LiveOverlayState,
+    transform: Callable[[float, float], tuple[float, float]],
+    height: int,
+) -> None:
+    radius = max(3.0, height / 46)
+    signals = {node: _node_signal(node, live_state) for node in nodes}
+    layer_max = {
+        layer: max((signals[node] for node in nodes if node.layer == layer), default=1.0)
+        for layer in {node.layer for node in nodes}
+    }
+    for node in nodes:
+        x, y = transform(node.x, node.y)
+        brightness = _safe_ratio(signals[node], layer_max[node.layer])
+        fill = _live_node_color(node, brightness)
+        outline = (250, 204, 21, 255) if node.layer == "out" and node.index == live_state.action else (17, 24, 39, 220)
+        outline_width = max(1, int(round(radius / 3))) if node.layer == "out" and node.index == live_state.action else 1
+        for offset in range(outline_width, 0, -1):
+            draw.ellipse((x - radius - offset, y - radius - offset, x + radius + offset, y + radius + offset), fill=outline)
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=fill)
+
+
+def _draw_live_labels(
+    draw,
+    nodes: tuple[Node, ...],
+    live_state: LiveOverlayState,
+    transform: Callable[[float, float], tuple[float, float]],
+    height: int,
+) -> None:
+    font = _load_font(max(8, height // 33))
+    hidden_font = _load_font(max(6, height // 45))
+    for node in nodes:
+        x, y = transform(node.x, node.y)
+        if node.layer == "out":
+            _draw_centered_text(draw, (x, y - height * 0.075), node.label, font, fill=(17, 24, 39, 245))
+            if node.index == live_state.action:
+                _draw_centered_text(draw, (x, y - height * 0.12), "action", hidden_font, fill=(120, 53, 15, 230))
+        elif node.layer in {"h1", "h2"}:
+            _draw_centered_text(draw, (x, y + height * 0.055), str(node.index), hidden_font, fill=(17, 24, 39, 190))
+        elif node.layer == "in":
+            _draw_centered_text(draw, (x, y + height * 0.065), node.label, hidden_font, fill=(17, 24, 39, 205))
+
+
+def _draw_centered_text(draw, center: tuple[float, float], text: str, font, *, fill: tuple[int, int, int, int]) -> None:
+    bbox = draw.textbbox((0, 0), text, font=font)
+    x = center[0] - (bbox[2] - bbox[0]) / 2
+    y = center[1] - (bbox[3] - bbox[1]) / 2
+    draw.text((x, y), text, font=font, fill=fill)
+
+
+def _edge_signal_values(edges: tuple[Edge, ...], live_state: LiveOverlayState) -> dict[Edge, float]:
+    return {edge: _source_signal(edge, live_state) * abs(edge.weight) for edge in edges}
+
+
+def _source_signal(edge: Edge, live_state: LiveOverlayState) -> float:
+    if edge.source_layer == "in":
+        return _safe_component(live_state.input_abs, edge.source_index)
+    if edge.source_layer == "h1":
+        return _safe_component(live_state.h1, edge.source_index)
+    if edge.source_layer == "h2":
+        return _safe_component(live_state.h2, edge.source_index)
+    return 0.0
+
+
+def _node_signal(node: Node, live_state: LiveOverlayState) -> float:
+    if node.layer == "in":
+        return _safe_component(live_state.input_abs, node.index)
+    if node.layer == "h1":
+        return _safe_component(live_state.h1, node.index)
+    if node.layer == "h2":
+        return _safe_component(live_state.h2, node.index)
+    if node.layer == "out":
+        q = live_state.q_values
+        shifted = q - np.min(q)
+        return _safe_component(shifted, node.index)
+    return 0.0
+
+
+def _safe_component(values: np.ndarray, index: int) -> float:
+    if index < 0 or index >= values.shape[0]:
+        return 0.0
+    return float(max(values[index], 0.0))
+
+
+def _safe_ratio(value: float, maximum: float) -> float:
+    if maximum <= 0.0:
+        return 0.0
+    return float(np.clip(value / maximum, 0.0, 1.0))
+
+
+def _live_node_color(node: Node, brightness: float) -> tuple[int, int, int, int]:
+    base_colors = {
+        "in": np.asarray((107, 114, 128), dtype=np.float32),
+        "h1": np.asarray((138, 143, 152), dtype=np.float32),
+        "h2": np.asarray((43, 108, 176), dtype=np.float32),
+        "out": np.asarray((221, 107, 32), dtype=np.float32),
+    }
+    base = base_colors.get(node.layer, np.asarray((107, 114, 128), dtype=np.float32))
+    pale = np.asarray((229, 231, 235), dtype=np.float32)
+    color = pale * (1.0 - brightness) + base * brightness
+    return (*np.clip(color, 0, 255).astype(np.uint8), 245)
+
+
 class StaticNetworkOverlayWrapper(gym.Wrapper):
     """Blend a cached static network layout into the bottom of rgb_array frames."""
 
@@ -151,6 +397,7 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         *,
         overlay_height_ratio: float,
         overlay_alpha: float,
+        overlay_provider: Callable[[int, int], np.ndarray] | None = None,
     ) -> None:
         super().__init__(env)
         if not 0.0 < overlay_height_ratio <= 1.0:
@@ -160,6 +407,7 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         self.layout = layout
         self.overlay_height_ratio = overlay_height_ratio
         self.overlay_alpha = overlay_alpha
+        self.overlay_provider = overlay_provider
         self._overlay_rgba: np.ndarray | None = None
         self._overlay_size: tuple[int, int] | None = None
         self._step: int | None = None
@@ -185,6 +433,8 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         return composed
 
     def _overlay_for(self, width: int, height: int) -> np.ndarray:
+        if self.overlay_provider is not None:
+            return self.overlay_provider(width, height)
         size = (width, height)
         if self._overlay_rgba is None or self._overlay_size != size:
             self._overlay_rgba = render_layout_rgba(self.layout, width=width, height=height)
@@ -241,7 +491,7 @@ def render_layout_rgba(layout: NetworkLayout, *, width: int, height: int) -> np.
 
 def draw_step_label(frame: np.ndarray, step: int, *, action_label: str | None = None) -> np.ndarray:
     """Return an RGB frame with a visible step label in the upper-right corner."""
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw
 
     if frame.ndim != 3 or frame.shape[2] != 3:
         raise ValueError("frame must have shape HxWx3")
@@ -249,7 +499,7 @@ def draw_step_label(frame: np.ndarray, step: int, *, action_label: str | None = 
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
     font_size = max(10, image.height // 34)
-    font = ImageFont.truetype("arial.ttf", font_size) if _font_exists("arial.ttf") else ImageFont.load_default(font_size)
+    font = _load_font(font_size)
     lines = [f"step: {step:03d}"]
     if action_label is not None:
         lines.append(f"action: {action_label}")
@@ -269,14 +519,13 @@ def draw_step_label(frame: np.ndarray, step: int, *, action_label: str | None = 
     return np.asarray(Image.alpha_composite(image, overlay).convert("RGB"), dtype=np.uint8)
 
 
-def _font_exists(font_name: str) -> bool:
+def _load_font(size: int):
     from PIL import ImageFont
 
     try:
-        ImageFont.truetype(font_name, 12)
+        return ImageFont.truetype("arial.ttf", size)
     except OSError:
-        return False
-    return True
+        return ImageFont.load_default(size)
 
 
 def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:

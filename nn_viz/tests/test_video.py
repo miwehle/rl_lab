@@ -3,11 +3,16 @@ import pytest
 import torch
 import gymnasium as gym
 
+from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz.video import (
+    LiveOverlaySmoother,
+    LiveOverlayState,
     _crop_to_visible_alpha,
+    _edge_signal_values,
     compose_bottom_overlay,
     draw_step_label,
     record_network_overlay_video,
+    render_live_layout_rgba,
 )
 
 
@@ -90,6 +95,23 @@ class MinimalLayout:
     pass
 
 
+def minimal_live_layout():
+    return NetworkLayout(
+        nodes=(
+            Node("out", 1, "left", 0.0, 0.0, 0.0),
+            Node("out", 2, "up", 1.0, 0.0, 0.0),
+            Node("h2", 0, "H2-0", 0.0, 1.0, 0.0, 1),
+            Node("h1", 0, "H1-0", 0.0, 2.0, 0.0),
+            Node("in", 0, "x", 0.0, 3.0, 0.0),
+        ),
+        edges=(
+            Edge("in", 0, "h1", 0, 2.0, 0.0, 0.0),
+            Edge("h1", 0, "h2", 0, -3.0, 0.0, 0.0),
+            Edge("h2", 0, "out", 1, 4.0, 0.0, 0.0),
+        ),
+    )
+
+
 def test_compose_bottom_overlay_blends_only_bottom_band():
     frame = np.full((4, 3, 3), 100, dtype=np.uint8)
     overlay = np.zeros((2, 3, 4), dtype=np.uint8)
@@ -130,6 +152,65 @@ def test_draw_step_label_changes_frame_without_changing_shape():
     assert labeled.shape == frame.shape
     assert labeled.dtype == np.uint8
     assert np.any(labeled != frame)
+
+
+def test_live_overlay_smoother_updates_with_ema():
+    smoother = LiveOverlaySmoother(alpha=0.25)
+
+    first = smoother.update(
+        np.array([2.0, -4.0]),
+        np.array([1.0]),
+        np.array([2.0]),
+        np.array([0.0, 1.0, 2.0, 3.0]),
+        3,
+    )
+    second = smoother.update(
+        np.array([10.0, 0.0]),
+        np.array([5.0]),
+        np.array([6.0]),
+        np.array([4.0, 5.0, 6.0, 7.0]),
+        2,
+    )
+
+    np.testing.assert_allclose(first.input_abs, [2.0, 4.0])
+    np.testing.assert_allclose(second.input_abs, [4.0, 3.0])
+    np.testing.assert_allclose(second.h1, [2.0])
+    np.testing.assert_allclose(second.h2, [3.0])
+    np.testing.assert_allclose(second.q_values, [1.0, 2.0, 3.0, 4.0])
+    assert second.action == 2
+
+
+def test_edge_signal_values_use_source_signal_times_abs_weight():
+    layout = minimal_live_layout()
+    state = LiveOverlayState(
+        input_abs=np.array([2.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    values = _edge_signal_values(layout.edges, state)
+
+    assert values[layout.edges[0]] == 4.0
+    assert values[layout.edges[1]] == 9.0
+    assert values[layout.edges[2]] == 16.0
+
+
+def test_render_live_layout_rgba_returns_nonblank_overlay():
+    state = LiveOverlayState(
+        input_abs=np.array([2.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    rgba = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120)
+
+    assert rgba.shape == (120, 240, 4)
+    assert rgba.dtype == np.uint8
+    assert np.any(rgba[:, :, 3] > 0)
 
 
 def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):
