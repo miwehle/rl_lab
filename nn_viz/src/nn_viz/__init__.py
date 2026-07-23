@@ -8,6 +8,11 @@ from nn_viz.activations import (
     collect_activations,
     load_student_network,
 )
+from nn_viz.ablation import (
+    DEFAULT_INPUT_ABLATIONS,
+    InputAblation,
+    evaluate_input_ablations,
+)
 from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout
 from nn_viz.plot import plot_network_layout
 
@@ -15,12 +20,15 @@ __all__ = [
     "ACTION_LABELS",
     "ACTION_ORDER",
     "ActivationRollouts",
+    "DEFAULT_INPUT_ABLATIONS",
     "Edge",
+    "InputAblation",
     "NetworkLayout",
     "Node",
     "RolloutSpec",
     "collect_activations",
     "compute_activity_layout",
+    "evaluate_input_ablations",
     "load_student_network",
     "plot_network_layout",
 ]
