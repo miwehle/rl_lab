@@ -4,6 +4,7 @@
 | --- | --- | --- |
 | [[#O1 Micro-Elise 2 Is The Best Practical Checkpoint\|O1]] | Micro-Elise 2 Is The Best Practical Checkpoint | SSL, Distillation, Checkpointing |
 | [[#O2 H1-16 Acts As Relative Up Disinhibition\|O2]] | H1-16 Acts As Relative Up Disinhibition | SSL, Distillation, Interpretability |
+| [[#O3 Velocity Deltas Are Used But Not Score-Critical In Greedy Inference\|O3]] | Velocity Deltas Are Used But Not Score-Critical In Greedy Inference | SSL, Distillation, Interpretability |
 
 Topics: `SSL` = SolarSystemLander.
 
@@ -43,3 +44,18 @@ The Elise-264-GSTP teacher still has a much stronger lower tail. Its `Q05` was r
 | Venus | -9.00 | 0.537 | 0.374 | 0.028 |
 
 **Interpretation:** This is not a direct gravity-to-main-engine feature. In the `10d` observation mode the network sees gravity only indirectly through flight dynamics, especially velocity deltas. `H1-16` appears to use those signals as part of a learned ranking trick: it suppresses action values broadly while leaving `up` least suppressed, which can strongly increase main-engine selection in Earth/Venus.
+
+## O3 Velocity Deltas Are Used But Not Score-Critical In Greedy Inference
+
+**Observation:** Runtime ablation of the `10d` velocity-delta inputs (`dv_x`, `dv_y`) changes both Micro-Elise #2 and Elise-264-GSTP decisions, but it does not strongly reduce greedy evaluation score in the finished policies.
+
+**When:** 2026-07-23
+
+**Evidence:** The `nn_viz` notebook evaluated `normal`, `dv_x=0`, `dv_y=0`, and `dv_x+dv_y=0` with `100` greedy episodes per world for Micro-Elise #2 and Elise-264-GSTP. The full tables are in [[_details/O3|O3 details]].
+
+| Model | Ablation | Mean Delta vs Normal | Mean Action Agreement |
+| --- | --- | ---: | ---: |
+| Micro-Elise #2 | `dv_x+dv_y=0` | -1.9 | 0.937 |
+| Elise-264-GSTP | `dv_x+dv_y=0` | +0.2 | 0.956 |
+
+**Interpretation:** `dv_x/dv_y` are not ignored: action agreement drops noticeably, especially when both are zeroed. But the score effect is small and mixed. This supports a distinction between training-time value and inference-time causal necessity: `dv_x/dv_y` likely helped the original HPO search find a good 10D pilot, while the finished greedy policies can often fly using other state cues.

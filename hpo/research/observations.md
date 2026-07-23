@@ -154,7 +154,7 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Evidence:** 9D had more search budget without producing such a pilot: about `93` trials with `2000` episodes each, and the best observed 9D pilot reached only about `204`. 10D had about `45` trials with `2000` episodes each, and the `253` pilot appeared in trial 35.
 
-**Interpretation:** ==10D is now the leading SSL path. The 253 pilot scores above `200` on every world, so this is not a single-world spike but a true five-world pilot.==
+**Interpretation:** ==10D is now the leading SSL path. The 253 pilot scores above `200` on every world, so this is not a single-world spike but a true five-world pilot.== Later input-ablation measurements in [distillation O3](../../distillation/research/observations.md#o3-velocity-deltas-are-used-but-not-score-critical-in-greedy-inference) suggest that `dv_x/dv_y` are not strongly score-critical in the finished greedy policies; this makes O10 look more like evidence for improved trainability/search landscape than for persistent inference-time dependence.
 
 **Details:** [[_details/O10|HPs]]
 
