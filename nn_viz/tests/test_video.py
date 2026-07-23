@@ -147,7 +147,7 @@ def test_crop_to_visible_alpha_removes_transparent_margins():
 def test_draw_step_label_changes_frame_without_changing_shape():
     frame = np.zeros((24, 32, 3), dtype=np.uint8)
 
-    labeled = draw_step_label(frame, 7, action_label="up")
+    labeled = draw_step_label(frame, 7)
 
     assert labeled.shape == frame.shape
     assert labeled.dtype == np.uint8

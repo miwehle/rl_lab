@@ -85,7 +85,7 @@ def record_network_overlay_video(
             trace.append(step, observation, action, h1, h2, q_values)
             if live_smoother is not None:
                 live_smoother.update(observation, h1, h2, q_values, action)
-            overlay_env.set_step_info(step, ACTION_LABELS[action])
+            overlay_env.set_step(step)
             observation, _, terminated, truncated, _ = video_env.step(action)
             if terminated or truncated:
                 _hold_final_frame(video_env)
@@ -411,14 +411,9 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         self._overlay_rgba: np.ndarray | None = None
         self._overlay_size: tuple[int, int] | None = None
         self._step: int | None = None
-        self._action_label: str | None = None
 
     def set_step(self, step: int | None) -> None:
-        self.set_step_info(step)
-
-    def set_step_info(self, step: int | None, action_label: str | None = None) -> None:
         self._step = step
-        self._action_label = action_label
 
     def render(self):
         frame = self.env.render()
@@ -429,7 +424,7 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         overlay = self._overlay_for(width, overlay_height)
         composed = compose_bottom_overlay(frame, overlay, alpha=self.overlay_alpha)
         if self._step is not None:
-            return draw_step_label(composed, self._step, action_label=self._action_label)
+            return draw_step_label(composed, self._step)
         return composed
 
     def _overlay_for(self, width: int, height: int) -> np.ndarray:
@@ -489,8 +484,8 @@ def render_layout_rgba(layout: NetworkLayout, *, width: int, height: int) -> np.
     return np.asarray(canvas, dtype=np.uint8)
 
 
-def draw_step_label(frame: np.ndarray, step: int, *, action_label: str | None = None) -> np.ndarray:
-    """Return an RGB frame with a visible step label in the upper-right corner."""
+def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
+    """Return an RGB frame with a score-style step label in the top center."""
     from PIL import Image, ImageDraw
 
     if frame.ndim != 3 or frame.shape[2] != 3:
@@ -498,34 +493,28 @@ def draw_step_label(frame: np.ndarray, step: int, *, action_label: str | None = 
     image = Image.fromarray(frame).convert("RGBA")
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    font_size = max(10, image.height // 34)
-    font = _load_font(font_size)
-    lines = [f"step: {step:03d}"]
-    if action_label is not None:
-        lines.append(f"action: {action_label}")
-    text = "\n".join(lines)
-    bbox = draw.multiline_textbbox((0, 0), text, font=font, spacing=2)
-    padding_x = max(10, font_size // 2)
-    padding_y = max(6, font_size // 4)
-    margin = max(4, min(image.width, image.height) // 50)
-    label_width = (bbox[2] - bbox[0]) + padding_x * 2
-    label_height = (bbox[3] - bbox[1]) + padding_y * 2
-    right = image.width - margin
-    left = max(margin, right - label_width)
-    top = min(max(48, image.height // 15), max(margin, image.height - label_height - margin))
-    bottom = min(image.height - margin, top + label_height)
-    draw.rounded_rectangle((left, top, right, bottom), radius=5, fill=(0, 0, 0, 180))
-    draw.multiline_text((left + padding_x, top + padding_y), text, font=font, fill=(255, 255, 255, 245), spacing=2)
+    font_size = max(12, image.height // 33)
+    font = _load_font(font_size, bold=True)
+    text = f"step: {step:03d}"
+    bbox = draw.textbbox((0, 0), text, font=font)
+    x = (image.width - (bbox[2] - bbox[0])) / 2
+    y = max(8, image.height // 50)
+    shadow_offset = max(1, round(font_size / 18))
+    draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0, 210))
+    draw.text((x, y), text, font=font, fill=(255, 255, 255, 245))
     return np.asarray(Image.alpha_composite(image, overlay).convert("RGB"), dtype=np.uint8)
 
 
-def _load_font(size: int):
+def _load_font(size: int, *, bold: bool = False):
     from PIL import ImageFont
 
-    try:
-        return ImageFont.truetype("arial.ttf", size)
-    except OSError:
-        return ImageFont.load_default(size)
+    font_names = ("arialbd.ttf", "arial.ttf") if bold else ("arial.ttf",)
+    for font_name in font_names:
+        try:
+            return ImageFont.truetype(font_name, size)
+        except OSError:
+            pass
+    return ImageFont.load_default(size)
 
 
 def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
