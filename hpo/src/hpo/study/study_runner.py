@@ -57,10 +57,10 @@ class StudyRunner:
     """Run an Optuna study.
 
     This includes:
-    - Optimization
+    - Optimization (of HPs and a model)
     - Checkpointing
     - Evaluation
-    - Keeping an incumbent
+    - Keeping an incumbent (best HP config found so far)
     - Reporting
     """
 
