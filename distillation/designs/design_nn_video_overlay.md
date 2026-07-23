@@ -54,9 +54,11 @@ The notebook should not contain video composition logic.
 
 1. Static overlay: render the existing NN layout once and blend it into the bottom band of the lander video.
 
-2. Live overlay: render the finished NN visualization as an overlay in the video, showing the network state dynamically during the landing. Node brightness comes from current activations, output highlighting from current Q-values/action, and edge alpha from current source activation.
+2. Smooth live overlay: render the finished NN visualization as an overlay in the moving video, showing the network state dynamically during the landing. The moving video should use smoothed activations, for example a rolling mean over the last `0.5 s`, because raw per-step activations would likely flicker more than they inform. Node brightness comes from smoothed activations, output highlighting from smoothed Q-values/current action, and edge alpha from smoothed current source activation.
 
-If per-frame rendering is too slow, cache or refresh the NN overlay every `n` environment steps as a fallback.
+3. Freeze/storyboard mode: optionally pause the video at selected steps or create a jump-cut sequence of held still frames. In these still moments, render exact per-step activations, Q-values, action, and edge activity without smoothing. This gives precise decision snapshots while keeping the moving video readable.
+
+If per-frame rendering is too slow, cache or refresh the NN overlay every `n` environment steps as a fallback. The moving overlay should still be based on the current smoothing window; exact raw activations belong in freeze/storyboard frames.
 
 ## Non-Goals
 
