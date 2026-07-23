@@ -235,24 +235,40 @@ def render_layout_rgba(layout: NetworkLayout, *, width: int, height: int) -> np.
 
 
 def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
-    """Return an RGB frame with a small step label in the top-left corner."""
-    from PIL import Image, ImageDraw
+    """Return an RGB frame with a visible step label in the upper-right corner."""
+    from PIL import Image, ImageDraw, ImageFont
 
     if frame.ndim != 3 or frame.shape[2] != 3:
         raise ValueError("frame must have shape HxWx3")
     image = Image.fromarray(frame).convert("RGBA")
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    text = f"step: {step}"
-    bbox = draw.textbbox((0, 0), text)
-    padding = 5
-    left = 8
-    top = 8
-    right = left + (bbox[2] - bbox[0]) + padding * 2
-    bottom = top + (bbox[3] - bbox[1]) + padding * 2
-    draw.rounded_rectangle((left, top, right, bottom), radius=3, fill=(0, 0, 0, 150))
-    draw.text((left + padding, top + padding), text, fill=(255, 255, 255, 230))
+    font_size = max(10, image.height // 34)
+    font = ImageFont.truetype("arial.ttf", font_size) if _font_exists("arial.ttf") else ImageFont.load_default(font_size)
+    text = f"step: {step:03d}"
+    bbox = draw.textbbox((0, 0), text, font=font)
+    padding_x = max(10, font_size // 2)
+    padding_y = max(6, font_size // 4)
+    margin = max(4, min(image.width, image.height) // 50)
+    label_width = (bbox[2] - bbox[0]) + padding_x * 2
+    label_height = (bbox[3] - bbox[1]) + padding_y * 2
+    right = image.width - margin
+    left = max(margin, right - label_width)
+    top = min(max(48, image.height // 15), max(margin, image.height - label_height - margin))
+    bottom = min(image.height - margin, top + label_height)
+    draw.rounded_rectangle((left, top, right, bottom), radius=5, fill=(0, 0, 0, 180))
+    draw.text((left + padding_x, top + padding_y), text, font=font, fill=(255, 255, 255, 245))
     return np.asarray(Image.alpha_composite(image, overlay).convert("RGB"), dtype=np.uint8)
+
+
+def _font_exists(font_name: str) -> bool:
+    from PIL import ImageFont
+
+    try:
+        ImageFont.truetype(font_name, 12)
+    except OSError:
+        return False
+    return True
 
 
 def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
@@ -263,6 +279,7 @@ def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
     top, left = visible.min(axis=0)
     bottom, right = visible.max(axis=0) + 1
     return rgba[top:bottom, left:right]
+
 
 def _hold_final_frame(env) -> None:
     for _ in range(_FINAL_HOLD_FRAMES):
