@@ -15,6 +15,12 @@ from nn_viz.ablation import (
 )
 from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout
 from nn_viz.plot import plot_network_layout
+from nn_viz.video import (
+    StaticNetworkOverlayWrapper,
+    compose_bottom_overlay,
+    record_network_overlay_video,
+    render_layout_rgba,
+)
 
 __all__ = [
     "ACTION_LABELS",
@@ -26,9 +32,13 @@ __all__ = [
     "NetworkLayout",
     "Node",
     "RolloutSpec",
+    "StaticNetworkOverlayWrapper",
+    "compose_bottom_overlay",
     "collect_activations",
     "compute_activity_layout",
     "evaluate_input_ablations",
     "load_student_network",
     "plot_network_layout",
+    "record_network_overlay_video",
+    "render_layout_rgba",
 ]
