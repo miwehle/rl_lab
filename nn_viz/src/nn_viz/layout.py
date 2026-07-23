@@ -18,6 +18,7 @@ class Node:
     x: float
     y: float
     activity: float
+    output_group: int | None = None
 
 
 @dataclass(frozen=True)
@@ -108,6 +109,7 @@ def _hidden2_nodes(h2: np.ndarray, h2_to_out: np.ndarray, output_nodes: tuple[No
                 output_x[output] + offsets[position],
                 1.0,
                 float(np.mean(h2[:, index])),
+                output,
             )
             for position, index in enumerate(ordered)
         )

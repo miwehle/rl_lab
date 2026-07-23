@@ -41,9 +41,11 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
     h2_nodes = [node for node in nodes if node.layer == "h2"]
     h1_nodes = [node for node in nodes if node.layer == "h1"]
     hidden_frame = _hidden_frame(h2_nodes, fallback_span=output_span)
-    h2_display_nodes = _equidistant_nodes(h2_nodes, center=hidden_frame[2], spacing=hidden_frame[3])
+    output_ordered = sorted(output_nodes, key=lambda node: (node.x, node.index))
+    h2_ordered = tuple(node for group in _output_groups(h2_nodes, output_ordered) for node in group)
+    h2_display_nodes = _equidistant_nodes(h2_ordered, center=hidden_frame[2], spacing=hidden_frame[3], sort=False)
     return (
-        _block_center_nodes(output_nodes, h2_display_nodes, fallback_span=output_span)
+        _group_start_nodes(output_ordered, h2_nodes, h2_display_nodes, fallback_span=output_span)
         + h2_display_nodes
         + _equidistant_nodes(h1_nodes, center=hidden_frame[2], spacing=hidden_frame[3])
     )
@@ -72,25 +74,38 @@ def _spread_nodes(nodes: list[Node], *, left: float, right: float) -> tuple[Node
     return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
 
 
-def _block_center_nodes(
-    nodes: list[Node], source_nodes: tuple[Node, ...], *, fallback_span: tuple[float, float]
+def _group_start_nodes(
+    nodes: list[Node],
+    original_source_nodes: list[Node],
+    display_source_nodes: tuple[Node, ...],
+    *,
+    fallback_span: tuple[float, float],
 ) -> tuple[Node, ...]:
     if not nodes:
         return ()
-    if len(source_nodes) < len(nodes):
-        left, right = _span(list(source_nodes)) if source_nodes else fallback_span
+    if len(display_source_nodes) < len(nodes):
+        left, right = _span(list(display_source_nodes)) if display_source_nodes else fallback_span
         return _spread_nodes(nodes, left=left, right=right)
     ordered = sorted(nodes, key=lambda node: (node.x, node.index))
-    source_ordered = sorted(source_nodes, key=lambda node: (node.x, node.index))
-    blocks = np.array_split(source_ordered, len(ordered))
-    xs = [np.mean([source.x for source in block]) for block in blocks]
+    display_by_index = {node.index: node for node in display_source_nodes}
+    blocks = _output_groups(original_source_nodes, ordered)
+    xs = [display_by_index[block[0].index].x for block in blocks]
     return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
 
 
-def _equidistant_nodes(nodes: list[Node], *, center: float, spacing: float) -> tuple[Node, ...]:
+def _output_groups(nodes: list[Node], output_nodes: list[Node]) -> list[list[Node]]:
+    groups = [[node for node in nodes if node.output_group == output.index] for output in output_nodes]
+    if all(groups):
+        return groups
+    return [list(group) for group in np.array_split(nodes, len(output_nodes))]
+
+
+def _equidistant_nodes(
+    nodes: list[Node] | tuple[Node, ...], *, center: float, spacing: float, sort: bool = True
+) -> tuple[Node, ...]:
     if not nodes:
         return ()
-    ordered = sorted(nodes, key=lambda node: (node.x, node.index))
+    ordered = sorted(nodes, key=lambda node: (node.x, node.index)) if sort else list(nodes)
     if len(ordered) == 1:
         xs = [center]
     else:

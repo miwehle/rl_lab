@@ -31,7 +31,12 @@ def test_plot_network_layout_returns_figure():
 
 
 def test_plot_places_hidden_layers_equidistant_with_constant_node_size():
-    h2_nodes = tuple(Node("h2", index, f"H2-{index}", float(index * 2), 1.0, 0.2) for index in range(8))
+    output_groups = (0, 0, 0, 1, 2, 2, 3, 3)
+    original_h2_x = (0.0, 10.0, 11.0, 1.0, 2.0, 12.0, 3.0, 13.0)
+    h2_nodes = tuple(
+        Node("h2", index, f"H2-{index}", original_h2_x[index], 1.0, 0.2, output_groups[index])
+        for index in range(8)
+    )
     h1_nodes = tuple(Node("h1", index, f"H1-{index}", float(index * 2 - 3), 2.0, 0.1) for index in range(8))
     layout = NetworkLayout(
         nodes=(
@@ -60,10 +65,10 @@ def test_plot_places_hidden_layers_equidistant_with_constant_node_size():
         h1_spacing = np.diff(h1_offsets[:, 0])
         h2_spacing = np.diff(h2_offsets[:, 0])
 
-        assert np.allclose(h1_spacing, 1.0)
-        assert np.allclose(h2_spacing, 1.0)
+        assert np.allclose(h1_spacing, 13 / 14)
+        assert np.allclose(h2_spacing, 13 / 14)
         assert np.allclose(h1_offsets[:, 0], h2_offsets[:, 0])
-        assert np.allclose(output_offsets[:, 0], [4.0, 6.0, 8.0, 10.0])
+        assert np.allclose(output_offsets[:, 0], [3.25, 6.03571429, 6.96428571, 8.82142857])
         assert np.allclose(h1_offsets[:, 1], 1.0)
         assert np.allclose(h2_offsets[:, 1], 0.5)
         assert np.allclose(output_offsets[:, 1], 0.0)
