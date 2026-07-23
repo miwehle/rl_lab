@@ -156,6 +156,8 @@ Topics: `RL` = Reinforcement Learning, `SSL` = SolarSystemLander, `OTO` = Optimi
 
 **Interpretation:** ==10D is now the leading SSL path. The 253 pilot scores above `200` on every world, so this is not a single-world spike but a true five-world pilot.== Later input-ablation measurements in [distillation O3](../../distillation/research/observations.md#o3-velocity-deltas-are-used-but-not-score-critical-in-greedy-inference) suggest that `dv_x/dv_y` are not strongly score-critical in the finished greedy policies; this makes O10 look more like evidence for improved trainability/search landscape than for persistent inference-time dependence.
 
+**Related pattern:** This matches [[hypotheses#H10 H1-80 ist ein alter Low-G-Overcontrol-Guard|H10]]: something can matter a lot during learning, exploration, or policy search and later look nearly useless in finished greedy inference. For `dv_x/dv_y`, the historical 9D-vs-10D search evidence points to training/search value; for `H1-80`, strong wiring plus inactivity points to a likely old guard whose trigger states the final policy mostly avoids.
+
 **Details:** [[_details/O10|HPs]]
 
 ## O9 Colab Runtime Ended After 8.5 Hours

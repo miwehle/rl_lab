@@ -158,6 +158,8 @@ Das passt zur Interpretation: Touchdown dämpft das Signal, während `dv_y`, `vy
 
 **Evidence:** `H1-80` ist stark mit `dv_y`, `vy`, `x`, `dv_x` und Beinstatus verdrahtet. Synthetische Observations zeigen, dass es bei hoher positiver Vertikalbeschleunigung oder positiver Vertikalgeschwindigkeit feuern kann, z. B. `dv_y=1 -> pre-ReLU ~= +0.630`. In echten Greedy-Flügen bleibt es aber aus, auch in harten no-noop Earth/Venus-Fällen. Das passt zu einem seltenen Guard, dessen Auslösezustände die fertige Policy inzwischen vermeidet.
 
+**Related pattern:** This mirrors [[observations#O10 Five-World 10D Reaches 253|O10]]: a mechanism can be decisive while learning or finding a good policy, but later look nearly useless in the finished greedy inference distribution. In H1-80's case, the likely old guard is strongly wired but inactive; in O10's case, `dv_x/dv_y` likely improved trainability even though later ablations show weak inference-time score dependence.
+
 **Prediction:** `H1-80` sollte eher in Low-g- oder Übersteuerungszuständen feuern, in denen Elise nach oben beschleunigt oder zu viel Haupttriebwerk nutzt, nicht in normalen Abstiegs- oder High-g-Kampfzuständen. Es könnte in früheren Checkpoints, während epsilon-Exploration oder bei synthetisch erzwungenem Mond-Overcontrol häufiger aktiv sein.
 
 **Could be wrong if:** `H1-80` auch in gezielt erzeugten Low-g-Overcontrol-Zuständen nicht feuert, in früheren Checkpoints nicht aktiver war, oder Ablation/Pruning keinerlei Unterschied in Moon/Mercury-Übersteuerungsfällen macht.
