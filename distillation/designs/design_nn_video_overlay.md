@@ -60,6 +60,39 @@ The notebook should not contain video composition logic.
 
 If per-frame rendering is too slow, cache or refresh the NN overlay every `n` environment steps as a fallback. The moving overlay should still be based on the current smoothing window; exact raw activations belong in freeze/storyboard frames.
 
+## Step Trace And Exact PNGs
+
+The video should display the current environment step. Since a normal video player can pause on a frame, the companion notebook can render an exact NN PNG for the paused step below the video.
+
+To support this, record a per-step trace beside the video:
+
+```text
+step
+observation
+action
+h1 activations
+h2 activations
+q_values
+edge inputs
+```
+
+The trace is the shared source for later render modes. The moving video may show smoothed values, but exact step PNGs should use the raw values for one step. This keeps the video readable while preserving precise inspection when the user pauses.
+
+## Action Colors
+
+For neurons, action context can use RGB channels:
+
+```text
+left  -> R
+up    -> G
+right -> B
+noop  -> 0
+```
+
+For a time window, a neuron's color can be based on `mean(activation * action_rgb)`. A red neuron was active during left-thrust decisions, a green neuron during main-engine decisions, and a blue neuron during right-thrust decisions. Mixed colors show participation across action contexts.
+
+Edges need a different scheme because their weights have a sign. Keep edge hue tied to weight sign, for example positive and negative use two distinct colors. Edge brightness or alpha should reflect the current edge input magnitude, such as source activation times `abs(weight)` for hidden edges, or `abs(observation_i * weight)` for input edges. This avoids overloading one edge color with both action context and weight sign.
+
 ## Non-Goals
 
 Do not refactor the HPO video stack into a generic hook system for this first slice. Do not build a separate video encoder abstraction unless the existing video path cannot accept composed frames cleanly. Do not implement live activations in the same change as the first static overlay.
