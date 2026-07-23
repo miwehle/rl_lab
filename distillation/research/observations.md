@@ -3,6 +3,7 @@
 | Nr | Observation | Topics |
 | --- | --- | --- |
 | [[#O1 Micro-Elise 2 Is The Best Practical Checkpoint\|O1]] | Micro-Elise 2 Is The Best Practical Checkpoint | SSL, Distillation, Checkpointing |
+| [[#O2 H1-16 Acts As Relative Up Disinhibition\|O2]] | H1-16 Acts As Relative Up Disinhibition | SSL, Distillation, Interpretability |
 
 Topics: `SSL` = SolarSystemLander.
 
@@ -24,3 +25,21 @@ The Elise-264-GSTP teacher still has a much stronger lower tail. Its `Q05` was r
 **Interpretation:** Run #1 wins the mean by only `0.2` points, which is not enough to matter practically. Run #2 keeps essentially the same mean while improving the lower tail (`Q05 39.7` instead of `31.6`) and worst case (`-211` instead of `-324`), so it is the better current default checkpoint.
 
 **Next:** Treat run #2, `solar_system_lander_10d_elise_stp_student_64x64_20260721T161456Z`, as the current Micro-Elise best checkpoint. The remaining gap is no longer median flight quality; it is lower-tail robustness, especially hard Venus/Earth cases.
+
+## O2 H1-16 Acts As Relative Up Disinhibition
+
+**Observation:** In Micro-Elise #2, hidden neuron `H1-16` behaves like a broad damping signal whose activity increases in heavier worlds and whose net effect makes `up` relatively more competitive.
+
+**When:** 2026-07-23
+
+**Evidence:** `H1-16` receives strong first-layer weights from vertical dynamics (`y_vel`, `dv_y`) and rotation. Ablating `H1-16` raises all four Q-values, but raises `noop`, `left`, and `right` more than `up`; therefore the neuron favors `up` only indirectly, by damping the other actions more. Details are in [[_details/O2|O2 details]].
+
+| World | Gravity | Mean H1-16 | Up Share | Up Share Without H1-16 |
+| --- | ---: | ---: | ---: | ---: |
+| Moon | -1.65 | 0.453 | 0.072 | 0.002 |
+| Mercury | -3.70 | 0.496 | 0.176 | 0.001 |
+| Mars | -3.80 | 0.498 | 0.192 | 0.002 |
+| Earth | -10.00 | 0.533 | 0.477 | 0.022 |
+| Venus | -9.00 | 0.537 | 0.374 | 0.028 |
+
+**Interpretation:** This is not a direct gravity-to-main-engine feature. In the `10d` observation mode the network sees gravity only indirectly through flight dynamics, especially velocity deltas. `H1-16` appears to use those signals as part of a learned ranking trick: it suppresses action values broadly while leaving `up` least suppressed, which can strongly increase main-engine selection in Earth/Venus.
