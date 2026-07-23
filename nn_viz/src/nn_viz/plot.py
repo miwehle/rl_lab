@@ -12,7 +12,7 @@ from matplotlib.colors import to_rgb
 from nn_viz.layout import Edge, NetworkLayout, Node
 
 _NODE_SIZE = 78.0
-_LAYER_Y = {"out": 0.0, "h2": 0.5, "h1": 1.0}
+_LAYER_Y = {"out": 0.0, "h2": 0.25, "h1": 0.5}
 
 
 def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None = None):
@@ -181,13 +181,13 @@ def _node_color(node: Node, color: str, max_activity: float) -> tuple[float, flo
 def _label_outputs(ax, nodes: tuple[Node, ...]) -> None:
     for node in nodes:
         if node.layer == "out":
-            ax.text(node.x, node.y - 0.08, node.label, ha="center", va="center", fontsize=10, weight="bold")
+            ax.text(node.x, node.y - 0.09, node.label, ha="center", va="center", fontsize=10, weight="bold")
 
 
 def _label_hidden_nodes(ax, nodes: tuple[Node, ...]) -> None:
     for node in nodes:
         if node.layer in {"h1", "h2"}:
-            ax.text(node.x, node.y + 0.065, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
+            ax.text(node.x, node.y + 0.07, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
 
 
 def _x_limits(nodes: tuple[Node, ...]) -> tuple[float, float]:
