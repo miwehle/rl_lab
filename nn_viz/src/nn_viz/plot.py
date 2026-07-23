@@ -12,9 +12,8 @@ from matplotlib.colors import to_rgb
 from nn_viz.layout import Edge, NetworkLayout, Node
 
 _NODE_SIZE = 78.0
-_LAYER_Y = {"out": 0.0, "h2": 0.25, "h1": 0.5}
-_INPUT_TOP = (1, 3, 9, 6, 7)
-_INPUT_STEM = (0, 2, 8, 4, 5)
+_LAYER_Y = {"out": 0.0, "h2": 0.25, "h1": 0.5, "in": 0.9}
+_INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 
 
 def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None = None):
@@ -51,7 +50,7 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
         _group_start_nodes(output_ordered, h2_nodes, h2_display_nodes, fallback_span=output_span)
         + h2_display_nodes
         + _equidistant_nodes(h1_nodes, center=hidden_frame[2], spacing=hidden_frame[3])
-        + _input_nodes(input_nodes, center=hidden_frame[2], spacing=hidden_frame[3] * 6)
+        + _input_nodes(input_nodes, left=hidden_frame[0], right=hidden_frame[1])
     )
 
 
@@ -122,20 +121,14 @@ def _display_node(node: Node, *, x: float) -> Node:
     return replace(node, x=x, y=_LAYER_Y[node.layer])
 
 
-def _input_nodes(nodes: list[Node], *, center: float, spacing: float) -> tuple[Node, ...]:
+def _input_nodes(nodes: list[Node], *, left: float, right: float) -> tuple[Node, ...]:
     by_index = {node.index: node for node in nodes}
-    top_xs = center + (np.arange(len(_INPUT_TOP)) - (len(_INPUT_TOP) - 1) / 2) * spacing
-    displayed = [
-        replace(by_index[index], x=float(x), y=0.9)
-        for index, x in zip(_INPUT_TOP, top_xs)
-        if index in by_index
-    ]
-    displayed.extend(
-        replace(by_index[index], x=float(center), y=1.15 + position * 0.25)
-        for position, index in enumerate(_INPUT_STEM)
-        if index in by_index
-    )
-    return tuple(displayed)
+    ordered = [by_index[index] for index in _INPUT_ORDER if index in by_index]
+    if len(ordered) == 1:
+        xs = [(left + right) / 2]
+    else:
+        xs = np.linspace(left, right, num=len(ordered))
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
 
 
 def _span(nodes: list[Node]) -> tuple[float, float]:
@@ -209,7 +202,7 @@ def _label_hidden_nodes(ax, nodes: tuple[Node, ...]) -> None:
         if node.layer in {"h1", "h2"}:
             ax.text(node.x, node.y + 0.07, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
         if node.layer == "in":
-            ax.text(node.x, node.y + 0.07, node.label, ha="center", va="center", fontsize=7, color="#111827")
+            ax.text(node.x, node.y + 0.08, node.label, ha="center", va="center", fontsize=7, color="#111827")
 
 
 def _x_limits(nodes: tuple[Node, ...]) -> tuple[float, float]:

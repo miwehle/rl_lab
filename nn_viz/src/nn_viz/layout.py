@@ -100,7 +100,7 @@ def _output_nodes(q_values: np.ndarray) -> tuple[Node, ...]:
 
 def _input_nodes(observations: np.ndarray) -> tuple[Node, ...]:
     return tuple(
-        Node("in", index, label, float(index), 3.0, float(np.mean(np.abs(observations[:, index]))))
+        Node("in", index, label, float(index), 1.0, float(np.mean(np.abs(observations[:, index]))))
         for index, label in enumerate(INPUT_LABELS)
     )
 

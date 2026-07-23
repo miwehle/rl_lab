@@ -103,7 +103,7 @@ def test_plot_labels_every_hidden_neuron_with_index():
         plt.close(fig)
 
 
-def test_plot_places_inputs_as_centered_t():
+def test_plot_places_inputs_as_horizontal_row():
     layout = NetworkLayout(
         nodes=(
             Node("out", 0, "left", 0.0, 0.0, 1.0),
@@ -130,9 +130,8 @@ def test_plot_places_inputs_as_centered_t():
         input_offsets = np.asarray(fig.axes[0].collections[0].get_offsets())
         labels = [text.get_text() for text in fig.axes[0].texts]
 
-        assert labels[-10:] == ["y", "vy", "ay", "ftl", "ftr", "x", "vx", "ax", "ang", "vang"]
-        assert np.allclose(input_offsets[:5, 1], 0.9)
-        assert np.allclose(input_offsets[5:, 0], 0.5)
-        assert np.allclose(input_offsets[5:, 1], [1.15, 1.4, 1.65, 1.9, 2.15])
+        assert labels[-10:] == ["x", "vx", "ax", "y", "vy", "ay", "ang", "vang", "ftl", "ftr"]
+        assert np.allclose(input_offsets[:, 1], 0.9)
+        assert np.allclose(np.diff(input_offsets[:, 0]), np.diff(input_offsets[:, 0])[0])
     finally:
         plt.close(fig)
