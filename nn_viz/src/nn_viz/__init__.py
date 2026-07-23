@@ -9,6 +9,7 @@ from nn_viz.activations import (
     load_student_network,
 )
 from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout
+from nn_viz.plot import plot_network_layout
 
 __all__ = [
     "ACTION_LABELS",
@@ -21,4 +22,5 @@ __all__ = [
     "collect_activations",
     "compute_activity_layout",
     "load_student_network",
+    "plot_network_layout",
 ]

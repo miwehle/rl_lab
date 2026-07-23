@@ -10,3 +10,4 @@ hpo/runs/
 hpo/tmp/
 .obsidian/
 out/
+nn_viz/_local_runs/

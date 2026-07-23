@@ -28,6 +28,7 @@ class Edge:
     target_index: int
     weight: float
     relevance: float
+    specificity: float
 
 
 @dataclass(frozen=True)
@@ -37,24 +38,31 @@ class NetworkLayout:
 
 
 def compute_activity_layout(
-    rollouts: ActivationRollouts, q_net: DQN, *, top_edges_per_target: int = 3
+    rollouts: ActivationRollouts,
+    q_net: DQN,
+    *,
+    top_edges_per_target: int = 3,
+    output_edges_per_target: int = 5,
 ) -> NetworkLayout:
     """Place hidden neurons by their mean activated contribution over the rollout frames."""
     if rollouts.frame_count < 1:
         raise ValueError("rollouts must contain at least one frame")
     if top_edges_per_target < 1:
         raise ValueError("top_edges_per_target must be >= 1")
+    if output_edges_per_target < 1:
+        raise ValueError("output_edges_per_target must be >= 1")
 
     w2 = q_net.layer2.weight.detach().cpu().numpy()
     w3 = q_net.layer3.weight.detach().cpu().numpy()
     h1_to_h2 = _mean_abs_contribution(rollouts.h1, w2)
     h2_to_out = _mean_abs_contribution(rollouts.h2, w3)
+    h2_output_specificity = _target_specificity(h2_to_out)
 
     output_nodes = _output_nodes(rollouts.q_values)
-    h2_nodes = _hidden2_nodes(rollouts.h2, h2_to_out, output_nodes)
+    h2_nodes = _hidden2_nodes(rollouts.h2, h2_output_specificity, output_nodes)
     h1_nodes = _hidden1_nodes(rollouts.h1, h1_to_h2, h2_nodes)
-    edges = _top_edges("h2", "out", h2_to_out, w3, top_edges_per_target) + _top_edges(
-        "h1", "h2", h1_to_h2, w2, top_edges_per_target
+    edges = _top_edges("h2", "out", h2_to_out, h2_output_specificity, w3, output_edges_per_target) + _top_edges(
+        "h1", "h2", h1_to_h2, h1_to_h2, w2, top_edges_per_target
     )
     return NetworkLayout(nodes=output_nodes + h2_nodes + h1_nodes, edges=tuple(edges))
 
@@ -65,6 +73,13 @@ def _mean_abs_contribution(
     return np.mean(
         np.abs(source_activations[:, np.newaxis, :] * target_by_source_weights[np.newaxis, :, :]), axis=0
     )
+
+
+def _target_specificity(relevance: np.ndarray) -> np.ndarray:
+    if relevance.shape[0] == 1:
+        return relevance.copy()
+    other_sum = np.sum(relevance, axis=0, keepdims=True) - relevance
+    return relevance - other_sum / (relevance.shape[0] - 1)
 
 
 def _output_nodes(q_values: np.ndarray) -> tuple[Node, ...]:
@@ -115,14 +130,15 @@ def _top_edges(
     source_layer: str,
     target_layer: str,
     relevance: np.ndarray,
+    specificity: np.ndarray,
     weights: np.ndarray,
     top_edges_per_target: int,
 ) -> tuple[Edge, ...]:
     edges = []
     for target in range(relevance.shape[0]):
-        source_indexes = np.argsort(relevance[target])[-top_edges_per_target:][::-1]
+        source_indexes = np.argsort(specificity[target])[-top_edges_per_target:][::-1]
         for source in source_indexes:
-            if relevance[target, source] > 0.0:
+            if specificity[target, source] > 0.0:
                 edges.append(
                     Edge(
                         source_layer,
@@ -131,6 +147,7 @@ def _top_edges(
                         int(target),
                         float(weights[target, source]),
                         float(relevance[target, source]),
+                        float(specificity[target, source]),
                     )
                 )
     return tuple(edges)
