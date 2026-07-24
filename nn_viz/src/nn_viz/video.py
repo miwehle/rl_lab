@@ -21,9 +21,9 @@ from nn_viz.plot import _display_nodes, plot_network_layout
 _FINAL_HOLD_FRAMES = 30
 _CSV_Q_COLUMNS = (("q_left", 1), ("q_up", 2), ("q_noop", 0), ("q_right", 3))
 _LIVE_WINDOW_STEPS_DEFAULT = 100
-_LIVE_LAYOUT_TOP_PAD = 0.34
-_LIVE_LAYOUT_BOTTOM_PAD = 0.18
-_LIVE_LAYOUT_UP_SHIFT_LAYERS = 0.5
+_LIVE_LAYOUT_X_PAD = 0.16
+_LIVE_LAYOUT_TOP_MARGIN_RATIO = 0.18
+_LIVE_LAYOUT_BOTTOM_MARGIN_RATIO = 0.24
 
 
 def record_network_overlay_video(
@@ -260,29 +260,23 @@ def _layout_transform(
         return lambda _x, _y: (width / 2, height / 2)
     xs = np.asarray([node.x for node in nodes], dtype=np.float64)
     ys = np.asarray([node.y for node in nodes], dtype=np.float64)
-    x_min = float(np.min(xs) - 0.16)
-    x_max = float(np.max(xs) + 0.16)
-    y_min = float(np.min(ys) - _LIVE_LAYOUT_TOP_PAD)
-    y_max = float(np.max(ys) + _LIVE_LAYOUT_BOTTOM_PAD)
+    x_min = float(np.min(xs) - _LIVE_LAYOUT_X_PAD)
+    x_max = float(np.max(xs) + _LIVE_LAYOUT_X_PAD)
+    y_min = float(np.min(ys))
+    y_max = float(np.max(ys))
     margin = max(4.0, min(width, height) * 0.02)
     usable_width = max(1.0, width - margin * 2)
-    usable_height = max(1.0, height - margin * 2)
+    top_margin = max(margin, height * _LIVE_LAYOUT_TOP_MARGIN_RATIO)
+    bottom_margin = max(margin, height * _LIVE_LAYOUT_BOTTOM_MARGIN_RATIO)
+    usable_height = max(1.0, height - top_margin - bottom_margin)
     y_scale = usable_height / max(1e-9, y_max - y_min)
-    y_shift = _layer_spacing(ys) * _LIVE_LAYOUT_UP_SHIFT_LAYERS * y_scale
 
     def transform(x: float, y: float) -> tuple[float, float]:
         px = margin + (x - x_min) / max(1e-9, x_max - x_min) * usable_width
-        py = margin + (y - y_min) * y_scale - y_shift
+        py = top_margin + (y - y_min) * y_scale
         return float(px), float(py)
 
     return transform
-
-
-def _layer_spacing(ys: np.ndarray) -> float:
-    unique = np.unique(np.round(ys, decimals=9))
-    if unique.shape[0] < 2:
-        return 0.0
-    return float(np.min(np.diff(unique)))
 
 
 def _draw_live_edges(

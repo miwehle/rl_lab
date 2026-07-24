@@ -210,7 +210,7 @@ def test_render_live_layout_rgba_returns_nonblank_overlay():
     assert np.any(rgba[:, :, 3] > 0)
 
 
-def test_layout_transform_keeps_bottom_room_for_input_layer():
+def test_layout_transform_reserves_top_and_bottom_margins():
     nodes = (
         Node("out", 1, "left", 0.0, -0.125, 0.0),
         Node("h2", 0, "H2-0", 0.0, 0.125, 0.0),
@@ -224,8 +224,8 @@ def test_layout_transform_keeps_bottom_room_for_input_layer():
     h1_y = transform(0.0, 0.375)[1]
     input_y = transform(0.0, 0.625)[1]
 
-    assert out_y > 0
-    assert input_y < 120 * 0.82
+    assert out_y >= 120 * 0.18
+    assert input_y <= 120 * (1.0 - 0.24)
     assert np.allclose([h2_y - out_y, h1_y - h2_y, input_y - h1_y], h2_y - out_y)
 
 
