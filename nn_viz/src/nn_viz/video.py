@@ -53,6 +53,7 @@ def record_network_overlay_video(
     if render_cfg is not None:
         env = wrap_env(env, render_cfg)
     live_averager = LiveOverlayAverager(live_window_steps) if live_overlay else None
+    initial_live_state = _initial_live_state(q_net)
     overlay_env = StaticNetworkOverlayWrapper(
         env,
         layout,
@@ -61,13 +62,11 @@ def record_network_overlay_video(
         overlay_provider=(
             lambda width, height: render_live_layout_rgba(
                 layout,
-                live_averager.state,
+                live_averager.state if live_averager is not None and live_averager.state is not None else initial_live_state,
                 width=width,
                 height=height,
                 node_scales=live_node_scales,
             )
-            if live_averager is not None and live_averager.state is not None
-            else render_layout_rgba(layout, width=width, height=height)
         )
         if live_overlay
         else None,
@@ -229,6 +228,19 @@ def render_live_layout_rgba(
     _draw_live_nodes(draw, nodes, live_state, transform, height, node_scales)
     _draw_live_labels(draw, nodes, live_state, transform, height)
     return np.asarray(image, dtype=np.uint8)
+
+
+def _initial_live_state(q_net) -> LiveOverlayState:
+    h1_size = int(q_net.layer1.out_features)
+    h2_size = int(q_net.layer2.out_features)
+    action_count = int(q_net.layer3.out_features)
+    return LiveOverlayState(
+        input_abs=np.zeros(int(q_net.layer1.in_features), dtype=np.float32),
+        h1=np.zeros(h1_size, dtype=np.float32),
+        h2=np.zeros(h2_size, dtype=np.float32),
+        q_values=np.zeros(action_count, dtype=np.float32),
+        action=-1,
+    )
 
 
 def _mean(values: deque[np.ndarray]) -> np.ndarray:

@@ -61,7 +61,9 @@ class FakeRecordVideo:
         self.name_prefix = name_prefix
 
     def reset(self, *, seed=None):
-        return self.env.reset(seed=seed)
+        observation = self.env.reset(seed=seed)
+        self.env.render()
+        return observation
 
     def step(self, action):
         return self.env.step(action)
@@ -238,12 +240,15 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
 
     live_states = []
     live_node_scales = []
+    static_render_count = 0
+
+    def static_overlay(_layout, *, width, height):
+        nonlocal static_render_count
+        static_render_count += 1
+        return np.zeros((height, width, 4), dtype=np.uint8)
+
     monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
-    monkeypatch.setattr(
-        video,
-        "render_layout_rgba",
-        lambda _layout, *, width, height: np.zeros((height, width, 4), dtype=np.uint8),
-    )
+    monkeypatch.setattr(video, "render_layout_rgba", static_overlay)
     monkeypatch.setattr(
         video,
         "render_live_layout_rgba",
@@ -284,5 +289,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     assert len(summary_rows) == 3
     assert summary_rows[1].startswith("0,left,")
     assert live_states
-    np.testing.assert_allclose(live_states[0].input_abs[:3], [0.5, 1.5, 2.5])
+    assert static_render_count == 0
+    assert live_states[0].action == -1
+    np.testing.assert_allclose(live_states[-1].input_abs[:3], [0.5, 1.5, 2.5])
     assert live_node_scales[0] == {"h1": 10.0, "h2": 20.0}
