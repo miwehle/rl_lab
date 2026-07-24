@@ -14,6 +14,11 @@ INPUT_LABELS = ("x", "y", "vx", "vy", "ang", "vang", "ftl", "ftr", "ax", "ay")
 
 @dataclass(frozen=True)
 class Node:
+    """
+    activity: rollout mean
+    output_group: the output action used to group H2 nodes.
+    """
+
     layer: str
     index: int
     label: str
@@ -25,6 +30,11 @@ class Node:
 
 @dataclass(frozen=True)
 class Edge:
+    """
+    relevance: rollout mean of abs(source activation * weight)
+    specificity: relevance - mean(other relevances)
+    """
+
     source_layer: str
     source_index: int
     target_layer: str
@@ -67,10 +77,10 @@ def compute_activity_layout(
     h2_nodes = _hidden2_nodes(rollouts.h2, h2_output_specificity, output_nodes)
     h1_nodes = _hidden1_nodes(rollouts.h1, h1_to_h2, h2_nodes)
     input_nodes = _input_nodes(rollouts.observations)
-    edges = _top_edges("h2", "out", h2_to_out, h2_output_specificity, w3, output_edges_per_target) + _top_edges(
-        "h1", "h2", h1_to_h2, h1_to_h2, w2, top_edges_per_target
-    ) + _top_edges(
-        "in", "h1", input_to_h1, input_to_h1, w1, top_edges_per_target
+    edges = (
+        _top_edges("h2", "out", h2_to_out, h2_output_specificity, w3, output_edges_per_target)
+        + _top_edges("h1", "h2", h1_to_h2, h1_to_h2, w2, top_edges_per_target)
+        + _top_edges("in", "h1", input_to_h1, input_to_h1, w1, top_edges_per_target)
     )
     return NetworkLayout(nodes=output_nodes + h2_nodes + h1_nodes + input_nodes, edges=tuple(edges))
 
