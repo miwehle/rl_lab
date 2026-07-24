@@ -211,6 +211,68 @@ def test_render_live_layout_rgba_returns_nonblank_overlay():
     assert np.any(rgba[:, :, 3] > 0)
 
 
+def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
+    import nn_viz.video as video
+    from PIL import ImageDraw
+
+    class FakePen:
+        def __init__(self, color, width):
+            self.color = color
+            self.width = width
+
+    class FakeDraw:
+        calls = []
+
+        def __init__(self, image):
+            self.image = image
+
+        def line(self, coords, pen):
+            FakeDraw.calls.append((coords, pen.color, pen.width))
+            red, green, blue, alpha = pen.color
+            premultiplied = (
+                int(round(red * alpha / 255)),
+                int(round(green * alpha / 255)),
+                int(round(blue * alpha / 255)),
+                alpha,
+            )
+            ImageDraw.Draw(self.image, "RGBA").line(coords, fill=premultiplied, width=max(1, int(round(pen.width))))
+
+        def flush(self):
+            pass
+
+    class FakeAggdraw:
+        Draw = FakeDraw
+        Pen = FakePen
+
+    monkeypatch.setattr(video, "_load_aggdraw", lambda: FakeAggdraw)
+    state = LiveOverlayState(
+        inputs=np.array([2.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    rgba = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="aggdraw")
+
+    assert rgba.shape == (120, 240, 4)
+    assert FakeDraw.calls
+    assert np.any(rgba[:, :, 3] > 0)
+
+
+def test_render_live_layout_rgba_rejects_unknown_edge_renderer():
+    state = LiveOverlayState(
+        inputs=np.array([2.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    with pytest.raises(ValueError, match="edge_renderer"):
+        render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="weird")
+
+
 def test_layout_transform_reserves_top_and_bottom_margins():
     nodes = (
         Node("out", 1, "left", 0.0, -0.125, 0.0),
@@ -260,7 +322,8 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
         height,
         live_scales=None,
         edge_skip_activation=0.5,
-        edge_skip_weight=0.5: live_states.append(state)
+        edge_skip_weight=0.5,
+        edge_renderer="pillow": live_states.append(state)
         or seen_live_scales.append(live_scales)
         or np.zeros((height, width, 4), dtype=np.uint8),
     )

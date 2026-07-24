@@ -27,6 +27,7 @@ _LIVE_LAYOUT_TOP_MARGIN_RATIO = 0.18
 _LIVE_LAYOUT_BOTTOM_MARGIN_RATIO = 0.24
 _EDGE_SKIP_ACTIVATION_DEFAULT = 0.50
 _EDGE_SKIP_WEIGHT_DEFAULT = 0.50
+_EDGE_RENDERER_DEFAULT = "pillow"
 
 
 def record_network_overlay_video(
@@ -45,6 +46,7 @@ def record_network_overlay_video(
     live_scales: Mapping[str, Any] | None = None,
     edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
     edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_renderer: str = _EDGE_RENDERER_DEFAULT,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
@@ -77,6 +79,7 @@ def record_network_overlay_video(
                 live_scales=live_scales,
                 edge_skip_activation=edge_skip_activation,
                 edge_skip_weight=edge_skip_weight,
+                edge_renderer=edge_renderer,
             )
         )
         if live_overlay
@@ -226,18 +229,18 @@ def render_live_layout_rgba(
     live_scales: Mapping[str, Any] | None = None,
     edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
     edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_renderer: str = _EDGE_RENDERER_DEFAULT,
 ) -> np.ndarray:
     """Render the existing layout as a dynamic RGBA overlay."""
     from PIL import Image, ImageDraw
 
-    image = Image.new("RGBA", (width, height), (255, 255, 255, 0))
-    draw = ImageDraw.Draw(image, "RGBA")
+    image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     nodes = _display_nodes(layout.nodes)
     node_by_key = {(node.layer, node.index): node for node in nodes}
     transform = _layout_transform(nodes, width=width, height=height)
 
-    _draw_live_edges(
-        draw,
+    image = _draw_live_edges(
+        image,
         layout.edges,
         node_by_key,
         live_state,
@@ -246,7 +249,9 @@ def render_live_layout_rgba(
         height,
         edge_skip_activation=edge_skip_activation,
         edge_skip_weight=edge_skip_weight,
+        edge_renderer=edge_renderer,
     )
+    draw = ImageDraw.Draw(image, "RGBA")
     _draw_live_nodes(draw, nodes, live_state, transform, height, live_scales)
     _draw_live_labels(draw, nodes, live_state, transform, height)
     return np.asarray(image, dtype=np.uint8)
@@ -299,6 +304,49 @@ def _layout_transform(
 
 
 def _draw_live_edges(
+    image,
+    edges: tuple[Edge, ...],
+    nodes: dict[tuple[str, int], Node],
+    live_state: LiveOverlayState,
+    live_scales: Mapping[str, Any] | None,
+    transform: Callable[[float, float], tuple[float, float]],
+    height: int,
+    *,
+    edge_skip_activation: float,
+    edge_skip_weight: float,
+    edge_renderer: str,
+):
+    if edge_renderer == "pillow":
+        from PIL import ImageDraw
+
+        _draw_live_edges_pillow(
+            ImageDraw.Draw(image, "RGBA"),
+            edges,
+            nodes,
+            live_state,
+            live_scales,
+            transform,
+            height,
+            edge_skip_activation=edge_skip_activation,
+            edge_skip_weight=edge_skip_weight,
+        )
+        return image
+    if edge_renderer == "aggdraw":
+        return _draw_live_edges_aggdraw(
+            image,
+            edges,
+            nodes,
+            live_state,
+            live_scales,
+            transform,
+            height,
+            edge_skip_activation=edge_skip_activation,
+            edge_skip_weight=edge_skip_weight,
+        )
+    raise ValueError("edge_renderer must be 'pillow' or 'aggdraw'")
+
+
+def _draw_live_edges_pillow(
     draw,
     edges: tuple[Edge, ...],
     nodes: dict[tuple[str, int], Node],
@@ -330,6 +378,44 @@ def _draw_live_edges(
             fill=(*color_scheme.signed_color(edge.weight, weight_scale), edge_alpha),
             width=line_width,
         )
+
+
+def _draw_live_edges_aggdraw(
+    image,
+    edges: tuple[Edge, ...],
+    nodes: dict[tuple[str, int], Node],
+    live_state: LiveOverlayState,
+    live_scales: Mapping[str, Any] | None,
+    transform: Callable[[float, float], tuple[float, float]],
+    height: int,
+    *,
+    edge_skip_activation: float,
+    edge_skip_weight: float,
+):
+    aggdraw = _load_aggdraw()
+    draw = aggdraw.Draw(image)
+    weight_scale = _scale_value(live_scales, "weight", max((abs(edge.weight) for edge in edges), default=0.0))
+    activation_scale = _scale_value(live_scales, "activation", _max_source_magnitude(edges, live_state))
+    for edge in edges:
+        source = nodes.get((edge.source_layer, edge.source_index))
+        target = nodes.get((edge.target_layer, edge.target_index))
+        if source is None or target is None:
+            continue
+        source_value = _source_value(edge, live_state)
+        if _skip_live_edge(source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight):
+            continue
+        sx, sy = transform(source.x, source.y)
+        tx, ty = transform(target.x, target.y)
+        edge_alpha = color_scheme.alpha(source_value, activation_scale)
+        nominal_width = color_scheme.edge_width(edge.weight, weight_scale)
+        line_width = max(1.0, nominal_width * height / 150)
+        color = (*color_scheme.signed_color(edge.weight, weight_scale), edge_alpha)
+        draw.line((sx, sy, tx, ty), aggdraw.Pen(color, line_width))
+    draw.flush()
+
+    from PIL import Image
+
+    return Image.fromarray(_unpremultiply_rgba(np.asarray(image, dtype=np.uint8).copy()))
 
 
 def _draw_live_nodes(
@@ -594,6 +680,26 @@ def _load_font(size: int, *, bold: bool = False):
         except OSError:
             pass
     return ImageFont.load_default(size)
+
+
+@lru_cache(maxsize=1)
+def _load_aggdraw():
+    try:
+        import aggdraw
+    except ImportError as exc:
+        raise RuntimeError("edge_renderer='aggdraw' requires the aggdraw package") from exc
+    return aggdraw
+
+
+def _unpremultiply_rgba(rgba: np.ndarray) -> np.ndarray:
+    alpha = rgba[:, :, 3].astype(np.float32)
+    visible = alpha > 0
+    if not np.any(visible):
+        return rgba
+    rgb = rgba[:, :, :3].astype(np.float32)
+    rgb[visible] = np.minimum(255.0, rgb[visible] * 255.0 / alpha[visible][:, None])
+    rgba[:, :, :3] = np.rint(rgb).astype(np.uint8)
+    return rgba
 
 
 def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
