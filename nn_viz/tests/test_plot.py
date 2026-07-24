@@ -69,9 +69,9 @@ def test_plot_places_hidden_layers_equidistant_with_constant_node_size():
         assert np.allclose(h2_spacing, 13 / 14)
         assert np.allclose(h1_offsets[:, 0], h2_offsets[:, 0])
         assert np.allclose(output_offsets[:, 0], [3.25, 6.03571429, 6.96428571, 8.82142857])
-        assert np.allclose(h1_offsets[:, 1], 0.5)
-        assert np.allclose(h2_offsets[:, 1], 0.25)
-        assert np.allclose(output_offsets[:, 1], 0.0)
+        assert np.allclose(h1_offsets[:, 1], 0.375)
+        assert np.allclose(h2_offsets[:, 1], 0.125)
+        assert np.allclose(output_offsets[:, 1], -0.125)
         assert np.allclose(fig.axes[0].get_ylim(), (2.35, -0.35))
         assert len(set(h1_sizes)) == 1
         assert len(set(h2_sizes)) == 1
@@ -131,7 +131,7 @@ def test_plot_places_inputs_as_horizontal_row():
         labels = [text.get_text() for text in fig.axes[0].texts]
 
         assert labels[-10:] == ["x", "vx", "ax", "y", "vy", "ay", "ang", "vang", "ftl", "ftr"]
-        assert np.allclose(input_offsets[:, 1], 0.9)
+        assert np.allclose(input_offsets[:, 1], 0.625)
         assert np.allclose(np.diff(input_offsets[:, 0]), np.diff(input_offsets[:, 0])[0])
     finally:
         plt.close(fig)

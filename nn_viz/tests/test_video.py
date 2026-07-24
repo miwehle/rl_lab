@@ -8,6 +8,7 @@ from nn_viz.video import (
     LiveOverlayAverager,
     LiveOverlayState,
     _crop_to_visible_alpha,
+    _layout_transform,
     compose_bottom_overlay,
     draw_step_label,
     record_network_overlay_video,
@@ -207,6 +208,25 @@ def test_render_live_layout_rgba_returns_nonblank_overlay():
     assert rgba.shape == (120, 240, 4)
     assert rgba.dtype == np.uint8
     assert np.any(rgba[:, :, 3] > 0)
+
+
+def test_layout_transform_keeps_bottom_room_for_input_layer():
+    nodes = (
+        Node("out", 1, "left", 0.0, -0.125, 0.0),
+        Node("h2", 0, "H2-0", 0.0, 0.125, 0.0),
+        Node("h1", 0, "H1-0", 0.0, 0.375, 0.0),
+        Node("in", 0, "x", 0.0, 0.625, 0.0),
+    )
+    transform = _layout_transform(nodes, width=240, height=120)
+
+    out_y = transform(0.0, -0.125)[1]
+    h2_y = transform(0.0, 0.125)[1]
+    h1_y = transform(0.0, 0.375)[1]
+    input_y = transform(0.0, 0.625)[1]
+
+    assert out_y > 0
+    assert input_y < 120 * 0.82
+    assert np.allclose([h2_y - out_y, h1_y - h2_y, input_y - h1_y], h2_y - out_y)
 
 
 def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):

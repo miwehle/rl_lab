@@ -12,7 +12,7 @@ from matplotlib.colors import to_rgb
 from nn_viz.layout import Edge, NetworkLayout, Node
 
 _NODE_SIZE = 78.0
-_LAYER_Y = {"out": 0.0, "h2": 0.25, "h1": 0.5, "in": 0.9}
+_LAYER_Y = {"out": -0.125, "h2": 0.125, "h1": 0.375, "in": 0.625}
 _INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 
 
