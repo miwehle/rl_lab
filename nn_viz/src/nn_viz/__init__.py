@@ -13,7 +13,14 @@ from nn_viz.ablation import (
     InputAblation,
     evaluate_input_ablations,
 )
-from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout
+from nn_viz.layout import (
+    Edge,
+    NetworkLayout,
+    Node,
+    compute_activity_layout,
+    compute_semantic_layout,
+)
+from nn_viz.live_scales import compute_live_scales
 from nn_viz.plot import plot_network_layout
 from nn_viz.video import (
     LiveOverlayAverager,
@@ -41,6 +48,8 @@ __all__ = [
     "compose_bottom_overlay",
     "collect_activations",
     "compute_activity_layout",
+    "compute_live_scales",
+    "compute_semantic_layout",
     "evaluate_input_ablations",
     "load_student_network",
     "plot_network_layout",
