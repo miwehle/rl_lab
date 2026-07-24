@@ -8,8 +8,6 @@ from nn_viz.video import (
     LiveOverlayAverager,
     LiveOverlayState,
     _crop_to_visible_alpha,
-    _edge_signal_values,
-    _node_scale,
     compose_bottom_overlay,
     draw_step_label,
     record_network_overlay_video,
@@ -182,46 +180,22 @@ def test_live_overlay_averager_uses_growing_then_rolling_window():
         1,
     )
 
-    np.testing.assert_allclose(first.input_abs, [2.0, 4.0])
-    np.testing.assert_allclose(second.input_abs, [6.0, 2.0])
+    np.testing.assert_allclose(first.inputs, [2.0, -4.0])
+    np.testing.assert_allclose(second.inputs, [6.0, -2.0])
     np.testing.assert_allclose(second.h1, [3.0])
     np.testing.assert_allclose(second.h2, [4.0])
     np.testing.assert_allclose(second.q_values, [2.0, 3.0, 4.0, 5.0])
     assert second.action == 2
-    np.testing.assert_allclose(third.input_abs, [15.0, 4.0])
+    np.testing.assert_allclose(third.inputs, [15.0, -4.0])
     np.testing.assert_allclose(third.h1, [7.0])
     np.testing.assert_allclose(third.h2, [8.0])
     np.testing.assert_allclose(third.q_values, [6.0, 7.0, 8.0, 9.0])
     assert third.action == 1
 
 
-def test_edge_signal_values_use_source_signal_times_abs_weight():
-    layout = minimal_live_layout()
-    state = LiveOverlayState(
-        input_abs=np.array([2.0]),
-        h1=np.array([3.0]),
-        h2=np.array([4.0]),
-        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
-        action=1,
-    )
-
-    values = _edge_signal_values(layout.edges, state)
-
-    assert values[layout.edges[0]] == 4.0
-    assert values[layout.edges[1]] == 9.0
-    assert values[layout.edges[2]] == 16.0
-
-
-def test_node_scale_prefers_positive_fixed_scale():
-    assert _node_scale("h2", {"h2": 7.0}, 3.0) == 7.0
-    assert _node_scale("h2", {"h2": 0.0}, 3.0) == 3.0
-    assert _node_scale("h2", {"h1": 7.0}, 3.0) == 3.0
-    assert _node_scale("h2", None, 3.0) == 3.0
-
-
 def test_render_live_layout_rgba_returns_nonblank_overlay():
     state = LiveOverlayState(
-        input_abs=np.array([2.0]),
+        inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
         q_values=np.array([0.0, 1.0, 2.0, 3.0]),
@@ -239,7 +213,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     import nn_viz.video as video
 
     live_states = []
-    live_node_scales = []
+    seen_live_scales = []
     static_render_count = 0
 
     def static_overlay(_layout, *, width, height):
@@ -252,8 +226,8 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     monkeypatch.setattr(
         video,
         "render_live_layout_rgba",
-        lambda _layout, state, *, width, height, node_scales=None: live_states.append(state)
-        or live_node_scales.append(node_scales)
+        lambda _layout, state, *, width, height, live_scales=None: live_states.append(state)
+        or seen_live_scales.append(live_scales)
         or np.zeros((height, width, 4), dtype=np.uint8),
     )
     env = FakeEnv()
@@ -269,7 +243,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
         max_steps=3,
         live_overlay=True,
         live_window_steps=2,
-        live_node_scales={"h1": 10.0, "h2": 20.0},
+        live_scales={"h1": 10.0, "h2": 20.0},
     )
 
     assert recorded_path == output_path
@@ -291,5 +265,5 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     assert live_states
     assert static_render_count == 0
     assert live_states[0].action == -1
-    np.testing.assert_allclose(live_states[-1].input_abs[:3], [0.5, 1.5, 2.5])
-    assert live_node_scales[0] == {"h1": 10.0, "h2": 20.0}
+    np.testing.assert_allclose(live_states[-1].inputs[:3], [0.5, 1.5, 2.5])
+    assert seen_live_scales[0] == {"h1": 10.0, "h2": 20.0}

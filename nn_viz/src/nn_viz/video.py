@@ -13,6 +13,7 @@ import numpy as np
 from gymnasium.wrappers import RecordVideo
 
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
+import nn_viz.color_scheme as color_scheme
 from nn_viz.activations import ACTION_LABELS, _forward_activations
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz.plot import _display_nodes, plot_network_layout
@@ -35,7 +36,7 @@ def record_network_overlay_video(
     overlay_alpha: float = 0.70,
     live_overlay: bool = False,
     live_window_steps: int = _LIVE_WINDOW_STEPS_DEFAULT,
-    live_node_scales: Mapping[str, float] | None = None,
+    live_scales: Mapping[str, Any] | None = None,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
@@ -65,7 +66,7 @@ def record_network_overlay_video(
                 live_averager.state if live_averager is not None and live_averager.state is not None else initial_live_state,
                 width=width,
                 height=height,
-                node_scales=live_node_scales,
+                live_scales=live_scales,
             )
         )
         if live_overlay
@@ -164,7 +165,7 @@ class VideoTrace:
 class LiveOverlayState:
     """Averaged NN state used only for live video rendering."""
 
-    input_abs: np.ndarray
+    inputs: np.ndarray
     h1: np.ndarray
     h2: np.ndarray
     q_values: np.ndarray
@@ -178,7 +179,7 @@ class LiveOverlayAverager:
         if window_steps < 1:
             raise ValueError("window_steps must be >= 1")
         self.window_steps = window_steps
-        self._input_abs: deque[np.ndarray] = deque(maxlen=window_steps)
+        self._inputs: deque[np.ndarray] = deque(maxlen=window_steps)
         self._h1: deque[np.ndarray] = deque(maxlen=window_steps)
         self._h2: deque[np.ndarray] = deque(maxlen=window_steps)
         self._q_values: deque[np.ndarray] = deque(maxlen=window_steps)
@@ -192,12 +193,12 @@ class LiveOverlayAverager:
         q_values: np.ndarray,
         action: int,
     ) -> LiveOverlayState:
-        self._input_abs.append(np.abs(np.asarray(observation, dtype=np.float32)))
+        self._inputs.append(np.asarray(observation, dtype=np.float32))
         self._h1.append(np.asarray(h1, dtype=np.float32))
         self._h2.append(np.asarray(h2, dtype=np.float32))
         self._q_values.append(np.asarray(q_values, dtype=np.float32))
         self.state = LiveOverlayState(
-            input_abs=_mean(self._input_abs),
+            inputs=_mean(self._inputs),
             h1=_mean(self._h1),
             h2=_mean(self._h2),
             q_values=_mean(self._q_values),
@@ -212,7 +213,7 @@ def render_live_layout_rgba(
     *,
     width: int,
     height: int,
-    node_scales: Mapping[str, float] | None = None,
+    live_scales: Mapping[str, Any] | None = None,
 ) -> np.ndarray:
     """Render the existing layout as a dynamic RGBA overlay."""
     from PIL import Image, ImageDraw
@@ -223,9 +224,8 @@ def render_live_layout_rgba(
     node_by_key = {(node.layer, node.index): node for node in nodes}
     transform = _layout_transform(nodes, width=width, height=height)
 
-    edge_values = _edge_signal_values(layout.edges, live_state)
-    _draw_live_edges(draw, layout.edges, node_by_key, edge_values, transform, height)
-    _draw_live_nodes(draw, nodes, live_state, transform, height, node_scales)
+    _draw_live_edges(draw, layout.edges, node_by_key, live_state, live_scales, transform, height)
+    _draw_live_nodes(draw, nodes, live_state, transform, height, live_scales)
     _draw_live_labels(draw, nodes, live_state, transform, height)
     return np.asarray(image, dtype=np.uint8)
 
@@ -235,7 +235,7 @@ def _initial_live_state(q_net) -> LiveOverlayState:
     h2_size = int(q_net.layer2.out_features)
     action_count = int(q_net.layer3.out_features)
     return LiveOverlayState(
-        input_abs=np.zeros(int(q_net.layer1.in_features), dtype=np.float32),
+        inputs=np.zeros(int(q_net.layer1.in_features), dtype=np.float32),
         h1=np.zeros(h1_size, dtype=np.float32),
         h2=np.zeros(h2_size, dtype=np.float32),
         q_values=np.zeros(action_count, dtype=np.float32),
@@ -277,12 +277,13 @@ def _draw_live_edges(
     draw,
     edges: tuple[Edge, ...],
     nodes: dict[tuple[str, int], Node],
-    edge_values: dict[Edge, float],
+    live_state: LiveOverlayState,
+    live_scales: Mapping[str, Any] | None,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
 ) -> None:
-    max_width_value = max((abs(edge.weight) for edge in edges), default=1.0)
-    max_edge_signal = max(edge_values.values(), default=1.0)
+    weight_scale = _scale_value(live_scales, "weight", max((abs(edge.weight) for edge in edges), default=0.0))
+    activation_scale = _scale_value(live_scales, "activation", _max_source_magnitude(edges, live_state))
     for edge in edges:
         source = nodes.get((edge.source_layer, edge.source_index))
         target = nodes.get((edge.target_layer, edge.target_index))
@@ -290,10 +291,14 @@ def _draw_live_edges(
             continue
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
-        base = (47, 133, 90) if edge.weight >= 0.0 else (184, 50, 50)
-        alpha = int(25 + 185 * _safe_ratio(edge_values[edge], max_edge_signal))
-        line_width = max(1, int(round((0.35 + 2.3 * abs(edge.weight) / max_width_value) * height / 260)))
-        draw.line((sx, sy, tx, ty), fill=(*base, alpha), width=line_width)
+        edge_alpha = color_scheme.alpha(_source_value(edge, live_state), activation_scale)
+        nominal_width = color_scheme.edge_width(edge.weight, weight_scale)
+        line_width = max(1, int(round(nominal_width * height / 150)))
+        draw.line(
+            (sx, sy, tx, ty),
+            fill=(*color_scheme.signed_color(edge.weight, weight_scale), edge_alpha),
+            width=line_width,
+        )
 
 
 def _draw_live_nodes(
@@ -302,19 +307,14 @@ def _draw_live_nodes(
     live_state: LiveOverlayState,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    node_scales: Mapping[str, float] | None,
+    live_scales: Mapping[str, Any] | None,
 ) -> None:
     radius = max(3.0, height / 46)
-    signals = {node: _node_signal(node, live_state) for node in nodes}
-    layer_max = {
-        layer: max((signals[node] for node in nodes if node.layer == layer), default=1.0)
-        for layer in {node.layer for node in nodes}
-    }
+    fallback_scales = _node_fallback_scales(live_state)
     for node in nodes:
         x, y = transform(node.x, node.y)
-        brightness = _safe_ratio(signals[node], _node_scale(node.layer, node_scales, layer_max[node.layer]))
-        fill = _live_node_color(node, brightness)
-        outline = (250, 204, 21, 255) if node.layer == "out" and node.index == live_state.action else (17, 24, 39, 220)
+        fill = _live_node_color(node, live_state, live_scales, fallback_scales)
+        outline = (250, 204, 21, 255) if node.layer == "out" and node.index == live_state.action else (17, 24, 39, 255)
         outline_width = max(1, int(round(radius / 3))) if node.layer == "out" and node.index == live_state.action else 1
         for offset in range(outline_width, 0, -1):
             draw.ellipse((x - radius - offset, y - radius - offset, x + radius + offset, y + radius + offset), fill=outline)
@@ -333,11 +333,11 @@ def _draw_live_labels(
     for node in nodes:
         x, y = transform(node.x, node.y)
         if node.layer == "out":
-            _draw_centered_text(draw, (x, y - height * 0.085), node.label, font, fill=(17, 24, 39, 245))
+            _draw_centered_text(draw, (x, y - height * 0.085), node.label, font, fill=(17, 24, 39, 255))
         elif node.layer in {"h1", "h2"}:
-            _draw_centered_text(draw, (x, y + height * 0.055), str(node.index), hidden_font, fill=(17, 24, 39, 190))
+            _draw_centered_text(draw, (x, y + height * 0.055), str(node.index), hidden_font, fill=(17, 24, 39, 255))
         elif node.layer == "in":
-            _draw_centered_text(draw, (x, y + height * 0.085), node.label, font, fill=(17, 24, 39, 225))
+            _draw_centered_text(draw, (x, y + height * 0.085), node.label, font, fill=(17, 24, 39, 255))
 
 
 def _draw_centered_text(draw, center: tuple[float, float], text: str, font, *, fill: tuple[int, int, int, int]) -> None:
@@ -347,64 +347,81 @@ def _draw_centered_text(draw, center: tuple[float, float], text: str, font, *, f
     draw.text((x, y), text, font=font, fill=fill)
 
 
-def _edge_signal_values(edges: tuple[Edge, ...], live_state: LiveOverlayState) -> dict[Edge, float]:
-    return {edge: _source_signal(edge, live_state) * abs(edge.weight) for edge in edges}
+def _max_source_magnitude(edges: tuple[Edge, ...], live_state: LiveOverlayState) -> float:
+    return max((abs(_source_value(edge, live_state)) for edge in edges), default=0.0)
 
 
-def _source_signal(edge: Edge, live_state: LiveOverlayState) -> float:
+def _source_value(edge: Edge, live_state: LiveOverlayState) -> float:
     if edge.source_layer == "in":
-        return _safe_component(live_state.input_abs, edge.source_index)
+        return _component(live_state.inputs, edge.source_index)
     if edge.source_layer == "h1":
-        return _safe_component(live_state.h1, edge.source_index)
+        return _component(live_state.h1, edge.source_index)
     if edge.source_layer == "h2":
-        return _safe_component(live_state.h2, edge.source_index)
+        return _component(live_state.h2, edge.source_index)
     return 0.0
 
 
-def _node_signal(node: Node, live_state: LiveOverlayState) -> float:
+def _node_value(node: Node, live_state: LiveOverlayState) -> float:
     if node.layer == "in":
-        return _safe_component(live_state.input_abs, node.index)
+        return _component(live_state.inputs, node.index)
     if node.layer == "h1":
-        return _safe_component(live_state.h1, node.index)
+        return _component(live_state.h1, node.index)
     if node.layer == "h2":
-        return _safe_component(live_state.h2, node.index)
+        return _component(live_state.h2, node.index)
     if node.layer == "out":
-        q = live_state.q_values
-        shifted = q - np.min(q)
-        return _safe_component(shifted, node.index)
+        return _component(live_state.q_values, node.index)
     return 0.0
 
 
-def _safe_component(values: np.ndarray, index: int) -> float:
+def _component(values: np.ndarray, index: int) -> float:
     if index < 0 or index >= values.shape[0]:
         return 0.0
-    return float(max(values[index], 0.0))
+    return float(values[index])
 
 
-def _safe_ratio(value: float, maximum: float) -> float:
-    if maximum <= 0.0:
-        return 0.0
-    return float(np.clip(value / maximum, 0.0, 1.0))
+def _node_fallback_scales(live_state: LiveOverlayState) -> dict[str, float]:
+    return {
+        "input": float(np.max(np.abs(live_state.inputs))) if live_state.inputs.size else 0.0,
+        "h1": float(np.max(live_state.h1)) if live_state.h1.size else 0.0,
+        "h2": float(np.max(live_state.h2)) if live_state.h2.size else 0.0,
+        "output": float(np.max(np.abs(live_state.q_values))) if live_state.q_values.size else 0.0,
+    }
 
 
-def _node_scale(layer: str, node_scales: Mapping[str, float] | None, fallback: float) -> float:
-    if node_scales is None or layer not in node_scales:
+def _scale_value(scales: Mapping[str, Any] | None, key: str, fallback: float) -> float:
+    if scales is None or key not in scales:
         return fallback
-    scale = float(node_scales[layer])
+    scale = float(scales[key])
     return scale if scale > 0.0 else fallback
 
 
-def _live_node_color(node: Node, brightness: float) -> tuple[int, int, int, int]:
-    base_colors = {
-        "in": np.asarray((107, 114, 128), dtype=np.float32),
-        "h1": np.asarray((138, 143, 152), dtype=np.float32),
-        "h2": np.asarray((43, 108, 176), dtype=np.float32),
-        "out": np.asarray((221, 107, 32), dtype=np.float32),
-    }
-    base = base_colors.get(node.layer, np.asarray((107, 114, 128), dtype=np.float32))
-    pale = np.asarray((229, 231, 235), dtype=np.float32)
-    color = pale * (1.0 - brightness) + base * brightness
-    return (*np.clip(color, 0, 255).astype(np.uint8), 245)
+def _input_scale(scales: Mapping[str, Any] | None, index: int, fallback: float) -> float:
+    if scales is None or "input" not in scales:
+        return fallback
+    input_scales = np.asarray(scales["input"], dtype=np.float32)
+    if index < 0 or index >= input_scales.shape[0]:
+        return fallback
+    scale = float(input_scales[index])
+    return scale if scale > 0.0 else fallback
+
+
+def _live_node_color(
+    node: Node,
+    live_state: LiveOverlayState,
+    live_scales: Mapping[str, Any] | None,
+    fallback_scales: Mapping[str, float],
+) -> tuple[int, int, int, int]:
+    value = _node_value(node, live_state)
+    if node.layer == "in":
+        scale = _input_scale(live_scales, node.index, fallback_scales["input"])
+        return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
+    if node.layer in {"h1", "h2"}:
+        scale = _scale_value(live_scales, node.layer, fallback_scales[node.layer])
+        return (*color_scheme.heat_color(value, scale), 255)
+    if node.layer == "out":
+        scale = _scale_value(live_scales, "output", fallback_scales["output"])
+        return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
+    return (128, 128, 128, 255)
 
 
 class StaticNetworkOverlayWrapper(gym.Wrapper):
