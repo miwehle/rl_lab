@@ -5,8 +5,10 @@ from __future__ import annotations
 import csv
 from collections import deque
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Mapping
+from uuid import uuid4
 
 import gymnasium as gym
 import numpy as np
@@ -14,6 +16,7 @@ from gymnasium.wrappers import RecordVideo
 
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 import nn_viz.color_scheme as color_scheme
+from nn_viz.clock import get_clock, stop, total_time
 from nn_viz.activations import ACTION_LABELS, _forward_activations
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz.plot import _display_nodes, plot_network_layout
@@ -24,6 +27,18 @@ _LIVE_WINDOW_STEPS_DEFAULT = 100
 _LIVE_LAYOUT_X_PAD = 0.16
 _LIVE_LAYOUT_TOP_MARGIN_RATIO = 0.18
 _LIVE_LAYOUT_BOTTOM_MARGIN_RATIO = 0.24
+_TIMING_LABELS = (
+    "policy_forward",
+    "trace_append",
+    "averager_update",
+    "base_render",
+    "nn_overlay_render",
+    "nn_overlay_compose",
+    "step_label",
+    "video_close",
+    "trace_npz_save",
+    "trace_csv_save",
+)
 
 
 def record_network_overlay_video(
@@ -51,6 +66,9 @@ def record_network_overlay_video(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     trace_path = output_path.with_name(f"{output_path.stem}_trace.npz")
     summary_path = output_path.with_name(f"{output_path.stem}_trace_summary.csv")
+    timing_path = output_path.with_name(f"{output_path.stem}_timing_summary.csv")
+    timing_name = f"nn_viz.video.{output_path.stem}.{uuid4().hex}"
+    total_clock = get_clock(f"{timing_name}.total")
     q_net.eval()
 
     env = env_factory.make_env(world, render_mode="rgb_array")
@@ -63,6 +81,7 @@ def record_network_overlay_video(
         layout,
         overlay_height_ratio=overlay_height_ratio,
         overlay_alpha=overlay_alpha,
+        timing_name=timing_name,
         overlay_provider=(
             lambda width, height: render_live_layout_rgba(
                 layout,
@@ -86,21 +105,33 @@ def record_network_overlay_video(
     try:
         observation, _ = video_env.reset(seed=seed)
         for step in range(max_steps):
-            h1, h2, q_values = _forward_activations(q_net, observation, device)
+            h1, h2, q_values = _timed_call(
+                timing_name, "policy_forward", lambda: _forward_activations(q_net, observation, device)
+            )
             action = int(np.argmax(q_values))
-            trace.append(step, observation, action, h1, h2, q_values)
+            _timed_call(
+                timing_name,
+                "trace_append",
+                lambda: trace.append(step, observation, action, h1, h2, q_values),
+            )
             if live_averager is not None:
-                live_averager.update(observation, h1, h2, q_values, action)
+                _timed_call(
+                    timing_name,
+                    "averager_update",
+                    lambda: live_averager.update(observation, h1, h2, q_values, action),
+                )
             overlay_env.set_step(step)
             observation, _, terminated, truncated, _ = video_env.step(action)
             if terminated or truncated:
                 _hold_final_frame(video_env)
                 break
     finally:
-        video_env.close()
+        _timed_call(timing_name, "video_close", video_env.close)
 
-    trace.save(trace_path)
-    trace.save_summary(summary_path)
+    _timed_call(timing_name, "trace_npz_save", lambda: trace.save(trace_path))
+    _timed_call(timing_name, "trace_csv_save", lambda: trace.save_summary(summary_path))
+    total_seconds = stop(total_clock) or 0.0
+    _write_timing_summary(timing_path, timing_name, total_seconds)
 
     raw_path = output_path.parent / f"{output_path.stem}-episode-0.mp4"
     if raw_path.exists():
@@ -440,6 +471,7 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         *,
         overlay_height_ratio: float,
         overlay_alpha: float,
+        timing_name: str | None = None,
         overlay_provider: Callable[[int, int], np.ndarray] | None = None,
     ) -> None:
         super().__init__(env)
@@ -450,6 +482,7 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         self.layout = layout
         self.overlay_height_ratio = overlay_height_ratio
         self.overlay_alpha = overlay_alpha
+        self.timing_name = timing_name
         self.overlay_provider = overlay_provider
         self._overlay_rgba: np.ndarray | None = None
         self._overlay_size: tuple[int, int] | None = None
@@ -459,15 +492,19 @@ class StaticNetworkOverlayWrapper(gym.Wrapper):
         self._step = step
 
     def render(self):
-        frame = self.env.render()
+        frame = _timed_call(self.timing_name, "base_render", self.env.render)
         if frame is None:
             return None
         height, width = frame.shape[:2]
         overlay_height = max(1, int(round(height * self.overlay_height_ratio)))
-        overlay = self._overlay_for(width, overlay_height)
-        composed = compose_bottom_overlay(frame, overlay, alpha=self.overlay_alpha)
+        overlay = _timed_call(self.timing_name, "nn_overlay_render", lambda: self._overlay_for(width, overlay_height))
+        composed = _timed_call(
+            self.timing_name,
+            "nn_overlay_compose",
+            lambda: compose_bottom_overlay(frame, overlay, alpha=self.overlay_alpha),
+        )
         if self._step is not None:
-            return draw_step_label(composed, self._step)
+            return _timed_call(self.timing_name, "step_label", lambda: draw_step_label(composed, self._step))
         return composed
 
     def _overlay_for(self, width: int, height: int) -> np.ndarray:
@@ -533,9 +570,8 @@ def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
 
     if frame.ndim != 3 or frame.shape[2] != 3:
         raise ValueError("frame must have shape HxWx3")
-    image = Image.fromarray(frame).convert("RGBA")
-    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
+    image = Image.fromarray(frame.copy())
+    draw = ImageDraw.Draw(image)
     font_size = max(12, image.height // 33)
     font = _load_font(font_size, bold=True)
     text = f"step: {step:03d}"
@@ -543,11 +579,12 @@ def draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
     x = (image.width - (bbox[2] - bbox[0])) / 2
     y = max(8, image.height // 50)
     shadow_offset = max(1, round(font_size / 18))
-    draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0, 210))
-    draw.text((x, y), text, font=font, fill=(255, 255, 255, 245))
-    return np.asarray(Image.alpha_composite(image, overlay).convert("RGB"), dtype=np.uint8)
+    draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0))
+    draw.text((x, y), text, font=font, fill=(255, 255, 255))
+    return np.asarray(image, dtype=np.uint8)
 
 
+@lru_cache(maxsize=16)
 def _load_font(size: int, *, bold: bool = False):
     from PIL import ImageFont
 
@@ -568,6 +605,37 @@ def _crop_to_visible_alpha(rgba: np.ndarray) -> np.ndarray:
     top, left = visible.min(axis=0)
     bottom, right = visible.max(axis=0) + 1
     return rgba[top:bottom, left:right]
+
+
+def _timed_call(timing_name: str | None, label: str, func: Callable[[], Any]) -> Any:
+    if timing_name is None:
+        return func()
+    clock = get_clock(f"{timing_name}.{label}")
+    try:
+        return func()
+    finally:
+        stop(clock)
+
+
+def _write_timing_summary(path: Path, timing_name: str, total_seconds: float) -> None:
+    section_times = [(label, total_time(f"{timing_name}.{label}")) for label in _TIMING_LABELS]
+    nn_overlay_total = sum(
+        seconds for label, seconds in section_times if label in {"nn_overlay_render", "nn_overlay_compose"}
+    )
+    measured_total = sum(seconds for _, seconds in section_times)
+    other_seconds = max(0.0, total_seconds - measured_total)
+    rows = [
+        ("total", total_seconds),
+        ("nn_viz_overlay_total", nn_overlay_total),
+        *section_times,
+        ("other_unmeasured", other_seconds),
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["label", "seconds", "share_of_total"])
+        for label, seconds in rows:
+            share = seconds / total_seconds if total_seconds > 0.0 else 0.0
+            writer.writerow([label, f"{seconds:.6g}", f"{share:.6g}"])
 
 
 def _hold_final_frame(env) -> None:

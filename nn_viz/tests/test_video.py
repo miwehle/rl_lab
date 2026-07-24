@@ -281,6 +281,13 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     ).splitlines()
     assert summary_rows[0] == "step,action,q_left,q_up,q_noop,q_right"
     assert len(summary_rows) == 3
+    timing_rows = (tmp_path / "earth_seed_0_nn_overlay_timing_summary.csv").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    assert timing_rows[0] == "label,seconds,share_of_total"
+    assert any(row.startswith("nn_viz_overlay_total,") for row in timing_rows)
+    assert any(row.startswith("nn_overlay_render,") for row in timing_rows)
+    assert any(row.startswith("video_close,") for row in timing_rows)
     assert summary_rows[1].startswith("0,left,")
     assert live_states
     assert static_render_count == 0
