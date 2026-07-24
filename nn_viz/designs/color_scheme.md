@@ -8,7 +8,7 @@ Examples:
 
 - input scale for `x`: `p95(abs(x) over rollout steps)`,
 - hidden scale for H2: `p95(H2 activations over rollout steps)`,
-- output scale: `p95(abs(q values or relative q values) over rollout steps)`,
+- output scale: `p95(abs(q values) over rollout steps)`,
 - weight scale: `p95(abs(weights) over displayed or all NN weights)`.
 
 During rendering, the current step value is compared with this fixed scale. Values near `0` are weak; values near or above `scale` are strong. Values above `scale` are clipped.
@@ -73,6 +73,6 @@ a = alpha(q_value, output_scale)
 color = signed_color(q_value, output_scale)
 ```
 
-## Open Decision
+## Action Highlight
 
-For output neurons, decide whether `q_value` means raw signed Q-value or relative action preference such as `q - mean(q)` or `q - min(q)`. For video readability, relative action preference is likely better, but signed raw Q-values may be more literal.
+Keep the selected-action highlight: the output neuron with `index == argmax(q_values)` gets an additional gold outline. This is not part of value-to-color mapping; it marks the executed action.
