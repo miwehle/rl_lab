@@ -9,6 +9,8 @@ from nn_viz.video import (
     LiveOverlayState,
     _crop_to_visible_alpha,
     _layout_transform,
+    _live_node_color,
+    _node_fallback_scales,
     _skip_live_edge,
     compose_bottom_overlay,
     draw_step_label,
@@ -298,6 +300,22 @@ def test_skip_live_edge_requires_low_activation_and_low_weight():
     assert not _skip_live_edge(0.51, 1.0, 0.49, 1.0, 0.5, 0.5)
 
 
+def test_hidden_nodes_use_one_shared_hidden_scale():
+    state = LiveOverlayState(
+        inputs=np.array([0.0]),
+        h1=np.array([4.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0]),
+        action=0,
+    )
+    fallback_scales = _node_fallback_scales(state)
+
+    h1_color = _live_node_color(Node("h1", 0, "H1-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
+    h2_color = _live_node_color(Node("h2", 0, "H2-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
+
+    assert h1_color == h2_color
+
+
 def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):
     import nn_viz.video as video
 
@@ -340,7 +358,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
         max_steps=3,
         live_overlay=True,
         live_window_steps=2,
-        live_scales={"h1": 10.0, "h2": 20.0},
+        live_scales={"hidden": 20.0},
     )
 
     assert recorded_path == output_path
@@ -363,4 +381,4 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     assert static_render_count == 0
     assert live_states[0].action == -1
     np.testing.assert_allclose(live_states[-1].inputs[:3], [0.5, 1.5, 2.5])
-    assert seen_live_scales[0] == {"h1": 10.0, "h2": 20.0}
+    assert seen_live_scales[0] == {"hidden": 20.0}

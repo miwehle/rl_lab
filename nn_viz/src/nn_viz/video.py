@@ -508,10 +508,10 @@ def _component(values: np.ndarray, index: int) -> float:
 
 
 def _node_fallback_scales(live_state: LiveOverlayState) -> dict[str, float]:
+    hidden_values = np.concatenate([live_state.h1, live_state.h2])
     return {
         "input": float(np.max(np.abs(live_state.inputs))) if live_state.inputs.size else 0.0,
-        "h1": float(np.max(live_state.h1)) if live_state.h1.size else 0.0,
-        "h2": float(np.max(live_state.h2)) if live_state.h2.size else 0.0,
+        "hidden": float(np.max(hidden_values)) if hidden_values.size else 0.0,
         "output": float(np.max(np.abs(live_state.q_values))) if live_state.q_values.size else 0.0,
     }
 
@@ -544,7 +544,7 @@ def _live_node_color(
         scale = _input_scale(live_scales, node.index, fallback_scales["input"])
         return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
     if node.layer in {"h1", "h2"}:
-        scale = _scale_value(live_scales, node.layer, fallback_scales[node.layer])
+        scale = _scale_value(live_scales, "hidden", fallback_scales["hidden"])
         return (*color_scheme.heat_color(value, scale), 255)
     if node.layer == "out":
         scale = _scale_value(live_scales, "output", fallback_scales["output"])
