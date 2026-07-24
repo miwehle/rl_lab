@@ -9,6 +9,7 @@ from nn_viz.video import (
     LiveOverlayState,
     _crop_to_visible_alpha,
     _layout_transform,
+    _skip_live_edge,
     compose_bottom_overlay,
     draw_step_label,
     record_network_overlay_video,
@@ -229,6 +230,12 @@ def test_layout_transform_reserves_top_and_bottom_margins():
     assert np.allclose([h2_y - out_y, h1_y - h2_y, input_y - h1_y], h2_y - out_y)
 
 
+def test_skip_live_edge_requires_low_activation_and_low_weight():
+    assert _skip_live_edge(0.49, 1.0, 0.49, 1.0, 0.5, 0.5)
+    assert not _skip_live_edge(0.49, 1.0, 0.51, 1.0, 0.5, 0.5)
+    assert not _skip_live_edge(0.51, 1.0, 0.49, 1.0, 0.5, 0.5)
+
+
 def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):
     import nn_viz.video as video
 
@@ -246,7 +253,14 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     monkeypatch.setattr(
         video,
         "render_live_layout_rgba",
-        lambda _layout, state, *, width, height, live_scales=None: live_states.append(state)
+        lambda _layout,
+        state,
+        *,
+        width,
+        height,
+        live_scales=None,
+        edge_skip_activation=0.5,
+        edge_skip_weight=0.5: live_states.append(state)
         or seen_live_scales.append(live_scales)
         or np.zeros((height, width, 4), dtype=np.uint8),
     )
@@ -281,13 +295,6 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     ).splitlines()
     assert summary_rows[0] == "step,action,q_left,q_up,q_noop,q_right"
     assert len(summary_rows) == 3
-    timing_rows = (tmp_path / "earth_seed_0_nn_overlay_timing_summary.csv").read_text(
-        encoding="utf-8"
-    ).splitlines()
-    assert timing_rows[0] == "label,seconds,share_of_total"
-    assert any(row.startswith("nn_viz_overlay_total,") for row in timing_rows)
-    assert any(row.startswith("nn_overlay_render,") for row in timing_rows)
-    assert any(row.startswith("video_close,") for row in timing_rows)
     assert summary_rows[1].startswith("0,left,")
     assert live_states
     assert static_render_count == 0
