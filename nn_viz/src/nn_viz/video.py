@@ -230,6 +230,7 @@ def render_live_layout_rgba(
     edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
     edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
     edge_renderer: str = _EDGE_RENDERER_DEFAULT,
+    label_mode: str = "video",
 ) -> np.ndarray:
     """Render the existing layout as a dynamic RGBA overlay."""
     from PIL import Image, ImageDraw
@@ -253,8 +254,69 @@ def render_live_layout_rgba(
     )
     draw = ImageDraw.Draw(image, "RGBA")
     _draw_live_nodes(draw, nodes, live_state, transform, height, live_scales)
-    _draw_live_labels(draw, nodes, live_state, transform, height)
+    _draw_live_labels(draw, nodes, live_state, transform, height, label_mode=label_mode)
     return np.asarray(image, dtype=np.uint8)
+
+
+def load_trace_state(trace_path: str | Path, *, step: int, window_steps: int = 1) -> LiveOverlayState:
+    """Load one raw or backward-window-mean NN state from a saved trace."""
+    with np.load(trace_path) as trace:
+        return _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
+
+
+def render_trace_step_png(
+    trace_path: str | Path,
+    layout: NetworkLayout,
+    output_path: str | Path,
+    *,
+    step: int,
+    window_steps: int = 1,
+    width: int = 1280,
+    height: int = 360,
+    live_scales: Mapping[str, Any] | None = None,
+    edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
+    edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_renderer: str = _EDGE_RENDERER_DEFAULT,
+    label_mode: str = "indices",
+) -> Path:
+    """Render the NN state for one trace step, averaged over a backward step window."""
+    from PIL import Image
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    state = load_trace_state(trace_path, step=step, window_steps=window_steps)
+    rgba = render_live_layout_rgba(
+        layout,
+        state,
+        width=width,
+        height=height,
+        live_scales=live_scales,
+        edge_skip_activation=edge_skip_activation,
+        edge_skip_weight=edge_skip_weight,
+        edge_renderer=edge_renderer,
+        label_mode=label_mode,
+    )
+    Image.fromarray(rgba).save(output_path)
+    return output_path
+
+
+def _trace_state_from_arrays(trace: Mapping[str, np.ndarray], *, step: int, window_steps: int) -> LiveOverlayState:
+    if window_steps < 1:
+        raise ValueError("window_steps must be >= 1")
+    steps = np.asarray(trace["steps"])
+    matches = np.flatnonzero(steps == step)
+    if matches.size == 0:
+        raise ValueError(f"step {step} not found in trace")
+    row_index = int(matches[0])
+    start = max(0, row_index - window_steps + 1)
+    stop = row_index + 1
+    return LiveOverlayState(
+        inputs=np.mean(trace["observations"][start:stop], axis=0, dtype=np.float32),
+        h1=np.mean(trace["h1"][start:stop], axis=0, dtype=np.float32),
+        h2=np.mean(trace["h2"][start:stop], axis=0, dtype=np.float32),
+        q_values=np.mean(trace["q_values"][start:stop], axis=0, dtype=np.float32),
+        action=int(trace["actions"][row_index]),
+    )
 
 
 def _initial_live_state(q_net) -> LiveOverlayState:
@@ -444,11 +506,17 @@ def _draw_live_labels(
     live_state: LiveOverlayState,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
+    *,
+    label_mode: str,
 ) -> None:
-    font = _load_font(max(16, height // 18))
+    if label_mode not in {"video", "indices"}:
+        raise ValueError("label_mode must be 'video' or 'indices'")
+    font = _load_font(max(8, height // 36)) if label_mode == "indices" else _load_font(max(16, height // 18))
     for node in nodes:
         x, y = transform(node.x, node.y)
-        if node.layer == "out":
+        if label_mode == "indices":
+            _draw_centered_text(draw, (x, y + height * 0.07), str(node.index), font, fill=(17, 24, 39, 255))
+        elif node.layer == "out":
             _draw_centered_text(draw, (x, y - height * 0.085), node.label, font, fill=(17, 24, 39, 255))
         elif node.layer == "in":
             _draw_centered_text(draw, (x, y + height * 0.085), node.label, font, fill=(17, 24, 39, 255))

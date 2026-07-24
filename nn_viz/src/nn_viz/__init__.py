@@ -27,9 +27,11 @@ from nn_viz.video import (
     LiveOverlayState,
     StaticNetworkOverlayWrapper,
     compose_bottom_overlay,
+    load_trace_state,
     record_network_overlay_video,
     render_live_layout_rgba,
     render_layout_rgba,
+    render_trace_step_png,
 )
 
 __all__ = [
@@ -52,8 +54,10 @@ __all__ = [
     "compute_semantic_layout",
     "evaluate_input_ablations",
     "load_student_network",
+    "load_trace_state",
     "plot_network_layout",
     "record_network_overlay_video",
     "render_live_layout_rgba",
     "render_layout_rgba",
+    "render_trace_step_png",
 ]

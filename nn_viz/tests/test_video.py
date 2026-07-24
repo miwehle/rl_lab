@@ -12,10 +12,12 @@ from nn_viz.video import (
     _live_node_color,
     _node_fallback_scales,
     _skip_live_edge,
+    load_trace_state,
     compose_bottom_overlay,
     draw_step_label,
     record_network_overlay_video,
     render_live_layout_rgba,
+    render_trace_step_png,
 )
 
 
@@ -273,6 +275,95 @@ def test_render_live_layout_rgba_rejects_unknown_edge_renderer():
 
     with pytest.raises(ValueError, match="edge_renderer"):
         render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="weird")
+
+
+def test_render_live_layout_rgba_rejects_unknown_label_mode():
+    state = LiveOverlayState(
+        inputs=np.array([2.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    with pytest.raises(ValueError, match="label_mode"):
+        render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="weird")
+
+
+def test_render_live_layout_rgba_can_label_node_indices():
+    state = LiveOverlayState(
+        inputs=np.array([2.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    video_labels = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="video")
+    index_labels = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="indices")
+
+    assert not np.array_equal(video_labels, index_labels)
+
+
+def test_load_trace_state_uses_backward_window_mean(tmp_path):
+    trace_path = tmp_path / "trace.npz"
+    np.savez(
+        trace_path,
+        steps=np.array([0, 1, 2], dtype=np.int64),
+        observations=np.array([[0.0, 10.0], [2.0, 12.0], [4.0, 14.0]], dtype=np.float32),
+        actions=np.array([1, 2, 3], dtype=np.int64),
+        h1=np.array([[1.0], [3.0], [5.0]], dtype=np.float32),
+        h2=np.array([[2.0], [4.0], [6.0]], dtype=np.float32),
+        q_values=np.array([[1, 2, 3, 4], [3, 4, 5, 6], [5, 6, 7, 8]], dtype=np.float32),
+    )
+
+    state = load_trace_state(trace_path, step=2, window_steps=2)
+
+    np.testing.assert_allclose(state.inputs, [3.0, 13.0])
+    np.testing.assert_allclose(state.h1, [4.0])
+    np.testing.assert_allclose(state.h2, [5.0])
+    np.testing.assert_allclose(state.q_values, [4.0, 5.0, 6.0, 7.0])
+    assert state.action == 3
+
+
+def test_load_trace_state_uses_growing_initial_window(tmp_path):
+    trace_path = tmp_path / "trace.npz"
+    np.savez(
+        trace_path,
+        steps=np.array([0, 1], dtype=np.int64),
+        observations=np.array([[0.0], [2.0]], dtype=np.float32),
+        actions=np.array([1, 2], dtype=np.int64),
+        h1=np.array([[1.0], [3.0]], dtype=np.float32),
+        h2=np.array([[2.0], [4.0]], dtype=np.float32),
+        q_values=np.array([[1, 2, 3, 4], [3, 4, 5, 6]], dtype=np.float32),
+    )
+
+    state = load_trace_state(trace_path, step=1, window_steps=10)
+
+    np.testing.assert_allclose(state.inputs, [1.0])
+    np.testing.assert_allclose(state.h1, [2.0])
+    np.testing.assert_allclose(state.h2, [3.0])
+    np.testing.assert_allclose(state.q_values, [2.0, 3.0, 4.0, 5.0])
+    assert state.action == 2
+
+
+def test_render_trace_step_png_writes_png(tmp_path):
+    trace_path = tmp_path / "trace.npz"
+    output_path = tmp_path / "step.png"
+    np.savez(
+        trace_path,
+        steps=np.array([0], dtype=np.int64),
+        observations=np.array([[2.0]], dtype=np.float32),
+        actions=np.array([1], dtype=np.int64),
+        h1=np.array([[3.0]], dtype=np.float32),
+        h2=np.array([[4.0]], dtype=np.float32),
+        q_values=np.array([[0.0, 1.0, 2.0, 3.0]], dtype=np.float32),
+    )
+
+    result = render_trace_step_png(trace_path, minimal_live_layout(), output_path, step=0, width=240, height=120)
+
+    assert result == output_path
+    assert output_path.exists()
 
 
 def test_layout_transform_reserves_top_and_bottom_margins():
