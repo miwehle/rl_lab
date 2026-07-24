@@ -243,11 +243,11 @@ def _layout_transform(
         return lambda _x, _y: (width / 2, height / 2)
     xs = np.asarray([node.x for node in nodes], dtype=np.float64)
     ys = np.asarray([node.y for node in nodes], dtype=np.float64)
-    x_min = float(np.min(xs) - 0.35)
-    x_max = float(np.max(xs) + 0.35)
+    x_min = float(np.min(xs) - 0.16)
+    x_max = float(np.max(xs) + 0.16)
     y_min = float(np.min(ys) - 0.22)
     y_max = float(np.max(ys) + 0.18)
-    margin = max(4.0, min(width, height) * 0.03)
+    margin = max(4.0, min(width, height) * 0.02)
     usable_width = max(1.0, width - margin * 2)
     usable_height = max(1.0, height - margin * 2)
 
@@ -313,18 +313,16 @@ def _draw_live_labels(
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
 ) -> None:
-    font = _load_font(max(8, height // 33))
+    font = _load_font(max(16, height // 18))
     hidden_font = _load_font(max(6, height // 45))
     for node in nodes:
         x, y = transform(node.x, node.y)
         if node.layer == "out":
-            _draw_centered_text(draw, (x, y - height * 0.075), node.label, font, fill=(17, 24, 39, 245))
-            if node.index == live_state.action:
-                _draw_centered_text(draw, (x, y - height * 0.12), "action", hidden_font, fill=(120, 53, 15, 230))
+            _draw_centered_text(draw, (x, y - height * 0.085), node.label, font, fill=(17, 24, 39, 245))
         elif node.layer in {"h1", "h2"}:
             _draw_centered_text(draw, (x, y + height * 0.055), str(node.index), hidden_font, fill=(17, 24, 39, 190))
         elif node.layer == "in":
-            _draw_centered_text(draw, (x, y + height * 0.065), node.label, hidden_font, fill=(17, 24, 39, 205))
+            _draw_centered_text(draw, (x, y + height * 0.085), node.label, font, fill=(17, 24, 39, 225))
 
 
 def _draw_centered_text(draw, center: tuple[float, float], text: str, font, *, fill: tuple[int, int, int, int]) -> None:
