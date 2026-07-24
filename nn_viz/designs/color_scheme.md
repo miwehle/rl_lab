@@ -29,6 +29,8 @@ ratio = log1p(abs(value)) / log1p(scale)
 alpha = alpha_min + ratio * (alpha_max - alpha_min)
 ```
 
+Use this as the only semantic alpha channel for the NN visualization. Avoid scattered extra alpha choices for NN nodes, NN edges, and NN labels. Technical composition alpha such as video `overlay_alpha`, and non-NN HUD alpha such as the step label, may remain separate.
+
 `signed_color(value, scale)` uses the sign for hue and `abs(value) / scale` for color strength:
 
 ```text
