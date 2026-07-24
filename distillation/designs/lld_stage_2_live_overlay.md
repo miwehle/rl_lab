@@ -71,6 +71,8 @@ Node brightness:
 - H1/H2 nodes: normalized rolling mean of ReLU activations,
 - output nodes: normalized rolling mean of relative Q-values.
 
+For input/H1/H2, prefer fixed per-layer scales from the layout rollouts instead of per-frame layer maxima. The notebook computes `LIVE_NODE_SCALES` automatically from p95 values and passes them to `record_network_overlay_video(...)`. It also prints `max` beside p95 as a quick outlier check. If a scale is missing or zero, rendering falls back to the current frame's layer maximum.
+
 Keep node size constant. Do not encode the same quantity twice via both size and brightness.
 
 Output nodes may additionally show the currently chosen action with a simple outline or stronger fill. Keep this action highlight separate from action colors.
@@ -101,7 +103,7 @@ Add a small live-rendering path in `nn_viz.video`, reusing the same bottom-overl
 Suggested internal API:
 
 ```python
-render_live_layout_rgba(layout, live_state, *, width, height) -> np.ndarray
+render_live_layout_rgba(layout, live_state, *, width, height, node_scales=None) -> np.ndarray
 ```
 
 The existing static `render_layout_rgba(...)` remains useful for Stage 1 and for fallback.

@@ -6,7 +6,7 @@ import csv
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 import gymnasium as gym
 import numpy as np
@@ -35,6 +35,7 @@ def record_network_overlay_video(
     overlay_alpha: float = 0.70,
     live_overlay: bool = False,
     live_window_steps: int = _LIVE_WINDOW_STEPS_DEFAULT,
+    live_node_scales: Mapping[str, float] | None = None,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
@@ -63,6 +64,7 @@ def record_network_overlay_video(
                 live_averager.state,
                 width=width,
                 height=height,
+                node_scales=live_node_scales,
             )
             if live_averager is not None and live_averager.state is not None
             else render_layout_rgba(layout, width=width, height=height)
@@ -211,6 +213,7 @@ def render_live_layout_rgba(
     *,
     width: int,
     height: int,
+    node_scales: Mapping[str, float] | None = None,
 ) -> np.ndarray:
     """Render the existing layout as a dynamic RGBA overlay."""
     from PIL import Image, ImageDraw
@@ -223,7 +226,7 @@ def render_live_layout_rgba(
 
     edge_values = _edge_signal_values(layout.edges, live_state)
     _draw_live_edges(draw, layout.edges, node_by_key, edge_values, transform, height)
-    _draw_live_nodes(draw, nodes, live_state, transform, height)
+    _draw_live_nodes(draw, nodes, live_state, transform, height, node_scales)
     _draw_live_labels(draw, nodes, live_state, transform, height)
     return np.asarray(image, dtype=np.uint8)
 
@@ -287,6 +290,7 @@ def _draw_live_nodes(
     live_state: LiveOverlayState,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
+    node_scales: Mapping[str, float] | None,
 ) -> None:
     radius = max(3.0, height / 46)
     signals = {node: _node_signal(node, live_state) for node in nodes}
@@ -296,7 +300,7 @@ def _draw_live_nodes(
     }
     for node in nodes:
         x, y = transform(node.x, node.y)
-        brightness = _safe_ratio(signals[node], layer_max[node.layer])
+        brightness = _safe_ratio(signals[node], _node_scale(node.layer, node_scales, layer_max[node.layer]))
         fill = _live_node_color(node, brightness)
         outline = (250, 204, 21, 255) if node.layer == "out" and node.index == live_state.action else (17, 24, 39, 220)
         outline_width = max(1, int(round(radius / 3))) if node.layer == "out" and node.index == live_state.action else 1
@@ -369,6 +373,13 @@ def _safe_ratio(value: float, maximum: float) -> float:
     if maximum <= 0.0:
         return 0.0
     return float(np.clip(value / maximum, 0.0, 1.0))
+
+
+def _node_scale(layer: str, node_scales: Mapping[str, float] | None, fallback: float) -> float:
+    if node_scales is None or layer not in node_scales:
+        return fallback
+    scale = float(node_scales[layer])
+    return scale if scale > 0.0 else fallback
 
 
 def _live_node_color(node: Node, brightness: float) -> tuple[int, int, int, int]:

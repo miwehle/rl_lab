@@ -9,6 +9,7 @@ from nn_viz.video import (
     LiveOverlayState,
     _crop_to_visible_alpha,
     _edge_signal_values,
+    _node_scale,
     compose_bottom_overlay,
     draw_step_label,
     record_network_overlay_video,
@@ -209,6 +210,13 @@ def test_edge_signal_values_use_source_signal_times_abs_weight():
     assert values[layout.edges[2]] == 16.0
 
 
+def test_node_scale_prefers_positive_fixed_scale():
+    assert _node_scale("h2", {"h2": 7.0}, 3.0) == 7.0
+    assert _node_scale("h2", {"h2": 0.0}, 3.0) == 3.0
+    assert _node_scale("h2", {"h1": 7.0}, 3.0) == 3.0
+    assert _node_scale("h2", None, 3.0) == 3.0
+
+
 def test_render_live_layout_rgba_returns_nonblank_overlay():
     state = LiveOverlayState(
         input_abs=np.array([2.0]),
@@ -229,6 +237,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     import nn_viz.video as video
 
     live_states = []
+    live_node_scales = []
     monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
     monkeypatch.setattr(
         video,
@@ -238,7 +247,8 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     monkeypatch.setattr(
         video,
         "render_live_layout_rgba",
-        lambda _layout, state, *, width, height: live_states.append(state)
+        lambda _layout, state, *, width, height, node_scales=None: live_states.append(state)
+        or live_node_scales.append(node_scales)
         or np.zeros((height, width, 4), dtype=np.uint8),
     )
     env = FakeEnv()
@@ -254,6 +264,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
         max_steps=3,
         live_overlay=True,
         live_window_steps=2,
+        live_node_scales={"h1": 10.0, "h2": 20.0},
     )
 
     assert recorded_path == output_path
@@ -274,3 +285,4 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     assert summary_rows[1].startswith("0,left,")
     assert live_states
     np.testing.assert_allclose(live_states[0].input_abs[:3], [0.5, 1.5, 2.5])
+    assert live_node_scales[0] == {"h1": 10.0, "h2": 20.0}
