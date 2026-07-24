@@ -16,7 +16,7 @@ from nn_viz.ablation import (
 from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout
 from nn_viz.plot import plot_network_layout
 from nn_viz.video import (
-    LiveOverlaySmoother,
+    LiveOverlayAverager,
     LiveOverlayState,
     StaticNetworkOverlayWrapper,
     compose_bottom_overlay,
@@ -32,7 +32,7 @@ __all__ = [
     "DEFAULT_INPUT_ABLATIONS",
     "Edge",
     "InputAblation",
-    "LiveOverlaySmoother",
+    "LiveOverlayAverager",
     "LiveOverlayState",
     "NetworkLayout",
     "Node",

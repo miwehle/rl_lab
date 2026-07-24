@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -18,7 +19,7 @@ from nn_viz.plot import _display_nodes, plot_network_layout
 
 _FINAL_HOLD_FRAMES = 30
 _CSV_Q_COLUMNS = (("q_left", 1), ("q_up", 2), ("q_noop", 0), ("q_right", 3))
-_LIVE_ALPHA_DEFAULT = 0.15
+_LIVE_WINDOW_STEPS_DEFAULT = 100
 
 
 def record_network_overlay_video(
@@ -33,7 +34,7 @@ def record_network_overlay_video(
     overlay_height_ratio: float = 0.32,
     overlay_alpha: float = 0.70,
     live_overlay: bool = False,
-    live_ema_alpha: float = _LIVE_ALPHA_DEFAULT,
+    live_window_steps: int = _LIVE_WINDOW_STEPS_DEFAULT,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
@@ -50,7 +51,7 @@ def record_network_overlay_video(
     env = env_factory.make_env(world, render_mode="rgb_array")
     if render_cfg is not None:
         env = wrap_env(env, render_cfg)
-    live_smoother = LiveOverlaySmoother(live_ema_alpha) if live_overlay else None
+    live_averager = LiveOverlayAverager(live_window_steps) if live_overlay else None
     overlay_env = StaticNetworkOverlayWrapper(
         env,
         layout,
@@ -59,11 +60,11 @@ def record_network_overlay_video(
         overlay_provider=(
             lambda width, height: render_live_layout_rgba(
                 layout,
-                live_smoother.state,
+                live_averager.state,
                 width=width,
                 height=height,
             )
-            if live_smoother is not None and live_smoother.state is not None
+            if live_averager is not None and live_averager.state is not None
             else render_layout_rgba(layout, width=width, height=height)
         )
         if live_overlay
@@ -83,8 +84,8 @@ def record_network_overlay_video(
             h1, h2, q_values = _forward_activations(q_net, observation, device)
             action = int(np.argmax(q_values))
             trace.append(step, observation, action, h1, h2, q_values)
-            if live_smoother is not None:
-                live_smoother.update(observation, h1, h2, q_values, action)
+            if live_averager is not None:
+                live_averager.update(observation, h1, h2, q_values, action)
             overlay_env.set_step(step)
             observation, _, terminated, truncated, _ = video_env.step(action)
             if terminated or truncated:
@@ -160,7 +161,7 @@ class VideoTrace:
 
 @dataclass(frozen=True)
 class LiveOverlayState:
-    """Smoothed NN state used only for live video rendering."""
+    """Averaged NN state used only for live video rendering."""
 
     input_abs: np.ndarray
     h1: np.ndarray
@@ -169,13 +170,17 @@ class LiveOverlayState:
     action: int
 
 
-class LiveOverlaySmoother:
-    """EMA smoother for per-step NN values shown in the moving video."""
+class LiveOverlayAverager:
+    """Rolling mean for per-step NN values shown in the moving video."""
 
-    def __init__(self, alpha: float) -> None:
-        if not 0.0 < alpha <= 1.0:
-            raise ValueError("alpha must be in (0, 1]")
-        self.alpha = alpha
+    def __init__(self, window_steps: int) -> None:
+        if window_steps < 1:
+            raise ValueError("window_steps must be >= 1")
+        self.window_steps = window_steps
+        self._input_abs: deque[np.ndarray] = deque(maxlen=window_steps)
+        self._h1: deque[np.ndarray] = deque(maxlen=window_steps)
+        self._h2: deque[np.ndarray] = deque(maxlen=window_steps)
+        self._q_values: deque[np.ndarray] = deque(maxlen=window_steps)
         self.state: LiveOverlayState | None = None
 
     def update(
@@ -186,21 +191,15 @@ class LiveOverlaySmoother:
         q_values: np.ndarray,
         action: int,
     ) -> LiveOverlayState:
-        current = LiveOverlayState(
-            input_abs=np.abs(np.asarray(observation, dtype=np.float32)),
-            h1=np.asarray(h1, dtype=np.float32),
-            h2=np.asarray(h2, dtype=np.float32),
-            q_values=np.asarray(q_values, dtype=np.float32),
-            action=action,
-        )
-        if self.state is None:
-            self.state = current
-            return current
+        self._input_abs.append(np.abs(np.asarray(observation, dtype=np.float32)))
+        self._h1.append(np.asarray(h1, dtype=np.float32))
+        self._h2.append(np.asarray(h2, dtype=np.float32))
+        self._q_values.append(np.asarray(q_values, dtype=np.float32))
         self.state = LiveOverlayState(
-            input_abs=_ema(self.state.input_abs, current.input_abs, self.alpha),
-            h1=_ema(self.state.h1, current.h1, self.alpha),
-            h2=_ema(self.state.h2, current.h2, self.alpha),
-            q_values=_ema(self.state.q_values, current.q_values, self.alpha),
+            input_abs=_mean(self._input_abs),
+            h1=_mean(self._h1),
+            h2=_mean(self._h2),
+            q_values=_mean(self._q_values),
             action=action,
         )
         return self.state
@@ -229,8 +228,8 @@ def render_live_layout_rgba(
     return np.asarray(image, dtype=np.uint8)
 
 
-def _ema(previous: np.ndarray, current: np.ndarray, alpha: float) -> np.ndarray:
-    return previous * (1.0 - alpha) + current * alpha
+def _mean(values: deque[np.ndarray]) -> np.ndarray:
+    return np.mean(np.stack(values), axis=0, dtype=np.float32)
 
 
 def _layout_transform(

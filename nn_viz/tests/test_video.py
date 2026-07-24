@@ -5,7 +5,7 @@ import gymnasium as gym
 
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz.video import (
-    LiveOverlaySmoother,
+    LiveOverlayAverager,
     LiveOverlayState,
     _crop_to_visible_alpha,
     _edge_signal_values,
@@ -154,30 +154,42 @@ def test_draw_step_label_changes_frame_without_changing_shape():
     assert np.any(labeled != frame)
 
 
-def test_live_overlay_smoother_updates_with_ema():
-    smoother = LiveOverlaySmoother(alpha=0.25)
+def test_live_overlay_averager_uses_growing_then_rolling_window():
+    averager = LiveOverlayAverager(window_steps=2)
 
-    first = smoother.update(
+    first = averager.update(
         np.array([2.0, -4.0]),
         np.array([1.0]),
         np.array([2.0]),
         np.array([0.0, 1.0, 2.0, 3.0]),
         3,
     )
-    second = smoother.update(
+    second = averager.update(
         np.array([10.0, 0.0]),
         np.array([5.0]),
         np.array([6.0]),
         np.array([4.0, 5.0, 6.0, 7.0]),
         2,
     )
+    third = averager.update(
+        np.array([20.0, -8.0]),
+        np.array([9.0]),
+        np.array([10.0]),
+        np.array([8.0, 9.0, 10.0, 11.0]),
+        1,
+    )
 
     np.testing.assert_allclose(first.input_abs, [2.0, 4.0])
-    np.testing.assert_allclose(second.input_abs, [4.0, 3.0])
-    np.testing.assert_allclose(second.h1, [2.0])
-    np.testing.assert_allclose(second.h2, [3.0])
-    np.testing.assert_allclose(second.q_values, [1.0, 2.0, 3.0, 4.0])
+    np.testing.assert_allclose(second.input_abs, [6.0, 2.0])
+    np.testing.assert_allclose(second.h1, [3.0])
+    np.testing.assert_allclose(second.h2, [4.0])
+    np.testing.assert_allclose(second.q_values, [2.0, 3.0, 4.0, 5.0])
     assert second.action == 2
+    np.testing.assert_allclose(third.input_abs, [15.0, 4.0])
+    np.testing.assert_allclose(third.h1, [7.0])
+    np.testing.assert_allclose(third.h2, [8.0])
+    np.testing.assert_allclose(third.q_values, [6.0, 7.0, 8.0, 9.0])
+    assert third.action == 1
 
 
 def test_edge_signal_values_use_source_signal_times_abs_weight():
@@ -216,11 +228,18 @@ def test_render_live_layout_rgba_returns_nonblank_overlay():
 def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):
     import nn_viz.video as video
 
+    live_states = []
     monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
     monkeypatch.setattr(
         video,
         "render_layout_rgba",
         lambda _layout, *, width, height: np.zeros((height, width, 4), dtype=np.uint8),
+    )
+    monkeypatch.setattr(
+        video,
+        "render_live_layout_rgba",
+        lambda _layout, state, *, width, height: live_states.append(state)
+        or np.zeros((height, width, 4), dtype=np.uint8),
     )
     env = FakeEnv()
     output_path = tmp_path / "earth_seed_0_nn_overlay.mp4"
@@ -233,6 +252,8 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
         seed=123,
         output_path=output_path,
         max_steps=3,
+        live_overlay=True,
+        live_window_steps=2,
     )
 
     assert recorded_path == output_path
@@ -251,3 +272,5 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     assert summary_rows[0] == "step,action,q_left,q_up,q_noop,q_right"
     assert len(summary_rows) == 3
     assert summary_rows[1].startswith("0,left,")
+    assert live_states
+    np.testing.assert_allclose(live_states[0].input_abs[:3], [0.5, 1.5, 2.5])

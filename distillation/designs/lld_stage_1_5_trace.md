@@ -95,4 +95,4 @@ Recommended live semantics:
 - output nodes: brightness from smoothed relative Q-values plus current action highlight,
 - edges: hue from weight sign and alpha/brightness from smoothed edge signal magnitude.
 
-For moving video, use a rolling mean or EMA, e.g. `0.5 s`, not raw per-step values. Raw values are for exact step PNGs or freeze/storyboard frames.
+For moving video, use a rolling mean, e.g. `0.5 s` to `2 s`, not raw per-step values. Raw values are for exact step PNGs or freeze/storyboard frames.

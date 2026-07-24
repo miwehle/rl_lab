@@ -1,6 +1,6 @@
 # LLD Stage 2 - Live Overlay
 
-Goal: render the NN overlay dynamically during the landing video, using smoothed per-step network state, while keeping the notebook thin and the first live version easy to inspect.
+Goal: render the NN overlay dynamically during the landing video, using averaged per-step network state, while keeping the notebook thin and the first live version easy to inspect.
 
 ## Scope
 
@@ -9,7 +9,7 @@ Stage 2 extends `nn_viz.video.record_network_overlay_video(...)`.
 It should:
 
 - keep the Stage 1.5 trace and CSV output,
-- keep the step/action label in the video,
+- keep the step label in the video,
 - update the NN overlay during flight,
 - smooth activations so the overlay does not flicker,
 - reuse the existing `NetworkLayout` positions and static edge selection.
@@ -31,7 +31,7 @@ observation_step
 -> h1, h2, q_values
 -> action = argmax(q_values)
 -> append trace row
--> update smoothed live state
+-> update averaged live state
 -> env.step(action)
 -> render frame with live overlay
 ```
@@ -40,15 +40,15 @@ The trace row, video label, live overlay, and executed action must all refer to 
 
 ## Smoothing
 
-Use an EMA for the moving video.
+Use a rolling mean for the moving video.
 
 Initial KISS default:
 
 ```text
-ema_alpha = 0.15
+live_window_steps = 100
 ```
 
-Maintain one EMA state per displayed signal:
+Maintain one rolling window per displayed signal:
 
 ```text
 input_abs: [10]
@@ -57,7 +57,9 @@ h2: [hidden2]
 q_values: [4]
 ```
 
-Use raw values for the trace. Use EMA values only for live rendering.
+The first steps use a growing initial window: at step 42 with `live_window_steps = 100`, the live overlay uses the mean of the 43 values collected so far. After the window is full, it uses the most recent `live_window_steps` values.
+
+Use raw values for the trace. Use rolling means only for live rendering.
 
 ## Node Rendering
 
@@ -65,9 +67,9 @@ Reuse `NetworkLayout.nodes` for positions and base labels.
 
 Node brightness:
 
-- input nodes: normalized EMA of `abs(observation_i)`,
-- H1/H2 nodes: normalized EMA of ReLU activations,
-- output nodes: normalized EMA of relative Q-values.
+- input nodes: normalized rolling mean of `abs(observation_i)`,
+- H1/H2 nodes: normalized rolling mean of ReLU activations,
+- output nodes: normalized rolling mean of relative Q-values.
 
 Keep node size constant. Do not encode the same quantity twice via both size and brightness.
 
@@ -88,7 +90,7 @@ Edge alpha/brightness is dynamic:
 edge_signal = source_signal * abs(weight)
 ```
 
-where `source_signal` is the smoothed input magnitude or hidden activation of the edge source node.
+where `source_signal` is the averaged input magnitude or hidden activation of the edge source node.
 
 Keep edge thickness based on static `abs(weight)` for now. This avoids too much motion in the video.
 
@@ -122,8 +124,8 @@ Between refreshes, reuse the last rendered overlay. Do not add this lever before
 
 Add focused pytest coverage for the non-visual mechanics:
 
-- EMA updates converge toward new values,
-- live state uses raw trace values only through the smoother,
+- rolling mean uses a growing initial window and then only the most recent window,
+- live state uses raw trace values only through the averager,
 - edge signals use `source_signal * abs(weight)`,
 - the wrapper can render with a changing overlay without changing frame shape,
 - Stage 1.5 trace files are still written.
