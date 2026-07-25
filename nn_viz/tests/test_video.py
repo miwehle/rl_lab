@@ -5,18 +5,18 @@ import gymnasium as gym
 
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz.video import (
-    LiveOverlayAverager,
-    LiveOverlayState,
+    _LiveOverlayAverager,
+    _LiveOverlayState,
+    _compose_bottom_overlay,
     _crop_to_visible_alpha,
+    _draw_step_label,
     _layout_transform,
+    _load_trace_state,
     _live_node_color,
     _node_fallback_scales,
+    _render_live_layout_rgba,
     _skip_live_edge,
-    load_trace_state,
-    compose_bottom_overlay,
-    draw_step_label,
     record_video,
-    render_live_layout_rgba,
     render_trace_diff_png,
     render_trace_step_png,
 )
@@ -126,7 +126,7 @@ def test_compose_bottom_overlay_blends_only_bottom_band():
     overlay[:, :, 0] = 200
     overlay[:, :, 3] = 255
 
-    composed = compose_bottom_overlay(frame, overlay, alpha=0.5)
+    composed = _compose_bottom_overlay(frame, overlay, alpha=0.5)
 
     assert composed.dtype == np.uint8
     np.testing.assert_array_equal(composed[:2], frame[:2])
@@ -139,7 +139,7 @@ def test_compose_bottom_overlay_requires_matching_width():
     overlay = np.zeros((2, 2, 4), dtype=np.uint8)
 
     with pytest.raises(ValueError, match="overlay width"):
-        compose_bottom_overlay(frame, overlay, alpha=0.5)
+        _compose_bottom_overlay(frame, overlay, alpha=0.5)
 
 
 def test_crop_to_visible_alpha_removes_transparent_margins():
@@ -155,7 +155,7 @@ def test_crop_to_visible_alpha_removes_transparent_margins():
 def test_draw_step_label_changes_frame_without_changing_shape():
     frame = np.zeros((24, 32, 3), dtype=np.uint8)
 
-    labeled = draw_step_label(frame, 7)
+    labeled = _draw_step_label(frame, 7)
 
     assert labeled.shape == frame.shape
     assert labeled.dtype == np.uint8
@@ -163,7 +163,7 @@ def test_draw_step_label_changes_frame_without_changing_shape():
 
 
 def test_live_overlay_averager_uses_growing_then_rolling_window():
-    averager = LiveOverlayAverager(window_steps=2)
+    averager = _LiveOverlayAverager(window_steps=2)
 
     first = averager.update(
         np.array([2.0, -4.0]),
@@ -201,7 +201,7 @@ def test_live_overlay_averager_uses_growing_then_rolling_window():
 
 
 def test_render_live_layout_rgba_returns_nonblank_overlay():
-    state = LiveOverlayState(
+    state = _LiveOverlayState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -209,7 +209,7 @@ def test_render_live_layout_rgba_returns_nonblank_overlay():
         action=1,
     )
 
-    rgba = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120)
+    rgba = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120)
 
     assert rgba.shape == (120, 240, 4)
     assert rgba.dtype == np.uint8
@@ -250,7 +250,7 @@ def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         Pen = FakePen
 
     monkeypatch.setattr(video, "_load_aggdraw", lambda: FakeAggdraw)
-    state = LiveOverlayState(
+    state = _LiveOverlayState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -258,7 +258,7 @@ def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         action=1,
     )
 
-    rgba = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="aggdraw")
+    rgba = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="aggdraw")
 
     assert rgba.shape == (120, 240, 4)
     assert FakeDraw.calls
@@ -266,7 +266,7 @@ def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
 
 
 def test_render_live_layout_rgba_rejects_unknown_edge_renderer():
-    state = LiveOverlayState(
+    state = _LiveOverlayState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -275,11 +275,11 @@ def test_render_live_layout_rgba_rejects_unknown_edge_renderer():
     )
 
     with pytest.raises(ValueError, match="edge_renderer"):
-        render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="weird")
+        _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="weird")
 
 
 def test_render_live_layout_rgba_rejects_unknown_label_mode():
-    state = LiveOverlayState(
+    state = _LiveOverlayState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -288,11 +288,11 @@ def test_render_live_layout_rgba_rejects_unknown_label_mode():
     )
 
     with pytest.raises(ValueError, match="label_mode"):
-        render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="weird")
+        _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="weird")
 
 
 def test_render_live_layout_rgba_can_label_node_indices():
-    state = LiveOverlayState(
+    state = _LiveOverlayState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -300,8 +300,8 @@ def test_render_live_layout_rgba_can_label_node_indices():
         action=1,
     )
 
-    video_labels = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="video")
-    index_labels = render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="indices")
+    video_labels = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="video")
+    index_labels = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="indices")
 
     assert not np.array_equal(video_labels, index_labels)
 
@@ -318,7 +318,7 @@ def test_load_trace_state_uses_backward_window_mean(tmp_path):
         q_values=np.array([[1, 2, 3, 4], [3, 4, 5, 6], [5, 6, 7, 8]], dtype=np.float32),
     )
 
-    state = load_trace_state(trace_path, step=2, window_steps=2)
+    state = _load_trace_state(trace_path, step=2, window_steps=2)
 
     np.testing.assert_allclose(state.inputs, [3.0, 13.0])
     np.testing.assert_allclose(state.h1, [4.0])
@@ -339,7 +339,7 @@ def test_load_trace_state_uses_growing_initial_window(tmp_path):
         q_values=np.array([[1, 2, 3, 4], [3, 4, 5, 6]], dtype=np.float32),
     )
 
-    state = load_trace_state(trace_path, step=1, window_steps=10)
+    state = _load_trace_state(trace_path, step=1, window_steps=10)
 
     np.testing.assert_allclose(state.inputs, [1.0])
     np.testing.assert_allclose(state.h1, [2.0])
@@ -419,7 +419,7 @@ def test_skip_live_edge_requires_low_activation_and_low_weight():
 
 
 def test_hidden_nodes_use_one_shared_hidden_scale():
-    state = LiveOverlayState(
+    state = _LiveOverlayState(
         inputs=np.array([0.0]),
         h1=np.array([4.0]),
         h2=np.array([4.0]),
@@ -447,10 +447,10 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
         return np.zeros((height, width, 4), dtype=np.uint8)
 
     monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
-    monkeypatch.setattr(video, "render_layout_rgba", static_overlay)
+    monkeypatch.setattr(video, "_render_layout_rgba", static_overlay)
     monkeypatch.setattr(
         video,
-        "render_live_layout_rgba",
+        "_render_live_layout_rgba",
         lambda _layout,
         state,
         *,
