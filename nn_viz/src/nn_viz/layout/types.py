@@ -12,6 +12,7 @@ class Node:
     """
     output_group: the output action used to group H2 nodes.
     activity: rollout mean
+    z: 3D layer height; 2D renderers may ignore it.
     """
     layer: str
     index: int
@@ -20,6 +21,7 @@ class Node:
     y: float
     activity: float
     output_group: int | None = None
+    z: float = 0.0
 
 
 @dataclass(frozen=True)
