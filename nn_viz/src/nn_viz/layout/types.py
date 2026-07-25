@@ -10,8 +10,8 @@ INPUT_LABELS = ("x", "y", "vx", "vy", "ang", "vang", "ftl", "ftr", "ax", "ay")
 @dataclass(frozen=True)
 class Node:
     """
-    activity: rollout mean
     output_group: the output action used to group H2 nodes.
+    activity: rollout mean
     """
 
     layer: str
