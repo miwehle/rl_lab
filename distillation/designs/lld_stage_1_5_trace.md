@@ -1,4 +1,4 @@
-# LLD Stage 1.5 - Trace
+﻿# LLD Stage 1.5 - Trace
 
 Goal: record the NN state for each video step and show the current step in the video, without changing the static NN overlay into a live overlay yet.
 
@@ -71,7 +71,7 @@ This matches the existing `collect_activations(...)` convention.
 
 The video should draw a small `step: N` label on the rendered frame. It can be placed in a corner or near the existing score overlay; exact placement can be adjusted after visual inspection.
 
-Implementation option: the `StaticNetworkOverlayWrapper` stores the last step number and adds the label inside `render()`. Since this is only simple text, using PIL or Pygame for the label is acceptable. Keep it local to `nn_viz.video`.
+Implementation option: the `NetworkOverlayWrapper` stores the last step number and adds the label inside `render()`. Since this is only simple text, using PIL or Pygame for the label is acceptable. Keep it local to `nn_viz.video`.
 
 ## Tests
 
@@ -96,3 +96,4 @@ Recommended live semantics:
 - edges: hue from weight sign and alpha/brightness from smoothed edge signal magnitude.
 
 For moving video, use a rolling mean, e.g. `0.5 s` to `2 s`, not raw per-step values. Raw values are for exact step PNGs or freeze/storyboard frames.
+

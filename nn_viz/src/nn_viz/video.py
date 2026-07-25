@@ -50,7 +50,10 @@ def record_network_overlay_video(
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
-    """Record one greedy landing video with an NN layout in the bottom band."""
+    """Record one greedy landing video with an NN layout in the bottom band.
+
+    Directly called from the video notebook.
+    """
     if max_steps < 1:
         raise ValueError("max_steps must be >= 1")
 
@@ -65,25 +68,31 @@ def record_network_overlay_video(
         env = wrap_env(env, render_cfg)
     live_averager = LiveOverlayAverager(live_window_steps) if live_overlay else None
     initial_live_state = _initial_live_state(q_net)
-    overlay_env = StaticNetworkOverlayWrapper(
+    overlay_env = NetworkOverlayWrapper(
         env,
         layout,
         overlay_height_ratio=overlay_height_ratio,
         overlay_alpha=overlay_alpha,
         overlay_provider=(
-            lambda width, height: render_live_layout_rgba(
-                layout,
-                live_averager.state if live_averager is not None and live_averager.state is not None else initial_live_state,
-                width=width,
-                height=height,
-                live_scales=live_scales,
-                edge_skip_activation=edge_skip_activation,
-                edge_skip_weight=edge_skip_weight,
-                edge_renderer=edge_renderer,
+            (
+                lambda width, height: render_live_layout_rgba(
+                    layout,
+                    (
+                        live_averager.state
+                        if live_averager is not None and live_averager.state is not None
+                        else initial_live_state
+                    ),
+                    width=width,
+                    height=height,
+                    live_scales=live_scales,
+                    edge_skip_activation=edge_skip_activation,
+                    edge_skip_weight=edge_skip_weight,
+                    edge_renderer=edge_renderer,
+                )
             )
-        )
-        if live_overlay
-        else None,
+            if live_overlay
+            else None
+        ),
     )
     video_env = RecordVideo(
         overlay_env,
@@ -205,12 +214,7 @@ class LiveOverlayAverager:
         self.state: LiveOverlayState | None = None
 
     def update(
-        self,
-        observation: np.ndarray,
-        h1: np.ndarray,
-        h2: np.ndarray,
-        q_values: np.ndarray,
-        action: int,
+        self, observation: np.ndarray, h1: np.ndarray, h2: np.ndarray, q_values: np.ndarray, action: int
     ) -> LiveOverlayState:
         self._inputs.append(np.asarray(observation, dtype=np.float32))
         self._h1.append(np.asarray(h1, dtype=np.float32))
@@ -239,8 +243,12 @@ def render_live_layout_rgba(
     label_mode: str = "video",
 ) -> np.ndarray:
     """Render the existing layout as a dynamic RGBA overlay."""
-    weight_scale = _scale_value(live_scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0))
-    activation_scale = _scale_value(live_scales, "activation", _max_source_magnitude(layout.edges, live_state))
+    weight_scale = _scale_value(
+        live_scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0)
+    )
+    activation_scale = _scale_value(
+        live_scales, "activation", _max_source_magnitude(layout.edges, live_state)
+    )
     fallback_scales = _node_fallback_scales(live_state)
 
     def node_fill(node: Node) -> tuple[int, int, int, int]:
@@ -253,10 +261,15 @@ def render_live_layout_rgba(
 
     def edge_style(edge: Edge) -> EdgeStyle | None:
         source_value = _source_value(edge, live_state)
-        if _skip_live_edge(source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight):
+        if _skip_live_edge(
+            source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight
+        ):
             return None
         return EdgeStyle(
-            fill=(*color_scheme.signed_color(edge.weight, weight_scale), color_scheme.alpha(source_value, activation_scale)),
+            fill=(
+                *color_scheme.signed_color(edge.weight, weight_scale),
+                color_scheme.alpha(source_value, activation_scale),
+            ),
             nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
         )
 
@@ -341,7 +354,9 @@ def render_trace_diff_png(
     return output_path
 
 
-def _trace_state_from_arrays(trace: Mapping[str, np.ndarray], *, step: int, window_steps: int) -> LiveOverlayState:
+def _trace_state_from_arrays(
+    trace: Mapping[str, np.ndarray], *, step: int, window_steps: int
+) -> LiveOverlayState:
     if window_steps < 1:
         raise ValueError("window_steps must be >= 1")
     steps = np.asarray(trace["steps"])
@@ -402,10 +417,7 @@ def _mean(values: deque[np.ndarray]) -> np.ndarray:
 
 
 def _layout_transform(
-    nodes: tuple[Node, ...],
-    *,
-    width: int,
-    height: int,
+    nodes: tuple[Node, ...], *, width: int, height: int
 ) -> Callable[[float, float], tuple[float, float]]:
     if not nodes:
         return lambda _x, _y: (width / 2, height / 2)
@@ -431,14 +443,11 @@ def _layout_transform(
 
 
 def _render_diff_layout_rgba(
-    layout: NetworkLayout,
-    diff_state: LiveOverlayState,
-    *,
-    scales: Mapping[str, Any],
-    width: int,
-    height: int,
+    layout: NetworkLayout, diff_state: LiveOverlayState, *, scales: Mapping[str, Any], width: int, height: int
 ) -> np.ndarray:
-    weight_scale = _scale_value(scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0))
+    weight_scale = _scale_value(
+        scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0)
+    )
     activation_scale = _scale_value(scales, "activation", _max_source_magnitude(layout.edges, diff_state))
     edge_scale = activation_scale * weight_scale
     fallback_scales = _node_fallback_scales(diff_state)
@@ -458,7 +467,10 @@ def _render_diff_layout_rgba(
     def edge_style(edge: Edge) -> EdgeStyle | None:
         edge_delta = _source_value(edge, diff_state) * edge.weight
         return EdgeStyle(
-            fill=(*color_scheme.signed_color(edge_delta, edge_scale), color_scheme.alpha(edge_delta, edge_scale)),
+            fill=(
+                *color_scheme.signed_color(edge_delta, edge_scale),
+                color_scheme.alpha(edge_delta, edge_scale),
+            ),
             nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
         )
 
@@ -493,13 +505,7 @@ def _render_dynamic_layout_rgba(
     transform = _layout_transform(nodes, width=width, height=height)
 
     image = _draw_styled_edges(
-        image,
-        layout.edges,
-        node_by_key,
-        transform,
-        height,
-        edge_style,
-        edge_renderer=edge_renderer,
+        image, layout.edges, node_by_key, transform, height, edge_style, edge_renderer=edge_renderer
     )
     draw = ImageDraw.Draw(image, "RGBA")
     _draw_styled_nodes(draw, nodes, transform, height, node_fill, node_outline)
@@ -520,24 +526,10 @@ def _draw_styled_edges(
     if edge_renderer == "pillow":
         from PIL import ImageDraw
 
-        _draw_styled_edges_pillow(
-            ImageDraw.Draw(image, "RGBA"),
-            edges,
-            nodes,
-            transform,
-            height,
-            edge_style,
-        )
+        _draw_styled_edges_pillow(ImageDraw.Draw(image, "RGBA"), edges, nodes, transform, height, edge_style)
         return image
     if edge_renderer == "aggdraw":
-        return _draw_styled_edges_aggdraw(
-            image,
-            edges,
-            nodes,
-            transform,
-            height,
-            edge_style,
-        )
+        return _draw_styled_edges_aggdraw(image, edges, nodes, transform, height, edge_style)
     raise ValueError("edge_renderer must be 'pillow' or 'aggdraw'")
 
 
@@ -560,11 +552,7 @@ def _draw_styled_edges_pillow(
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
         line_width = max(1, int(round(style.nominal_width * height / 150)))
-        draw.line(
-            (sx, sy, tx, ty),
-            fill=style.fill,
-            width=line_width,
-        )
+        draw.line((sx, sy, tx, ty), fill=style.fill, width=line_width)
 
 
 def _draw_styled_edges_aggdraw(
@@ -610,7 +598,10 @@ def _draw_styled_nodes(
         fill = node_fill(node)
         outline, outline_width = node_outline(node, radius)
         for offset in range(outline_width, 0, -1):
-            draw.ellipse((x - radius - offset, y - radius - offset, x + radius + offset, y + radius + offset), fill=outline)
+            draw.ellipse(
+                (x - radius - offset, y - radius - offset, x + radius + offset, y + radius + offset),
+                fill=outline,
+            )
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=fill)
 
 
@@ -639,7 +630,9 @@ def _default_node_outline(_node: Node, _radius: float) -> tuple[tuple[int, int, 
     return (17, 24, 39, 255), 1
 
 
-def _draw_centered_text(draw, center: tuple[float, float], text: str, font, *, fill: tuple[int, int, int, int]) -> None:
+def _draw_centered_text(
+    draw, center: tuple[float, float], text: str, font, *, fill: tuple[int, int, int, int]
+) -> None:
     bbox = draw.textbbox((0, 0), text, font=font)
     x = center[0] - (bbox[2] - bbox[0]) / 2
     y = center[1] - (bbox[3] - bbox[1]) / 2
@@ -737,7 +730,7 @@ def _live_node_color(
     return (128, 128, 128, 255)
 
 
-class StaticNetworkOverlayWrapper(gym.Wrapper):
+class NetworkOverlayWrapper(gym.Wrapper):
     """Blend a cached static network layout into the bottom of rgb_array frames."""
 
     def __init__(
@@ -805,8 +798,8 @@ def compose_bottom_overlay(frame: np.ndarray, overlay_rgba: np.ndarray, *, alpha
     overlay_height = overlay.shape[0]
     overlay_rgb = overlay[:, :, :3]
     overlay_alpha = (overlay[:, :, 3:4] / 255.0) * alpha
-    output[-overlay_height:, :, :] = (
-        overlay_rgb * overlay_alpha + output[-overlay_height:, :, :] * (1.0 - overlay_alpha)
+    output[-overlay_height:, :, :] = overlay_rgb * overlay_alpha + output[-overlay_height:, :, :] * (
+        1.0 - overlay_alpha
     )
     return np.clip(output, 0, 255).astype(np.uint8)
 

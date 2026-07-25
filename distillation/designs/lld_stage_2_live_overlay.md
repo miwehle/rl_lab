@@ -1,4 +1,4 @@
-# LLD Stage 2 - Live Overlay
+﻿# LLD Stage 2 - Live Overlay
 
 Goal: render the NN overlay dynamically during the landing video, using averaged per-step network state, while keeping the notebook thin and the first live version easy to inspect.
 
@@ -108,7 +108,7 @@ render_live_layout_rgba(layout, live_state, *, width, height, node_scales=None) 
 
 The existing static `render_layout_rgba(...)` remains useful for Stage 1 and for fallback.
 
-`StaticNetworkOverlayWrapper` can become a more general overlay wrapper that accepts a callable returning the current RGBA overlay. Keep the public API stable unless a rename clearly makes the code simpler.
+`NetworkOverlayWrapper` can become a more general overlay wrapper that accepts a callable returning the current RGBA overlay. Keep the public API stable unless a rename clearly makes the code simpler.
 
 ## Performance
 
@@ -133,3 +133,4 @@ Add focused pytest coverage for the non-visual mechanics:
 - Stage 1.5 trace files are still written.
 
 Do not attempt to test visual beauty in pytest. Use a generated preview frame or short video for manual inspection.
+

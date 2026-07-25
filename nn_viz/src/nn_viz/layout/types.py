@@ -41,9 +41,9 @@ class Edge:
 class NetworkLayout:
     """Network that can be rendered.
     
-    nn_viz_.video can render it:
+    nn_viz.video can render it:
     - as PNG and 
     - into a video
-    """"
+    """
     nodes: tuple[Node, ...]
     edges: tuple[Edge, ...]

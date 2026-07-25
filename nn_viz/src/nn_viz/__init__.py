@@ -25,7 +25,7 @@ from nn_viz.plot import plot_network_layout
 from nn_viz.video import (
     LiveOverlayAverager,
     LiveOverlayState,
-    StaticNetworkOverlayWrapper,
+    NetworkOverlayWrapper,
     compose_bottom_overlay,
     load_trace_state,
     record_network_overlay_video,
@@ -47,7 +47,7 @@ __all__ = [
     "NetworkLayout",
     "Node",
     "RolloutSpec",
-    "StaticNetworkOverlayWrapper",
+    "NetworkOverlayWrapper",
     "compose_bottom_overlay",
     "collect_activations",
     "compute_activity_layout",
