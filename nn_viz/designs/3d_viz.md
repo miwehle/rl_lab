@@ -208,6 +208,15 @@ compute_layout(..., min_node_distance=0.14)
 
 The collision pass moves only hidden node `x/y` positions. It keeps the hidden layer center fixed, leaves `z` unchanged, and must not affect edge selection, weights, activations, or trace values.
 
+Hidden neurons resist collision displacement according to incoming weight strength:
+
+```text
+stiffness = sum(abs(incoming_weights)) + eps
+mobility  = 1 / stiffness
+```
+
+During overlap removal, a less stiff neuron moves more than a stiffer one. This keeps strongly anchored neurons closer to their semantic weighted-mean position while weaker neurons make room.
+
 Edge selection:
 
 Use all weights for node placement, but do not render all nonzero weights as 3D tubes. A Micro-Elise `10-64-64-4` network has up to `4992` possible edges, which is too much visual and rendering noise for a first useful 3D view.

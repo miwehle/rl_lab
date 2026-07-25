@@ -13,7 +13,8 @@ _H1_Z = 1.0
 _H2_Z = 2.0
 _OUTPUT_Z = 3.0
 _MIN_NODE_DISTANCE_DEFAULT = 0.14
-_COLLISION_ITERATIONS = 20
+_COLLISION_ITERATIONS = 100
+_STIFFNESS_EPS = 1e-6
 
 _INPUT_ANCHORS = {
     6: (-1.5, 1.5),  # ftl
@@ -119,7 +120,7 @@ def _hidden_nodes(
             for index in range(weights.shape[0])
         ]
     )
-    positions = _separate_points(positions, min_node_distance)
+    positions = _separate_points(positions, min_node_distance, _stiffness(weights))
     nodes = []
     for index in range(weights.shape[0]):
         position = positions[index]
@@ -158,11 +159,12 @@ def _weighted_mean(positions: np.ndarray, weights: np.ndarray, fallback: np.ndar
     return np.sum(positions * weights[:, np.newaxis], axis=0) / total
 
 
-def _separate_points(positions: np.ndarray, min_distance: float) -> np.ndarray:
+def _separate_points(positions: np.ndarray, min_distance: float, stiffness: np.ndarray) -> np.ndarray:
     if len(positions) < 2 or min_distance == 0.0:
         return positions
     adjusted = positions.astype(np.float64, copy=True)
-    center = np.mean(adjusted, axis=0)
+    center = _weighted_center(adjusted, stiffness)
+    mobility = 1.0 / stiffness
     for _ in range(_COLLISION_ITERATIONS):
         moved = False
         for left in range(len(adjusted) - 1):
@@ -172,14 +174,25 @@ def _separate_points(positions: np.ndarray, min_distance: float) -> np.ndarray:
                 if distance >= min_distance:
                     continue
                 direction = _separation_direction(delta, distance, left, right)
-                push = 0.5 * (min_distance - distance)
-                adjusted[left] += direction * push
-                adjusted[right] -= direction * push
+                overlap = min_distance - distance
+                total_mobility = mobility[left] + mobility[right]
+                left_share = mobility[left] / total_mobility
+                right_share = mobility[right] / total_mobility
+                adjusted[left] += direction * overlap * left_share
+                adjusted[right] -= direction * overlap * right_share
                 moved = True
-        adjusted += center - np.mean(adjusted, axis=0)
+        adjusted += center - _weighted_center(adjusted, stiffness)
         if not moved:
             break
     return adjusted
+
+
+def _stiffness(weights: np.ndarray) -> np.ndarray:
+    return np.sum(np.abs(weights), axis=1) + _STIFFNESS_EPS
+
+
+def _weighted_center(positions: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    return np.sum(positions * weights[:, np.newaxis], axis=0) / float(np.sum(weights))
 
 
 def _separation_direction(delta: np.ndarray, distance: float, left: int, right: int) -> np.ndarray:

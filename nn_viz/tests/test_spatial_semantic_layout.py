@@ -92,6 +92,27 @@ def test_spatial_semantic_layout_separates_overlapping_hidden_nodes_without_movi
     assert np.linalg.norm(h1_positions[0] - h1_positions[1]) >= 0.5
 
 
+def test_spatial_semantic_layout_moves_stiffer_hidden_nodes_less_during_collision_relaxation():
+    q_net = DQN(10, 4, hidden_sizes=(2, 1))
+    with torch.no_grad():
+        q_net.layer1.weight.zero_()
+        q_net.layer1.weight[0, 0] = 10.0
+        q_net.layer1.weight[0, 2] = 10.0
+        q_net.layer1.weight[1, 0] = 1.0
+        q_net.layer1.weight[1, 2] = 1.0
+        q_net.layer2.weight.zero_()
+        q_net.layer3.weight.zero_()
+    rollouts = _rollouts(h1_width=2, h2_width=1)
+
+    layout = compute_layout(rollouts, q_net, min_node_distance=0.5)
+    h1 = {node.index: node for node in layout.nodes if node.layer == "h1"}
+    desired_position = np.asarray((-0.6, -0.5))
+
+    stiff_shift = np.linalg.norm(np.asarray((h1[0].x, h1[0].y)) - desired_position)
+    weak_shift = np.linalg.norm(np.asarray((h1[1].x, h1[1].y)) - desired_position)
+    assert stiff_shift < weak_shift
+
+
 def test_spatial_semantic_layout_adds_edges_from_nonzero_weights():
     q_net = DQN(10, 4, hidden_sizes=(1, 2))
     with torch.no_grad():
