@@ -17,7 +17,11 @@ _INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 
 
 def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None = None):
-    """Plot a compact static network layout and optionally save it."""
+    """Plot a compact static network layout and optionally save it.
+
+    Returns:
+        The network as Matplotlib Figure.
+    """
     fig, ax = plt.subplots(figsize=(13, 5), dpi=160)
     display_nodes = _display_nodes(layout.nodes)
     nodes = {(node.layer, node.index): node for node in display_nodes}
@@ -45,7 +49,9 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
     hidden_frame = _hidden_frame(h2_nodes, fallback_span=output_span)
     output_ordered = sorted(output_nodes, key=lambda node: (node.x, node.index))
     h2_ordered = tuple(node for group in _output_groups(h2_nodes, output_ordered) for node in group)
-    h2_display_nodes = _equidistant_nodes(h2_ordered, center=hidden_frame[2], spacing=hidden_frame[3], sort=False)
+    h2_display_nodes = _equidistant_nodes(
+        h2_ordered, center=hidden_frame[2], spacing=hidden_frame[3], sort=False
+    )
     return (
         _group_start_nodes(output_ordered, h2_nodes, h2_display_nodes, fallback_span=output_span)
         + h2_display_nodes
@@ -54,7 +60,9 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
     )
 
 
-def _hidden_frame(nodes: list[Node], *, fallback_span: tuple[float, float]) -> tuple[float, float, float, float]:
+def _hidden_frame(
+    nodes: list[Node], *, fallback_span: tuple[float, float]
+) -> tuple[float, float, float, float]:
     if len(nodes) < 2:
         left, right = fallback_span
         center = (left + right) / 2
@@ -153,12 +161,7 @@ def _draw_edges(ax, edges: tuple[Edge, ...], nodes: dict[tuple[str, int], Node])
         width = 0.35 + 2.3 * abs(edge.weight) / max_width_value
         alpha = 0.08 + 0.55 * edge.specificity / max_alpha_value
         ax.plot(
-            [source.x, target.x],
-            [source.y, target.y],
-            color=color,
-            linewidth=width,
-            alpha=alpha,
-            zorder=1,
+            [source.x, target.x], [source.y, target.y], color=color, linewidth=width, alpha=alpha, zorder=1
         )
 
 
@@ -200,7 +203,9 @@ def _label_outputs(ax, nodes: tuple[Node, ...]) -> None:
 def _label_hidden_nodes(ax, nodes: tuple[Node, ...]) -> None:
     for node in nodes:
         if node.layer in {"h1", "h2"}:
-            ax.text(node.x, node.y + 0.07, str(node.index), ha="center", va="center", fontsize=6, color="#111827")
+            ax.text(
+                node.x, node.y + 0.07, str(node.index), ha="center", va="center", fontsize=6, color="#111827"
+            )
         if node.layer == "in":
             ax.text(node.x, node.y + 0.08, node.label, ha="center", va="center", fontsize=7, color="#111827")
 
