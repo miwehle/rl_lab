@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import replace
 from functools import lru_cache
 from typing import Any, Callable, Mapping
 
@@ -10,7 +11,6 @@ import numpy as np
 
 import nn_viz.color_scheme as color_scheme
 from nn_viz.layout import Edge, NetworkLayout, Node
-from nn_viz.plot import _display_nodes
 
 _LAYOUT_X_PAD = 0.16
 _LAYOUT_TOP_MARGIN_RATIO = 0.18
@@ -18,6 +18,8 @@ _LAYOUT_BOTTOM_MARGIN_RATIO = 0.24
 _EDGE_SKIP_ACTIVATION_DEFAULT = 0.50
 _EDGE_SKIP_WEIGHT_DEFAULT = 0.50
 _EDGE_RENDERER_DEFAULT = "pillow"
+_LAYER_Y = {"out": -0.125, "h2": 0.125, "h1": 0.375, "in": 0.625}
+_INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 
 
 @dataclass(frozen=True)
@@ -139,6 +141,117 @@ def _render_layout_rgba(
     _draw_styled_nodes(draw, nodes, transform, height, node_fill, node_outline)
     _draw_labels(draw, nodes, transform, height, label_mode=label_mode)
     return np.asarray(image, dtype=np.uint8)
+
+
+def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
+    output_nodes = [node for node in nodes if node.layer == "out"]
+    output_span = _span(output_nodes)
+    h2_nodes = [node for node in nodes if node.layer == "h2"]
+    h1_nodes = [node for node in nodes if node.layer == "h1"]
+    input_nodes = [node for node in nodes if node.layer == "in"]
+    hidden_frame = _hidden_frame(h2_nodes, fallback_span=output_span)
+    output_ordered = sorted(output_nodes, key=lambda node: (node.x, node.index))
+    h2_ordered = tuple(node for group in _output_groups(h2_nodes, output_ordered) for node in group)
+    h2_display_nodes = _equidistant_nodes(
+        h2_ordered, center=hidden_frame[2], spacing=hidden_frame[3], sort=False
+    )
+    return (
+        _group_start_nodes(output_ordered, h2_nodes, h2_display_nodes, fallback_span=output_span)
+        + h2_display_nodes
+        + _equidistant_nodes(h1_nodes, center=hidden_frame[2], spacing=hidden_frame[3])
+        + _input_nodes(input_nodes, left=hidden_frame[0], right=hidden_frame[1])
+    )
+
+
+def _hidden_frame(
+    nodes: list[Node], *, fallback_span: tuple[float, float]
+) -> tuple[float, float, float, float]:
+    if len(nodes) < 2:
+        left, right = fallback_span
+        center = (left + right) / 2
+        return left, right, center, right - left
+    center = _center(nodes)
+    original_left, original_right = _span(nodes)
+    spacing = (original_right - original_left) / (len(nodes) - 1) / 2
+    width = spacing * (len(nodes) - 1)
+    return center - width / 2, center + width / 2, center, spacing
+
+
+def _spread_nodes(nodes: list[Node], *, left: float, right: float) -> tuple[Node, ...]:
+    if not nodes:
+        return ()
+    ordered = sorted(nodes, key=lambda node: (node.x, node.index))
+    if len(ordered) == 1:
+        xs = [(left + right) / 2]
+    else:
+        xs = np.linspace(left, right, num=len(ordered))
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
+
+
+def _group_start_nodes(
+    nodes: list[Node],
+    original_source_nodes: list[Node],
+    display_source_nodes: tuple[Node, ...],
+    *,
+    fallback_span: tuple[float, float],
+) -> tuple[Node, ...]:
+    if not nodes:
+        return ()
+    if len(display_source_nodes) < len(nodes):
+        left, right = _span(list(display_source_nodes)) if display_source_nodes else fallback_span
+        return _spread_nodes(nodes, left=left, right=right)
+    ordered = sorted(nodes, key=lambda node: (node.x, node.index))
+    display_by_index = {node.index: node for node in display_source_nodes}
+    blocks = _output_groups(original_source_nodes, ordered)
+    xs = [display_by_index[block[0].index].x for block in blocks]
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
+
+
+def _output_groups(nodes: list[Node], output_nodes: list[Node]) -> list[list[Node]]:
+    groups = [[node for node in nodes if node.output_group == output.index] for output in output_nodes]
+    if all(groups):
+        return groups
+    return [list(group) for group in np.array_split(nodes, len(output_nodes))]
+
+
+def _equidistant_nodes(
+    nodes: list[Node] | tuple[Node, ...], *, center: float, spacing: float, sort: bool = True
+) -> tuple[Node, ...]:
+    if not nodes:
+        return ()
+    ordered = sorted(nodes, key=lambda node: (node.x, node.index)) if sort else list(nodes)
+    if len(ordered) == 1:
+        xs = [center]
+    else:
+        offsets = (np.arange(len(ordered)) - (len(ordered) - 1) / 2) * spacing
+        xs = center + offsets
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
+
+
+def _display_node(node: Node, *, x: float) -> Node:
+    return replace(node, x=x, y=_LAYER_Y[node.layer])
+
+
+def _input_nodes(nodes: list[Node], *, left: float, right: float) -> tuple[Node, ...]:
+    by_index = {node.index: node for node in nodes}
+    ordered = [by_index[index] for index in _INPUT_ORDER if index in by_index]
+    if len(ordered) == 1:
+        xs = [(left + right) / 2]
+    else:
+        xs = np.linspace(left, right, num=len(ordered))
+    return tuple(_display_node(node, x=float(x)) for node, x in zip(ordered, xs))
+
+
+def _span(nodes: list[Node]) -> tuple[float, float]:
+    if not nodes:
+        return 0.0, 1.0
+    xs = [node.x for node in nodes]
+    return min(xs), max(xs)
+
+
+def _center(nodes: list[Node]) -> float:
+    left, right = _span(nodes)
+    return (left + right) / 2
 
 
 def _draw_styled_edges(
