@@ -9,23 +9,23 @@ hide footbox
 participant "micro_elise_nn_video.ipynb" as Notebook
 participant "nn_viz.video" as Video
 participant "_NetworkOverlayWrapper" as Wrapper
-participant "_render_state_layout_rgba" as StateRender
+participant "nn_viz.rendering" as Rendering
 
 url of Notebook is [[WORKSPACE_ROOT/nn_viz/notebooks/micro_elise_nn_video.ipynb]]
 url of Video is [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:1:1]]
-url of Wrapper is [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:718:1]]
-url of StateRender is [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:222:1]]
+url of Wrapper is [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:221:1]]
+url of Rendering is [[WORKSPACE_ROOT/nn_viz/src/nn_viz/rendering.py:1:1]]
 
-Notebook -> Video : [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:33:1 record_video(...)]]
+Notebook -> Video : [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:32:1 record_video(...)]]
 activate Video
 
-Video -> Wrapper : create wrapper with overlay_provider\n[[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:718:1 _NetworkOverlayWrapper(...)]]
+Video -> Wrapper : create wrapper with overlay_provider\n[[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:221:1 _NetworkOverlayWrapper(...)]]
 
 loop video frames
     Wrapper -> Wrapper : render()
-    Wrapper -> StateRender : [[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:222:1 _render_state_layout_rgba(...)]]
-    StateRender --> Wrapper : NN RGBA image
-    Wrapper -> Wrapper : _compose_bottom_overlay(...)\n[[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:758:1 _compose_bottom_overlay(...)]]
+    Wrapper -> Rendering : [[WORKSPACE_ROOT/nn_viz/src/nn_viz/rendering.py:40:1 _render_state_layout_rgba(...)]]
+    Rendering --> Wrapper : NN RGBA image
+    Wrapper -> Wrapper : _compose_bottom_overlay(...)\n[[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:261:1 _compose_bottom_overlay(...)]]
 end
 
 Video --> Notebook : MP4 path

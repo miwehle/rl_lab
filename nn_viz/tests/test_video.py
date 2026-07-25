@@ -4,20 +4,20 @@ import torch
 import gymnasium as gym
 
 from nn_viz.layout import Edge, NetworkLayout, Node
-from nn_viz.video import (
+from nn_viz.rendering import (
     _NetworkState,
-    _StateAverager,
-    _compose_bottom_overlay,
-    _draw_step_label,
     _layout_transform,
-    _load_trace_state,
     _node_color,
     _node_fallback_scales,
     _render_state_layout_rgba,
     _skip_edge,
+)
+from nn_viz.trace_png import _load_trace_state, render_trace_diff_png, render_trace_step_png
+from nn_viz.video import (
+    _StateAverager,
+    _compose_bottom_overlay,
+    _draw_step_label,
     record_video,
-    render_trace_diff_png,
-    render_trace_step_png,
 )
 
 
@@ -206,7 +206,7 @@ def test_render_state_layout_rgba_returns_nonblank_overlay():
 
 
 def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
-    import nn_viz.video as video
+    import nn_viz.rendering as rendering
     from PIL import ImageDraw
 
     class FakePen:
@@ -238,7 +238,7 @@ def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         Draw = FakeDraw
         Pen = FakePen
 
-    monkeypatch.setattr(video, "_load_aggdraw", lambda: FakeAggdraw)
+    monkeypatch.setattr(rendering, "_load_aggdraw", lambda: FakeAggdraw)
     state = _NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
