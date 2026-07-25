@@ -45,9 +45,7 @@ def render_layout_snapshot(
         plotter.set_background(_BACKGROUND)
         _add_edges(plotter, pv, layout, edge_geometry)
         _add_nodes(plotter, pv, layout.nodes, node_radius, _activity_scale(layout.nodes))
-        plotter.enable_parallel_projection()
-        plotter.view_isometric()
-        plotter.reset_camera()
+        _set_semantic_camera(plotter, layout.nodes)
         plotter.screenshot(filename=str(output_path))
     finally:
         plotter.close()
@@ -77,9 +75,7 @@ def render_state_snapshot(
         plotter.set_background(_BACKGROUND)
         _add_state_edges(plotter, pv, layout, state, edge_geometry, scales, edge_intensity)
         _add_state_nodes(plotter, pv, layout.nodes, state, node_radius, scales)
-        plotter.enable_parallel_projection()
-        plotter.view_isometric()
-        plotter.reset_camera()
+        _set_semantic_camera(plotter, layout.nodes)
         plotter.screenshot(filename=str(output_path))
     finally:
         plotter.close()
@@ -208,6 +204,32 @@ def _edge_opacity(contribution: float, edge_scale: float, edge_intensity: str) -
     if edge_intensity == "opacity":
         return color_scheme.alpha(contribution, edge_scale) / 255.0
     return 1.0
+
+
+def _set_semantic_camera(plotter, nodes: tuple[Node, ...]) -> None:
+    center, span = _scene_center_and_span(nodes)
+    x, y, z = center
+    plotter.enable_parallel_projection()
+    plotter.camera_position = [
+        (x + 1.2 * span, y - 2.0 * span, z + 0.9 * span),
+        center,
+        (0.0, 0.0, 1.0),
+    ]
+    if hasattr(plotter, "camera"):
+        plotter.camera.parallel_scale = 0.65 * span
+    if hasattr(plotter, "reset_camera_clipping_range"):
+        plotter.reset_camera_clipping_range()
+
+
+def _scene_center_and_span(nodes: tuple[Node, ...]) -> tuple[tuple[float, float, float], float]:
+    if not nodes:
+        return (0.0, 0.0, 0.0), 1.0
+    points = np.asarray([(node.x, node.y, node.z) for node in nodes], dtype=np.float32)
+    lower = np.min(points, axis=0)
+    upper = np.max(points, axis=0)
+    center = tuple(float(value) for value in (lower + upper) / 2.0)
+    span = float(np.max(upper - lower))
+    return center, max(span, 1.0)
 
 
 def _rgb_hex(rgb: tuple[int, int, int]) -> str:
