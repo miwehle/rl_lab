@@ -200,5 +200,22 @@ This mirrors H1 placement one layer higher. If all weights are zero, use the cen
 
 ## Open Questions
 
-- Should 3D snapshots be a separate notebook, or a small optional section in the existing video notebook?
-- Is PyVista installed in the current local environment?
+- Where should the optional PyVista dependency be documented or declared?
+
+## Notebook Integration
+
+3D snapshot cells should live in the existing `nn_viz/notebooks/micro_elise_nn_video.ipynb`.
+
+Reason: the video notebook already creates the relevant context: `layout`, `trace_path`, selected step, window size, and result directory. Keeping the 3D cells there avoids opening a second notebook just to inspect one rollout step in 3D.
+
+First notebook cell:
+
+```text
+# cell: render-3d-smoke; requires: build-layout
+```
+
+Later, after `render_trace_step_3d(...)` exists:
+
+```text
+# cell: render-trace-step-3d; requires: record-video
+```
