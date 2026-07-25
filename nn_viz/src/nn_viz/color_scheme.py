@@ -1,4 +1,4 @@
-"""Color and width mappings for live NN visualization."""
+"""Color and width mappings for NN state visualization."""
 
 from __future__ import annotations
 

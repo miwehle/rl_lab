@@ -1,4 +1,4 @@
-"""Collect live activations from Elise-like DQN rollouts."""
+"""Collect activations from Elise-like DQN rollouts."""
 
 from __future__ import annotations
 

@@ -5,17 +5,16 @@ import gymnasium as gym
 
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz.video import (
-    _LiveOverlayAverager,
-    _LiveOverlayState,
+    _NetworkState,
+    _StateAverager,
     _compose_bottom_overlay,
-    _crop_to_visible_alpha,
     _draw_step_label,
     _layout_transform,
     _load_trace_state,
-    _live_node_color,
+    _node_color,
     _node_fallback_scales,
-    _render_live_layout_rgba,
-    _skip_live_edge,
+    _render_state_layout_rgba,
+    _skip_edge,
     record_video,
     render_trace_diff_png,
     render_trace_step_png,
@@ -103,7 +102,7 @@ class MinimalLayout:
     pass
 
 
-def minimal_live_layout():
+def minimal_layout():
     return NetworkLayout(
         nodes=(
             Node("out", 1, "left", 0.0, 0.0, 0.0),
@@ -142,16 +141,6 @@ def test_compose_bottom_overlay_requires_matching_width():
         _compose_bottom_overlay(frame, overlay, alpha=0.5)
 
 
-def test_crop_to_visible_alpha_removes_transparent_margins():
-    rgba = np.zeros((5, 6, 4), dtype=np.uint8)
-    rgba[1:4, 2:5, 3] = 255
-
-    cropped = _crop_to_visible_alpha(rgba)
-
-    assert cropped.shape == (3, 3, 4)
-    assert np.all(cropped[:, :, 3] == 255)
-
-
 def test_draw_step_label_changes_frame_without_changing_shape():
     frame = np.zeros((24, 32, 3), dtype=np.uint8)
 
@@ -162,8 +151,8 @@ def test_draw_step_label_changes_frame_without_changing_shape():
     assert np.any(labeled != frame)
 
 
-def test_live_overlay_averager_uses_growing_then_rolling_window():
-    averager = _LiveOverlayAverager(window_steps=2)
+def test_state_averager_uses_growing_then_rolling_window():
+    averager = _StateAverager(window_steps=2)
 
     first = averager.update(
         np.array([2.0, -4.0]),
@@ -200,8 +189,8 @@ def test_live_overlay_averager_uses_growing_then_rolling_window():
     assert third.action == 1
 
 
-def test_render_live_layout_rgba_returns_nonblank_overlay():
-    state = _LiveOverlayState(
+def test_render_state_layout_rgba_returns_nonblank_overlay():
+    state = _NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -209,14 +198,14 @@ def test_render_live_layout_rgba_returns_nonblank_overlay():
         action=1,
     )
 
-    rgba = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120)
+    rgba = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120)
 
     assert rgba.shape == (120, 240, 4)
     assert rgba.dtype == np.uint8
     assert np.any(rgba[:, :, 3] > 0)
 
 
-def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
+def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
     import nn_viz.video as video
     from PIL import ImageDraw
 
@@ -250,7 +239,7 @@ def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         Pen = FakePen
 
     monkeypatch.setattr(video, "_load_aggdraw", lambda: FakeAggdraw)
-    state = _LiveOverlayState(
+    state = _NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -258,15 +247,15 @@ def test_render_live_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         action=1,
     )
 
-    rgba = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="aggdraw")
+    rgba = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, edge_renderer="aggdraw")
 
     assert rgba.shape == (120, 240, 4)
     assert FakeDraw.calls
     assert np.any(rgba[:, :, 3] > 0)
 
 
-def test_render_live_layout_rgba_rejects_unknown_edge_renderer():
-    state = _LiveOverlayState(
+def test_render_state_layout_rgba_rejects_unknown_edge_renderer():
+    state = _NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -275,11 +264,11 @@ def test_render_live_layout_rgba_rejects_unknown_edge_renderer():
     )
 
     with pytest.raises(ValueError, match="edge_renderer"):
-        _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, edge_renderer="weird")
+        _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, edge_renderer="weird")
 
 
-def test_render_live_layout_rgba_rejects_unknown_label_mode():
-    state = _LiveOverlayState(
+def test_render_state_layout_rgba_rejects_unknown_label_mode():
+    state = _NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -288,11 +277,11 @@ def test_render_live_layout_rgba_rejects_unknown_label_mode():
     )
 
     with pytest.raises(ValueError, match="label_mode"):
-        _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="weird")
+        _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="weird")
 
 
-def test_render_live_layout_rgba_can_label_node_indices():
-    state = _LiveOverlayState(
+def test_render_state_layout_rgba_can_label_node_indices():
+    state = _NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -300,8 +289,8 @@ def test_render_live_layout_rgba_can_label_node_indices():
         action=1,
     )
 
-    video_labels = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="video")
-    index_labels = _render_live_layout_rgba(minimal_live_layout(), state, width=240, height=120, label_mode="indices")
+    video_labels = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="video")
+    index_labels = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="indices")
 
     assert not np.array_equal(video_labels, index_labels)
 
@@ -361,7 +350,7 @@ def test_render_trace_step_png_writes_png(tmp_path):
         q_values=np.array([[0.0, 1.0, 2.0, 3.0]], dtype=np.float32),
     )
 
-    result = render_trace_step_png(trace_path, minimal_live_layout(), output_path, step=0, width=240, height=120)
+    result = render_trace_step_png(trace_path, minimal_layout(), output_path, step=0, width=240, height=120)
 
     assert result == output_path
     assert output_path.exists()
@@ -383,8 +372,8 @@ def test_render_trace_diff_png_writes_signed_diff_png(tmp_path):
         q_values=np.array([[0.0, 1.0, 2.0, 3.0], [3.0, 2.0, 1.0, 0.0]], dtype=np.float32),
     )
 
-    render_trace_diff_png(trace_path, minimal_live_layout(), forward_path, from_step=0, to_step=1, width=240, height=120)
-    render_trace_diff_png(trace_path, minimal_live_layout(), reverse_path, from_step=1, to_step=0, width=240, height=120)
+    render_trace_diff_png(trace_path, minimal_layout(), forward_path, from_step=0, to_step=1, width=240, height=120)
+    render_trace_diff_png(trace_path, minimal_layout(), reverse_path, from_step=1, to_step=0, width=240, height=120)
 
     forward = np.asarray(Image.open(forward_path))
     reverse = np.asarray(Image.open(reverse_path))
@@ -412,14 +401,14 @@ def test_layout_transform_reserves_top_and_bottom_margins():
     assert np.allclose([h2_y - out_y, h1_y - h2_y, input_y - h1_y], h2_y - out_y)
 
 
-def test_skip_live_edge_requires_low_activation_and_low_weight():
-    assert _skip_live_edge(0.49, 1.0, 0.49, 1.0, 0.5, 0.5)
-    assert not _skip_live_edge(0.49, 1.0, 0.51, 1.0, 0.5, 0.5)
-    assert not _skip_live_edge(0.51, 1.0, 0.49, 1.0, 0.5, 0.5)
+def test_skip_edge_requires_low_activation_and_low_weight():
+    assert _skip_edge(0.49, 1.0, 0.49, 1.0, 0.5, 0.5)
+    assert not _skip_edge(0.49, 1.0, 0.51, 1.0, 0.5, 0.5)
+    assert not _skip_edge(0.51, 1.0, 0.49, 1.0, 0.5, 0.5)
 
 
 def test_hidden_nodes_use_one_shared_hidden_scale():
-    state = _LiveOverlayState(
+    state = _NetworkState(
         inputs=np.array([0.0]),
         h1=np.array([4.0]),
         h2=np.array([4.0]),
@@ -428,8 +417,8 @@ def test_hidden_nodes_use_one_shared_hidden_scale():
     )
     fallback_scales = _node_fallback_scales(state)
 
-    h1_color = _live_node_color(Node("h1", 0, "H1-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
-    h2_color = _live_node_color(Node("h2", 0, "H2-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
+    h1_color = _node_color(Node("h1", 0, "H1-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
+    h2_color = _node_color(Node("h2", 0, "H2-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
 
     assert h1_color == h2_color
 
@@ -437,30 +426,23 @@ def test_hidden_nodes_use_one_shared_hidden_scale():
 def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     import nn_viz.video as video
 
-    live_states = []
-    seen_live_scales = []
-    static_render_count = 0
-
-    def static_overlay(_layout, *, width, height):
-        nonlocal static_render_count
-        static_render_count += 1
-        return np.zeros((height, width, 4), dtype=np.uint8)
+    states = []
+    seen_scales = []
 
     monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
-    monkeypatch.setattr(video, "_render_layout_rgba", static_overlay)
     monkeypatch.setattr(
         video,
-        "_render_live_layout_rgba",
+        "_render_state_layout_rgba",
         lambda _layout,
         state,
         *,
         width,
         height,
-        live_scales=None,
+        scales=None,
         edge_skip_activation=0.5,
         edge_skip_weight=0.5,
-        edge_renderer="pillow": live_states.append(state)
-        or seen_live_scales.append(live_scales)
+        edge_renderer="pillow": states.append(state)
+        or seen_scales.append(scales)
         or np.zeros((height, width, 4), dtype=np.uint8),
     )
     env = FakeEnv()
@@ -474,9 +456,8 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
         seed=123,
         output_path=output_path,
         max_steps=3,
-        live_overlay=True,
-        live_window_steps=2,
-        live_scales={"hidden": 20.0},
+        window_steps=2,
+        scales={"hidden": 20.0},
     )
 
     assert recorded_path == output_path
@@ -495,8 +476,7 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     assert summary_rows[0] == "step,action,q_left,q_up,q_noop,q_right"
     assert len(summary_rows) == 3
     assert summary_rows[1].startswith("0,left,")
-    assert live_states
-    assert static_render_count == 0
-    assert live_states[0].action == -1
-    np.testing.assert_allclose(live_states[-1].inputs[:3], [0.5, 1.5, 2.5])
-    assert seen_live_scales[0] == {"hidden": 20.0}
+    assert states
+    assert states[0].action == -1
+    np.testing.assert_allclose(states[-1].inputs[:3], [0.5, 1.5, 2.5])
+    assert seen_scales[0] == {"hidden": 20.0}

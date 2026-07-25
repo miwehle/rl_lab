@@ -1,4 +1,4 @@
-# NN Diff PNG
+﻿# NN Diff PNG
 
 ## Goal
 
@@ -85,9 +85,9 @@ Use index labels by default. Diff PNGs are analysis artifacts, not video overlay
 
 ## Implementation Shape
 
-Expose `render_trace_diff_png(...)` as a separate public function, but do not duplicate the full live renderer.
+Expose `render_trace_diff_png(...)` as a separate public function, but do not duplicate the full state renderer.
 
-Refactor the existing live rendering path only as much as needed so normal rendering and diff rendering share the same private layout/canvas/node/edge/label machinery. The diff renderer should provide different node and edge color rules, not a copied renderer.
+Refactor the existing state rendering path only as much as needed so normal rendering and diff rendering share the same private layout/canvas/node/edge/label machinery. The diff renderer should provide different node and edge color rules, not a copied renderer.
 
 ## Notebook
 
@@ -102,3 +102,4 @@ Do not build a video diff overlay yet.
 Do not compare different traces/checkpoints yet.
 
 Do not add special input normalization beyond the existing per-input rollout scales.
+

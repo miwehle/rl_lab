@@ -1,4 +1,4 @@
-"""Compute fixed scales for live NN video rendering."""
+"""Compute fixed scales for NN state rendering."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ from nn_viz.activations import ActivationRollouts
 from nn_viz.layout import INPUT_LABELS, NetworkLayout
 
 
-def compute_live_scales(
+def compute_scales(
     rollouts: ActivationRollouts,
     layout: NetworkLayout,
     percentile: float = 95,
 ) -> tuple[dict[str, Any], pd.DataFrame]:
-    """Compute fixed percentile scales for live video rendering."""
+    """Compute fixed percentile scales for state rendering."""
     percentile_label = f"p{percentile:g}"
     input_abs = np.abs(rollouts.observations)
     input_scales = np.percentile(input_abs, percentile, axis=0).astype(float)

@@ -2,10 +2,10 @@ import numpy as np
 
 from nn_viz.activations import ActivationRollouts
 from nn_viz.layout import Edge, NetworkLayout
-from nn_viz.live_scales import compute_live_scales
+from nn_viz.scales import compute_scales
 
 
-def test_compute_live_scales_returns_scales_and_summary():
+def test_compute_scales_returns_scales_and_summary():
     rollouts = ActivationRollouts(
         observations=np.array([[1, -2, 3, -4, 5, -6, 0, 1, -8, 9]], dtype=np.float32),
         h1=np.array([[1, 2]], dtype=np.float32),
@@ -22,7 +22,7 @@ def test_compute_live_scales_returns_scales_and_summary():
         ),
     )
 
-    scales, summary = compute_live_scales(rollouts, layout, percentile=100)
+    scales, summary = compute_scales(rollouts, layout, percentile=100)
 
     np.testing.assert_array_equal(scales["input"], [1, 2, 3, 4, 5, 6, 0, 1, 8, 9])
     assert scales["hidden"] == 4.0

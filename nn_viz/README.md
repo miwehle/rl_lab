@@ -1,4 +1,4 @@
-# NN Viz
+﻿# NN Viz
 
 Neural-network visualization helpers for Elise-like DQN policies.
 
@@ -6,7 +6,7 @@ Neural-network visualization helpers for Elise-like DQN policies.
 
 Useful notebooks:
 
-- `nn_viz/notebooks/micro_elise_nn_video.ipynb` for landing videos with live NN overlays.
+- `nn_viz/notebooks/micro_elise_nn_video.ipynb` for landing videos with NN state overlays.
 - `nn_viz/notebooks/elise_dv_ablation.ipynb` for input-acceleration ablation checks.
 
 ## Public API
@@ -28,3 +28,4 @@ Run from the repository root:
 ```powershell
 dqn\.venv\Scripts\python.exe -m pytest nn_viz\tests
 ```
+
