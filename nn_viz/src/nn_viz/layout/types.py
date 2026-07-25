@@ -13,7 +13,6 @@ class Node:
     output_group: the output action used to group H2 nodes.
     activity: rollout mean
     """
-
     layer: str
     index: int
     label: str
@@ -29,7 +28,6 @@ class Edge:
     relevance: rollout mean of abs(source activation * weight)
     specificity: relevance - mean(other relevances)
     """
-
     source_layer: str
     source_index: int
     target_layer: str
@@ -41,5 +39,11 @@ class Edge:
 
 @dataclass(frozen=True)
 class NetworkLayout:
+    """Network that can be rendered.
+    
+    nn_viz_.video can render it:
+    - as PNG and 
+    - into a video
+    """"
     nodes: tuple[Node, ...]
     edges: tuple[Edge, ...]
