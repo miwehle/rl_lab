@@ -30,7 +30,7 @@ _EDGE_SKIP_WEIGHT_DEFAULT = 0.50
 _EDGE_RENDERER_DEFAULT = "pillow"
 
 
-def record_network_overlay_video(
+def record_video(
     q_net,
     env_factory: Any,
     layout: NetworkLayout,

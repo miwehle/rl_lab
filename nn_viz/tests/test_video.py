@@ -15,7 +15,7 @@ from nn_viz.video import (
     load_trace_state,
     compose_bottom_overlay,
     draw_step_label,
-    record_network_overlay_video,
+    record_video,
     render_live_layout_rgba,
     render_trace_diff_png,
     render_trace_step_png,
@@ -434,7 +434,7 @@ def test_hidden_nodes_use_one_shared_hidden_scale():
     assert h1_color == h2_color
 
 
-def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_path):
+def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     import nn_viz.video as video
 
     live_states = []
@@ -466,7 +466,7 @@ def test_record_network_overlay_video_writes_trace_and_summary(monkeypatch, tmp_
     env = FakeEnv()
     output_path = tmp_path / "earth_seed_0_nn_overlay.mp4"
 
-    recorded_path = record_network_overlay_video(
+    recorded_path = record_video(
         TinyQNet(),
         FakeEnvFactory(env),
         MinimalLayout(),

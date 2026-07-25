@@ -8,18 +8,8 @@ from nn_viz.activations import (
     collect_activations,
     load_student_network,
 )
-from nn_viz.ablation import (
-    DEFAULT_INPUT_ABLATIONS,
-    InputAblation,
-    evaluate_input_ablations,
-)
-from nn_viz.layout import (
-    Edge,
-    NetworkLayout,
-    Node,
-    compute_activity_layout,
-    compute_semantic_layout,
-)
+from nn_viz.ablation import DEFAULT_INPUT_ABLATIONS, InputAblation, evaluate_input_ablations
+from nn_viz.layout import Edge, NetworkLayout, Node, compute_activity_layout, compute_semantic_layout
 from nn_viz.live_scales import compute_live_scales
 from nn_viz.plot import plot_network_layout
 from nn_viz.video import (
@@ -28,7 +18,7 @@ from nn_viz.video import (
     NetworkOverlayWrapper,
     compose_bottom_overlay,
     load_trace_state,
-    record_network_overlay_video,
+    record_video,
     render_live_layout_rgba,
     render_layout_rgba,
     render_trace_diff_png,
@@ -57,7 +47,7 @@ __all__ = [
     "load_student_network",
     "load_trace_state",
     "plot_network_layout",
-    "record_network_overlay_video",
+    "record_video",
     "render_live_layout_rgba",
     "render_layout_rgba",
     "render_trace_diff_png",
