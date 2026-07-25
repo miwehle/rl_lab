@@ -9,7 +9,7 @@ import numpy as np
 
 import nn_viz.color_scheme as color_scheme
 from nn_viz.layout import Edge, NetworkLayout, Node
-from nn_viz.rendering import (
+from nn_viz._rendering import (
     _EDGE_RENDERER_DEFAULT,
     _EDGE_SKIP_ACTIVATION_DEFAULT,
     _EDGE_SKIP_WEIGHT_DEFAULT,

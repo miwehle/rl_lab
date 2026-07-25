@@ -15,7 +15,7 @@ from gymnasium.wrappers import RecordVideo
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 from nn_viz.activations import ACTION_LABELS, _forward_activations
 from nn_viz.layout import NetworkLayout
-from nn_viz.rendering import (
+from nn_viz._rendering import (
     _EDGE_RENDERER_DEFAULT,
     _EDGE_SKIP_ACTIVATION_DEFAULT,
     _EDGE_SKIP_WEIGHT_DEFAULT,

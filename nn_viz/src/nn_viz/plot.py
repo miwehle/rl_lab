@@ -1,4 +1,9 @@
-"""Static plotting for activity-based network layouts."""
+"""Static plotting for activity-based network layouts.
+
+Technical base: matplotlib
+
+Currently unused!
+"""
 
 from __future__ import annotations
 

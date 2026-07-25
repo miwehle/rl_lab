@@ -4,7 +4,7 @@ import torch
 import gymnasium as gym
 
 from nn_viz.layout import Edge, NetworkLayout, Node
-from nn_viz.rendering import (
+from nn_viz._rendering import (
     _NetworkState,
     _layout_transform,
     _node_color,
@@ -206,7 +206,7 @@ def test_render_state_layout_rgba_returns_nonblank_overlay():
 
 
 def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
-    import nn_viz.rendering as rendering
+    import nn_viz._rendering as rendering
     from PIL import ImageDraw
 
     class FakePen:
