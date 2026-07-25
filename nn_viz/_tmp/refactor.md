@@ -19,7 +19,7 @@ nn_viz/trace.py
   render_trace_step(...)
   render_trace_diff(...)
 
-nn_viz/rendering.py
+nn_viz/_rendering.py
   gemeinsame Render-Mechanik
 ```
 
@@ -52,7 +52,7 @@ Enthaelt offline Trace-PNG-Logik:
 
 Alles hier soll aus gespeicherten Trace-Dateien arbeiten und keine Video-Recording-Abhaengigkeiten haben.
 
-## rendering.py
+## _rendering.py
 
 Enthaelt nur gemeinsam genutzte Render-Mechanik, nicht die fachliche Video- oder Trace-PNG-Orchestrierung.
 
@@ -65,7 +65,7 @@ Gute Kandidaten:
 - Font-/aggdraw-/RGBA-Helfer, soweit sie von beiden Pfaden gebraucht werden.
 - kleine Wert-/Scale-Helfer wie `_node_value(...)`, `_source_value(...)`, `_scale_value(...)`, `_input_scale(...)`, falls beide Pfade sie nutzen.
 
-Wichtig: `rendering.py` soll nicht einfach `_render_state_layout_rgba(...)` und `_render_diff_layout_rgba(...)` als fertige Fachfunktionen sammeln, wenn eine davon nur einen Client hat. Besser ist eine gemeinsame Primitive:
+Wichtig: `_rendering.py` soll nicht einfach `_render_state_layout_rgba(...)` und `_render_diff_layout_rgba(...)` als fertige Fachfunktionen sammeln, wenn eine davon nur einen Client hat. Besser ist eine gemeinsame Primitive:
 
 ```python
 _render_layout_rgba(
@@ -94,10 +94,10 @@ trace.py
 
 Das waere duplizierter Zeichen-Code und wuerde spaetere Aenderungen teuer machen.
 
-Stattdessen soll `rendering.py` genau den gemeinsamen mechanischen Teil kapseln:
+Stattdessen soll `_rendering.py` genau den gemeinsamen mechanischen Teil kapseln:
 
 ```text
-rendering._render_layout_rgba(...)
+_rendering._render_layout_rgba(...)
   legt RGBA-Canvas an
   transformiert Layout-Koordinaten in Pixel
   zeichnet Kanten
@@ -112,12 +112,12 @@ Die fachliche Bedeutung der Farben bleibt aber ausserhalb:
 video.py
   baut node_fill(node) fuer normalen NN-State
   baut edge_style(edge) fuer normalen NN-State
-  ruft rendering._render_layout_rgba(...)
+  ruft _rendering._render_layout_rgba(...)
 
 trace.py
   baut node_fill(node) fuer Trace-Step oder Diff
   baut edge_style(edge) fuer Trace-Step oder Diff
-  ruft rendering._render_layout_rgba(...)
+  ruft _rendering._render_layout_rgba(...)
 ```
 
 Damit teilen beide Clients die Zeichenmaschine, aber nicht ihre fachliche Style-Logik. Das ist der eigentliche Punkt der Aufteilung: keine Duplikation der Low-Level-Zeichnung, aber auch kein Verschieben von trace-spezifischer Diff-Logik in ein gemeinsames Modul.
