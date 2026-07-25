@@ -35,7 +35,7 @@ Implement the smallest useful snapshot path:
 render_layout_snapshot(layout, output_path, ...)
 ```
 
-It should draw nodes as spheres and edges as lines/tubes, using `node.x`, `node.y`, and `node.z`. Labels and animation can wait.
+It should first draw nodes as spheres and edges as simple thin lines, using `node.x`, `node.y`, and `node.z`. Tubes, labels, styling, and animation can wait.
 
 The first useful trace-facing helper should follow soon after:
 
@@ -89,11 +89,23 @@ Stage 2: Spatial semantic layout.
 - test H1/H2 weighted-mean placement
 - test layer heights via `z`
 
-Stage 3: PyVista snapshot.
+Stage 2.5: PyVista smoke snapshot.
 
 - add `nn_viz/_pyvista_rendering.py`
 - implement `render_layout_snapshot(layout, output_path, ...)`
-- render nodes as spheres and edges as lines/tubes
+- offscreen PNG only
+- render nodes as simple spheres
+- render edges as simple thin lines
+- use fixed neutral colors
+- no tubes
+- no labels
+- no trace-state coloring
+
+Stage 3: Styled PyVista snapshot.
+
+- add edge thickness from `abs(w)`, likely via tubes
+- add node color from activity or state
+- add edge color/intensity modes
 - keep labels and dynamic coloring optional for later
 
 Stage 4: Trace-step 3D screenshot.
