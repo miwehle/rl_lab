@@ -8,7 +8,7 @@ from nn_viz.activations import (
 from nn_viz.ablation import DEFAULT_INPUT_ABLATIONS, evaluate_input_ablations
 from nn_viz.layout import compute_activity_layout, compute_semantic_layout
 from nn_viz.scales import compute_scales
-from nn_viz.trace import render_trace_diff, render_trace_step
+from nn_viz.trace import render_trace_diff, render_trace_step, render_trace_step_3d
 from nn_viz.video import record_video
 
 __all__ = [
@@ -23,4 +23,5 @@ __all__ = [
     "record_video",
     "render_trace_diff",
     "render_trace_step",
+    "render_trace_step_3d",
 ]

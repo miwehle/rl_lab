@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from dqn.model import DQN
@@ -97,6 +98,38 @@ def test_spatial_semantic_layout_adds_edges_from_nonzero_weights():
     ]
     assert len(output_edges) == 8
     assert ("h1", 0, "h2", 0) not in edges
+
+
+def test_spatial_semantic_layout_limits_rendered_edges_by_top_k():
+    q_net = DQN(10, 4, hidden_sizes=(1, 3))
+    with torch.no_grad():
+        q_net.layer1.weight.zero_()
+        q_net.layer1.weight[0, 0] = 1.0
+        q_net.layer1.weight[0, 1] = 3.0
+        q_net.layer2.weight.zero_()
+        q_net.layer2.weight[:, 0] = torch.tensor([1.0, 2.0, 3.0])
+        q_net.layer3.weight.zero_()
+        q_net.layer3.weight[1, :] = torch.tensor([1.0, 3.0, 2.0])
+    rollouts = _rollouts(h1_width=1, h2_width=3)
+
+    layout = compute_layout(
+        rollouts, q_net, top_edges_per_target=1, output_edges_per_target=2
+    )
+
+    input_edges = [edge for edge in layout.edges if edge.source_layer == "in"]
+    output_edges = [edge for edge in layout.edges if edge.target_layer == "out"]
+    assert [(edge.source_index, edge.target_index) for edge in input_edges] == [(1, 0)]
+    assert {(edge.source_index, edge.target_index) for edge in output_edges} == {(1, 1), (2, 1)}
+
+
+def test_spatial_semantic_layout_rejects_nonpositive_top_k():
+    q_net = DQN(10, 4, hidden_sizes=(1, 1))
+    rollouts = _rollouts(h1_width=1, h2_width=1)
+
+    with pytest.raises(ValueError, match="top_edges_per_target"):
+        compute_layout(rollouts, q_net, top_edges_per_target=0)
+    with pytest.raises(ValueError, match="output_edges_per_target"):
+        compute_layout(rollouts, q_net, output_edges_per_target=0)
 
 
 def _rollouts(*, h1_width: int, h2_width: int) -> ActivationRollouts:

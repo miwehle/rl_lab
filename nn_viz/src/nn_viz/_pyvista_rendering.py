@@ -4,16 +4,24 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, Mapping
 
 import numpy as np
 
 import nn_viz.color_scheme as color_scheme
+from nn_viz._rendering import (
+    NetworkState,
+    input_scale,
+    node_fallback_scales,
+    node_value,
+    scale_value,
+    source_value,
+)
 from nn_viz.layout import Edge
 from nn_viz.layout import NetworkLayout, Node
 
 _BACKGROUND = "white"
 _EDGE_GEOMETRY_DEFAULT = "tube"
-_NEUTRAL_EDGE_COLOR = "#9ca3af"
 _NODE_RADIUS_DEFAULT = 0.055
 _MIN_TUBE_RADIUS = 0.006
 _MAX_TUBE_RADIUS = 0.026
@@ -46,12 +54,62 @@ def render_layout_snapshot(
     return output_path
 
 
+def render_state_snapshot(
+    layout: NetworkLayout,
+    state: NetworkState,
+    output_path: str | Path,
+    *,
+    width: int = 1280,
+    height: int = 720,
+    node_radius: float = _NODE_RADIUS_DEFAULT,
+    edge_geometry: str = _EDGE_GEOMETRY_DEFAULT,
+    scales: Mapping[str, Any] | None = None,
+    edge_intensity: str = "saturation",
+) -> Path:
+    """Render an offscreen 3D layout snapshot for one NN state."""
+    if edge_intensity not in {"saturation", "opacity"}:
+        raise ValueError("edge_intensity must be 'saturation' or 'opacity'")
+    pv = load_pyvista()
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plotter = pv.Plotter(off_screen=True, window_size=(width, height))
+    try:
+        plotter.set_background(_BACKGROUND)
+        _add_state_edges(plotter, pv, layout, state, edge_geometry, scales, edge_intensity)
+        _add_state_nodes(plotter, pv, layout.nodes, state, node_radius, scales)
+        plotter.enable_parallel_projection()
+        plotter.view_isometric()
+        plotter.reset_camera()
+        plotter.screenshot(filename=str(output_path))
+    finally:
+        plotter.close()
+    return output_path
+
+
 def _add_nodes(plotter, pv, nodes: tuple[Node, ...], radius: float, activity_scale: float) -> None:
     for node in nodes:
         sphere = pv.Sphere(radius=radius, center=(node.x, node.y, node.z))
         plotter.add_mesh(
             sphere,
             color=_rgb_hex(color_scheme.heat_color(node.activity, activity_scale)),
+            smooth_shading=True,
+        )
+
+
+def _add_state_nodes(
+    plotter,
+    pv,
+    nodes: tuple[Node, ...],
+    state: NetworkState,
+    radius: float,
+    scales: Mapping[str, Any] | None,
+) -> None:
+    fallback_scales = node_fallback_scales(state)
+    for node in nodes:
+        sphere = pv.Sphere(radius=radius, center=(node.x, node.y, node.z))
+        plotter.add_mesh(
+            sphere,
+            color=_rgb_hex(_state_node_color(node, state, scales, fallback_scales)),
             smooth_shading=True,
         )
 
@@ -76,6 +134,38 @@ def _add_edges(plotter, pv, layout: NetworkLayout, edge_geometry: str) -> None:
             plotter.add_mesh(tube, color=color, smooth_shading=True)
 
 
+def _add_state_edges(
+    plotter,
+    pv,
+    layout: NetworkLayout,
+    state: NetworkState,
+    edge_geometry: str,
+    scales: Mapping[str, Any] | None,
+    edge_intensity: str,
+) -> None:
+    if edge_geometry not in {"line", "tube"}:
+        raise ValueError("edge_geometry must be 'line' or 'tube'")
+    nodes = {(node.layer, node.index): node for node in layout.nodes}
+    weight_scale = _scale_value(scales, "weight", _weight_scale(layout.edges))
+    activation_scale = _scale_value(scales, "activation", _max_source_magnitude(layout.edges, state))
+    edge_scale = activation_scale * weight_scale
+    for edge in layout.edges:
+        source = nodes.get((edge.source_layer, edge.source_index))
+        target = nodes.get((edge.target_layer, edge.target_index))
+        if source is None or target is None:
+            continue
+        line = pv.Line((source.x, source.y, source.z), (target.x, target.y, target.z))
+        contribution = source_value(edge, state) * edge.weight
+        color = _rgb_hex(color_scheme.signed_color(contribution, edge_scale))
+        opacity = _edge_opacity(contribution, edge_scale, edge_intensity)
+        if edge_geometry == "line":
+            line_width = max(1, int(round(color_scheme.edge_width(edge.weight, weight_scale))))
+            plotter.add_mesh(line, color=color, line_width=line_width, opacity=opacity)
+        else:
+            tube = line.tube(radius=_tube_radius(edge.weight, weight_scale), n_sides=8)
+            plotter.add_mesh(tube, color=color, opacity=opacity, smooth_shading=True)
+
+
 def _activity_scale(nodes: tuple[Node, ...]) -> float:
     return max((node.activity for node in nodes), default=0.0)
 
@@ -88,6 +178,36 @@ def _weight_scale(edges: tuple[Edge, ...]) -> float:
 def _tube_radius(weight: float, weight_scale: float) -> float:
     ratio = (color_scheme.edge_width(weight, weight_scale) - 1.0) / 2.0
     return _MIN_TUBE_RADIUS + ratio * (_MAX_TUBE_RADIUS - _MIN_TUBE_RADIUS)
+
+
+def _state_node_color(
+    node: Node, state: NetworkState, scales: Mapping[str, Any] | None, fallback_scales: dict[str, float]
+) -> tuple[int, int, int]:
+    value = node_value(node, state)
+    if node.layer == "in":
+        scale = input_scale(scales, node.index, fallback_scales["input"])
+        return color_scheme.signed_color(value, scale)
+    if node.layer in {"h1", "h2"}:
+        scale = _scale_value(scales, "hidden", fallback_scales["hidden"])
+        return color_scheme.heat_color(value, scale)
+    if node.layer == "out":
+        scale = _scale_value(scales, "output", fallback_scales["output"])
+        return color_scheme.signed_color(value, scale)
+    return (128, 128, 128)
+
+
+def _scale_value(scales: Mapping[str, Any] | None, key: str, fallback: float) -> float:
+    return scale_value(scales, key, fallback)
+
+
+def _max_source_magnitude(edges: tuple[Edge, ...], state: NetworkState) -> float:
+    return max((abs(source_value(edge, state)) for edge in edges), default=0.0)
+
+
+def _edge_opacity(contribution: float, edge_scale: float, edge_intensity: str) -> float:
+    if edge_intensity == "opacity":
+        return color_scheme.alpha(contribution, edge_scale) / 255.0
+    return 1.0
 
 
 def _rgb_hex(rgb: tuple[int, int, int]) -> str:

@@ -34,10 +34,20 @@ _OUTPUT_ANCHORS = {
 }
 
 
-def compute_layout(rollouts: ActivationRollouts, q_net: DQN) -> NetworkLayout:
+def compute_layout(
+    rollouts: ActivationRollouts,
+    q_net: DQN,
+    *,
+    top_edges_per_target: int = 3,
+    output_edges_per_target: int = 10,
+) -> NetworkLayout:
     """Place input/output on fixed anchors and hidden nodes by weighted means."""
     if rollouts.frame_count < 1:
         raise ValueError("rollouts must contain at least one frame")
+    if top_edges_per_target < 1:
+        raise ValueError("top_edges_per_target must be >= 1")
+    if output_edges_per_target < 1:
+        raise ValueError("output_edges_per_target must be >= 1")
 
     w1 = q_net.layer1.weight.detach().cpu().numpy()
     w2 = q_net.layer2.weight.detach().cpu().numpy()
@@ -56,7 +66,11 @@ def compute_layout(rollouts: ActivationRollouts, q_net: DQN) -> NetworkLayout:
     output_layer_nodes = _output_nodes(rollouts.q_values)
     return NetworkLayout(
         nodes=input_layer_nodes + h1_nodes + h2_nodes + output_layer_nodes,
-        edges=_weight_edges("in", "h1", w1) + _weight_edges("h1", "h2", w2) + _weight_edges("h2", "out", w3),
+        edges=(
+            _top_weight_edges("in", "h1", w1, top_edges_per_target)
+            + _top_weight_edges("h1", "h2", w2, top_edges_per_target)
+            + _top_weight_edges("h2", "out", w3, output_edges_per_target)
+        ),
     )
 
 
@@ -116,10 +130,13 @@ def _weighted_mean(positions: np.ndarray, weights: np.ndarray, fallback: np.ndar
     return np.sum(positions * weights[:, np.newaxis], axis=0) / total
 
 
-def _weight_edges(source_layer: str, target_layer: str, weights: np.ndarray) -> tuple[Edge, ...]:
+def _top_weight_edges(
+    source_layer: str, target_layer: str, weights: np.ndarray, top_edges_per_target: int
+) -> tuple[Edge, ...]:
     edges = []
     for target in range(weights.shape[0]):
-        for source in range(weights.shape[1]):
+        source_indexes = np.argsort(np.abs(weights[target]))[-top_edges_per_target:][::-1]
+        for source in source_indexes:
             weight = float(weights[target, source])
             if weight == 0.0:
                 continue

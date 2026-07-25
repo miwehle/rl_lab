@@ -1,9 +1,11 @@
 import sys
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
-from nn_viz._pyvista_rendering import load_pyvista, render_layout_snapshot
+from nn_viz._pyvista_rendering import load_pyvista, render_layout_snapshot, render_state_snapshot
+from nn_viz._rendering import NetworkState
 from nn_viz.layout import Edge, NetworkLayout, Node
 
 
@@ -77,6 +79,47 @@ def test_render_layout_snapshot_rejects_unknown_edge_geometry(monkeypatch, tmp_p
         render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="weird")
 
 
+def test_render_state_snapshot_colors_edges_by_current_contribution(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    render_state_snapshot(
+        _layout(),
+        _state(input_value=-1.0),
+        tmp_path / "snapshot.png",
+        edge_geometry="line",
+        scales={"input": [1.0], "output": 1.0, "activation": 1.0, "weight": 0.5},
+    )
+
+    edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
+    assert edge_mesh.kind == "line"
+    assert edge_kwargs == {"color": "#2563eb", "line_width": 3, "opacity": 1.0}
+
+
+def test_render_state_snapshot_can_map_edge_intensity_to_opacity(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    render_state_snapshot(
+        _layout(),
+        _state(input_value=0.1),
+        tmp_path / "snapshot.png",
+        edge_intensity="opacity",
+        scales={"input": [1.0], "output": 1.0, "activation": 1.0, "weight": 0.5},
+    )
+
+    _, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
+    assert edge_kwargs["opacity"] < 1.0
+
+
+def test_render_state_snapshot_rejects_unknown_edge_intensity(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    with pytest.raises(ValueError, match="edge_intensity"):
+        render_state_snapshot(_layout(), _state(), tmp_path / "snapshot.png", edge_intensity="weird")
+
+
 def _layout() -> NetworkLayout:
     return NetworkLayout(
         nodes=(
@@ -84,6 +127,16 @@ def _layout() -> NetworkLayout:
             Node("out", 1, "left", 1.0, 2.0, 0.2, z=3.0),
         ),
         edges=(Edge("in", 0, "out", 1, 0.5, 0.5, 0.5),),
+    )
+
+
+def _state(*, input_value: float = 1.0) -> NetworkState:
+    return NetworkState(
+        inputs=np.array([input_value], dtype=np.float32),
+        h1=np.array([], dtype=np.float32),
+        h2=np.array([], dtype=np.float32),
+        q_values=np.array([0.0, 1.0], dtype=np.float32),
+        action=1,
     )
 
 
