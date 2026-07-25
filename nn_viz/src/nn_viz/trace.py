@@ -1,4 +1,4 @@
-"""Render standalone PNGs from saved NN video traces."""
+"""Render standalone images from saved NN video traces."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def _load_trace_state(trace_path: str | Path, *, step: int, window_steps: int = 
         return _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
 
 
-def render_trace_step_png(
+def render_trace_step(
     trace_path: str | Path,
     layout: NetworkLayout,
     output_path: str | Path,
@@ -48,7 +48,7 @@ def render_trace_step_png(
     edge_renderer: str = _EDGE_RENDERER_DEFAULT,
     label_mode: str = "indices",
 ) -> Path:
-    """Render the NN state for one trace step, averaged over a backward step window."""
+    """Render one trace step and save the image to output_path."""
     from PIL import Image
 
     output_path = Path(output_path)
@@ -69,7 +69,7 @@ def render_trace_step_png(
     return output_path
 
 
-def render_trace_diff_png(
+def render_trace_diff(
     trace_path: str | Path,
     layout: NetworkLayout,
     output_path: str | Path,
@@ -81,7 +81,7 @@ def render_trace_diff_png(
     width: int = 1280,
     height: int = 360,
 ) -> Path:
-    """Render to-window minus from-window NN differences from one saved trace."""
+    """Render to-window minus from-window differences and save the image to output_path."""
     from PIL import Image
 
     output_path = Path(output_path)

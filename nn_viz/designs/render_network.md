@@ -14,10 +14,10 @@ cell: record-video
 `record_video(..., layout, ...)`
 
 cell: render-step-png
-`render_trace_step_png(..., layout, ...)`
+`render_trace_step(..., layout, ...)`
 
 cell: render-diff-png
-`render_trace_diff_png(..., layout, ...)`
+`render_trace_diff(..., layout, ...)`
 ## src
   
 nn_viz

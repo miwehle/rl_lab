@@ -1,4 +1,4 @@
-﻿# NN Diff PNG
+# NN Diff PNG
 
 ## Goal
 
@@ -7,7 +7,7 @@ Compare two backward-window mean NN states from the same trace and render the di
 Public function:
 
 ```python
-render_trace_diff_png(
+render_trace_diff(
     trace_path,
     layout,
     output_path,
@@ -31,7 +31,7 @@ This should help identify which neurons and displayed edges change between fligh
 
 ## State Diff
 
-For each side, compute the same backward-window mean state used by `render_trace_step_png(...)`.
+For each side, compute the same backward-window mean state used by `render_trace_step(...)`.
 
 ```text
 inputs_delta = inputs_to - inputs_from
@@ -85,7 +85,7 @@ Use index labels by default. Diff PNGs are analysis artifacts, not video overlay
 
 ## Implementation Shape
 
-Expose `render_trace_diff_png(...)` as a separate public function, but do not duplicate the full state renderer.
+Expose `render_trace_diff(...)` as a separate public function, but do not duplicate the full state renderer.
 
 Refactor the existing state rendering path only as much as needed so normal rendering and diff rendering share the same private layout/canvas/node/edge/label machinery. The diff renderer should provide different node and edge color rules, not a copied renderer.
 
@@ -93,7 +93,7 @@ Refactor the existing state rendering path only as much as needed so normal rend
 
 Add a compact `render-diff-png` example cell to `nn_viz/notebooks/micro_elise_nn_video.ipynb` after `render-step-png`.
 
-The cell should set `DIFF_FROM_STEP`, `DIFF_TO_STEP`, `DIFF_FROM_WINDOW_STEPS`, and `DIFF_TO_WINDOW_STEPS`, then call `render_trace_diff_png(...)` for the current `trace_path` and `layout`.
+The cell should set `DIFF_FROM_STEP`, `DIFF_TO_STEP`, `DIFF_FROM_WINDOW_STEPS`, and `DIFF_TO_WINDOW_STEPS`, then call `render_trace_diff(...)` for the current `trace_path` and `layout`.
 
 ## Non-Goals
 

@@ -15,9 +15,9 @@ Die Aufteilung soll Code duplizieren vermeiden, aber kein grosses Utility-Sammel
 nn_viz/video.py
   record_video(...)
 
-nn_viz/trace_png.py
-  render_trace_step_png(...)
-  render_trace_diff_png(...)
+nn_viz/trace.py
+  render_trace_step(...)
+  render_trace_diff(...)
 
 nn_viz/rendering.py
   gemeinsame Render-Mechanik
@@ -38,12 +38,12 @@ Bleibt fuer Recording-spezifisches verantwortlich:
 
 Alles hier soll mit laufender Env, Video-Frames, Step-Label oder Trace-Schreiben waehrend des Recordings zu tun haben.
 
-## trace_png.py
+## trace.py
 
 Enthaelt offline Trace-PNG-Logik:
 
-- `render_trace_step_png(...)`
-- `render_trace_diff_png(...)`
+- `render_trace_step(...)`
+- `render_trace_diff(...)`
 - `_load_trace_state(...)`
 - `_trace_state_from_arrays(...)`
 - `_trace_scales_from_arrays(...)`
@@ -78,7 +78,7 @@ _render_layout_rgba(
 )
 ```
 
-Dann definieren `video.py` und `trace_png.py` jeweils ihre eigene Bedeutung von Node-/Edge-Styles und teilen nur die Zeichenmaschine.
+Dann definieren `video.py` und `trace.py` jeweils ihre eigene Bedeutung von Node-/Edge-Styles und teilen nur die Zeichenmaschine.
 
 ## Vermeidung von dupliziertem Code
 
@@ -88,7 +88,7 @@ Das Ziel ist nicht, zwei fast gleiche Renderer zu bauen:
 video.py
   zeichnet Canvas, Kanten, Nodes, Labels
 
-trace_png.py
+trace.py
   zeichnet Canvas, Kanten, Nodes, Labels nochmal fast gleich
 ```
 
@@ -114,7 +114,7 @@ video.py
   baut edge_style(edge) fuer normalen NN-State
   ruft rendering._render_layout_rgba(...)
 
-trace_png.py
+trace.py
   baut node_fill(node) fuer Trace-Step oder Diff
   baut edge_style(edge) fuer Trace-Step oder Diff
   ruft rendering._render_layout_rgba(...)
@@ -127,11 +127,11 @@ Damit teilen beide Clients die Zeichenmaschine, aber nicht ihre fachliche Style-
 Die Notebook-API bleibt ueber `nn_viz.__init__`:
 
 - `record_video`
-- `render_trace_step_png`
-- `render_trace_diff_png`
+- `render_trace_step`
+- `render_trace_diff`
 
 Nach dem Split importiert `nn_viz.__init__` diese aus den neuen Modulen. `nn_viz.video` muss nicht mehr die Trace-PNG-Funktionen enthalten.
 
 ## KISS-Leitplanke
 
-Nur verschieben, was eine klare gemeinsame Nutzung hat. Wenn eine Funktion nur von `video.py` oder nur von `trace_png.py` verwendet wird, bleibt sie als private Funktion dort.
+Nur verschieben, was eine klare gemeinsame Nutzung hat. Wenn eine Funktion nur von `video.py` oder nur von `trace.py` verwendet wird, bleibt sie als private Funktion dort.

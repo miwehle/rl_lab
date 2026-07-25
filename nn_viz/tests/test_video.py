@@ -12,7 +12,7 @@ from nn_viz.rendering import (
     _render_state_layout_rgba,
     _skip_edge,
 )
-from nn_viz.trace_png import _load_trace_state, render_trace_diff_png, render_trace_step_png
+from nn_viz.trace import _load_trace_state, render_trace_diff, render_trace_step
 from nn_viz.video import (
     _StateAverager,
     _compose_bottom_overlay,
@@ -337,7 +337,7 @@ def test_load_trace_state_uses_growing_initial_window(tmp_path):
     assert state.action == 2
 
 
-def test_render_trace_step_png_writes_png(tmp_path):
+def test_render_trace_step_writes_image(tmp_path):
     trace_path = tmp_path / "trace.npz"
     output_path = tmp_path / "step.png"
     np.savez(
@@ -350,13 +350,13 @@ def test_render_trace_step_png_writes_png(tmp_path):
         q_values=np.array([[0.0, 1.0, 2.0, 3.0]], dtype=np.float32),
     )
 
-    result = render_trace_step_png(trace_path, minimal_layout(), output_path, step=0, width=240, height=120)
+    result = render_trace_step(trace_path, minimal_layout(), output_path, step=0, width=240, height=120)
 
     assert result == output_path
     assert output_path.exists()
 
 
-def test_render_trace_diff_png_writes_signed_diff_png(tmp_path):
+def test_render_trace_diff_writes_signed_diff_image(tmp_path):
     from PIL import Image
 
     trace_path = tmp_path / "trace.npz"
@@ -372,8 +372,8 @@ def test_render_trace_diff_png_writes_signed_diff_png(tmp_path):
         q_values=np.array([[0.0, 1.0, 2.0, 3.0], [3.0, 2.0, 1.0, 0.0]], dtype=np.float32),
     )
 
-    render_trace_diff_png(trace_path, minimal_layout(), forward_path, from_step=0, to_step=1, width=240, height=120)
-    render_trace_diff_png(trace_path, minimal_layout(), reverse_path, from_step=1, to_step=0, width=240, height=120)
+    render_trace_diff(trace_path, minimal_layout(), forward_path, from_step=0, to_step=1, width=240, height=120)
+    render_trace_diff(trace_path, minimal_layout(), reverse_path, from_step=1, to_step=0, width=240, height=120)
 
     forward = np.asarray(Image.open(forward_path))
     reverse = np.asarray(Image.open(reverse_path))
