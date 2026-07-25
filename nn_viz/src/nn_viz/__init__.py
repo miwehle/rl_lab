@@ -31,6 +31,7 @@ from nn_viz.video import (
     record_network_overlay_video,
     render_live_layout_rgba,
     render_layout_rgba,
+    render_trace_diff_png,
     render_trace_step_png,
 )
 
@@ -59,5 +60,6 @@ __all__ = [
     "record_network_overlay_video",
     "render_live_layout_rgba",
     "render_layout_rgba",
+    "render_trace_diff_png",
     "render_trace_step_png",
 ]

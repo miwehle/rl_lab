@@ -17,6 +17,7 @@ from nn_viz.video import (
     draw_step_label,
     record_network_overlay_video,
     render_live_layout_rgba,
+    render_trace_diff_png,
     render_trace_step_png,
 )
 
@@ -364,6 +365,32 @@ def test_render_trace_step_png_writes_png(tmp_path):
 
     assert result == output_path
     assert output_path.exists()
+
+
+def test_render_trace_diff_png_writes_signed_diff_png(tmp_path):
+    from PIL import Image
+
+    trace_path = tmp_path / "trace.npz"
+    forward_path = tmp_path / "forward.png"
+    reverse_path = tmp_path / "reverse.png"
+    np.savez(
+        trace_path,
+        steps=np.array([0, 1], dtype=np.int64),
+        observations=np.array([[1.0], [3.0]], dtype=np.float32),
+        actions=np.array([1, 1], dtype=np.int64),
+        h1=np.array([[1.0], [5.0]], dtype=np.float32),
+        h2=np.array([[4.0], [2.0]], dtype=np.float32),
+        q_values=np.array([[0.0, 1.0, 2.0, 3.0], [3.0, 2.0, 1.0, 0.0]], dtype=np.float32),
+    )
+
+    render_trace_diff_png(trace_path, minimal_live_layout(), forward_path, from_step=0, to_step=1, width=240, height=120)
+    render_trace_diff_png(trace_path, minimal_live_layout(), reverse_path, from_step=1, to_step=0, width=240, height=120)
+
+    forward = np.asarray(Image.open(forward_path))
+    reverse = np.asarray(Image.open(reverse_path))
+    assert forward_path.exists()
+    assert reverse_path.exists()
+    assert not np.array_equal(forward, reverse)
 
 
 def test_layout_transform_reserves_top_and_bottom_margins():

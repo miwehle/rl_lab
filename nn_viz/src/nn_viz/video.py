@@ -185,6 +185,12 @@ class LiveOverlayState:
     action: int
 
 
+@dataclass(frozen=True)
+class EdgeStyle:
+    fill: tuple[int, int, int, int]
+    nominal_width: float
+
+
 class LiveOverlayAverager:
     """Rolling mean for per-step NN values shown in the moving video."""
 
@@ -233,29 +239,37 @@ def render_live_layout_rgba(
     label_mode: str = "video",
 ) -> np.ndarray:
     """Render the existing layout as a dynamic RGBA overlay."""
-    from PIL import Image, ImageDraw
+    weight_scale = _scale_value(live_scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0))
+    activation_scale = _scale_value(live_scales, "activation", _max_source_magnitude(layout.edges, live_state))
+    fallback_scales = _node_fallback_scales(live_state)
 
-    image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    nodes = _display_nodes(layout.nodes)
-    node_by_key = {(node.layer, node.index): node for node in nodes}
-    transform = _layout_transform(nodes, width=width, height=height)
+    def node_fill(node: Node) -> tuple[int, int, int, int]:
+        return _live_node_color(node, live_state, live_scales, fallback_scales)
 
-    image = _draw_live_edges(
-        image,
-        layout.edges,
-        node_by_key,
-        live_state,
-        live_scales,
-        transform,
-        height,
-        edge_skip_activation=edge_skip_activation,
-        edge_skip_weight=edge_skip_weight,
+    def node_outline(node: Node, radius: float) -> tuple[tuple[int, int, int, int], int]:
+        if node.layer == "out" and node.index == live_state.action:
+            return (250, 204, 21, 255), max(1, int(round(radius / 3)))
+        return (17, 24, 39, 255), 1
+
+    def edge_style(edge: Edge) -> EdgeStyle | None:
+        source_value = _source_value(edge, live_state)
+        if _skip_live_edge(source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight):
+            return None
+        return EdgeStyle(
+            fill=(*color_scheme.signed_color(edge.weight, weight_scale), color_scheme.alpha(source_value, activation_scale)),
+            nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
+        )
+
+    return _render_dynamic_layout_rgba(
+        layout,
+        width=width,
+        height=height,
+        node_fill=node_fill,
+        node_outline=node_outline,
+        edge_style=edge_style,
         edge_renderer=edge_renderer,
+        label_mode=label_mode,
     )
-    draw = ImageDraw.Draw(image, "RGBA")
-    _draw_live_nodes(draw, nodes, live_state, transform, height, live_scales)
-    _draw_live_labels(draw, nodes, live_state, transform, height, label_mode=label_mode)
-    return np.asarray(image, dtype=np.uint8)
 
 
 def load_trace_state(trace_path: str | Path, *, step: int, window_steps: int = 1) -> LiveOverlayState:
@@ -300,6 +314,33 @@ def render_trace_step_png(
     return output_path
 
 
+def render_trace_diff_png(
+    trace_path: str | Path,
+    layout: NetworkLayout,
+    output_path: str | Path,
+    *,
+    from_step: int,
+    to_step: int,
+    from_window_steps: int = 1,
+    to_window_steps: int = 1,
+    width: int = 1280,
+    height: int = 360,
+) -> Path:
+    """Render to-window minus from-window NN differences from one saved trace."""
+    from PIL import Image
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with np.load(trace_path) as trace:
+        from_state = _trace_state_from_arrays(trace, step=from_step, window_steps=from_window_steps)
+        to_state = _trace_state_from_arrays(trace, step=to_step, window_steps=to_window_steps)
+        scales = _trace_scales_from_arrays(trace, layout)
+    diff_state = _diff_state(from_state, to_state)
+    rgba = _render_diff_layout_rgba(layout, diff_state, scales=scales, width=width, height=height)
+    Image.fromarray(rgba).save(output_path)
+    return output_path
+
+
 def _trace_state_from_arrays(trace: Mapping[str, np.ndarray], *, step: int, window_steps: int) -> LiveOverlayState:
     if window_steps < 1:
         raise ValueError("window_steps must be >= 1")
@@ -317,6 +358,30 @@ def _trace_state_from_arrays(trace: Mapping[str, np.ndarray], *, step: int, wind
         q_values=np.mean(trace["q_values"][start:stop], axis=0, dtype=np.float32),
         action=int(trace["actions"][row_index]),
     )
+
+
+def _diff_state(from_state: LiveOverlayState, to_state: LiveOverlayState) -> LiveOverlayState:
+    return LiveOverlayState(
+        inputs=to_state.inputs - from_state.inputs,
+        h1=to_state.h1 - from_state.h1,
+        h2=to_state.h2 - from_state.h2,
+        q_values=to_state.q_values - from_state.q_values,
+        action=-1,
+    )
+
+
+def _trace_scales_from_arrays(trace: Mapping[str, np.ndarray], layout: NetworkLayout) -> dict[str, Any]:
+    input_abs = np.abs(trace["observations"])
+    hidden_values = np.concatenate([trace["h1"].ravel(), trace["h2"].ravel()])
+    output_abs = np.abs(trace["q_values"])
+    weights = np.asarray([abs(edge.weight) for edge in layout.edges], dtype=np.float32)
+    return {
+        "input": np.percentile(input_abs, 95, axis=0).astype(float),
+        "hidden": float(np.percentile(hidden_values, 95)),
+        "output": float(np.percentile(output_abs, 95)),
+        "activation": float(np.percentile(np.concatenate([input_abs.ravel(), hidden_values]), 95)),
+        "weight": float(np.percentile(weights, 95)) if weights.size else 1.0,
+    }
 
 
 def _initial_live_state(q_net) -> LiveOverlayState:
@@ -365,114 +430,165 @@ def _layout_transform(
     return transform
 
 
-def _draw_live_edges(
+def _render_diff_layout_rgba(
+    layout: NetworkLayout,
+    diff_state: LiveOverlayState,
+    *,
+    scales: Mapping[str, Any],
+    width: int,
+    height: int,
+) -> np.ndarray:
+    weight_scale = _scale_value(scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0))
+    activation_scale = _scale_value(scales, "activation", _max_source_magnitude(layout.edges, diff_state))
+    edge_scale = activation_scale * weight_scale
+    fallback_scales = _node_fallback_scales(diff_state)
+
+    def node_fill(node: Node) -> tuple[int, int, int, int]:
+        value = _node_value(node, diff_state)
+        if node.layer == "in":
+            scale = _input_scale(scales, node.index, fallback_scales["input"])
+        elif node.layer in {"h1", "h2"}:
+            scale = _scale_value(scales, "hidden", fallback_scales["hidden"])
+        elif node.layer == "out":
+            scale = _scale_value(scales, "output", fallback_scales["output"])
+        else:
+            scale = 0.0
+        return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
+
+    def edge_style(edge: Edge) -> EdgeStyle | None:
+        edge_delta = _source_value(edge, diff_state) * edge.weight
+        return EdgeStyle(
+            fill=(*color_scheme.signed_color(edge_delta, edge_scale), color_scheme.alpha(edge_delta, edge_scale)),
+            nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
+        )
+
+    return _render_dynamic_layout_rgba(
+        layout,
+        width=width,
+        height=height,
+        node_fill=node_fill,
+        node_outline=_default_node_outline,
+        edge_style=edge_style,
+        edge_renderer="pillow",
+        label_mode="indices",
+    )
+
+
+def _render_dynamic_layout_rgba(
+    layout: NetworkLayout,
+    *,
+    width: int,
+    height: int,
+    node_fill: Callable[[Node], tuple[int, int, int, int]],
+    node_outline: Callable[[Node, float], tuple[tuple[int, int, int, int], int]],
+    edge_style: Callable[[Edge], EdgeStyle | None],
+    edge_renderer: str,
+    label_mode: str,
+) -> np.ndarray:
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    nodes = _display_nodes(layout.nodes)
+    node_by_key = {(node.layer, node.index): node for node in nodes}
+    transform = _layout_transform(nodes, width=width, height=height)
+
+    image = _draw_styled_edges(
+        image,
+        layout.edges,
+        node_by_key,
+        transform,
+        height,
+        edge_style,
+        edge_renderer=edge_renderer,
+    )
+    draw = ImageDraw.Draw(image, "RGBA")
+    _draw_styled_nodes(draw, nodes, transform, height, node_fill, node_outline)
+    _draw_live_labels(draw, nodes, transform, height, label_mode=label_mode)
+    return np.asarray(image, dtype=np.uint8)
+
+
+def _draw_styled_edges(
     image,
     edges: tuple[Edge, ...],
     nodes: dict[tuple[str, int], Node],
-    live_state: LiveOverlayState,
-    live_scales: Mapping[str, Any] | None,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
+    edge_style: Callable[[Edge], EdgeStyle | None],
     *,
-    edge_skip_activation: float,
-    edge_skip_weight: float,
     edge_renderer: str,
 ):
     if edge_renderer == "pillow":
         from PIL import ImageDraw
 
-        _draw_live_edges_pillow(
+        _draw_styled_edges_pillow(
             ImageDraw.Draw(image, "RGBA"),
             edges,
             nodes,
-            live_state,
-            live_scales,
             transform,
             height,
-            edge_skip_activation=edge_skip_activation,
-            edge_skip_weight=edge_skip_weight,
+            edge_style,
         )
         return image
     if edge_renderer == "aggdraw":
-        return _draw_live_edges_aggdraw(
+        return _draw_styled_edges_aggdraw(
             image,
             edges,
             nodes,
-            live_state,
-            live_scales,
             transform,
             height,
-            edge_skip_activation=edge_skip_activation,
-            edge_skip_weight=edge_skip_weight,
+            edge_style,
         )
     raise ValueError("edge_renderer must be 'pillow' or 'aggdraw'")
 
 
-def _draw_live_edges_pillow(
+def _draw_styled_edges_pillow(
     draw,
     edges: tuple[Edge, ...],
     nodes: dict[tuple[str, int], Node],
-    live_state: LiveOverlayState,
-    live_scales: Mapping[str, Any] | None,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    *,
-    edge_skip_activation: float,
-    edge_skip_weight: float,
+    edge_style: Callable[[Edge], EdgeStyle | None],
 ) -> None:
-    weight_scale = _scale_value(live_scales, "weight", max((abs(edge.weight) for edge in edges), default=0.0))
-    activation_scale = _scale_value(live_scales, "activation", _max_source_magnitude(edges, live_state))
     for edge in edges:
         source = nodes.get((edge.source_layer, edge.source_index))
         target = nodes.get((edge.target_layer, edge.target_index))
         if source is None or target is None:
             continue
+        style = edge_style(edge)
+        if style is None:
+            continue
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
-        source_value = _source_value(edge, live_state)
-        if _skip_live_edge(source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight):
-            continue
-        edge_alpha = color_scheme.alpha(source_value, activation_scale)
-        nominal_width = color_scheme.edge_width(edge.weight, weight_scale)
-        line_width = max(1, int(round(nominal_width * height / 150)))
+        line_width = max(1, int(round(style.nominal_width * height / 150)))
         draw.line(
             (sx, sy, tx, ty),
-            fill=(*color_scheme.signed_color(edge.weight, weight_scale), edge_alpha),
+            fill=style.fill,
             width=line_width,
         )
 
 
-def _draw_live_edges_aggdraw(
+def _draw_styled_edges_aggdraw(
     image,
     edges: tuple[Edge, ...],
     nodes: dict[tuple[str, int], Node],
-    live_state: LiveOverlayState,
-    live_scales: Mapping[str, Any] | None,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    *,
-    edge_skip_activation: float,
-    edge_skip_weight: float,
+    edge_style: Callable[[Edge], EdgeStyle | None],
 ):
     aggdraw = _load_aggdraw()
     draw = aggdraw.Draw(image)
-    weight_scale = _scale_value(live_scales, "weight", max((abs(edge.weight) for edge in edges), default=0.0))
-    activation_scale = _scale_value(live_scales, "activation", _max_source_magnitude(edges, live_state))
     for edge in edges:
         source = nodes.get((edge.source_layer, edge.source_index))
         target = nodes.get((edge.target_layer, edge.target_index))
         if source is None or target is None:
             continue
-        source_value = _source_value(edge, live_state)
-        if _skip_live_edge(source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight):
+        style = edge_style(edge)
+        if style is None:
             continue
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
-        edge_alpha = color_scheme.alpha(source_value, activation_scale)
-        nominal_width = color_scheme.edge_width(edge.weight, weight_scale)
-        line_width = max(1.0, nominal_width * height / 150)
-        color = (*color_scheme.signed_color(edge.weight, weight_scale), edge_alpha)
-        draw.line((sx, sy, tx, ty), aggdraw.Pen(color, line_width))
+        line_width = max(1.0, style.nominal_width * height / 150)
+        draw.line((sx, sy, tx, ty), aggdraw.Pen(style.fill, line_width))
     draw.flush()
 
     from PIL import Image
@@ -480,21 +596,19 @@ def _draw_live_edges_aggdraw(
     return Image.fromarray(_unpremultiply_rgba(np.asarray(image, dtype=np.uint8).copy()))
 
 
-def _draw_live_nodes(
+def _draw_styled_nodes(
     draw,
     nodes: tuple[Node, ...],
-    live_state: LiveOverlayState,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    live_scales: Mapping[str, Any] | None,
+    node_fill: Callable[[Node], tuple[int, int, int, int]],
+    node_outline: Callable[[Node, float], tuple[tuple[int, int, int, int], int]],
 ) -> None:
     radius = max(3.0, height / 46)
-    fallback_scales = _node_fallback_scales(live_state)
     for node in nodes:
         x, y = transform(node.x, node.y)
-        fill = _live_node_color(node, live_state, live_scales, fallback_scales)
-        outline = (250, 204, 21, 255) if node.layer == "out" and node.index == live_state.action else (17, 24, 39, 255)
-        outline_width = max(1, int(round(radius / 3))) if node.layer == "out" and node.index == live_state.action else 1
+        fill = node_fill(node)
+        outline, outline_width = node_outline(node, radius)
         for offset in range(outline_width, 0, -1):
             draw.ellipse((x - radius - offset, y - radius - offset, x + radius + offset, y + radius + offset), fill=outline)
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=fill)
@@ -503,7 +617,6 @@ def _draw_live_nodes(
 def _draw_live_labels(
     draw,
     nodes: tuple[Node, ...],
-    live_state: LiveOverlayState,
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
     *,
@@ -520,6 +633,10 @@ def _draw_live_labels(
             _draw_centered_text(draw, (x, y - height * 0.085), node.label, font, fill=(17, 24, 39, 255))
         elif node.layer == "in":
             _draw_centered_text(draw, (x, y + height * 0.085), node.label, font, fill=(17, 24, 39, 255))
+
+
+def _default_node_outline(_node: Node, _radius: float) -> tuple[tuple[int, int, int, int], int]:
+    return (17, 24, 39, 255), 1
 
 
 def _draw_centered_text(draw, center: tuple[float, float], text: str, font, *, fill: tuple[int, int, int, int]) -> None:
