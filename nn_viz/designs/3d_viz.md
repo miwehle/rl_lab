@@ -198,6 +198,21 @@ weight(h1 i) = abs(w2[h2, i])
 
 This mirrors H1 placement one layer higher. If all weights are zero, use the center of the H1 positions as stable fallback.
 
+Edge selection:
+
+Use all weights for node placement, but do not render all nonzero weights as 3D tubes. A Micro-Elise `10-64-64-4` network has up to `4992` possible edges, which is too much visual and rendering noise for a first useful 3D view.
+
+The spatial layout should therefore select rendered edges with Top-k per target neuron, analogous to the 2D layouts:
+
+```python
+compute_layout(..., top_edges_per_target=3, output_edges_per_target=10)
+```
+
+- H1/H2 positions still use all absolute incoming weights.
+- Input->H1 and H1->H2 rendered edges use `top_edges_per_target`.
+- H2->Output rendered edges use `output_edges_per_target`.
+- Top-k ranking is by `abs(weight)` for the static 3D layout.
+
 ## Open Questions
 
 - Where should the optional PyVista dependency be documented or declared?
