@@ -198,6 +198,16 @@ weight(h1 i) = abs(w2[h2, i])
 
 This mirrors H1 placement one layer higher. If all weights are zero, use the center of the H1 positions as stable fallback.
 
+Hidden collision handling:
+
+Weighted means tend to pull hidden nodes toward the center, especially in H2. To keep the 3D scene readable without drifting whole layers away from their semantic positions, treat the weighted-mean result as the desired position and then resolve close node collisions inside each hidden layer.
+
+```python
+compute_layout(..., min_node_distance=0.14)
+```
+
+The collision pass moves only hidden node `x/y` positions. It keeps the hidden layer center fixed, leaves `z` unchanged, and must not affect edge selection, weights, activations, or trace values.
+
 Edge selection:
 
 Use all weights for node placement, but do not render all nonzero weights as 3D tubes. A Micro-Elise `10-64-64-4` network has up to `4992` possible edges, which is too much visual and rendering noise for a first useful 3D view.

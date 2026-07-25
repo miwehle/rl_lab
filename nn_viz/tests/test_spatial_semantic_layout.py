@@ -23,12 +23,12 @@ def test_spatial_semantic_layout_uses_fixed_input_and_output_anchors():
     layout = compute_layout(rollouts, q_net)
     nodes = {(node.layer, node.index): node for node in layout.nodes}
 
-    assert _xyz(nodes[("in", 6)]) == (-1.5, 1.5, 0.0)
-    assert _xyz(nodes[("in", 7)]) == (1.5, 1.5, 0.0)
-    assert _xyz(nodes[("out", 1)]) == (-1.5, 1.5, 3.0)
-    assert _xyz(nodes[("out", 3)]) == (1.5, 1.5, 3.0)
-    assert _xyz(nodes[("out", 2)]) == (-1.5, 0.5, 3.0)
-    assert _xyz(nodes[("out", 0)]) == (1.5, 0.5, 3.0)
+    assert _xyz(nodes[("in", 6)]) == (-1.35, 1.5, 0.0)
+    assert _xyz(nodes[("in", 7)]) == (1.65, 1.5, 0.0)
+    assert _xyz(nodes[("out", 1)]) == (-1.35, 1.5, 3.0)
+    assert _xyz(nodes[("out", 3)]) == (1.65, 1.5, 3.0)
+    assert _xyz(nodes[("out", 2)]) == (-1.35, 0.5, 3.0)
+    assert _xyz(nodes[("out", 0)]) == (1.65, 0.5, 3.0)
 
 
 def test_spatial_semantic_layout_places_h1_by_weighted_mean_of_input_anchors():
@@ -46,8 +46,8 @@ def test_spatial_semantic_layout_places_h1_by_weighted_mean_of_input_anchors():
     layout = compute_layout(rollouts, q_net)
     h1 = {node.index: node for node in layout.nodes if node.layer == "h1"}
 
-    assert np.allclose(_xyz(h1[0]), (-0.75, -0.5, 1.0))
-    assert np.allclose(_xyz(h1[1]), (0.75, 1.5, 1.0))
+    assert np.allclose(_xyz(h1[0]), (-0.6, -0.5, 1.0))
+    assert np.allclose(_xyz(h1[1]), (0.9, 1.5, 1.0))
 
 
 def test_spatial_semantic_layout_places_h2_by_weighted_mean_of_h1_positions():
@@ -68,8 +68,28 @@ def test_spatial_semantic_layout_places_h2_by_weighted_mean_of_h1_positions():
     layout = compute_layout(rollouts, q_net)
     h2 = {node.index: node for node in layout.nodes if node.layer == "h2"}
 
-    assert np.allclose(_xyz(h2[0]), (0.0, 0.5, 2.0))
-    assert np.allclose(_xyz(h2[1]), (0.75, 1.5, 2.0))
+    assert np.allclose(_xyz(h2[0]), (0.15, 0.5, 2.0))
+    assert np.allclose(_xyz(h2[1]), (0.9, 1.5, 2.0))
+
+
+def test_spatial_semantic_layout_separates_overlapping_hidden_nodes_without_moving_layer_center():
+    q_net = DQN(10, 4, hidden_sizes=(2, 1))
+    with torch.no_grad():
+        q_net.layer1.weight.zero_()
+        q_net.layer1.weight[0, 0] = 1.0
+        q_net.layer1.weight[0, 2] = 1.0
+        q_net.layer1.weight[1, 0] = 1.0
+        q_net.layer1.weight[1, 2] = 1.0
+        q_net.layer2.weight.zero_()
+        q_net.layer2.weight[0, 0] = 1.0
+        q_net.layer3.weight.zero_()
+    rollouts = _rollouts(h1_width=2, h2_width=1)
+
+    layout = compute_layout(rollouts, q_net, min_node_distance=0.5)
+    h1_positions = np.asarray([(node.x, node.y) for node in layout.nodes if node.layer == "h1"])
+
+    assert np.allclose(np.mean(h1_positions, axis=0), (-0.6, -0.5))
+    assert np.linalg.norm(h1_positions[0] - h1_positions[1]) >= 0.5
 
 
 def test_spatial_semantic_layout_adds_edges_from_nonzero_weights():
@@ -130,6 +150,14 @@ def test_spatial_semantic_layout_rejects_nonpositive_top_k():
         compute_layout(rollouts, q_net, top_edges_per_target=0)
     with pytest.raises(ValueError, match="output_edges_per_target"):
         compute_layout(rollouts, q_net, output_edges_per_target=0)
+
+
+def test_spatial_semantic_layout_rejects_negative_min_node_distance():
+    q_net = DQN(10, 4, hidden_sizes=(1, 1))
+    rollouts = _rollouts(h1_width=1, h2_width=1)
+
+    with pytest.raises(ValueError, match="min_node_distance"):
+        compute_layout(rollouts, q_net, min_node_distance=-0.1)
 
 
 def _rollouts(*, h1_width: int, h2_width: int) -> ActivationRollouts:
