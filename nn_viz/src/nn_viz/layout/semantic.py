@@ -7,12 +7,12 @@ import numpy as np
 from dqn.model import DQN
 from nn_viz.activations import ACTION_ORDER, ActivationRollouts
 from nn_viz.layout.activity import (
-    _centered_offsets,
-    _input_nodes,
-    _mean_abs_contribution,
-    _output_nodes,
-    _target_specificity,
-    _top_edges,
+    centered_offsets,
+    input_nodes,
+    mean_abs_contribution,
+    output_nodes,
+    target_specificity,
+    top_edges,
 )
 from nn_viz.layout.types import NetworkLayout, Node
 
@@ -42,21 +42,21 @@ def compute_semantic_layout(
     w1 = q_net.layer1.weight.detach().cpu().numpy()
     w2 = q_net.layer2.weight.detach().cpu().numpy()
     w3 = q_net.layer3.weight.detach().cpu().numpy()
-    input_to_h1 = _mean_abs_contribution(rollouts.observations, w1)
-    h1_to_h2 = _mean_abs_contribution(rollouts.h1, w2)
-    h2_to_out = _mean_abs_contribution(rollouts.h2, w3)
-    h2_output_specificity = _target_specificity(h2_to_out)
+    input_to_h1 = mean_abs_contribution(rollouts.observations, w1)
+    h1_to_h2 = mean_abs_contribution(rollouts.h1, w2)
+    h2_to_out = mean_abs_contribution(rollouts.h2, w3)
+    h2_output_specificity = target_specificity(h2_to_out)
 
-    output_nodes = _output_nodes(rollouts.q_values)
-    h2_nodes = _semantic_hidden2_nodes(rollouts.h2, h2_to_out, output_nodes)
+    output_layer_nodes = output_nodes(rollouts.q_values)
+    h2_nodes = _semantic_hidden2_nodes(rollouts.h2, h2_to_out, output_layer_nodes)
     h1_nodes = _semantic_hidden1_nodes(rollouts.h1, input_to_h1)
-    input_nodes = _input_nodes(rollouts.observations)
+    input_layer_nodes = input_nodes(rollouts.observations)
     edges = (
-        _top_edges("h2", "out", h2_to_out, h2_output_specificity, w3, output_edges_per_target)
-        + _top_edges("h1", "h2", h1_to_h2, h1_to_h2, w2, top_edges_per_target)
-        + _top_edges("in", "h1", input_to_h1, input_to_h1, w1, top_edges_per_target)
+        top_edges("h2", "out", h2_to_out, h2_output_specificity, w3, output_edges_per_target)
+        + top_edges("h1", "h2", h1_to_h2, h1_to_h2, w2, top_edges_per_target)
+        + top_edges("in", "h1", input_to_h1, input_to_h1, w1, top_edges_per_target)
     )
-    return NetworkLayout(nodes=output_nodes + h2_nodes + h1_nodes + input_nodes, edges=tuple(edges))
+    return NetworkLayout(nodes=output_layer_nodes + h2_nodes + h1_nodes + input_layer_nodes, edges=tuple(edges))
 
 
 def _semantic_hidden1_nodes(h1: np.ndarray, input_to_h1: np.ndarray) -> tuple[Node, ...]:
@@ -87,7 +87,7 @@ def _semantic_hidden2_nodes(h2: np.ndarray, h2_to_out: np.ndarray, output_nodes:
     for output in ACTION_ORDER:
         indexes = groups[output]
         ordered = sorted(indexes, key=lambda index: (-float(h2_to_out[output, index]), index))
-        offsets = _centered_offsets(len(ordered), spacing=0.12)
+        offsets = centered_offsets(len(ordered), spacing=0.12)
         nodes.extend(
             Node(
                 "h2",

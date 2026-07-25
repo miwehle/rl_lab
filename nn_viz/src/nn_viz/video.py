@@ -13,15 +13,15 @@ import numpy as np
 from gymnasium.wrappers import RecordVideo
 
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
-from nn_viz.activations import ACTION_LABELS, _forward_activations
+from nn_viz.activations import ACTION_LABELS, forward_activations
 from nn_viz.layout import NetworkLayout
 from nn_viz._rendering import (
-    _EDGE_RENDERER_DEFAULT,
-    _EDGE_SKIP_ACTIVATION_DEFAULT,
-    _EDGE_SKIP_WEIGHT_DEFAULT,
-    _NetworkState,
-    _load_font,
-    _render_state_layout_rgba,
+    EDGE_RENDERER_DEFAULT,
+    EDGE_SKIP_ACTIVATION_DEFAULT,
+    EDGE_SKIP_WEIGHT_DEFAULT,
+    NetworkState,
+    load_font,
+    render_state_layout_rgba,
 )
 
 _FINAL_HOLD_FRAMES = 30
@@ -42,9 +42,9 @@ def record_video(
     overlay_alpha: float = 0.70,
     window_steps: int = _WINDOW_STEPS_DEFAULT,
     scales: Mapping[str, Any] | None = None,
-    edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
-    edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
-    edge_renderer: str = _EDGE_RENDERER_DEFAULT,
+    edge_skip_activation: float = EDGE_SKIP_ACTIVATION_DEFAULT,
+    edge_skip_weight: float = EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_renderer: str = EDGE_RENDERER_DEFAULT,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
 ) -> Path:
@@ -71,7 +71,7 @@ def record_video(
         overlay_height_ratio=overlay_height_ratio,
         overlay_alpha=overlay_alpha,
         overlay_provider=(
-            lambda width, height: _render_state_layout_rgba(
+            lambda width, height: render_state_layout_rgba(
                 layout,
                 averager.state if averager.state is not None else initial_state,
                 width=width,
@@ -94,7 +94,7 @@ def record_video(
     try:
         observation, _ = video_env.reset(seed=seed)
         for step in range(max_steps):
-            h1, h2, q_values = _forward_activations(q_net, observation, device)
+            h1, h2, q_values = forward_activations(q_net, observation, device)
             action = int(np.argmax(q_values))
             trace.append(step, observation, action, h1, h2, q_values)
             averager.update(observation, h1, h2, q_values, action)
@@ -182,16 +182,16 @@ class _StateAverager:
         self._h1: deque[np.ndarray] = deque(maxlen=window_steps)
         self._h2: deque[np.ndarray] = deque(maxlen=window_steps)
         self._q_values: deque[np.ndarray] = deque(maxlen=window_steps)
-        self.state: _NetworkState | None = None
+        self.state: NetworkState | None = None
 
     def update(
         self, observation: np.ndarray, h1: np.ndarray, h2: np.ndarray, q_values: np.ndarray, action: int
-    ) -> _NetworkState:
+    ) -> NetworkState:
         self._inputs.append(np.asarray(observation, dtype=np.float32))
         self._h1.append(np.asarray(h1, dtype=np.float32))
         self._h2.append(np.asarray(h2, dtype=np.float32))
         self._q_values.append(np.asarray(q_values, dtype=np.float32))
-        self.state = _NetworkState(
+        self.state = NetworkState(
             inputs=_mean(self._inputs),
             h1=_mean(self._h1),
             h2=_mean(self._h2),
@@ -201,11 +201,11 @@ class _StateAverager:
         return self.state
 
 
-def _initial_state(q_net) -> _NetworkState:
+def _initial_state(q_net) -> NetworkState:
     h1_size = int(q_net.layer1.out_features)
     h2_size = int(q_net.layer2.out_features)
     action_count = int(q_net.layer3.out_features)
-    return _NetworkState(
+    return NetworkState(
         inputs=np.zeros(int(q_net.layer1.in_features), dtype=np.float32),
         h1=np.zeros(h1_size, dtype=np.float32),
         h2=np.zeros(h2_size, dtype=np.float32),
@@ -291,7 +291,7 @@ def _draw_step_label(frame: np.ndarray, step: int) -> np.ndarray:
     image = Image.fromarray(frame.copy())
     draw = ImageDraw.Draw(image)
     font_size = max(12, image.height // 33)
-    font = _load_font(font_size, bold=True)
+    font = load_font(font_size, bold=True)
     text = f"step: {step:03d}"
     bbox = draw.textbbox((0, 0), text, font=font)
     x = (image.width - (bbox[2] - bbox[0])) / 2

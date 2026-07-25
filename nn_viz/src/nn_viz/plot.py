@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgb
 
-from nn_viz._rendering import _display_nodes
+from nn_viz._rendering import display_nodes
 from nn_viz.layout import Edge, NetworkLayout, Node
 
 _NODE_SIZE = 78.0
@@ -28,13 +28,13 @@ def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None
         The network as Matplotlib Figure.
     """
     fig, ax = plt.subplots(figsize=(13, 5), dpi=160)
-    display_nodes = _display_nodes(layout.nodes)
-    nodes = {(node.layer, node.index): node for node in display_nodes}
+    display_layout_nodes = display_nodes(layout.nodes)
+    nodes = {(node.layer, node.index): node for node in display_layout_nodes}
     _draw_edges(ax, layout.edges, nodes)
-    _draw_nodes(ax, display_nodes)
-    _label_outputs(ax, display_nodes)
-    _label_hidden_nodes(ax, display_nodes)
-    ax.set_xlim(_x_limits(display_nodes))
+    _draw_nodes(ax, display_layout_nodes)
+    _label_outputs(ax, display_layout_nodes)
+    _label_hidden_nodes(ax, display_layout_nodes)
+    ax.set_xlim(_x_limits(display_layout_nodes))
     ax.set_ylim(2.35, -0.35)
     ax.axis("off")
     fig.tight_layout(pad=0.2)

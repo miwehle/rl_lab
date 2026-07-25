@@ -15,15 +15,15 @@ from nn_viz.layout import Edge, NetworkLayout, Node
 _LAYOUT_X_PAD = 0.16
 _LAYOUT_TOP_MARGIN_RATIO = 0.18
 _LAYOUT_BOTTOM_MARGIN_RATIO = 0.24
-_EDGE_SKIP_ACTIVATION_DEFAULT = 0.50
-_EDGE_SKIP_WEIGHT_DEFAULT = 0.50
-_EDGE_RENDERER_DEFAULT = "pillow"
+EDGE_SKIP_ACTIVATION_DEFAULT = 0.50
+EDGE_SKIP_WEIGHT_DEFAULT = 0.50
+EDGE_RENDERER_DEFAULT = "pillow"
 _LAYER_Y = {"out": -0.125, "h2": 0.125, "h1": 0.375, "in": 0.625}
 _INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 
 
 @dataclass(frozen=True)
-class _NetworkState:
+class NetworkState:
     """Averaged NN state used for rendering."""
 
     inputs: np.ndarray
@@ -34,27 +34,27 @@ class _NetworkState:
 
 
 @dataclass(frozen=True)
-class _EdgeStyle:
+class EdgeStyle:
     fill: tuple[int, int, int, int]
     nominal_width: float
 
 
-def _render_state_layout_rgba(
+def render_state_layout_rgba(
     layout: NetworkLayout,
-    state: _NetworkState,
+    state: NetworkState,
     *,
     width: int,
     height: int,
     scales: Mapping[str, Any] | None = None,
-    edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
-    edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
-    edge_renderer: str = _EDGE_RENDERER_DEFAULT,
+    edge_skip_activation: float = EDGE_SKIP_ACTIVATION_DEFAULT,
+    edge_skip_weight: float = EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_renderer: str = EDGE_RENDERER_DEFAULT,
     label_mode: str = "video",
 ) -> np.ndarray:
     """Render the existing layout as an RGBA overlay for one NN state."""
-    weight_scale = _scale_value(scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0))
-    activation_scale = _scale_value(scales, "activation", _max_source_magnitude(layout.edges, state))
-    fallback_scales = _node_fallback_scales(state)
+    weight_scale = scale_value(scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0))
+    activation_scale = scale_value(scales, "activation", max_source_magnitude(layout.edges, state))
+    fallback_scales = node_fallback_scales(state)
 
     def node_fill(node: Node) -> tuple[int, int, int, int]:
         return _node_color(node, state, scales, fallback_scales)
@@ -64,21 +64,21 @@ def _render_state_layout_rgba(
             return (250, 204, 21, 255), max(1, int(round(radius / 3)))
         return (17, 24, 39, 255), 1
 
-    def edge_style(edge: Edge) -> _EdgeStyle | None:
-        source_value = _source_value(edge, state)
+    def edge_style(edge: Edge) -> EdgeStyle | None:
+        src_value = source_value(edge, state)
         if _skip_edge(
-            source_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight
+            src_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight
         ):
             return None
-        return _EdgeStyle(
+        return EdgeStyle(
             fill=(
                 *color_scheme.signed_color(edge.weight, weight_scale),
-                color_scheme.alpha(source_value, activation_scale),
+                color_scheme.alpha(src_value, activation_scale),
             ),
             nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
         )
 
-    return _render_layout_rgba(
+    return render_layout_rgba(
         layout,
         width=width,
         height=height,
@@ -116,21 +116,21 @@ def _layout_transform(
     return transform
 
 
-def _render_layout_rgba(
+def render_layout_rgba(
     layout: NetworkLayout,
     *,
     width: int,
     height: int,
     node_fill: Callable[[Node], tuple[int, int, int, int]],
     node_outline: Callable[[Node, float], tuple[tuple[int, int, int, int], int]],
-    edge_style: Callable[[Edge], _EdgeStyle | None],
+    edge_style: Callable[[Edge], EdgeStyle | None],
     edge_renderer: str,
     label_mode: str,
 ) -> np.ndarray:
     from PIL import Image, ImageDraw
 
     image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    nodes = _display_nodes(layout.nodes)
+    nodes = display_nodes(layout.nodes)
     node_by_key = {(node.layer, node.index): node for node in nodes}
     transform = _layout_transform(nodes, width=width, height=height)
 
@@ -143,12 +143,12 @@ def _render_layout_rgba(
     return np.asarray(image, dtype=np.uint8)
 
 
-def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
+def display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
     output_nodes = [node for node in nodes if node.layer == "out"]
     output_span = _span(output_nodes)
     h2_nodes = [node for node in nodes if node.layer == "h2"]
     h1_nodes = [node for node in nodes if node.layer == "h1"]
-    input_nodes = [node for node in nodes if node.layer == "in"]
+    input_layer_nodes = [node for node in nodes if node.layer == "in"]
     hidden_frame = _hidden_frame(h2_nodes, fallback_span=output_span)
     output_ordered = sorted(output_nodes, key=lambda node: (node.x, node.index))
     h2_ordered = tuple(node for group in _output_groups(h2_nodes, output_ordered) for node in group)
@@ -159,7 +159,7 @@ def _display_nodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
         _group_start_nodes(output_ordered, h2_nodes, h2_display_nodes, fallback_span=output_span)
         + h2_display_nodes
         + _equidistant_nodes(h1_nodes, center=hidden_frame[2], spacing=hidden_frame[3])
-        + _input_nodes(input_nodes, left=hidden_frame[0], right=hidden_frame[1])
+        + _input_nodes(input_layer_nodes, left=hidden_frame[0], right=hidden_frame[1])
     )
 
 
@@ -260,7 +260,7 @@ def _draw_styled_edges(
     nodes: dict[tuple[str, int], Node],
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    edge_style: Callable[[Edge], _EdgeStyle | None],
+    edge_style: Callable[[Edge], EdgeStyle | None],
     *,
     edge_renderer: str,
 ):
@@ -280,7 +280,7 @@ def _draw_styled_edges_pillow(
     nodes: dict[tuple[str, int], Node],
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    edge_style: Callable[[Edge], _EdgeStyle | None],
+    edge_style: Callable[[Edge], EdgeStyle | None],
 ) -> None:
     for edge in edges:
         source = nodes.get((edge.source_layer, edge.source_index))
@@ -302,7 +302,7 @@ def _draw_styled_edges_aggdraw(
     nodes: dict[tuple[str, int], Node],
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    edge_style: Callable[[Edge], _EdgeStyle | None],
+    edge_style: Callable[[Edge], EdgeStyle | None],
 ):
     aggdraw = _load_aggdraw()
     draw = aggdraw.Draw(image)
@@ -356,7 +356,7 @@ def _draw_labels(
 ) -> None:
     if label_mode not in {"video", "indices"}:
         raise ValueError("label_mode must be 'video' or 'indices'")
-    font = _load_font(max(8, height // 36)) if label_mode == "indices" else _load_font(max(16, height // 18))
+    font = load_font(max(8, height // 36)) if label_mode == "indices" else load_font(max(16, height // 18))
     for node in nodes:
         x, y = transform(node.x, node.y)
         if label_mode == "indices":
@@ -367,7 +367,7 @@ def _draw_labels(
             _draw_centered_text(draw, (x, y + height * 0.085), node.label, font, fill=(17, 24, 39, 255))
 
 
-def _default_node_outline(_node: Node, _radius: float) -> tuple[tuple[int, int, int, int], int]:
+def default_node_outline(_node: Node, _radius: float) -> tuple[tuple[int, int, int, int], int]:
     return (17, 24, 39, 255), 1
 
 
@@ -380,11 +380,11 @@ def _draw_centered_text(
     draw.text((x, y), text, font=font, fill=fill)
 
 
-def _max_source_magnitude(edges: tuple[Edge, ...], state: _NetworkState) -> float:
-    return max((abs(_source_value(edge, state)) for edge in edges), default=0.0)
+def max_source_magnitude(edges: tuple[Edge, ...], state: NetworkState) -> float:
+    return max((abs(source_value(edge, state)) for edge in edges), default=0.0)
 
 
-def _source_value(edge: Edge, state: _NetworkState) -> float:
+def source_value(edge: Edge, state: NetworkState) -> float:
     if edge.source_layer == "in":
         return _component(state.inputs, edge.source_index)
     if edge.source_layer == "h1":
@@ -408,7 +408,7 @@ def _skip_edge(
     )
 
 
-def _node_value(node: Node, state: _NetworkState) -> float:
+def node_value(node: Node, state: NetworkState) -> float:
     if node.layer == "in":
         return _component(state.inputs, node.index)
     if node.layer == "h1":
@@ -426,7 +426,7 @@ def _component(values: np.ndarray, index: int) -> float:
     return float(values[index])
 
 
-def _node_fallback_scales(state: _NetworkState) -> dict[str, float]:
+def node_fallback_scales(state: NetworkState) -> dict[str, float]:
     hidden_values = np.concatenate([state.h1, state.h2])
     return {
         "input": float(np.max(np.abs(state.inputs))) if state.inputs.size else 0.0,
@@ -435,14 +435,14 @@ def _node_fallback_scales(state: _NetworkState) -> dict[str, float]:
     }
 
 
-def _scale_value(scales: Mapping[str, Any] | None, key: str, fallback: float) -> float:
+def scale_value(scales: Mapping[str, Any] | None, key: str, fallback: float) -> float:
     if scales is None or key not in scales:
         return fallback
     scale = float(scales[key])
     return scale if scale > 0.0 else fallback
 
 
-def _input_scale(scales: Mapping[str, Any] | None, index: int, fallback: float) -> float:
+def input_scale(scales: Mapping[str, Any] | None, index: int, fallback: float) -> float:
     if scales is None or "input" not in scales:
         return fallback
     input_scales = np.asarray(scales["input"], dtype=np.float32)
@@ -454,25 +454,25 @@ def _input_scale(scales: Mapping[str, Any] | None, index: int, fallback: float) 
 
 def _node_color(
     node: Node,
-    state: _NetworkState,
+    state: NetworkState,
     scales: Mapping[str, Any] | None,
     fallback_scales: Mapping[str, float],
 ) -> tuple[int, int, int, int]:
-    value = _node_value(node, state)
+    value = node_value(node, state)
     if node.layer == "in":
-        scale = _input_scale(scales, node.index, fallback_scales["input"])
+        scale = input_scale(scales, node.index, fallback_scales["input"])
         return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
     if node.layer in {"h1", "h2"}:
-        scale = _scale_value(scales, "hidden", fallback_scales["hidden"])
+        scale = scale_value(scales, "hidden", fallback_scales["hidden"])
         return (*color_scheme.heat_color(value, scale), 255)
     if node.layer == "out":
-        scale = _scale_value(scales, "output", fallback_scales["output"])
+        scale = scale_value(scales, "output", fallback_scales["output"])
         return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
     return (128, 128, 128, 255)
 
 
 @lru_cache(maxsize=16)
-def _load_font(size: int, *, bold: bool = False):
+def load_font(size: int, *, bold: bool = False):
     from PIL import ImageFont
 
     font_names = ("arialbd.ttf", "arial.ttf") if bold else ("arial.ttf",)

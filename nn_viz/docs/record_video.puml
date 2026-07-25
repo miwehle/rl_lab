@@ -23,7 +23,7 @@ Video -> Wrapper : create wrapper with overlay_provider\n[[WORKSPACE_ROOT/nn_viz
 
 loop video frames
     Wrapper -> Wrapper : render()
-    Wrapper -> Rendering : [[WORKSPACE_ROOT/nn_viz/src/nn_viz/_rendering.py:40:1 _render_state_layout_rgba(...)]]
+    Wrapper -> Rendering : [[WORKSPACE_ROOT/nn_viz/src/nn_viz/_rendering.py:42:1 render_state_layout_rgba(...)]]
     Rendering --> Wrapper : NN RGBA image
     Wrapper -> Wrapper : _compose_bottom_overlay(...)\n[[WORKSPACE_ROOT/nn_viz/src/nn_viz/video.py:261:1 _compose_bottom_overlay(...)]]
 end

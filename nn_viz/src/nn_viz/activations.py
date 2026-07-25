@@ -102,7 +102,7 @@ def _collect_episode(
     score = 0.0
     try:
         for step in range(spec.max_steps):
-            h1, h2, q = _forward_activations(q_net, observation, device)
+            h1, h2, q = forward_activations(q_net, observation, device)
             action = int(np.argmax(q))
             observations.append(np.asarray(observation, dtype=np.float32))
             h1_values.append(h1)
@@ -126,7 +126,7 @@ def _collect_episode(
         env.close()
 
 
-def _forward_activations(
+def forward_activations(
     q_net: DQN, observation: np.ndarray, device: Any
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     x = torch.as_tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)

@@ -5,11 +5,11 @@ import gymnasium as gym
 
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz._rendering import (
-    _NetworkState,
+    NetworkState,
     _layout_transform,
     _node_color,
-    _node_fallback_scales,
-    _render_state_layout_rgba,
+    node_fallback_scales,
+    render_state_layout_rgba,
     _skip_edge,
 )
 from nn_viz.trace import _load_trace_state, render_trace_diff, render_trace_step
@@ -190,7 +190,7 @@ def test_state_averager_uses_growing_then_rolling_window():
 
 
 def test_render_state_layout_rgba_returns_nonblank_overlay():
-    state = _NetworkState(
+    state = NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -198,7 +198,7 @@ def test_render_state_layout_rgba_returns_nonblank_overlay():
         action=1,
     )
 
-    rgba = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120)
+    rgba = render_state_layout_rgba(minimal_layout(), state, width=240, height=120)
 
     assert rgba.shape == (120, 240, 4)
     assert rgba.dtype == np.uint8
@@ -239,7 +239,7 @@ def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         Pen = FakePen
 
     monkeypatch.setattr(rendering, "_load_aggdraw", lambda: FakeAggdraw)
-    state = _NetworkState(
+    state = NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -247,7 +247,7 @@ def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
         action=1,
     )
 
-    rgba = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, edge_renderer="aggdraw")
+    rgba = render_state_layout_rgba(minimal_layout(), state, width=240, height=120, edge_renderer="aggdraw")
 
     assert rgba.shape == (120, 240, 4)
     assert FakeDraw.calls
@@ -255,7 +255,7 @@ def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
 
 
 def test_render_state_layout_rgba_rejects_unknown_edge_renderer():
-    state = _NetworkState(
+    state = NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -264,11 +264,11 @@ def test_render_state_layout_rgba_rejects_unknown_edge_renderer():
     )
 
     with pytest.raises(ValueError, match="edge_renderer"):
-        _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, edge_renderer="weird")
+        render_state_layout_rgba(minimal_layout(), state, width=240, height=120, edge_renderer="weird")
 
 
 def test_render_state_layout_rgba_rejects_unknown_label_mode():
-    state = _NetworkState(
+    state = NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -277,11 +277,11 @@ def test_render_state_layout_rgba_rejects_unknown_label_mode():
     )
 
     with pytest.raises(ValueError, match="label_mode"):
-        _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="weird")
+        render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="weird")
 
 
 def test_render_state_layout_rgba_can_label_node_indices():
-    state = _NetworkState(
+    state = NetworkState(
         inputs=np.array([2.0]),
         h1=np.array([3.0]),
         h2=np.array([4.0]),
@@ -289,8 +289,8 @@ def test_render_state_layout_rgba_can_label_node_indices():
         action=1,
     )
 
-    video_labels = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="video")
-    index_labels = _render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="indices")
+    video_labels = render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="video")
+    index_labels = render_state_layout_rgba(minimal_layout(), state, width=240, height=120, label_mode="indices")
 
     assert not np.array_equal(video_labels, index_labels)
 
@@ -408,14 +408,14 @@ def test_skip_edge_requires_low_activation_and_low_weight():
 
 
 def test_hidden_nodes_use_one_shared_hidden_scale():
-    state = _NetworkState(
+    state = NetworkState(
         inputs=np.array([0.0]),
         h1=np.array([4.0]),
         h2=np.array([4.0]),
         q_values=np.array([0.0]),
         action=0,
     )
-    fallback_scales = _node_fallback_scales(state)
+    fallback_scales = node_fallback_scales(state)
 
     h1_color = _node_color(Node("h1", 0, "H1-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
     h2_color = _node_color(Node("h2", 0, "H2-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
@@ -432,7 +432,7 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     monkeypatch.setattr(video, "RecordVideo", FakeRecordVideo)
     monkeypatch.setattr(
         video,
-        "_render_state_layout_rgba",
+        "render_state_layout_rgba",
         lambda _layout,
         state,
         *,

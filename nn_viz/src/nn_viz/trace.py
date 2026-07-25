@@ -10,24 +10,24 @@ import numpy as np
 import nn_viz.color_scheme as color_scheme
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz._rendering import (
-    _EDGE_RENDERER_DEFAULT,
-    _EDGE_SKIP_ACTIVATION_DEFAULT,
-    _EDGE_SKIP_WEIGHT_DEFAULT,
-    _EdgeStyle,
-    _NetworkState,
-    _default_node_outline,
-    _input_scale,
-    _max_source_magnitude,
-    _node_fallback_scales,
-    _node_value,
-    _render_layout_rgba,
-    _render_state_layout_rgba,
-    _scale_value,
-    _source_value,
+    EDGE_RENDERER_DEFAULT,
+    EDGE_SKIP_ACTIVATION_DEFAULT,
+    EDGE_SKIP_WEIGHT_DEFAULT,
+    EdgeStyle,
+    NetworkState,
+    default_node_outline,
+    input_scale,
+    max_source_magnitude,
+    node_fallback_scales,
+    node_value,
+    render_layout_rgba,
+    render_state_layout_rgba,
+    scale_value,
+    source_value,
 )
 
 
-def _load_trace_state(trace_path: str | Path, *, step: int, window_steps: int = 1) -> _NetworkState:
+def _load_trace_state(trace_path: str | Path, *, step: int, window_steps: int = 1) -> NetworkState:
     """Load one raw or backward-window-mean NN state from a saved trace."""
     with np.load(trace_path) as trace:
         return _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
@@ -43,9 +43,9 @@ def render_trace_step(
     width: int = 1280,
     height: int = 360,
     scales: Mapping[str, Any] | None = None,
-    edge_skip_activation: float = _EDGE_SKIP_ACTIVATION_DEFAULT,
-    edge_skip_weight: float = _EDGE_SKIP_WEIGHT_DEFAULT,
-    edge_renderer: str = _EDGE_RENDERER_DEFAULT,
+    edge_skip_activation: float = EDGE_SKIP_ACTIVATION_DEFAULT,
+    edge_skip_weight: float = EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_renderer: str = EDGE_RENDERER_DEFAULT,
     label_mode: str = "indices",
 ) -> Path:
     """Render one trace step and save the image to output_path."""
@@ -54,7 +54,7 @@ def render_trace_step(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     state = _load_trace_state(trace_path, step=step, window_steps=window_steps)
-    rgba = _render_state_layout_rgba(
+    rgba = render_state_layout_rgba(
         layout,
         state,
         width=width,
@@ -98,7 +98,7 @@ def render_trace_diff(
 
 def _trace_state_from_arrays(
     trace: Mapping[str, np.ndarray], *, step: int, window_steps: int
-) -> _NetworkState:
+) -> NetworkState:
     if window_steps < 1:
         raise ValueError("window_steps must be >= 1")
     steps = np.asarray(trace["steps"])
@@ -108,7 +108,7 @@ def _trace_state_from_arrays(
     row_index = int(matches[0])
     start = max(0, row_index - window_steps + 1)
     stop = row_index + 1
-    return _NetworkState(
+    return NetworkState(
         inputs=np.mean(trace["observations"][start:stop], axis=0, dtype=np.float32),
         h1=np.mean(trace["h1"][start:stop], axis=0, dtype=np.float32),
         h2=np.mean(trace["h2"][start:stop], axis=0, dtype=np.float32),
@@ -117,8 +117,8 @@ def _trace_state_from_arrays(
     )
 
 
-def _diff_state(from_state: _NetworkState, to_state: _NetworkState) -> _NetworkState:
-    return _NetworkState(
+def _diff_state(from_state: NetworkState, to_state: NetworkState) -> NetworkState:
+    return NetworkState(
         inputs=to_state.inputs - from_state.inputs,
         h1=to_state.h1 - from_state.h1,
         h2=to_state.h2 - from_state.h2,
@@ -142,30 +142,30 @@ def _trace_scales_from_arrays(trace: Mapping[str, np.ndarray], layout: NetworkLa
 
 
 def _render_diff_layout_rgba(
-    layout: NetworkLayout, diff_state: _NetworkState, *, scales: Mapping[str, Any], width: int, height: int
+    layout: NetworkLayout, diff_state: NetworkState, *, scales: Mapping[str, Any], width: int, height: int
 ) -> np.ndarray:
-    weight_scale = _scale_value(
+    weight_scale = scale_value(
         scales, "weight", max((abs(edge.weight) for edge in layout.edges), default=0.0)
     )
-    activation_scale = _scale_value(scales, "activation", _max_source_magnitude(layout.edges, diff_state))
+    activation_scale = scale_value(scales, "activation", max_source_magnitude(layout.edges, diff_state))
     edge_scale = activation_scale * weight_scale
-    fallback_scales = _node_fallback_scales(diff_state)
+    fallback_scales = node_fallback_scales(diff_state)
 
     def node_fill(node: Node) -> tuple[int, int, int, int]:
-        value = _node_value(node, diff_state)
+        value = node_value(node, diff_state)
         if node.layer == "in":
-            scale = _input_scale(scales, node.index, fallback_scales["input"])
+            scale = input_scale(scales, node.index, fallback_scales["input"])
         elif node.layer in {"h1", "h2"}:
-            scale = _scale_value(scales, "hidden", fallback_scales["hidden"])
+            scale = scale_value(scales, "hidden", fallback_scales["hidden"])
         elif node.layer == "out":
-            scale = _scale_value(scales, "output", fallback_scales["output"])
+            scale = scale_value(scales, "output", fallback_scales["output"])
         else:
             scale = 0.0
         return (*color_scheme.signed_color(value, scale), color_scheme.alpha(value, scale))
 
-    def edge_style(edge: Edge) -> _EdgeStyle | None:
-        edge_delta = _source_value(edge, diff_state) * edge.weight
-        return _EdgeStyle(
+    def edge_style(edge: Edge) -> EdgeStyle | None:
+        edge_delta = source_value(edge, diff_state) * edge.weight
+        return EdgeStyle(
             fill=(
                 *color_scheme.signed_color(edge_delta, edge_scale),
                 color_scheme.alpha(edge_delta, edge_scale),
@@ -173,12 +173,12 @@ def _render_diff_layout_rgba(
             nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
         )
 
-    return _render_layout_rgba(
+    return render_layout_rgba(
         layout,
         width=width,
         height=height,
         node_fill=node_fill,
-        node_outline=_default_node_outline,
+        node_outline=default_node_outline,
         edge_style=edge_style,
         edge_renderer="pillow",
         label_mode="indices",
