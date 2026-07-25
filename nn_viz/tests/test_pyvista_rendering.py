@@ -37,13 +37,44 @@ def test_render_layout_snapshot_uses_node_z_and_edge_endpoints(monkeypatch, tmp_
     fake_pyvista = FakePyVista()
     monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
 
-    render_layout_snapshot(_layout(), tmp_path / "snapshot.png")
+    render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="line")
 
     assert fake_pyvista.spheres == [
         {"radius": 0.055, "center": (0.0, 0.0, 0.0)},
         {"radius": 0.055, "center": (1.0, 2.0, 3.0)},
     ]
     assert fake_pyvista.lines == [((0.0, 0.0, 0.0), (1.0, 2.0, 3.0))]
+
+
+def test_render_layout_snapshot_defaults_to_tubes_with_weighted_edge_width(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    render_layout_snapshot(_layout(), tmp_path / "snapshot.png")
+
+    assert fake_pyvista.tubes == [{"radius": pytest.approx(0.026), "n_sides": 8}]
+    edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
+    assert edge_mesh.kind == "tube"
+    assert edge_kwargs == {"color": "#dc2626", "smooth_shading": True}
+
+
+def test_render_layout_snapshot_can_use_thin_lines(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="line")
+
+    edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
+    assert edge_mesh.kind == "line"
+    assert edge_kwargs == {"color": "#dc2626", "line_width": 3}
+
+
+def test_render_layout_snapshot_rejects_unknown_edge_geometry(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    with pytest.raises(ValueError, match="edge_geometry"):
+        render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="weird")
 
 
 def _layout() -> NetworkLayout:
@@ -61,6 +92,7 @@ class FakePyVista:
         self.plotters = []
         self.spheres = []
         self.lines = []
+        self.tubes = []
 
     def Plotter(self, *, off_screen, window_size):
         plotter = FakePlotter(off_screen, tuple(window_size))
@@ -75,7 +107,21 @@ class FakePyVista:
     def Line(self, pointa, pointb):
         line = (pointa, pointb)
         self.lines.append(line)
-        return SimpleNamespace(kind="line", pointa=pointa, pointb=pointb)
+        return FakeLine(self, pointa, pointb)
+
+
+class FakeLine:
+    kind = "line"
+
+    def __init__(self, pyvista, pointa, pointb):
+        self.pyvista = pyvista
+        self.pointa = pointa
+        self.pointb = pointb
+
+    def tube(self, *, radius, n_sides):
+        tube = {"radius": radius, "n_sides": n_sides}
+        self.pyvista.tubes.append(tube)
+        return SimpleNamespace(kind="tube", **tube)
 
 
 class FakePlotter:
