@@ -19,6 +19,9 @@ _INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 def plot_network_layout(layout: NetworkLayout, *, output_path: str | Path | None = None):
     """Plot a compact static network layout and optionally save it.
 
+    This is the working horse of nn_viz.
+    It's job: NetworkLayout -> Figure
+
     Returns:
         The network as Matplotlib Figure.
     """
