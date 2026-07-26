@@ -1,4 +1,4 @@
-"""Internal PyVista rendering for 3D NN layout snapshots."""
+"""Internal PyVista rendering for 3D NN state snapshots."""
 
 from __future__ import annotations
 
@@ -25,31 +25,6 @@ _EDGE_GEOMETRY_DEFAULT = "tube"
 _NODE_RADIUS_DEFAULT = 0.055
 _MIN_TUBE_RADIUS = 0.006
 _MAX_TUBE_RADIUS = 0.026
-
-
-def render_layout_snapshot(
-    layout: NetworkLayout,
-    output_path: str | Path,
-    *,
-    width: int = 1280,
-    height: int = 720,
-    node_radius: float = _NODE_RADIUS_DEFAULT,
-    edge_geometry: str = _EDGE_GEOMETRY_DEFAULT,
-) -> Path:
-    """Render an offscreen 3D layout snapshot to output_path."""
-    pv = load_pyvista()
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    plotter = pv.Plotter(off_screen=True, window_size=(width, height))
-    try:
-        plotter.set_background(_BACKGROUND)
-        _add_edges(plotter, pv, layout, edge_geometry)
-        _add_nodes(plotter, pv, layout.nodes, node_radius, _activity_scale(layout.nodes))
-        _set_semantic_camera(plotter, layout.nodes)
-        plotter.screenshot(filename=str(output_path))
-    finally:
-        plotter.close()
-    return output_path
 
 
 def render_state_snapshot(
@@ -139,16 +114,6 @@ def _state_plotter(
     return plotter
 
 
-def _add_nodes(plotter, pv, nodes: tuple[Node, ...], radius: float, activity_scale: float) -> None:
-    for node in nodes:
-        sphere = pv.Sphere(radius=radius, center=(node.x, node.y, node.z))
-        plotter.add_mesh(
-            sphere,
-            color=_rgb_hex(color_scheme.heat_color(node.activity, activity_scale)),
-            smooth_shading=True,
-        )
-
-
 def _add_state_nodes(
     plotter,
     pv,
@@ -165,26 +130,6 @@ def _add_state_nodes(
             color=_rgb_hex(_state_node_color(node, state, scales, fallback_scales)),
             smooth_shading=True,
         )
-
-
-def _add_edges(plotter, pv, layout: NetworkLayout, edge_geometry: str) -> None:
-    if edge_geometry not in {"line", "tube"}:
-        raise ValueError("edge_geometry must be 'line' or 'tube'")
-    nodes = {(node.layer, node.index): node for node in layout.nodes}
-    weight_scale = _weight_scale(layout.edges)
-    for edge in layout.edges:
-        source = nodes.get((edge.source_layer, edge.source_index))
-        target = nodes.get((edge.target_layer, edge.target_index))
-        if source is None or target is None:
-            continue
-        line = pv.Line((source.x, source.y, source.z), (target.x, target.y, target.z))
-        color = _rgb_hex(color_scheme.signed_color(edge.weight, weight_scale))
-        if edge_geometry == "line":
-            line_width = max(1, int(round(color_scheme.edge_width(edge.weight, weight_scale))))
-            plotter.add_mesh(line, color=color, line_width=line_width)
-        else:
-            tube = line.tube(radius=_tube_radius(edge.weight, weight_scale), n_sides=8)
-            plotter.add_mesh(tube, color=color, smooth_shading=True)
 
 
 def _add_state_edges(
@@ -218,10 +163,6 @@ def _add_state_edges(
         else:
             tube = line.tube(radius=_tube_radius(edge.weight, weight_scale), n_sides=8)
             plotter.add_mesh(tube, color=color, opacity=opacity, smooth_shading=True)
-
-
-def _activity_scale(nodes: tuple[Node, ...]) -> float:
-    return max((node.activity for node in nodes), default=0.0)
 
 
 def _weight_scale(edges: tuple[Edge, ...]) -> float:

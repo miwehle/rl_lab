@@ -6,7 +6,6 @@ import pytest
 
 from nn_viz._pyvista_rendering import (
     load_pyvista,
-    render_layout_snapshot,
     render_state_html,
     render_state_snapshot,
 )
@@ -21,12 +20,25 @@ def clear_pyvista_cache():
     load_pyvista.cache_clear()
 
 
-def test_render_layout_snapshot_writes_offscreen_scene(monkeypatch, tmp_path):
+def test_render_state_snapshot_uses_node_z_and_edge_endpoints(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    render_state_snapshot(_layout(), _state(), tmp_path / "snapshot.png", edge_geometry="line")
+
+    assert fake_pyvista.spheres == [
+        {"radius": 0.055, "center": (0.0, 0.0, 0.0)},
+        {"radius": 0.055, "center": (1.0, 2.0, 3.0)},
+    ]
+    assert fake_pyvista.lines == [((0.0, 0.0, 0.0), (1.0, 2.0, 3.0))]
+
+
+def test_render_state_snapshot_writes_offscreen_scene(monkeypatch, tmp_path):
     fake_pyvista = FakePyVista()
     monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
     output_path = tmp_path / "snapshot.png"
 
-    result = render_layout_snapshot(_layout(), output_path, width=320, height=240, node_radius=0.2)
+    result = render_state_snapshot(_layout(), _state(), output_path, width=320, height=240, node_radius=0.2)
 
     plotter = fake_pyvista.plotters[0]
     assert result == output_path
@@ -42,51 +54,39 @@ def test_render_layout_snapshot_writes_offscreen_scene(monkeypatch, tmp_path):
     ]
     assert plotter.camera.parallel_scale == pytest.approx(1.95)
     assert plotter.reset_camera_clipping_range_called is True
+    assert plotter.axes_shown is True
     assert plotter.closed is True
 
 
-def test_render_layout_snapshot_uses_node_z_and_edge_endpoints(monkeypatch, tmp_path):
+def test_render_state_snapshot_defaults_to_tubes_with_weighted_edge_width(monkeypatch, tmp_path):
     fake_pyvista = FakePyVista()
     monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
 
-    render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="line")
-
-    assert fake_pyvista.spheres == [
-        {"radius": 0.055, "center": (0.0, 0.0, 0.0)},
-        {"radius": 0.055, "center": (1.0, 2.0, 3.0)},
-    ]
-    assert fake_pyvista.lines == [((0.0, 0.0, 0.0), (1.0, 2.0, 3.0))]
-
-
-def test_render_layout_snapshot_defaults_to_tubes_with_weighted_edge_width(monkeypatch, tmp_path):
-    fake_pyvista = FakePyVista()
-    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
-
-    render_layout_snapshot(_layout(), tmp_path / "snapshot.png")
+    render_state_snapshot(_layout(), _state(), tmp_path / "snapshot.png")
 
     assert fake_pyvista.tubes == [{"radius": pytest.approx(0.026), "n_sides": 8}]
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "tube"
-    assert edge_kwargs == {"color": "#dc2626", "smooth_shading": True}
+    assert edge_kwargs == {"color": "#dc2626", "opacity": 1.0, "smooth_shading": True}
 
 
-def test_render_layout_snapshot_can_use_thin_lines(monkeypatch, tmp_path):
+def test_render_state_snapshot_can_use_thin_lines(monkeypatch, tmp_path):
     fake_pyvista = FakePyVista()
     monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
 
-    render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="line")
+    render_state_snapshot(_layout(), _state(), tmp_path / "snapshot.png", edge_geometry="line")
 
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "line"
-    assert edge_kwargs == {"color": "#dc2626", "line_width": 3}
+    assert edge_kwargs == {"color": "#dc2626", "line_width": 3, "opacity": 1.0}
 
 
-def test_render_layout_snapshot_rejects_unknown_edge_geometry(monkeypatch, tmp_path):
+def test_render_state_snapshot_rejects_unknown_edge_geometry(monkeypatch, tmp_path):
     fake_pyvista = FakePyVista()
     monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
 
     with pytest.raises(ValueError, match="edge_geometry"):
-        render_layout_snapshot(_layout(), tmp_path / "snapshot.png", edge_geometry="weird")
+        render_state_snapshot(_layout(), _state(), tmp_path / "snapshot.png", edge_geometry="weird")
 
 
 def test_render_state_snapshot_colors_edges_by_contribution_sign_and_weight_intensity(

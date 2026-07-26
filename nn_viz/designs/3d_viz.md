@@ -29,15 +29,7 @@ The first renderer module should be explicitly PyVista-specific. A generic `spat
 
 ## First Step
 
-Implement the smallest useful snapshot path:
-
-```python
-render_layout_snapshot(layout, output_path, ...)
-```
-
-It should first draw nodes as spheres and edges as simple thin lines, using `node.x`, `node.y`, and `node.z`. Tubes, labels, styling, and animation can wait.
-
-The first useful trace-facing helper should follow soon after:
+Implement the smallest useful trace-facing helper:
 
 ```python
 render_trace_step_3d(trace_path, layout, output_path, *, step, window_steps=1, ...)
@@ -89,22 +81,12 @@ Stage 2: Spatial semantic layout.
 - test H1/H2 weighted-mean placement
 - test layer heights via `z`
 
-Stage 2.5: PyVista smoke snapshot.
+Stage 3: Styled PyVista state snapshot.
 
 - add `nn_viz/_pyvista_rendering.py`
-- implement `render_layout_snapshot(layout, output_path, ...)`
-- offscreen PNG only
-- render nodes as simple spheres
-- render edges as simple thin lines
-- use fixed neutral colors
-- no tubes
-- no labels
-- no trace-state coloring
-
-Stage 3: Styled PyVista snapshot.
-
+- render one NN state as an offscreen PNG
 - add edge thickness from `abs(w)`, likely via tubes
-- add node color from activity or state
+- add node color from state
 - add edge color/intensity modes
 - keep labels and dynamic coloring optional for later
 
@@ -246,14 +228,6 @@ This keeps per-target structure while dropping weak tubes without letting the us
 3D snapshot cells should live in the existing `nn_viz/notebooks/micro_elise_nn_video.ipynb`.
 
 Reason: the video notebook already creates the relevant context: `layout`, `trace_path`, selected step, window size, and result directory. Keeping the 3D cells there avoids opening a second notebook just to inspect one rollout step in 3D.
-
-First notebook cell:
-
-```text
-# cell: render-3d-smoke; requires: build-layout
-```
-
-Later, after `render_trace_step_3d(...)` exists:
 
 ```text
 # cell: render-trace-step-3d; requires: record-video
