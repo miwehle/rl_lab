@@ -18,7 +18,6 @@ During rendering, the current step value is compared with this fixed scale. Valu
 ```python
 alpha(value, scale) -> int
 signed_color(value, scale) -> RGB
-heat_color(value, scale) -> RGB
 edge_width(weight, scale) -> float
 ```
 
@@ -38,8 +37,6 @@ value < 0: blue
 value = 0: gray
 value > 0: red
 ```
-
-`heat_color(value, scale)` is for ReLU activations, so there is no sign. Use a heat-like scale with logarithmic compression.
 
 `edge_width(weight, scale)` uses `abs(weight)` and returns a nominal width with logarithmic compression. It does not know the image size.
 
@@ -65,7 +62,7 @@ color = signed_color(input_value, input_scale)
 Hidden neurons:
 
 ```python
-color = heat_color(activation, hidden_scale)
+color = signed_color(activation, hidden_scale)
 ```
 
 Output neurons:
