@@ -46,7 +46,7 @@ def heat_color(value: float, scale: float) -> RGB:
 
 def edge_width(weight: float, scale: float) -> float:
     """Map weight magnitude to a nominal edge width."""
-    return 1.0 + 2.0 * _log_ratio(weight, scale)
+    return 2.0 * _log_ratio(weight, scale)
 
 
 def _log_ratio(value: float, scale: float) -> float:

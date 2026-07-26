@@ -6,6 +6,7 @@ import numpy as np
 
 from dqn.model import DQN
 from nn_viz.activations import ACTION_LABELS, ACTION_ORDER, ActivationRollouts
+from nn_viz.layout.activity import mean_abs_contribution
 from nn_viz.layout.types import INPUT_LABELS, Edge, NetworkLayout, Node
 
 _INPUT_Z = 0.0
@@ -62,13 +63,15 @@ def compute_layout(
     w1 = q_net.layer1.weight.detach().cpu().numpy()
     w2 = q_net.layer2.weight.detach().cpu().numpy()
     w3 = q_net.layer3.weight.detach().cpu().numpy()
+    input_to_h1 = mean_abs_contribution(rollouts.observations, w1)
+    h1_to_h2 = mean_abs_contribution(rollouts.h1, w2)
 
     input_layer_nodes = _input_nodes(rollouts.observations)
     h1_nodes = _hidden_nodes(
         "h1",
         rollouts.h1,
         source_positions=np.asarray([_INPUT_ANCHORS[index] for index in range(len(INPUT_LABELS))]),
-        weights=w1,
+        placement_weights=input_to_h1,
         z=_H1_Z,
         min_node_distance=min_node_distance,
     )
@@ -77,7 +80,7 @@ def compute_layout(
         "h2",
         rollouts.h2,
         source_positions=h1_positions,
-        weights=w2,
+        placement_weights=h1_to_h2,
         z=_H2_Z,
         min_node_distance=min_node_distance,
     )
@@ -112,20 +115,20 @@ def _hidden_nodes(
     activations: np.ndarray,
     *,
     source_positions: np.ndarray,
-    weights: np.ndarray,
+    placement_weights: np.ndarray,
     z: float,
     min_node_distance: float,
 ) -> tuple[Node, ...]:
     fallback = np.mean(source_positions, axis=0)
     positions = np.asarray(
         [
-            _weighted_mean(source_positions, np.abs(weights[index]), fallback)
-            for index in range(weights.shape[0])
+            _weighted_mean(source_positions, placement_weights[index], fallback)
+            for index in range(placement_weights.shape[0])
         ]
     )
-    positions = _separate_points(positions, min_node_distance, _stiffness(weights))
+    positions = _separate_points(positions, min_node_distance, _stiffness(placement_weights))
     nodes = []
-    for index in range(weights.shape[0]):
+    for index in range(placement_weights.shape[0]):
         position = positions[index]
         nodes.append(
             Node(

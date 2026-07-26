@@ -606,7 +606,7 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     recorded_path = record_video(
         TinyQNet(),
         FakeEnvFactory(env),
-        MinimalLayout(),
+        minimal_layout(),
         world="earth",
         seed=123,
         output_path=output_path,
@@ -623,6 +623,9 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     assert trace["h1"].shape == (2, 2)
     assert trace["h2"].shape == (2, 3)
     assert trace["q_values"].shape == (2, 4)
+    assert trace["w1"].shape == (2, 10)
+    assert trace["w2"].shape == (3, 2)
+    assert trace["w3"].shape == (4, 3)
     np.testing.assert_array_equal(trace["actions"], np.argmax(trace["q_values"], axis=1))
 
     summary_rows = (tmp_path / "earth_seed_0_nn_overlay_trace_summary.csv").read_text(
@@ -634,4 +637,5 @@ def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):
     assert states
     assert states[0].action == -1
     np.testing.assert_allclose(states[-1].inputs[:3], [0.5, 1.5, 2.5])
-    assert seen_scales[0] == {"hidden": 20.0}
+    assert seen_scales[0]["hidden"] == 20.0
+    assert seen_scales[0]["weight"] > 0.0

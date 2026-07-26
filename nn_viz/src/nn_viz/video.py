@@ -14,11 +14,16 @@ from gymnasium.wrappers import RecordVideo
 
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 from nn_viz.activations import ACTION_LABELS, forward_activations
+from nn_viz._edges import (
+    EDGE_EFFECT_QUANTILE_DEFAULT,
+    network_edges_from_q_net,
+    scales_with_edge_weight_scale,
+    select_edges_by_effect,
+    weight_arrays_from_q_net,
+)
 from nn_viz.layout import NetworkLayout
 from nn_viz._rendering import (
     EDGE_RENDERER_DEFAULT,
-    EDGE_SKIP_ACTIVATION_DEFAULT,
-    EDGE_SKIP_WEIGHT_DEFAULT,
     NetworkState,
     load_font,
     render_state_layout_rgba,
@@ -42,8 +47,7 @@ def record_video(
     overlay_alpha: float = 0.70,
     window_steps: int = _WINDOW_STEPS_DEFAULT,
     scales: Mapping[str, Any] | None = None,
-    edge_skip_activation: float = EDGE_SKIP_ACTIVATION_DEFAULT,
-    edge_skip_weight: float = EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
     edge_renderer: str = EDGE_RENDERER_DEFAULT,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
@@ -60,6 +64,8 @@ def record_video(
     trace_path = output_path.with_name(f"{output_path.stem}_trace.npz")
     summary_path = output_path.with_name(f"{output_path.stem}_trace_summary.csv")
     q_net.eval()
+    all_edges = network_edges_from_q_net(q_net)
+    render_scales = scales_with_edge_weight_scale(scales, all_edges)
 
     env = env_factory.make_env(world, render_mode="rgb_array")
     if render_cfg is not None:
@@ -72,13 +78,18 @@ def record_video(
         overlay_alpha=overlay_alpha,
         overlay_provider=(
             lambda width, height: render_state_layout_rgba(
-                layout,
+                NetworkLayout(
+                    layout.nodes,
+                    select_edges_by_effect(
+                        all_edges,
+                        averager.state if averager.state is not None else initial_state,
+                        edge_effect_quantile,
+                    ),
+                ),
                 averager.state if averager.state is not None else initial_state,
                 width=width,
                 height=height,
-                scales=scales,
-                edge_skip_activation=edge_skip_activation,
-                edge_skip_weight=edge_skip_weight,
+                scales=render_scales,
                 edge_renderer=edge_renderer,
             )
         ),
@@ -90,7 +101,7 @@ def record_video(
         name_prefix=output_path.stem,
         disable_logger=True,
     )
-    trace = _VideoTrace()
+    trace = _VideoTrace(weights=weight_arrays_from_q_net(q_net))
     try:
         observation, _ = video_env.reset(seed=seed)
         for step in range(max_steps):
@@ -119,6 +130,7 @@ def record_video(
 class _VideoTrace:
     """Per-step NN state collected while recording one video."""
 
+    weights: dict[str, np.ndarray]
     steps: list[int] = field(default_factory=list)
     observations: list[np.ndarray] = field(default_factory=list)
     actions: list[int] = field(default_factory=list)
@@ -150,6 +162,7 @@ class _VideoTrace:
             "h1": np.vstack(self.h1).astype(np.float32, copy=False),
             "h2": np.vstack(self.h2).astype(np.float32, copy=False),
             "q_values": np.vstack(self.q_values).astype(np.float32, copy=False),
+            **self.weights,
         }
 
     def save(self, path: Path) -> None:

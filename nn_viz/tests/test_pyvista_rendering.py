@@ -64,7 +64,7 @@ def test_render_state_snapshot_defaults_to_tubes_with_weighted_edge_width(monkey
 
     render_state_snapshot(_layout(), _state(), tmp_path / "snapshot.png")
 
-    assert fake_pyvista.tubes == [{"radius": pytest.approx(0.026), "n_sides": 8}]
+    assert fake_pyvista.tubes == [{"radius": pytest.approx(0.016), "n_sides": 8}]
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "tube"
     assert edge_kwargs == {"color": "#dc2626", "opacity": 1.0, "smooth_shading": True}

@@ -8,12 +8,16 @@ from typing import Any, Mapping
 import numpy as np
 
 import nn_viz.color_scheme as color_scheme
+from nn_viz._edges import (
+    EDGE_EFFECT_QUANTILE_DEFAULT,
+    network_edges_from_trace,
+    scales_with_edge_weight_scale,
+    select_edges_by_effect,
+)
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz._pyvista_rendering import render_state_html, render_state_snapshot
 from nn_viz._rendering import (
     EDGE_RENDERER_DEFAULT,
-    EDGE_SKIP_ACTIVATION_DEFAULT,
-    EDGE_SKIP_WEIGHT_DEFAULT,
     EdgeStyle,
     NetworkState,
     default_node_outline,
@@ -44,8 +48,7 @@ def render_trace_step(
     width: int = 1280,
     height: int = 360,
     scales: Mapping[str, Any] | None = None,
-    edge_skip_activation: float = EDGE_SKIP_ACTIVATION_DEFAULT,
-    edge_skip_weight: float = EDGE_SKIP_WEIGHT_DEFAULT,
+    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
     edge_renderer: str = EDGE_RENDERER_DEFAULT,
     label_mode: str = "indices",
 ) -> Path:
@@ -54,15 +57,16 @@ def render_trace_step(
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    state = _load_trace_state(trace_path, step=step, window_steps=window_steps)
+    with np.load(trace_path) as trace:
+        state = _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
+        all_edges = network_edges_from_trace(trace, layout)
+        render_scales = scales_with_edge_weight_scale(scales, all_edges)
     rgba = render_state_layout_rgba(
-        layout,
+        NetworkLayout(layout.nodes, select_edges_by_effect(all_edges, state, edge_effect_quantile)),
         state,
         width=width,
         height=height,
-        scales=scales,
-        edge_skip_activation=edge_skip_activation,
-        edge_skip_weight=edge_skip_weight,
+        scales=render_scales,
         edge_renderer=edge_renderer,
         label_mode=label_mode,
     )
@@ -82,19 +86,23 @@ def render_trace_step_3d(
     scales: Mapping[str, Any] | None = None,
     edge_geometry: str = "tube",
     edge_intensity: str = "saturation",
+    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
 ) -> Path:
     """Render one trace step as a PyVista 3D screenshot."""
     with np.load(trace_path) as trace:
         state = _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
+        all_edges = network_edges_from_trace(trace, layout)
         if scales is None:
             scales = _trace_scales_from_arrays(trace, layout)
+        render_layout = NetworkLayout(layout.nodes, select_edges_by_effect(all_edges, state, edge_effect_quantile))
+        render_scales = scales_with_edge_weight_scale(scales, all_edges)
     return render_state_snapshot(
-        layout,
+        render_layout,
         state,
         output_path,
         width=width,
         height=height,
-        scales=scales,
+        scales=render_scales,
         edge_geometry=edge_geometry,
         edge_intensity=edge_intensity,
     )
@@ -112,19 +120,23 @@ def render_trace_step_3d_html(
     scales: Mapping[str, Any] | None = None,
     edge_geometry: str = "tube",
     edge_intensity: str = "saturation",
+    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
 ) -> Path:
     """Render one trace step as an interactive PyVista HTML scene."""
     with np.load(trace_path) as trace:
         state = _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
+        all_edges = network_edges_from_trace(trace, layout)
         if scales is None:
             scales = _trace_scales_from_arrays(trace, layout)
+        render_layout = NetworkLayout(layout.nodes, select_edges_by_effect(all_edges, state, edge_effect_quantile))
+        render_scales = scales_with_edge_weight_scale(scales, all_edges)
     return render_state_html(
-        layout,
+        render_layout,
         state,
         output_path,
         width=width,
         height=height,
-        scales=scales,
+        scales=render_scales,
         edge_geometry=edge_geometry,
         edge_intensity=edge_intensity,
     )
@@ -192,7 +204,8 @@ def _trace_scales_from_arrays(trace: Mapping[str, np.ndarray], layout: NetworkLa
     input_abs = np.abs(trace["observations"])
     hidden_values = np.concatenate([trace["h1"].ravel(), trace["h2"].ravel()])
     output_abs = np.abs(trace["q_values"])
-    weights = np.asarray([abs(edge.weight) for edge in layout.edges], dtype=np.float32)
+    all_edges = network_edges_from_trace(trace, layout)
+    weights = np.asarray([abs(edge.weight) for edge in all_edges], dtype=np.float32)
     return {
         "input": np.percentile(input_abs, 95, axis=0).astype(float),
         "hidden": float(np.percentile(hidden_values, 95)),

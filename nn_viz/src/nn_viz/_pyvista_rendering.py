@@ -24,7 +24,7 @@ _BACKGROUND = "white"
 _EDGE_GEOMETRY_DEFAULT = "tube"
 _NODE_RADIUS_DEFAULT = 0.055
 _MIN_TUBE_RADIUS = 0.006
-_MAX_TUBE_RADIUS = 0.026
+_MAX_TUBE_RADIUS = 0.016
 
 
 def render_state_snapshot(
@@ -158,7 +158,7 @@ def _add_state_edges(
         color = _rgb_hex(color_scheme.signed_color(color_value, weight_scale))
         opacity = _edge_opacity(source_activation, activation_scale, edge_intensity)
         if edge_geometry == "line":
-            line_width = max(1, int(round(color_scheme.edge_width(edge.weight, weight_scale))))
+            line_width = max(1, int(round(1.0 + color_scheme.edge_width(edge.weight, weight_scale))))
             plotter.add_mesh(line, color=color, line_width=line_width, opacity=opacity)
         else:
             tube = line.tube(radius=_tube_radius(edge.weight, weight_scale), n_sides=8)
@@ -171,7 +171,7 @@ def _weight_scale(edges: tuple[Edge, ...]) -> float:
 
 
 def _tube_radius(weight: float, weight_scale: float) -> float:
-    ratio = (color_scheme.edge_width(weight, weight_scale) - 1.0) / 2.0
+    ratio = color_scheme.edge_width(weight, weight_scale) / 2.0
     return _MIN_TUBE_RADIUS + ratio * (_MAX_TUBE_RADIUS - _MIN_TUBE_RADIUS)
 
 

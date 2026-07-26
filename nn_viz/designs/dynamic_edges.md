@@ -57,6 +57,8 @@ width       = abs(w)
 
 The same edge visibility and rendering semantics should be used by 2D video, 2D trace PNG, 3D trace PNG, and 3D trace HTML.
 
+Trace files store the network weight matrices so trace renderers can reconstruct all possible edges without needing the original `q_net` object.
+
 ## Layout
 
 Node positions may still be computed from rollout activity so the layout remains stable. Edge visibility is state-based and may change from step to step.

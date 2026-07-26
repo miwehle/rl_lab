@@ -29,8 +29,8 @@ def test_heat_color_uses_nonnegative_heat_scale():
 
 
 def test_edge_width_uses_log_magnitude_and_clips():
-    assert edge_width(0.0, 10.0) == 1.0
-    assert 1.0 < edge_width(1.0, 10.0) < edge_width(5.0, 10.0) < 3.0
-    assert edge_width(-10.0, 10.0) == 3.0
-    assert edge_width(100.0, 10.0) == 3.0
-    assert edge_width(1.0, 0.0) == 1.0
+    assert edge_width(0.0, 10.0) == 0.0
+    assert 0.0 < edge_width(1.0, 10.0) < edge_width(5.0, 10.0) < 2.0
+    assert edge_width(-10.0, 10.0) == 2.0
+    assert edge_width(100.0, 10.0) == 2.0
+    assert edge_width(1.0, 0.0) == 0.0
