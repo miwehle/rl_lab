@@ -31,7 +31,7 @@ def test_render_layout_snapshot_writes_offscreen_scene(monkeypatch, tmp_path):
     assert plotter.background == "white"
     assert plotter.parallel_projection_enabled is True
     assert plotter.camera_position == [
-        (4.1, -5.0, 4.2),
+        (0.5, -5.0, 4.2),
         (0.5, 1.0, 1.5),
         (0.0, 0.0, 1.0),
     ]

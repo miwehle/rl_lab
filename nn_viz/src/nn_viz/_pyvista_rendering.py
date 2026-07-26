@@ -211,7 +211,7 @@ def _set_semantic_camera(plotter, nodes: tuple[Node, ...]) -> None:
     x, y, z = center
     plotter.enable_parallel_projection()
     plotter.camera_position = [
-        (x + 1.2 * span, y - 2.0 * span, z + 0.9 * span),
+        (x, y - 2.0 * span, z + 0.9 * span),
         center,
         (0.0, 0.0, 1.0),
     ]
