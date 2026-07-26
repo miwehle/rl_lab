@@ -23,12 +23,12 @@ def test_spatial_semantic_layout_uses_fixed_input_and_output_anchors():
     layout = compute_layout(rollouts, q_net)
     nodes = {(node.layer, node.index): node for node in layout.nodes}
 
-    assert _xyz(nodes[("in", 6)]) == (-1.35, 1.5, 0.0)
-    assert _xyz(nodes[("in", 7)]) == (1.65, 1.5, 0.0)
-    assert _xyz(nodes[("out", 1)]) == (-1.35, 1.5, 3.0)
-    assert _xyz(nodes[("out", 3)]) == (1.65, 1.5, 3.0)
-    assert _xyz(nodes[("out", 2)]) == (-1.35, 0.5, 3.0)
-    assert _xyz(nodes[("out", 0)]) == (1.65, 0.5, 3.0)
+    assert _xyz(nodes[("in", 6)]) == (-1.0, 2.0, 0.0)
+    assert _xyz(nodes[("in", 7)]) == (1.0, 2.0, 0.0)
+    assert _xyz(nodes[("out", 1)]) == (-1.0, -1.0, 3.0)
+    assert _xyz(nodes[("out", 3)]) == (1.0, -1.0, 3.0)
+    assert _xyz(nodes[("out", 2)]) == (-1.0, 1.0, 3.0)
+    assert _xyz(nodes[("out", 0)]) == (1.0, 1.0, 3.0)
 
 
 def test_spatial_semantic_layout_places_h1_by_weighted_mean_of_input_anchors():
@@ -46,8 +46,8 @@ def test_spatial_semantic_layout_places_h1_by_weighted_mean_of_input_anchors():
     layout = compute_layout(rollouts, q_net)
     h1 = {node.index: node for node in layout.nodes if node.layer == "h1"}
 
-    assert np.allclose(_xyz(h1[0]), (-0.6, -0.5, 1.0))
-    assert np.allclose(_xyz(h1[1]), (0.9, 1.5, 1.0))
+    assert np.allclose(_xyz(h1[0]), (-1.0, -1.0, 1.0))
+    assert np.allclose(_xyz(h1[1]), (0.5, 2.0, 1.0))
 
 
 def test_spatial_semantic_layout_places_h2_by_weighted_mean_of_h1_positions():
@@ -68,8 +68,8 @@ def test_spatial_semantic_layout_places_h2_by_weighted_mean_of_h1_positions():
     layout = compute_layout(rollouts, q_net)
     h2 = {node.index: node for node in layout.nodes if node.layer == "h2"}
 
-    assert np.allclose(_xyz(h2[0]), (0.15, 0.5, 2.0))
-    assert np.allclose(_xyz(h2[1]), (0.9, 1.5, 2.0))
+    assert np.allclose(_xyz(h2[0]), (-0.25, 0.5, 2.0))
+    assert np.allclose(_xyz(h2[1]), (0.5, 2.0, 2.0))
 
 
 def test_spatial_semantic_layout_separates_overlapping_hidden_nodes_without_moving_layer_center():
@@ -88,7 +88,7 @@ def test_spatial_semantic_layout_separates_overlapping_hidden_nodes_without_movi
     layout = compute_layout(rollouts, q_net, min_node_distance=0.5)
     h1_positions = np.asarray([(node.x, node.y) for node in layout.nodes if node.layer == "h1"])
 
-    assert np.allclose(np.mean(h1_positions, axis=0), (-0.6, -0.5))
+    assert np.allclose(np.mean(h1_positions, axis=0), (-1.0, -1.0))
     assert np.linalg.norm(h1_positions[0] - h1_positions[1]) >= 0.5
 
 
@@ -106,7 +106,7 @@ def test_spatial_semantic_layout_moves_stiffer_hidden_nodes_less_during_collisio
 
     layout = compute_layout(rollouts, q_net, min_node_distance=0.5)
     h1 = {node.index: node for node in layout.nodes if node.layer == "h1"}
-    desired_position = np.asarray((-0.6, -0.5))
+    desired_position = np.asarray((-1.0, -1.0))
 
     stiff_shift = np.linalg.norm(np.asarray((h1[0].x, h1[0].y)) - desired_position)
     weak_shift = np.linalg.norm(np.asarray((h1[1].x, h1[1].y)) - desired_position)

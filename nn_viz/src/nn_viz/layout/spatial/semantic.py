@@ -18,23 +18,23 @@ _COLLISION_ITERATIONS = 100
 _STIFFNESS_EPS = 1e-6
 
 _INPUT_ANCHORS = {
-    6: (-1.5, 1.5),  # ftl
-    7: (1.5, 1.5),  # ftr
-    1: (-1.5, 0.5),  # y
-    3: (0.0, 0.5),  # vy
-    9: (1.5, 0.5),  # ay
-    0: (-1.5, -0.5),  # x
-    2: (0.0, -0.5),  # vx
-    8: (1.5, -0.5),  # ax
-    4: (-1.5, -1.5),  # ang
-    5: (0.0, -1.5),  # vang
+    6: (-1.0, 2.0),  # ftl
+    7: (1.0, 2.0),  # ftr
+    1: (-2.0, 1.0),  # y
+    3: (0.0, 1.0),  # vy
+    9: (2.0, 1.0),  # ay
+    0: (-2.0, -1.0),  # x
+    2: (0.0, -1.0),  # vx
+    8: (2.0, -1.0),  # ax
+    4: (-1.0, -2.0),  # ang
+    5: (1.0, -2.0),  # vang
 }
 
 _OUTPUT_ANCHORS = {
-    1: (-1.5, 1.5),  # left
-    3: (1.5, 1.5),  # right
-    2: (-1.5, 0.5),  # up
-    0: (1.5, 0.5),  # noop
+    2: (-1.0, 1.0),  # up
+    0: (1.0, 1.0),  # noop
+    1: (-1.0, -1.0),  # left
+    3: (1.0, -1.0),  # right
 }
 
 
@@ -62,14 +62,12 @@ def compute_layout(
     w1 = q_net.layer1.weight.detach().cpu().numpy()
     w2 = q_net.layer2.weight.detach().cpu().numpy()
     w3 = q_net.layer3.weight.detach().cpu().numpy()
-    input_anchors = _centered_input_anchors()
-    output_anchors = _shift_output_anchors(_input_center())
 
-    input_layer_nodes = _input_nodes(rollouts.observations, input_anchors)
+    input_layer_nodes = _input_nodes(rollouts.observations)
     h1_nodes = _hidden_nodes(
         "h1",
         rollouts.h1,
-        source_positions=np.asarray([input_anchors[index] for index in range(len(INPUT_LABELS))]),
+        source_positions=np.asarray([_INPUT_ANCHORS[index] for index in range(len(INPUT_LABELS))]),
         weights=w1,
         z=_H1_Z,
         min_node_distance=min_node_distance,
@@ -83,7 +81,7 @@ def compute_layout(
         z=_H2_Z,
         min_node_distance=min_node_distance,
     )
-    output_layer_nodes = _output_nodes(rollouts.q_values, output_anchors)
+    output_layer_nodes = _output_nodes(rollouts.q_values)
     edge_candidates = (
         _top_weight_edges("in", "h1", w1, top_edges_per_target)
         + _top_weight_edges("h1", "h2", w2, top_edges_per_target)
@@ -95,13 +93,13 @@ def compute_layout(
     )
 
 
-def _input_nodes(observations: np.ndarray, input_anchors: dict[int, tuple[float, float]]) -> tuple[Node, ...]:
+def _input_nodes(observations: np.ndarray) -> tuple[Node, ...]:
     return tuple(
         Node(
             "in",
             index,
             label,
-            *input_anchors[index],
+            *_INPUT_ANCHORS[index],
             float(np.mean(np.abs(observations[:, index]))),
             z=_INPUT_Z,
         )
@@ -143,13 +141,13 @@ def _hidden_nodes(
     return tuple(nodes)
 
 
-def _output_nodes(q_values: np.ndarray, output_anchors: dict[int, tuple[float, float]]) -> tuple[Node, ...]:
+def _output_nodes(q_values: np.ndarray) -> tuple[Node, ...]:
     return tuple(
         Node(
             "out",
             action,
             ACTION_LABELS[action],
-            *output_anchors[action],
+            *_OUTPUT_ANCHORS[action],
             float(np.mean(q_values[:, action])),
             z=_OUTPUT_Z,
         )
@@ -205,24 +203,6 @@ def _separation_direction(delta: np.ndarray, distance: float, left: int, right: 
         return delta / distance
     angle = ((left + 1) * 12.9898 + (right + 1) * 78.233) % (2.0 * np.pi)
     return np.asarray([np.cos(angle), np.sin(angle)])
-
-
-def _centered_input_anchors() -> dict[int, tuple[float, float]]:
-    center = _input_center()
-    return {index: _shift(position, center) for index, position in _INPUT_ANCHORS.items()}
-
-
-def _shift_output_anchors(center: np.ndarray) -> dict[int, tuple[float, float]]:
-    return {action: _shift(position, center) for action, position in _OUTPUT_ANCHORS.items()}
-
-
-def _input_center() -> np.ndarray:
-    return np.mean(np.asarray([_INPUT_ANCHORS[index] for index in range(len(INPUT_LABELS))]), axis=0)
-
-
-def _shift(position: tuple[float, float], center: np.ndarray) -> tuple[float, float]:
-    shifted = np.asarray(position) - center
-    return float(shifted[0]), float(shifted[1])
 
 
 def _top_weight_edges(

@@ -150,24 +150,24 @@ Input and output get fixed semantic anchor coordinates in the `x/y` plane. Hidde
 Input anchors:
 
 ```text
-ftl   ftr
+ftl(-1, 2)   ftr(1, 2)
 
-y     vy    ay
+y(-2, 1)     vy(0, 1)     ay(2, 1)
 
-x     vx    ax
+x(-2, -1)    vx(0, -1)    ax(2, -1)
 
-ang   vang
+ang(-1, -2)  vang(1, -2)
 ```
 
 Output anchors:
 
 ```text
-left  right
+up(-1, 1)    noop(1, 1)
 
-up    noop
+left(-1, -1) right(1, -1)
 ```
 
-The left/right semantics of input and output should roughly share the same `x/y` coordinates and differ mainly by height. For example, `ftl` should sit roughly below `left`, and `ftr` roughly below `right`.
+Input and output anchors use small natural coordinates and both have center `(0, 0)`.
 
 Output placement is fixed by these anchors. H2 nodes are connected to the output layer according to the underlying NN weights `w3`; those edges do not move the output anchors.
 
