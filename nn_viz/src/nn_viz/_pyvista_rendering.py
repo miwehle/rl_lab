@@ -65,21 +65,78 @@ def render_state_snapshot(
     edge_intensity: str = "saturation",
 ) -> Path:
     """Render an offscreen 3D layout snapshot for one NN state."""
-    if edge_intensity not in {"saturation", "opacity"}:
-        raise ValueError("edge_intensity must be 'saturation' or 'opacity'")
-    pv = load_pyvista()
+    plotter = _state_plotter(
+        layout,
+        state,
+        width=width,
+        height=height,
+        node_radius=node_radius,
+        edge_geometry=edge_geometry,
+        scales=scales,
+        edge_intensity=edge_intensity,
+    )
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plotter = pv.Plotter(off_screen=True, window_size=(width, height))
     try:
-        plotter.set_background(_BACKGROUND)
-        _add_state_edges(plotter, pv, layout, state, edge_geometry, scales, edge_intensity)
-        _add_state_nodes(plotter, pv, layout.nodes, state, node_radius, scales)
-        _set_semantic_camera(plotter, layout.nodes)
         plotter.screenshot(filename=str(output_path))
     finally:
         plotter.close()
     return output_path
+
+
+def render_state_html(
+    layout: NetworkLayout,
+    state: NetworkState,
+    output_path: str | Path,
+    *,
+    width: int = 1280,
+    height: int = 720,
+    node_radius: float = _NODE_RADIUS_DEFAULT,
+    edge_geometry: str = _EDGE_GEOMETRY_DEFAULT,
+    scales: Mapping[str, Any] | None = None,
+    edge_intensity: str = "saturation",
+) -> Path:
+    """Render an interactive PyVista 3D scene for one NN state to HTML."""
+    plotter = _state_plotter(
+        layout,
+        state,
+        width=width,
+        height=height,
+        node_radius=node_radius,
+        edge_geometry=edge_geometry,
+        scales=scales,
+        edge_intensity=edge_intensity,
+    )
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        plotter.export_html(str(output_path))
+    finally:
+        plotter.close()
+    return output_path
+
+
+def _state_plotter(
+    layout: NetworkLayout,
+    state: NetworkState,
+    *,
+    width: int,
+    height: int,
+    node_radius: float,
+    edge_geometry: str,
+    scales: Mapping[str, Any] | None,
+    edge_intensity: str,
+):
+    if edge_intensity not in {"saturation", "opacity"}:
+        raise ValueError("edge_intensity must be 'saturation' or 'opacity'")
+    pv = load_pyvista()
+    plotter = pv.Plotter(off_screen=True, window_size=(width, height))
+    plotter.set_background(_BACKGROUND)
+    _add_state_edges(plotter, pv, layout, state, edge_geometry, scales, edge_intensity)
+    _add_state_nodes(plotter, pv, layout.nodes, state, node_radius, scales)
+    _set_semantic_camera(plotter, layout.nodes)
+    plotter.show_axes()
+    return plotter
 
 
 def _add_nodes(plotter, pv, nodes: tuple[Node, ...], radius: float, activity_scale: float) -> None:
@@ -144,16 +201,17 @@ def _add_state_edges(
     nodes = {(node.layer, node.index): node for node in layout.nodes}
     weight_scale = _scale_value(scales, "weight", _weight_scale(layout.edges))
     activation_scale = _scale_value(scales, "activation", _max_source_magnitude(layout.edges, state))
-    edge_scale = activation_scale * weight_scale
     for edge in layout.edges:
         source = nodes.get((edge.source_layer, edge.source_index))
         target = nodes.get((edge.target_layer, edge.target_index))
         if source is None or target is None:
             continue
         line = pv.Line((source.x, source.y, source.z), (target.x, target.y, target.z))
-        contribution = source_value(edge, state) * edge.weight
-        color = _rgb_hex(color_scheme.signed_color(contribution, edge_scale))
-        opacity = _edge_opacity(contribution, edge_scale, edge_intensity)
+        source_activation = source_value(edge, state)
+        contribution = source_activation * edge.weight
+        color_value = np.copysign(abs(edge.weight), contribution)
+        color = _rgb_hex(color_scheme.signed_color(color_value, weight_scale))
+        opacity = _edge_opacity(source_activation, activation_scale, edge_intensity)
         if edge_geometry == "line":
             line_width = max(1, int(round(color_scheme.edge_width(edge.weight, weight_scale))))
             plotter.add_mesh(line, color=color, line_width=line_width, opacity=opacity)
@@ -200,9 +258,9 @@ def _max_source_magnitude(edges: tuple[Edge, ...], state: NetworkState) -> float
     return max((abs(source_value(edge, state)) for edge in edges), default=0.0)
 
 
-def _edge_opacity(contribution: float, edge_scale: float, edge_intensity: str) -> float:
+def _edge_opacity(source_activation: float, activation_scale: float, edge_intensity: str) -> float:
     if edge_intensity == "opacity":
-        return color_scheme.alpha(contribution, edge_scale) / 255.0
+        return color_scheme.alpha(source_activation, activation_scale) / 255.0
     return 1.0
 
 

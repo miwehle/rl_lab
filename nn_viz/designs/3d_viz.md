@@ -113,6 +113,7 @@ Stage 4: Trace-step 3D screenshot.
 - implement `render_trace_step_3d(trace_path, layout, output_path, *, step, window_steps=1, ...)`
 - reuse saved trace state loading
 - render one real rollout step as a PyVista screenshot
+- also support an interactive HTML export via `render_trace_step_3d_html(...)`
 
 Stage 5: Dynamic 3D trace playback.
 

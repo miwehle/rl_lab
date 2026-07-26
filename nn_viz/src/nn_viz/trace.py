@@ -9,7 +9,7 @@ import numpy as np
 
 import nn_viz.color_scheme as color_scheme
 from nn_viz.layout import Edge, NetworkLayout, Node
-from nn_viz._pyvista_rendering import render_state_snapshot
+from nn_viz._pyvista_rendering import render_state_html, render_state_snapshot
 from nn_viz._rendering import (
     EDGE_RENDERER_DEFAULT,
     EDGE_SKIP_ACTIVATION_DEFAULT,
@@ -89,6 +89,36 @@ def render_trace_step_3d(
         if scales is None:
             scales = _trace_scales_from_arrays(trace, layout)
     return render_state_snapshot(
+        layout,
+        state,
+        output_path,
+        width=width,
+        height=height,
+        scales=scales,
+        edge_geometry=edge_geometry,
+        edge_intensity=edge_intensity,
+    )
+
+
+def render_trace_step_3d_html(
+    trace_path: str | Path,
+    layout: NetworkLayout,
+    output_path: str | Path,
+    *,
+    step: int,
+    window_steps: int = 1,
+    width: int = 1280,
+    height: int = 720,
+    scales: Mapping[str, Any] | None = None,
+    edge_geometry: str = "tube",
+    edge_intensity: str = "saturation",
+) -> Path:
+    """Render one trace step as an interactive PyVista HTML scene."""
+    with np.load(trace_path) as trace:
+        state = _trace_state_from_arrays(trace, step=step, window_steps=window_steps)
+        if scales is None:
+            scales = _trace_scales_from_arrays(trace, layout)
+    return render_state_html(
         layout,
         state,
         output_path,

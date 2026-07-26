@@ -12,7 +12,13 @@ from nn_viz._rendering import (
     render_state_layout_rgba,
     _skip_edge,
 )
-from nn_viz.trace import _load_trace_state, render_trace_diff, render_trace_step, render_trace_step_3d
+from nn_viz.trace import (
+    _load_trace_state,
+    render_trace_diff,
+    render_trace_step,
+    render_trace_step_3d,
+    render_trace_step_3d_html,
+)
 from nn_viz.video import (
     _StateAverager,
     _compose_bottom_overlay,
@@ -382,6 +388,57 @@ def test_render_trace_step_3d_passes_window_state_to_pyvista_renderer(monkeypatc
     monkeypatch.setattr(trace_module, "render_state_snapshot", fake_render_state_snapshot)
 
     result = render_trace_step_3d(
+        trace_path,
+        minimal_layout(),
+        output_path,
+        step=1,
+        window_steps=2,
+        width=320,
+        height=240,
+        edge_geometry="line",
+        edge_intensity="opacity",
+    )
+
+    assert result == output_path
+    assert captured["path"] == output_path
+    assert captured["kwargs"]["width"] == 320
+    assert captured["kwargs"]["height"] == 240
+    assert captured["kwargs"]["edge_geometry"] == "line"
+    assert captured["kwargs"]["edge_intensity"] == "opacity"
+    np.testing.assert_allclose(captured["state"].inputs, [3.0])
+    np.testing.assert_allclose(captured["state"].h1, [4.0])
+    np.testing.assert_allclose(captured["state"].h2, [5.0])
+    np.testing.assert_allclose(captured["state"].q_values, [2.0, 2.0, 2.0, 2.0])
+    assert captured["state"].action == 2
+    assert captured["kwargs"]["scales"]["weight"] > 0.0
+
+
+def test_render_trace_step_3d_html_passes_window_state_to_pyvista_renderer(monkeypatch, tmp_path):
+    import nn_viz.trace as trace_module
+
+    trace_path = tmp_path / "trace.npz"
+    output_path = tmp_path / "step_3d.html"
+    np.savez(
+        trace_path,
+        steps=np.array([0, 1], dtype=np.int64),
+        observations=np.array([[2.0], [4.0]], dtype=np.float32),
+        actions=np.array([1, 2], dtype=np.int64),
+        h1=np.array([[3.0], [5.0]], dtype=np.float32),
+        h2=np.array([[4.0], [6.0]], dtype=np.float32),
+        q_values=np.array([[0.0, 1.0, 2.0, 3.0], [4.0, 3.0, 2.0, 1.0]], dtype=np.float32),
+    )
+    captured = {}
+
+    def fake_render_state_html(layout, state, path, **kwargs):
+        captured["layout"] = layout
+        captured["state"] = state
+        captured["path"] = path
+        captured["kwargs"] = kwargs
+        return path
+
+    monkeypatch.setattr(trace_module, "render_state_html", fake_render_state_html)
+
+    result = render_trace_step_3d_html(
         trace_path,
         minimal_layout(),
         output_path,
