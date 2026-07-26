@@ -9,8 +9,10 @@ from nn_viz._rendering import (
     _layout_transform,
     _node_color,
     node_fallback_scales,
+    render_layout_rgba,
     render_state_layout_rgba,
     _skip_edge,
+    EdgeStyle,
 )
 from nn_viz.trace import (
     _load_trace_state,
@@ -305,6 +307,74 @@ def test_render_state_layout_rgba_colors_edges_by_contribution_sign_and_weight_i
     color, width = FakeDraw.calls[0]
     assert color == (0, 0, 255, 99)
     assert width == pytest.approx(1.04)
+
+
+def test_render_layout_rgba_draws_low_visual_priority_edges_first(monkeypatch):
+    import nn_viz._rendering as rendering
+
+    class FakePen:
+        def __init__(self, color, width):
+            self.color = color
+            self.width = width
+
+    class FakeDraw:
+        calls = []
+
+        def __init__(self, _image):
+            pass
+
+        def line(self, _coords, pen):
+            FakeDraw.calls.append(pen.color)
+
+        def flush(self):
+            pass
+
+    class FakeAggdraw:
+        Draw = FakeDraw
+        Pen = FakePen
+
+    monkeypatch.setattr(rendering, "_load_aggdraw", lambda: FakeAggdraw)
+    layout = NetworkLayout(
+        nodes=(
+            Node("in", 0, "x0", 0.0, 1.0, 0.0),
+            Node("in", 1, "x1", 1.0, 1.0, 0.0),
+            Node("in", 2, "x2", 2.0, 1.0, 0.0),
+            Node("h1", 0, "H1-0", 1.0, 0.0, 0.0),
+        ),
+        edges=(
+            Edge("in", 0, "h1", 0, 1.0, 0.0, 0.0),
+            Edge("in", 1, "h1", 0, 1.0, 0.0, 0.0),
+            Edge("in", 2, "h1", 0, 1.0, 0.0, 0.0),
+        ),
+    )
+    styles = {
+        0: EdgeStyle(fill=(0, 0, 255, 255), nominal_width=2.0),
+        1: EdgeStyle(fill=(255, 255, 255, 255), nominal_width=2.0),
+        2: EdgeStyle(fill=(255, 200, 200, 128), nominal_width=2.0),
+    }
+    style_calls = {0: 0, 1: 0, 2: 0}
+
+    def edge_style(edge):
+        style_calls[edge.source_index] += 1
+        return styles[edge.source_index]
+
+    render_layout_rgba(
+        layout,
+        width=240,
+        height=120,
+        node_fill=lambda _node: (255, 255, 255, 255),
+        node_outline=lambda _node, _radius: ((17, 24, 39, 255), 1),
+        edge_style=edge_style,
+        edge_renderer="aggdraw",
+        label_mode="indices",
+    )
+
+    assert FakeDraw.calls == [
+        (255, 255, 255, 255),
+        (255, 200, 200, 128),
+        (0, 0, 255, 255),
+    ]
+    assert style_calls == {0: 1, 1: 1, 2: 1}
 
 
 def test_render_state_layout_rgba_rejects_unknown_edge_renderer():

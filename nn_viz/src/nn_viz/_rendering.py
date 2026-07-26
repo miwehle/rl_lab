@@ -267,24 +267,23 @@ def _draw_styled_edges(
     *,
     edge_renderer: str,
 ):
+    if edge_renderer not in {"pillow", "aggdraw"}:
+        raise ValueError("edge_renderer must be 'pillow' or 'aggdraw'")
+    drawable_edges = _drawable_edges(edges, nodes, edge_style)
     if edge_renderer == "pillow":
         from PIL import ImageDraw
 
-        _draw_styled_edges_pillow(ImageDraw.Draw(image, "RGBA"), edges, nodes, transform, height, edge_style)
+        _draw_styled_edges_pillow(ImageDraw.Draw(image, "RGBA"), drawable_edges, transform, height)
         return image
-    if edge_renderer == "aggdraw":
-        return _draw_styled_edges_aggdraw(image, edges, nodes, transform, height, edge_style)
-    raise ValueError("edge_renderer must be 'pillow' or 'aggdraw'")
+    return _draw_styled_edges_aggdraw(image, drawable_edges, transform, height)
 
 
-def _draw_styled_edges_pillow(
-    draw,
+def _drawable_edges(
     edges: tuple[Edge, ...],
     nodes: dict[tuple[str, int], Node],
-    transform: Callable[[float, float], tuple[float, float]],
-    height: int,
     edge_style: Callable[[Edge], EdgeStyle | None],
-) -> None:
+) -> list[tuple[Node, Node, EdgeStyle]]:
+    drawable_edges = []
     for edge in edges:
         source = nodes.get((edge.source_layer, edge.source_index))
         target = nodes.get((edge.target_layer, edge.target_index))
@@ -293,6 +292,23 @@ def _draw_styled_edges_pillow(
         style = edge_style(edge)
         if style is None:
             continue
+        drawable_edges.append((source, target, style))
+    return sorted(drawable_edges, key=lambda item: _edge_visual_priority(item[2]))
+
+
+def _edge_visual_priority(style: EdgeStyle) -> float:
+    red, green, blue, alpha = style.fill
+    colorfulness = (max(red, green, blue) - min(red, green, blue)) / 255.0
+    return colorfulness * (alpha / 255.0) * style.nominal_width
+
+
+def _draw_styled_edges_pillow(
+    draw,
+    drawable_edges: list[tuple[Node, Node, EdgeStyle]],
+    transform: Callable[[float, float], tuple[float, float]],
+    height: int,
+) -> None:
+    for source, target, style in drawable_edges:
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
         line_width = max(1, int(round(style.nominal_width * height / 150 * _EDGE_WIDTH_SCALE)))
@@ -301,22 +317,13 @@ def _draw_styled_edges_pillow(
 
 def _draw_styled_edges_aggdraw(
     image,
-    edges: tuple[Edge, ...],
-    nodes: dict[tuple[str, int], Node],
+    drawable_edges: list[tuple[Node, Node, EdgeStyle]],
     transform: Callable[[float, float], tuple[float, float]],
     height: int,
-    edge_style: Callable[[Edge], EdgeStyle | None],
 ):
     aggdraw = _load_aggdraw()
     draw = aggdraw.Draw(image)
-    for edge in edges:
-        source = nodes.get((edge.source_layer, edge.source_index))
-        target = nodes.get((edge.target_layer, edge.target_index))
-        if source is None or target is None:
-            continue
-        style = edge_style(edge)
-        if style is None:
-            continue
+    for source, target, style in drawable_edges:
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
         line_width = max(1.0, style.nominal_width * height / 150 * _EDGE_WIDTH_SCALE)
