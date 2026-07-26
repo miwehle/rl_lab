@@ -18,6 +18,7 @@ _LAYOUT_BOTTOM_MARGIN_RATIO = 0.24
 EDGE_SKIP_ACTIVATION_DEFAULT = 0.0
 EDGE_SKIP_WEIGHT_DEFAULT = 0.0
 EDGE_RENDERER_DEFAULT = "pillow"
+_EDGE_WIDTH_SCALE = 0.65
 _LAYER_Y = {"out": -0.125, "h2": 0.125, "h1": 0.375, "in": 0.625}
 _INPUT_ORDER = (0, 2, 8, 1, 3, 9, 4, 5, 6, 7)
 
@@ -294,7 +295,7 @@ def _draw_styled_edges_pillow(
             continue
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
-        line_width = max(1, int(round((1.0 + style.nominal_width) * height / 150)))
+        line_width = max(1, int(round(style.nominal_width * height / 150 * _EDGE_WIDTH_SCALE)))
         draw.line((sx, sy, tx, ty), fill=style.fill, width=line_width)
 
 
@@ -318,7 +319,7 @@ def _draw_styled_edges_aggdraw(
             continue
         sx, sy = transform(source.x, source.y)
         tx, ty = transform(target.x, target.y)
-        line_width = max(1.0, (1.0 + style.nominal_width) * height / 150)
+        line_width = max(1.0, style.nominal_width * height / 150 * _EDGE_WIDTH_SCALE)
         draw.line((sx, sy, tx, ty), aggdraw.Pen(style.fill, line_width))
     draw.flush()
 

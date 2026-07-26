@@ -304,7 +304,7 @@ def test_render_state_layout_rgba_colors_edges_by_contribution_sign_and_weight_i
 
     color, width = FakeDraw.calls[0]
     assert color == (37, 99, 235, 99)
-    assert width == pytest.approx(2.4)
+    assert width == pytest.approx(1.04)
 
 
 def test_render_state_layout_rgba_rejects_unknown_edge_renderer():
