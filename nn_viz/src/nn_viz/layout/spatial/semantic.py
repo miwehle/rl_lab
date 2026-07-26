@@ -223,5 +223,15 @@ def _top_weight_edges(
 def _filter_edges_by_weight_quantile(edges: tuple[Edge, ...], quantile: float) -> tuple[Edge, ...]:
     if not edges or quantile == 0.0:
         return edges
-    threshold = float(np.quantile([abs(edge.weight) for edge in edges], quantile))
-    return tuple(edge for edge in edges if abs(edge.weight) >= threshold)
+    selected = []
+    for group in _edge_groups(edges).values():
+        threshold = float(np.quantile([abs(edge.weight) for edge in group], quantile))
+        selected.extend(edge for edge in group if abs(edge.weight) >= threshold)
+    return tuple(selected)
+
+
+def _edge_groups(edges: tuple[Edge, ...]) -> dict[tuple[str, str], list[Edge]]:
+    groups: dict[tuple[str, str], list[Edge]] = {}
+    for edge in edges:
+        groups.setdefault((edge.source_layer, edge.target_layer), []).append(edge)
+    return groups

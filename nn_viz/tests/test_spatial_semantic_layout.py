@@ -150,7 +150,7 @@ def test_spatial_semantic_layout_limits_rendered_edges_by_top_k():
         q_net.layer2.weight.zero_()
         q_net.layer2.weight[:, 0] = torch.tensor([1.0, 2.0, 3.0])
         q_net.layer3.weight.zero_()
-        q_net.layer3.weight[1, :] = torch.tensor([1.0, 3.0, 2.0])
+        q_net.layer3.weight[1, :] = torch.tensor([8.0, 10.0, 9.0])
     rollouts = _rollouts(h1_width=1, h2_width=3)
 
     layout = compute_layout(
@@ -167,7 +167,7 @@ def test_spatial_semantic_layout_limits_rendered_edges_by_top_k():
     assert {(edge.source_index, edge.target_index) for edge in output_edges} == {(1, 1), (2, 1)}
 
 
-def test_spatial_semantic_layout_filters_top_k_candidates_by_global_weight_quantile():
+def test_spatial_semantic_layout_filters_top_k_candidates_by_layer_weight_quantile():
     q_net = DQN(10, 4, hidden_sizes=(1, 3))
     with torch.no_grad():
         q_net.layer1.weight.zero_()

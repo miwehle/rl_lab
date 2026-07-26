@@ -232,9 +232,9 @@ compute_layout(..., top_edges_per_target=3, output_edges_per_target=10, edge_wei
 - Input->H1 and H1->H2 candidates use `top_edges_per_target`.
 - H2->Output candidates use `output_edges_per_target`.
 - Top-k ranking is by `abs(weight)`.
-- Then remove candidates below the global `abs(weight)` quantile.
+- Then remove candidates below the `abs(weight)` quantile of their own edge layer: Input->H1, H1->H2, or H2->Output.
 
-This keeps per-target structure while dropping globally weak tubes that add visual clutter.
+This keeps per-target structure while dropping weak tubes without letting the usually larger H2->Output weights dominate the Input->H1 and H1->H2 filters.
 
 ## Open Questions
 
