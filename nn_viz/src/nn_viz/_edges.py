@@ -50,6 +50,11 @@ def representative_edges(
     - The pre-activations of the positive and negative subsets should stand in a representative ratio.
     - For each neuron, at most max_edges_per_neuron incoming edges are returned.
 
+    Used by:
+    - record_video(...) for 2D NN video overlays
+    - render_trace_step(...) for 2D trace images
+    - render_trace_step_3d(...) and render_trace_step_3d_html(...) for 3D trace rendering
+
     Args:
         edges: Candidate edges to choose from. Usually this is the full network
             edge set reconstructed from the current q_net weights or from a saved
