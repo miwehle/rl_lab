@@ -9,9 +9,9 @@ import numpy as np
 
 RGB: TypeAlias = tuple[int, int, int]
 
-_BLUE = (37, 99, 235)
-_GRAY = (128, 128, 128)
-_RED = (220, 38, 38)
+_BLUE = (0, 0, 255)
+_GRAY = (255, 255, 255)
+_RED = (255, 0, 0)
 _HEAT_STOPS: tuple[tuple[float, RGB], ...] = (
     (0.0, (31, 41, 55)),
     (0.35, (185, 28, 28)),

@@ -67,7 +67,7 @@ def test_render_state_snapshot_defaults_to_tubes_with_weighted_edge_width(monkey
     assert fake_pyvista.tubes == [{"radius": pytest.approx(0.016), "n_sides": 8}]
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "tube"
-    assert edge_kwargs == {"color": "#dc2626", "opacity": 1.0, "smooth_shading": True}
+    assert edge_kwargs == {"color": "#ff0000", "opacity": 1.0, "smooth_shading": True}
 
 
 def test_render_state_snapshot_can_use_thin_lines(monkeypatch, tmp_path):
@@ -78,7 +78,7 @@ def test_render_state_snapshot_can_use_thin_lines(monkeypatch, tmp_path):
 
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "line"
-    assert edge_kwargs == {"color": "#dc2626", "line_width": 3, "opacity": 1.0}
+    assert edge_kwargs == {"color": "#ff0000", "line_width": 3, "opacity": 1.0}
 
 
 def test_render_state_snapshot_rejects_unknown_edge_geometry(monkeypatch, tmp_path):
@@ -105,7 +105,7 @@ def test_render_state_snapshot_colors_edges_by_contribution_sign_and_weight_inte
 
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "line"
-    assert edge_kwargs == {"color": "#8fa7dc", "line_width": 3, "opacity": 1.0}
+    assert edge_kwargs == {"color": "#8080e3", "line_width": 3, "opacity": 1.0}
 
 
 def test_render_state_snapshot_opacity_mode_keeps_base_edge_color(monkeypatch, tmp_path):
@@ -122,7 +122,7 @@ def test_render_state_snapshot_opacity_mode_keeps_base_edge_color(monkeypatch, t
     )
 
     _, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
-    assert edge_kwargs["color"] == "#2563eb"
+    assert edge_kwargs["color"] == "#0000ff"
     assert 0.0 < edge_kwargs["opacity"] < 1.0
 
 

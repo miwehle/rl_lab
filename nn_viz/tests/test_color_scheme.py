@@ -10,14 +10,13 @@ def test_alpha_uses_log_magnitude_and_clips():
 
 
 def test_signed_color_maps_sign_to_blue_gray_red():
-    assert signed_color(0.0, 10.0) == (128, 128, 128)
-    assert signed_color(10.0, 10.0) == (220, 38, 38)
-    assert signed_color(-10.0, 10.0) == (37, 99, 235)
+    assert signed_color(0.0, 10.0) == (255, 255, 255)
+    assert signed_color(10.0, 10.0) == (255, 0, 0)
+    assert signed_color(-10.0, 10.0) == (0, 0, 255)
 
     weak_red = signed_color(1.0, 10.0)
-    assert weak_red[0] > 128
-    assert weak_red[1] < 128
-    assert weak_red[2] < 128
+    assert weak_red[0] > weak_red[1]
+    assert weak_red[0] > weak_red[2]
 
 
 def test_heat_color_uses_nonnegative_heat_scale():

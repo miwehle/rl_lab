@@ -185,7 +185,7 @@ def _state_node_color(
         return color_scheme.signed_color(value, scale)
     if node.layer in {"h1", "h2"}:
         scale = _scale_value(scales, "hidden", fallback_scales["hidden"])
-        return color_scheme.heat_color(value, scale)
+        return color_scheme.signed_color(value, scale)
     if node.layer == "out":
         scale = _scale_value(scales, "output", fallback_scales["output"])
         return color_scheme.signed_color(value, scale)

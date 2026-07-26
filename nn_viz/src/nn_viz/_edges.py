@@ -9,7 +9,7 @@ import numpy as np
 from nn_viz._rendering import NetworkState, source_value
 from nn_viz.layout import Edge, NetworkLayout
 
-EDGE_EFFECT_QUANTILE_DEFAULT = 0.95
+EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT = 6
 
 
 def weight_arrays_from_q_net(q_net) -> dict[str, np.ndarray]:
@@ -38,19 +38,17 @@ def network_edges_from_trace(trace: Mapping[str, np.ndarray], layout: NetworkLay
     return layout.edges
 
 
-def select_edges_by_effect(
-    edges: tuple[Edge, ...], state: NetworkState, edge_effect_quantile: float
+def select_edges_by_target_contributors(
+    edges: tuple[Edge, ...], state: NetworkState, edge_contributors_per_target: int
 ) -> tuple[Edge, ...]:
-    if not 0.0 <= edge_effect_quantile <= 1.0:
-        raise ValueError("edge_effect_quantile must be in [0, 1]")
+    if edge_contributors_per_target < 0:
+        raise ValueError("edge_contributors_per_target must be >= 0")
+    if edge_contributors_per_target == 0:
+        return ()
     selected = []
-    for group in _edge_groups(edges).values():
-        effects = np.asarray([_edge_effect(edge, state) for edge in group], dtype=np.float32)
-        positive = effects > 0.0
-        if not np.any(positive):
-            continue
-        threshold = float(np.quantile(effects[positive], edge_effect_quantile))
-        selected.extend(edge for edge, effect in zip(group, effects) if effect > 0.0 and effect >= threshold)
+    for target_edges in _edge_groups_by_target(edges).values():
+        contributions = [(edge, source_value(edge, state) * edge.weight) for edge in target_edges]
+        selected.extend(_select_target_contributors(contributions, edge_contributors_per_target))
     return tuple(selected)
 
 
@@ -72,12 +70,36 @@ def _edges_from_matrix(source_layer: str, target_layer: str, weights: np.ndarray
     return tuple(edges)
 
 
-def _edge_effect(edge: Edge, state: NetworkState) -> float:
-    return abs(source_value(edge, state) * edge.weight)
+def _select_target_contributors(
+    contributions: list[tuple[Edge, float]], edge_contributors_per_target: int
+) -> list[Edge]:
+    positive = _sorted_contribution_group(contributions, positive=True)
+    negative = _sorted_contribution_group(contributions, positive=False)
+    pos_sum = sum(effect for _, effect in positive)
+    neg_sum = sum(effect for _, effect in negative)
+    total = pos_sum + neg_sum
+    if total == 0.0:
+        return []
+
+    k_pos = int(round(edge_contributors_per_target * pos_sum / total))
+    k_neg = edge_contributors_per_target - k_pos
+    return [edge for edge, _ in positive[:k_pos]] + [edge for edge, _ in negative[:k_neg]]
 
 
-def _edge_groups(edges: tuple[Edge, ...]) -> dict[tuple[str, str], list[Edge]]:
-    groups: dict[tuple[str, str], list[Edge]] = {}
+def _sorted_contribution_group(contributions: list[tuple[Edge, float]], *, positive: bool) -> list[tuple[Edge, float]]:
+    group = [
+        (edge, abs(contribution))
+        for edge, contribution in contributions
+        if (contribution > 0.0 if positive else contribution < 0.0)
+    ]
+    return sorted(
+        group,
+        key=lambda item: (-item[1], item[0].source_layer, item[0].source_index),
+    )
+
+
+def _edge_groups_by_target(edges: tuple[Edge, ...]) -> dict[tuple[str, int], list[Edge]]:
+    groups: dict[tuple[str, int], list[Edge]] = {}
     for edge in edges:
-        groups.setdefault((edge.source_layer, edge.target_layer), []).append(edge)
+        groups.setdefault((edge.target_layer, edge.target_index), []).append(edge)
     return groups

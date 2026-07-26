@@ -15,10 +15,10 @@ from gymnasium.wrappers import RecordVideo
 from hpo.evaluation.rendering.solar_system_lander import RenderConfig, wrap_env
 from nn_viz.activations import ACTION_LABELS, forward_activations
 from nn_viz._edges import (
-    EDGE_EFFECT_QUANTILE_DEFAULT,
+    EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT,
     network_edges_from_q_net,
     scales_with_edge_weight_scale,
-    select_edges_by_effect,
+    select_edges_by_target_contributors,
     weight_arrays_from_q_net,
 )
 from nn_viz.layout import NetworkLayout
@@ -47,7 +47,7 @@ def record_video(
     overlay_alpha: float = 0.70,
     window_steps: int = _WINDOW_STEPS_DEFAULT,
     scales: Mapping[str, Any] | None = None,
-    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
+    edge_contributors_per_target: int = EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT,
     edge_renderer: str = EDGE_RENDERER_DEFAULT,
     render_cfg: RenderConfig | None = None,
     device: Any = "cpu",
@@ -80,10 +80,10 @@ def record_video(
             lambda width, height: render_state_layout_rgba(
                 NetworkLayout(
                     layout.nodes,
-                    select_edges_by_effect(
+                    select_edges_by_target_contributors(
                         all_edges,
                         averager.state if averager.state is not None else initial_state,
-                        edge_effect_quantile,
+                        edge_contributors_per_target,
                     ),
                 ),
                 averager.state if averager.state is not None else initial_state,

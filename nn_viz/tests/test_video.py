@@ -303,7 +303,7 @@ def test_render_state_layout_rgba_colors_edges_by_contribution_sign_and_weight_i
     )
 
     color, width = FakeDraw.calls[0]
-    assert color == (37, 99, 235, 99)
+    assert color == (0, 0, 255, 99)
     assert width == pytest.approx(1.04)
 
 
@@ -576,6 +576,21 @@ def test_hidden_nodes_use_one_shared_hidden_scale():
     h2_color = _node_color(Node("h2", 0, "H2-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
 
     assert h1_color == h2_color
+
+
+def test_hidden_nodes_use_signed_color_scale():
+    state = NetworkState(
+        inputs=np.array([0.0]),
+        h1=np.array([4.0]),
+        h2=np.array([]),
+        q_values=np.array([0.0]),
+        action=0,
+    )
+    fallback_scales = node_fallback_scales(state)
+
+    color = _node_color(Node("h1", 0, "H1-0", 0.0, 0.0, 0.0), state, {"hidden": 8.0}, fallback_scales)
+
+    assert color == (255, 128, 128, 255)
 
 
 def test_record_video_writes_trace_and_summary(monkeypatch, tmp_path):

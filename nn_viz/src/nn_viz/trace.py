@@ -9,10 +9,10 @@ import numpy as np
 
 import nn_viz.color_scheme as color_scheme
 from nn_viz._edges import (
-    EDGE_EFFECT_QUANTILE_DEFAULT,
+    EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT,
     network_edges_from_trace,
     scales_with_edge_weight_scale,
-    select_edges_by_effect,
+    select_edges_by_target_contributors,
 )
 from nn_viz.layout import Edge, NetworkLayout, Node
 from nn_viz._pyvista_rendering import render_state_html, render_state_snapshot
@@ -48,7 +48,7 @@ def render_trace_step(
     width: int = 1280,
     height: int = 360,
     scales: Mapping[str, Any] | None = None,
-    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
+    edge_contributors_per_target: int = EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT,
     edge_renderer: str = EDGE_RENDERER_DEFAULT,
     label_mode: str = "indices",
 ) -> Path:
@@ -62,7 +62,10 @@ def render_trace_step(
         all_edges = network_edges_from_trace(trace, layout)
         render_scales = scales_with_edge_weight_scale(scales, all_edges)
     rgba = render_state_layout_rgba(
-        NetworkLayout(layout.nodes, select_edges_by_effect(all_edges, state, edge_effect_quantile)),
+        NetworkLayout(
+            layout.nodes,
+            select_edges_by_target_contributors(all_edges, state, edge_contributors_per_target),
+        ),
         state,
         width=width,
         height=height,
@@ -86,7 +89,7 @@ def render_trace_step_3d(
     scales: Mapping[str, Any] | None = None,
     edge_geometry: str = "tube",
     edge_intensity: str = "saturation",
-    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
+    edge_contributors_per_target: int = EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT,
 ) -> Path:
     """Render one trace step as a PyVista 3D screenshot."""
     with np.load(trace_path) as trace:
@@ -94,7 +97,10 @@ def render_trace_step_3d(
         all_edges = network_edges_from_trace(trace, layout)
         if scales is None:
             scales = _trace_scales_from_arrays(trace, layout)
-        render_layout = NetworkLayout(layout.nodes, select_edges_by_effect(all_edges, state, edge_effect_quantile))
+        render_layout = NetworkLayout(
+            layout.nodes,
+            select_edges_by_target_contributors(all_edges, state, edge_contributors_per_target),
+        )
         render_scales = scales_with_edge_weight_scale(scales, all_edges)
     return render_state_snapshot(
         render_layout,
@@ -120,7 +126,7 @@ def render_trace_step_3d_html(
     scales: Mapping[str, Any] | None = None,
     edge_geometry: str = "tube",
     edge_intensity: str = "saturation",
-    edge_effect_quantile: float = EDGE_EFFECT_QUANTILE_DEFAULT,
+    edge_contributors_per_target: int = EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT,
 ) -> Path:
     """Render one trace step as an interactive PyVista HTML scene."""
     with np.load(trace_path) as trace:
@@ -128,7 +134,10 @@ def render_trace_step_3d_html(
         all_edges = network_edges_from_trace(trace, layout)
         if scales is None:
             scales = _trace_scales_from_arrays(trace, layout)
-        render_layout = NetworkLayout(layout.nodes, select_edges_by_effect(all_edges, state, edge_effect_quantile))
+        render_layout = NetworkLayout(
+            layout.nodes,
+            select_edges_by_target_contributors(all_edges, state, edge_contributors_per_target),
+        )
         render_scales = scales_with_edge_weight_scale(scales, all_edges)
     return render_state_html(
         render_layout,
