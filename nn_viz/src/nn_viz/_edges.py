@@ -20,7 +20,7 @@ def weight_arrays_from_q_net(q_net) -> dict[str, np.ndarray]:
     }
 
 
-def network_edges_from_arrays(weights: Mapping[str, np.ndarray]) -> tuple[Edge, ...]:
+def _network_edges_from_arrays(weights: Mapping[str, np.ndarray]) -> tuple[Edge, ...]:
     return (
         _edges_from_matrix("in", "h1", np.asarray(weights["w1"]))
         + _edges_from_matrix("h1", "h2", np.asarray(weights["w2"]))
@@ -29,12 +29,12 @@ def network_edges_from_arrays(weights: Mapping[str, np.ndarray]) -> tuple[Edge, 
 
 
 def network_edges_from_q_net(q_net) -> tuple[Edge, ...]:
-    return network_edges_from_arrays(weight_arrays_from_q_net(q_net))
+    return _network_edges_from_arrays(weight_arrays_from_q_net(q_net))
 
 
 def network_edges_from_trace(trace: Mapping[str, np.ndarray], layout: NetworkLayout) -> tuple[Edge, ...]:
     if all(key in trace for key in ("w1", "w2", "w3")):
-        return network_edges_from_arrays(trace)
+        return _network_edges_from_arrays(trace)
     return layout.edges
 
 
