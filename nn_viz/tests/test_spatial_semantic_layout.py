@@ -126,7 +126,7 @@ def test_spatial_semantic_layout_adds_edges_from_nonzero_weights():
         )
     rollouts = _rollouts(h1_width=1, h2_width=2)
 
-    layout = compute_layout(rollouts, q_net)
+    layout = compute_layout(rollouts, q_net, edge_weight_quantile=0.0)
     edges = {
         (edge.source_layer, edge.source_index, edge.target_layer, edge.target_index): edge
         for edge in layout.edges
@@ -154,13 +154,42 @@ def test_spatial_semantic_layout_limits_rendered_edges_by_top_k():
     rollouts = _rollouts(h1_width=1, h2_width=3)
 
     layout = compute_layout(
-        rollouts, q_net, top_edges_per_target=1, output_edges_per_target=2
+        rollouts,
+        q_net,
+        top_edges_per_target=1,
+        output_edges_per_target=2,
+        edge_weight_quantile=0.0,
     )
 
     input_edges = [edge for edge in layout.edges if edge.source_layer == "in"]
     output_edges = [edge for edge in layout.edges if edge.target_layer == "out"]
     assert [(edge.source_index, edge.target_index) for edge in input_edges] == [(1, 0)]
     assert {(edge.source_index, edge.target_index) for edge in output_edges} == {(1, 1), (2, 1)}
+
+
+def test_spatial_semantic_layout_filters_top_k_candidates_by_global_weight_quantile():
+    q_net = DQN(10, 4, hidden_sizes=(1, 3))
+    with torch.no_grad():
+        q_net.layer1.weight.zero_()
+        q_net.layer1.weight[0, 0] = 1.0
+        q_net.layer1.weight[0, 1] = 3.0
+        q_net.layer2.weight.zero_()
+        q_net.layer3.weight.zero_()
+        q_net.layer3.weight[1, :] = torch.tensor([1.0, 3.0, 2.0])
+    rollouts = _rollouts(h1_width=1, h2_width=3)
+
+    layout = compute_layout(
+        rollouts,
+        q_net,
+        top_edges_per_target=2,
+        output_edges_per_target=3,
+        edge_weight_quantile=0.70,
+    )
+
+    assert {
+        (edge.source_layer, edge.source_index, edge.target_layer, edge.target_index)
+        for edge in layout.edges
+    } == {("in", 1, "h1", 0), ("h2", 1, "out", 1)}
 
 
 def test_spatial_semantic_layout_rejects_nonpositive_top_k():
@@ -179,6 +208,16 @@ def test_spatial_semantic_layout_rejects_negative_min_node_distance():
 
     with pytest.raises(ValueError, match="min_node_distance"):
         compute_layout(rollouts, q_net, min_node_distance=-0.1)
+
+
+def test_spatial_semantic_layout_rejects_invalid_edge_weight_quantile():
+    q_net = DQN(10, 4, hidden_sizes=(1, 1))
+    rollouts = _rollouts(h1_width=1, h2_width=1)
+
+    with pytest.raises(ValueError, match="edge_weight_quantile"):
+        compute_layout(rollouts, q_net, edge_weight_quantile=-0.1)
+    with pytest.raises(ValueError, match="edge_weight_quantile"):
+        compute_layout(rollouts, q_net, edge_weight_quantile=1.1)
 
 
 def _rollouts(*, h1_width: int, h2_width: int) -> ActivationRollouts:

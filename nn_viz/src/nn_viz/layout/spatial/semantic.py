@@ -13,6 +13,7 @@ _H1_Z = 1.0
 _H2_Z = 2.0
 _OUTPUT_Z = 3.0
 _MIN_NODE_DISTANCE_DEFAULT = 0.14
+_EDGE_WEIGHT_QUANTILE_DEFAULT = 0.70
 _COLLISION_ITERATIONS = 100
 _STIFFNESS_EPS = 1e-6
 
@@ -44,6 +45,7 @@ def compute_layout(
     top_edges_per_target: int = 3,
     output_edges_per_target: int = 10,
     min_node_distance: float = _MIN_NODE_DISTANCE_DEFAULT,
+    edge_weight_quantile: float = _EDGE_WEIGHT_QUANTILE_DEFAULT,
 ) -> NetworkLayout:
     """Place input/output on fixed anchors and hidden nodes by weighted means."""
     if rollouts.frame_count < 1:
@@ -54,6 +56,8 @@ def compute_layout(
         raise ValueError("output_edges_per_target must be >= 1")
     if min_node_distance < 0.0:
         raise ValueError("min_node_distance must be >= 0")
+    if not 0.0 <= edge_weight_quantile <= 1.0:
+        raise ValueError("edge_weight_quantile must be in [0, 1]")
 
     w1 = q_net.layer1.weight.detach().cpu().numpy()
     w2 = q_net.layer2.weight.detach().cpu().numpy()
@@ -80,13 +84,14 @@ def compute_layout(
         min_node_distance=min_node_distance,
     )
     output_layer_nodes = _output_nodes(rollouts.q_values, output_anchors)
+    edge_candidates = (
+        _top_weight_edges("in", "h1", w1, top_edges_per_target)
+        + _top_weight_edges("h1", "h2", w2, top_edges_per_target)
+        + _top_weight_edges("h2", "out", w3, output_edges_per_target)
+    )
     return NetworkLayout(
         nodes=input_layer_nodes + h1_nodes + h2_nodes + output_layer_nodes,
-        edges=(
-            _top_weight_edges("in", "h1", w1, top_edges_per_target)
-            + _top_weight_edges("h1", "h2", w2, top_edges_per_target)
-            + _top_weight_edges("h2", "out", w3, output_edges_per_target)
-        ),
+        edges=_filter_edges_by_weight_quantile(edge_candidates, edge_weight_quantile),
     )
 
 
@@ -233,3 +238,10 @@ def _top_weight_edges(
             relevance = abs(weight)
             edges.append(Edge(source_layer, source, target_layer, target, weight, relevance, relevance))
     return tuple(edges)
+
+
+def _filter_edges_by_weight_quantile(edges: tuple[Edge, ...], quantile: float) -> tuple[Edge, ...]:
+    if not edges or quantile == 0.0:
+        return edges
+    threshold = float(np.quantile([abs(edge.weight) for edge in edges], quantile))
+    return tuple(edge for edge in edges if abs(edge.weight) >= threshold)
