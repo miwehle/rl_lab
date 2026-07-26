@@ -105,7 +105,25 @@ def test_render_state_snapshot_colors_edges_by_contribution_sign_and_weight_inte
 
     edge_mesh, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
     assert edge_mesh.kind == "line"
-    assert edge_kwargs == {"color": "#2563eb", "line_width": 3, "opacity": 1.0}
+    assert edge_kwargs == {"color": "#8fa7dc", "line_width": 3, "opacity": 1.0}
+
+
+def test_render_state_snapshot_opacity_mode_keeps_base_edge_color(monkeypatch, tmp_path):
+    fake_pyvista = FakePyVista()
+    monkeypatch.setitem(sys.modules, "pyvista", fake_pyvista)
+
+    render_state_snapshot(
+        _layout(),
+        _state(input_value=-1.0),
+        tmp_path / "snapshot.png",
+        edge_geometry="line",
+        edge_intensity="opacity",
+        scales={"input": [1.0], "output": 1.0, "activation": 5.0, "weight": 0.5},
+    )
+
+    _, edge_kwargs = fake_pyvista.plotters[0].meshes[0]
+    assert edge_kwargs["color"] == "#2563eb"
+    assert 0.0 < edge_kwargs["opacity"] < 1.0
 
 
 def test_render_state_html_exports_interactive_scene(monkeypatch, tmp_path):

@@ -25,6 +25,7 @@ _EDGE_GEOMETRY_DEFAULT = "tube"
 _NODE_RADIUS_DEFAULT = 0.055
 _MIN_TUBE_RADIUS = 0.006
 _MAX_TUBE_RADIUS = 0.016
+_EDGE_LOW_INTENSITY_COLOR = (210, 210, 210)
 
 
 def render_state_snapshot(
@@ -155,7 +156,7 @@ def _add_state_edges(
         source_activation = source_value(edge, state)
         contribution = source_activation * edge.weight
         color_value = np.copysign(abs(edge.weight), contribution)
-        color = _rgb_hex(color_scheme.signed_color(color_value, weight_scale))
+        color = _rgb_hex(_edge_color(color_value, weight_scale, source_activation, activation_scale, edge_intensity))
         opacity = _edge_opacity(source_activation, activation_scale, edge_intensity)
         if edge_geometry == "line":
             line_width = max(1, int(round(1.0 + color_scheme.edge_width(edge.weight, weight_scale))))
@@ -205,6 +206,20 @@ def _edge_opacity(source_activation: float, activation_scale: float, edge_intens
     return 1.0
 
 
+def _edge_color(
+    color_value: float,
+    weight_scale: float,
+    source_activation: float,
+    activation_scale: float,
+    edge_intensity: str,
+) -> tuple[int, int, int]:
+    base_color = color_scheme.signed_color(color_value, weight_scale)
+    if edge_intensity == "saturation":
+        ratio = color_scheme.alpha(source_activation, activation_scale) / 255.0
+        return _mix_rgb(_EDGE_LOW_INTENSITY_COLOR, base_color, ratio)
+    return base_color
+
+
 def _set_semantic_camera(plotter, nodes: tuple[Node, ...]) -> None:
     center, span = _scene_center_and_span(nodes)
     x, y, z = center
@@ -233,6 +248,11 @@ def _scene_center_and_span(nodes: tuple[Node, ...]) -> tuple[tuple[float, float,
 
 def _rgb_hex(rgb: tuple[int, int, int]) -> str:
     return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+
+def _mix_rgb(start: tuple[int, int, int], end: tuple[int, int, int], ratio: float) -> tuple[int, int, int]:
+    mixed = np.asarray(start, dtype=np.float32) * (1.0 - ratio) + np.asarray(end, dtype=np.float32) * ratio
+    return tuple(int(round(value)) for value in np.clip(mixed, 0, 255))
 
 
 @lru_cache(maxsize=1)
