@@ -260,6 +260,53 @@ def test_render_state_layout_rgba_can_use_aggdraw_edges(monkeypatch):
     assert np.any(rgba[:, :, 3] > 0)
 
 
+def test_render_state_layout_rgba_colors_edges_by_contribution_sign_and_weight_intensity(monkeypatch):
+    import nn_viz._rendering as rendering
+
+    class FakePen:
+        def __init__(self, color, width):
+            self.color = color
+            self.width = width
+
+    class FakeDraw:
+        calls = []
+
+        def __init__(self, _image):
+            pass
+
+        def line(self, _coords, pen):
+            FakeDraw.calls.append((pen.color, pen.width))
+
+        def flush(self):
+            pass
+
+    class FakeAggdraw:
+        Draw = FakeDraw
+        Pen = FakePen
+
+    monkeypatch.setattr(rendering, "_load_aggdraw", lambda: FakeAggdraw)
+    state = NetworkState(
+        inputs=np.array([-1.0]),
+        h1=np.array([3.0]),
+        h2=np.array([4.0]),
+        q_values=np.array([0.0, 1.0, 2.0, 3.0]),
+        action=1,
+    )
+
+    render_state_layout_rgba(
+        minimal_layout(),
+        state,
+        width=240,
+        height=120,
+        scales={"activation": 5.0, "weight": 2.0},
+        edge_renderer="aggdraw",
+    )
+
+    color, width = FakeDraw.calls[0]
+    assert color == (37, 99, 235, 99)
+    assert width == pytest.approx(2.4)
+
+
 def test_render_state_layout_rgba_rejects_unknown_edge_renderer():
     state = NetworkState(
         inputs=np.array([2.0]),

@@ -70,9 +70,11 @@ def render_state_layout_rgba(
             src_value, activation_scale, edge.weight, weight_scale, edge_skip_activation, edge_skip_weight
         ):
             return None
+        contribution = src_value * edge.weight
+        color_value = np.copysign(abs(edge.weight), contribution)
         return EdgeStyle(
             fill=(
-                *color_scheme.signed_color(edge.weight, weight_scale),
+                *color_scheme.signed_color(color_value, weight_scale),
                 color_scheme.alpha(src_value, activation_scale),
             ),
             nominal_width=color_scheme.edge_width(edge.weight, weight_scale),
