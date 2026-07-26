@@ -33,8 +33,8 @@ pos_sum = sum(contribution where contribution > 0)
 neg_sum = sum(abs(contribution) where contribution < 0)
 total = pos_sum + neg_sum
 
-k_pos = round(edge_contributors_per_target * pos_sum / total)
-k_neg = edge_contributors_per_target - k_pos
+k_pos = round(max_edges_per_neuron * pos_sum / total)
+k_neg = max_edges_per_neuron - k_pos
 
 show the strongest k_pos positive edges
 show the strongest k_neg negative edges
@@ -43,7 +43,7 @@ show the strongest k_neg negative edges
 Use one parameter:
 
 ```python
-edge_contributors_per_target=6
+max_edges_per_neuron=6
 ```
 
 If `total == 0`, all incoming edge contributions for that target are zero in the current state, so no incoming edge is representative for that target.
