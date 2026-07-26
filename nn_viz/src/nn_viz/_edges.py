@@ -9,7 +9,7 @@ import numpy as np
 from nn_viz._rendering import NetworkState, source_value
 from nn_viz.layout import Edge, NetworkLayout
 
-EDGE_CONTRIBUTORS_PER_TARGET_DEFAULT = 6
+MAX_EDGES_PER_NEURON_DEFAULT = 6
 
 
 def weight_arrays_from_q_net(q_net) -> dict[str, np.ndarray]:
@@ -38,14 +38,17 @@ def network_edges_from_trace(trace: Mapping[str, np.ndarray], layout: NetworkLay
     return layout.edges
 
 
-def select_edges_by_target_contributors(
-    edges: tuple[Edge, ...], state: NetworkState, edge_contributors_per_target: int
+def representative_edges(
+    edges: tuple[Edge, ...], state: NetworkState, max_edges_per_neuron: int
 ) -> tuple[Edge, ...]:
-    """Return the frame-specific edge subset with the strongest contributors per target.
+    """Return a representative subset of the network's edges.
 
-    This is the core function of the module. It starts from candidate weight edges
-    and selects, for each target neuron, the currently strongest incoming positive
-    and negative contributors.
+    This is based on the network state. The function works neuron by neuron,
+    selecting a representative subset of each neuron's incoming edges.
+
+    - Positive and negative edges are considered separately.
+    - The pre-activations of the positive and negative subsets should stand in a representative ratio.
+    - For each neuron, at most max_edges_per_neuron incoming edges are returned.
 
     Args:
         edges: Candidate edges to choose from. Usually this is the full network
@@ -53,7 +56,7 @@ def select_edges_by_target_contributors(
             trace.
         state: Current network state. Source activations are read from this state
             and combined with edge weights.
-        edge_contributors_per_target: Maximum number of incoming edges selected
+        max_edges_per_neuron: Maximum number of incoming edges selected
             for each target neuron. The budget is split between positive and
             negative contributors according to their total contribution strength.
             A value of 0 selects no edges.
@@ -63,14 +66,14 @@ def select_edges_by_target_contributors(
         edges whose current contribution is non-zero and among the strongest
         contributors for their target neuron.
     """
-    if edge_contributors_per_target < 0:
-        raise ValueError("edge_contributors_per_target must be >= 0")
-    if edge_contributors_per_target == 0:
+    if max_edges_per_neuron < 0:
+        raise ValueError("max_edges_per_neuron must be >= 0")
+    if max_edges_per_neuron == 0:
         return ()
     selected = []
     for target_edges in _edge_groups_by_target(edges).values():
         contributions = [(edge, source_value(edge, state) * edge.weight) for edge in target_edges]
-        selected.extend(_select_target_contributors(contributions, edge_contributors_per_target))
+        selected.extend(_select_target_contributors(contributions, max_edges_per_neuron))
     return tuple(selected)
 
 
@@ -95,7 +98,7 @@ def _edges_from_matrix(source_layer: str, target_layer: str, weights: np.ndarray
 
 
 def _select_target_contributors(
-    contributions: list[tuple[Edge, float]], edge_contributors_per_target: int
+    contributions: list[tuple[Edge, float]], max_edges_per_neuron: int
 ) -> list[Edge]:
     positive = _sorted_contribution_group(contributions, positive=True)
     negative = _sorted_contribution_group(contributions, positive=False)
@@ -105,8 +108,8 @@ def _select_target_contributors(
     if total == 0.0:
         return []
 
-    k_pos = int(round(edge_contributors_per_target * pos_sum / total))
-    k_neg = edge_contributors_per_target - k_pos
+    k_pos = int(round(max_edges_per_neuron * pos_sum / total))
+    k_neg = max_edges_per_neuron - k_pos
     return [edge for edge, _ in positive[:k_pos]] + [edge for edge, _ in negative[:k_neg]]
 
 
