@@ -43,12 +43,13 @@ def representative_edges(
 ) -> tuple[Edge, ...]:
     """Return a representative subset of the network's edges.
 
-    This is based on the network state. The function works neuron by neuron,
-    selecting a representative subset of each neuron's incoming edges.
+    This is based on the network state.
+    The function works neuron by neuron, selecting a representative subset of each neuron's incoming edges.
 
-    - Positive and negative edges are considered separately.
+    For each neuron:
+    - Positive and negative contributions are considered separately.
     - The pre-activations of the positive and negative subsets should stand in a representative ratio.
-    - For each neuron, at most max_edges_per_neuron incoming edges are returned.
+    - At most max_edges_per_neuron incoming edges are returned.
 
     Used by:
     - record_video(...) for 2D NN video overlays
@@ -62,7 +63,7 @@ def representative_edges(
         state: Current network state. Source activations are read from this state
             and combined with edge weights.
         max_edges_per_neuron: Maximum number of incoming edges selected
-            for each target neuron. The budget is split between positive and
+            for each neuron. The budget is split between positive and
             negative contributors according to their total contribution strength.
             A value of 0 selects no edges.
 
