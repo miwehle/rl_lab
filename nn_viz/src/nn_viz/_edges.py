@@ -41,6 +41,28 @@ def network_edges_from_trace(trace: Mapping[str, np.ndarray], layout: NetworkLay
 def select_edges_by_target_contributors(
     edges: tuple[Edge, ...], state: NetworkState, edge_contributors_per_target: int
 ) -> tuple[Edge, ...]:
+    """Return the frame-specific edge subset with the strongest contributors per target.
+
+    This is the core function of the module. It starts from candidate weight edges
+    and selects, for each target neuron, the currently strongest incoming positive
+    and negative contributors.
+
+    Args:
+        edges: Candidate edges to choose from. Usually this is the full network
+            edge set reconstructed from the current q_net weights or from a saved
+            trace.
+        state: Current network state. Source activations are read from this state
+            and combined with edge weights.
+        edge_contributors_per_target: Maximum number of incoming edges selected
+            for each target neuron. The budget is split between positive and
+            negative contributors according to their total contribution strength.
+            A value of 0 selects no edges.
+
+    Returns:
+        The selected edges for the current state. The returned tuple contains only
+        edges whose current contribution is non-zero and among the strongest
+        contributors for their target neuron.
+    """
     if edge_contributors_per_target < 0:
         raise ValueError("edge_contributors_per_target must be >= 0")
     if edge_contributors_per_target == 0:
@@ -52,7 +74,9 @@ def select_edges_by_target_contributors(
     return tuple(selected)
 
 
-def scales_with_edge_weight_scale(scales: Mapping[str, Any] | None, edges: tuple[Edge, ...]) -> dict[str, Any]:
+def scales_with_edge_weight_scale(
+    scales: Mapping[str, Any] | None, edges: tuple[Edge, ...]
+) -> dict[str, Any]:
     render_scales = dict(scales or {})
     weights = np.asarray([abs(edge.weight) for edge in edges], dtype=np.float32)
     render_scales["weight"] = float(np.percentile(weights, 95)) if weights.size else 1.0
@@ -86,16 +110,15 @@ def _select_target_contributors(
     return [edge for edge, _ in positive[:k_pos]] + [edge for edge, _ in negative[:k_neg]]
 
 
-def _sorted_contribution_group(contributions: list[tuple[Edge, float]], *, positive: bool) -> list[tuple[Edge, float]]:
+def _sorted_contribution_group(
+    contributions: list[tuple[Edge, float]], *, positive: bool
+) -> list[tuple[Edge, float]]:
     group = [
         (edge, abs(contribution))
         for edge, contribution in contributions
         if (contribution > 0.0 if positive else contribution < 0.0)
     ]
-    return sorted(
-        group,
-        key=lambda item: (-item[1], item[0].source_layer, item[0].source_index),
-    )
+    return sorted(group, key=lambda item: (-item[1], item[0].source_layer, item[0].source_index))
 
 
 def _edge_groups_by_target(edges: tuple[Edge, ...]) -> dict[tuple[str, int], list[Edge]]:
