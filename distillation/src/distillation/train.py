@@ -13,8 +13,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
 
-from dqn import DQN
-from dqn.training import resolve_device
+from dqn import DQN, resolve_device
 from hpo.checkpointing import save_checkpoint
 
 from distillation.dataset import DatasetRef, dataset_arrays

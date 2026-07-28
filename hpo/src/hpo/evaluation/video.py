@@ -13,8 +13,7 @@ from gymnasium.envs.box2d import lunar_lander
 from gymnasium.utils import seeding
 from gymnasium.wrappers import RecordVideo
 
-from dqn import DQN, ModelFactory
-from dqn.training import resolve_device
+from dqn import DQN, ModelFactory, resolve_device
 from hpo.checkpointing import checkpoint_metadata as load_checkpoint_metadata
 from hpo.checkpointing import load_checkpoint
 from hpo.environments.solar_system_lander.env import env_world_name

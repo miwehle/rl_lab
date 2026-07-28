@@ -8,8 +8,7 @@ from typing import Any
 import pandas as pd
 import torch
 
-from dqn import DQN, ModelFactory
-from dqn.training import resolve_device
+from dqn import DQN, ModelFactory, resolve_device
 from hpo.checkpointing import checkpoint_metadata, load_checkpoint, trial_best_checkpoint_score
 from hpo.objective import ObjectiveConfig
 from hpo.study.reporting import RobustnessProgress

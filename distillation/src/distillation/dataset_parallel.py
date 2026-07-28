@@ -12,7 +12,7 @@ import torch
 from gymnasium.vector import AsyncVectorEnv, AutoresetMode
 from tqdm.auto import tqdm
 
-from dqn.training import resolve_device
+from dqn import resolve_device
 from hpo.checkpointing import checkpoint_metadata
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory, EnvWrapper, WORLDS
 
