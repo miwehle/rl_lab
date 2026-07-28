@@ -28,6 +28,14 @@ Use `dqn/notebooks/RL_DQN.ipynb` for normal work.
 
 (A tutorial-style notebook is archived at `dqn/notebooks/archive/Reinforcement_Learning_(DQN)_legacy.ipynb` for historical reference. The code in `dqn` originated from this notebook.)
 
+## Public API
+
+Import reusable DQN components from the package root:
+
+```python
+from dqn import DQN, VectorTrainer, VectorTrainingConfig, VectorTrainingResult
+```
+
 ## Terminal Scripts (Optional)
 
 ```powershell
@@ -47,7 +55,7 @@ step and train on larger replay batches:
 import gymnasium as gym
 from gymnasium.vector import SyncVectorEnv
 
-from dqn.vector_training import VectorTrainer, VectorTrainingConfig
+from dqn import VectorTrainer, VectorTrainingConfig
 
 
 def make_lander():
