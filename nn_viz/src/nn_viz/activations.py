@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from dqn.model import DQN
+from dqn import DQN
 from hpo.checkpointing import checkpoint_metadata, load_checkpoint
 
 ACTION_ORDER = (1, 2, 0, 3)

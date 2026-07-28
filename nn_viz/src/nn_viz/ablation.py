@@ -8,7 +8,7 @@ from typing import Any, Iterable
 import numpy as np
 import torch
 
-from dqn.model import DQN
+from dqn import DQN
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dqn.model import DQN
+from dqn import DQN
 from hpo.evaluation.checkpoint_robustness import (
     checkpoint_scores,
     evaluate_checkpoint_robustness,

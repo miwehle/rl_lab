@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
 
-from dqn.model import DQN
+from dqn import DQN
 from dqn.training import resolve_device
 from hpo.checkpointing import save_checkpoint
 

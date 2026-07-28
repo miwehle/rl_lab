@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from dqn.model import DQN
+from dqn import DQN
 from nn_viz.activations import ACTION_ORDER, ActivationRollouts
 from nn_viz.layout.activity import (
     centered_offsets,

@@ -1,6 +1,6 @@
 import numpy as np
 
-from dqn.model import DQN
+from dqn import DQN
 from nn_viz.activations import RolloutSpec, collect_activations
 
 

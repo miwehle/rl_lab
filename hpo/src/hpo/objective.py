@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 import torch
 
-from dqn.vector_training import VectorTrainer, VectorTrainingConfig, VectorTrainingResult
+from dqn import VectorTrainer, VectorTrainingConfig, VectorTrainingResult
 from hpo._logging import log_call
 from hpo.hyperparams import HP
 

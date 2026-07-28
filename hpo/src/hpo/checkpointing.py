@@ -8,7 +8,7 @@ from typing import Any
 import torch
 from torch import nn
 
-from dqn.vector_training import VectorTrainer, VectorTrainingConfig
+from dqn import VectorTrainer, VectorTrainingConfig
 from hpo.environments.solar_system_lander.env import env_world_name
 from hpo.objective import ObjectiveContext
 from hpo.study.infra_cfg import InfraCfg

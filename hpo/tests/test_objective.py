@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from dqn.vector_training import VectorTrainingConfig, VectorTrainingResult
+from dqn import VectorTrainingConfig, VectorTrainingResult
 from hpo import objective as objective_module
 from hpo.objective import evaluate_greedy_q_net
 from hpo.study.reporting import TrainingProgressPlotter

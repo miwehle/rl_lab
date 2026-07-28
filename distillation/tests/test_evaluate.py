@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from dqn.model import DQN
+from dqn import DQN
 from hpo.checkpointing import save_checkpoint
 
 from distillation.evaluate import evaluate_student, evaluate_teacher

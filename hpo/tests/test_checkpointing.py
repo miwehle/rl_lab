@@ -6,8 +6,7 @@ import pytest
 import torch
 from gymnasium.vector import SyncVectorEnv
 
-from dqn.model import DQN
-from dqn.vector_training import VectorTrainingConfig
+from dqn import DQN, VectorTrainingConfig
 from hpo.checkpointing import (
     BestCheckpointRecorder,
     EvaluationBestCheckpointRecorder,
@@ -118,7 +117,7 @@ def objective_context(
     if score is not None:
         ctx.score = score
     if episode_returns is not None:
-        from dqn.vector_training import VectorTrainingResult
+        from dqn import VectorTrainingResult
 
         ctx.training_result = VectorTrainingResult(
             q_net=q_net,

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from dqn.model import DQN
+from dqn import DQN
 from nn_viz.activations import ActivationRollouts
 from nn_viz.layout import compute_activity_layout
 

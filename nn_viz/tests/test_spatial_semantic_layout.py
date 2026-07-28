@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from dqn.model import DQN
+from dqn import DQN
 from nn_viz.activations import ActivationRollouts
 from nn_viz.layout import Node
 from nn_viz.layout.spatial.semantic import compute_layout

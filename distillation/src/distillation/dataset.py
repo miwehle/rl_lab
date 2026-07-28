@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from tqdm.auto import tqdm
 
-from dqn.model import DQN
+from dqn import DQN
 from dqn.training import resolve_device
 from hpo.checkpointing import checkpoint_metadata, load_checkpoint
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory
