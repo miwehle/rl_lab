@@ -37,6 +37,12 @@ HPO uses two public API levels to keep notebooks, package boundaries, and tests 
 
 Direct tests should usually target only one of these two public API levels. Names with a leading `_`, and members of a private surrounding structure, are private implementation details and should usually be tested through their public users instead.
 
+## Technical Debt
+
+`_CheckpointingTrainer` currently overrides `VectorTrainer._after_episode` to record training checkpoints and pass live training progress through the DQN plotter hook. This is an intentional temporary coupling to a private DQN hook.
+
+The intended direction is for the dashboard to read training progress from Optuna `Study` and `Trial` objects backed by the study database, instead of receiving live data through objective hooks and plotter plumbing.
+
 ## Objective
 
 The objective maximizes greedy Gym quality while penalizing training effort. Use `run_study(...)` from the notebook; it persists the scoring configuration and the S0 effort baseline in Optuna's SQLite storage.
