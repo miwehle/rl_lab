@@ -5,10 +5,10 @@ import torch
 
 from dqn.training import TrainingResult
 from dqn.vector_training import (
-    VectorReplayMemory,
     VectorTrainer,
     VectorTrainingConfig,
     VectorTrainingResult,
+    _VectorReplayMemory,
     _early_stopping_score,
     _should_extend_training,
 )
@@ -33,7 +33,7 @@ def vector_training_config(**overrides) -> VectorTrainingConfig:
 
 
 def test_vector_replay_memory_samples_tensors_on_device() -> None:
-    memory = VectorReplayMemory(capacity=8, observation_shape=(4,), seed=42)
+    memory = _VectorReplayMemory(capacity=8, observation_shape=(4,), seed=42)
     states = np.zeros((3, 4), dtype=np.float32)
     next_states = np.ones((3, 4), dtype=np.float32)
 

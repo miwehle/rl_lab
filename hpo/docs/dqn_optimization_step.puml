@@ -7,7 +7,7 @@ title DQN Optimization Step - Backprop and Optimizer
 hide footbox
 
 participant ":VectorTrainer" as Trainer
-participant ":VectorReplayMemory" as Memory
+participant ":_VectorReplayMemory" as Memory
 participant "q_net: DQN" as QNet
 participant "target_net: DQN" as TargetNet
 participant "PyTorch Autograd" as Autograd

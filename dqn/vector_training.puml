@@ -6,7 +6,7 @@ hide footbox
 
 participant "trainer:VectorTrainer" as trainer
 participant "env:VectorEnv" as env
-participant "memory:VectorReplayMemory" as memory
+participant "memory:_VectorReplayMemory" as memory
 participant "q_net:DQN" as q_net
 participant "target_net:DQN" as target_net
 participant "optimizer:AdamW" as optimizer

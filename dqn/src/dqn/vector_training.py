@@ -56,7 +56,7 @@ class VectorTrainingResult(TrainingResult):
 
 
 @dataclass
-class VectorReplayBatch:
+class _VectorReplayBatch:
     states: torch.Tensor
     actions: torch.Tensor
     next_states: torch.Tensor
@@ -64,7 +64,7 @@ class VectorReplayBatch:
     terminated: torch.Tensor
 
 
-class VectorReplayMemory:
+class _VectorReplayMemory:
     """Compact replay storage for vectorized flat-observation environments."""
 
     def __init__(
@@ -113,10 +113,10 @@ class VectorReplayMemory:
         self.position = (self.position + count) % self.capacity
         self.size = min(self.capacity, self.size + count)
 
-    def sample(self, batch_size: int, device: torch.device) -> VectorReplayBatch:
+    def sample(self, batch_size: int, device: torch.device) -> _VectorReplayBatch:
         indices = self.rng.integers(self.size, size=batch_size)
 
-        return VectorReplayBatch(
+        return _VectorReplayBatch(
             states=torch.as_tensor(self.states[indices], device=device),
             actions=torch.as_tensor(self.actions[indices], device=device).unsqueeze(1),
             next_states=torch.as_tensor(self.next_states[indices], device=device),
@@ -156,7 +156,7 @@ class VectorTrainer:
         self.rng = np.random.default_rng(seed)
 
         if seed is not None:
-            set_vector_seeds(env, seed)
+            _set_vector_seeds(env, seed)
 
         observations, _ = env.reset(seed=seed)
         self.num_envs = int(env.num_envs)
@@ -173,7 +173,7 @@ class VectorTrainer:
             weight_decay=0.01,
             amsgrad=True,
         )
-        self.memory = VectorReplayMemory(
+        self.memory = _VectorReplayMemory(
             replay_memory_capacity,
             self.observation_shape,
             seed=seed,
@@ -393,7 +393,7 @@ class VectorTrainer:
                 target_param.lerp_(policy_param, tau)
 
 
-def set_vector_seeds(env, seed: int) -> None:
+def _set_vector_seeds(env, seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
