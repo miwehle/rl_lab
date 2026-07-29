@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 import torch
 
-from dqn import DQN, ModelFactory, resolve_device
+from dqn import DQN, resolve_device
 from hpo.checkpointing import checkpoint_metadata, load_checkpoint, trial_best_checkpoint_score
 from hpo.objective import ObjectiveConfig
 from hpo.study.reporting import RobustnessProgress
@@ -28,7 +28,6 @@ def evaluate_checkpoint_robustness(
     top_n: int = 5,
     eval_episodes: int = 20,
     progress_fn=None,
-    model_factory: ModelFactory = DQN,
 ) -> list[dict[str, Any]]:
     """Evaluate top saved eval checkpoints and store their robust scores."""
     if top_n < 1:
@@ -46,7 +45,7 @@ def evaluate_checkpoint_robustness(
 
     for candidate_index, candidate in enumerate(candidates, start=1):
         summary = robustness_over_all_worlds(
-            candidate.path, objective_cfg, episodes=eval_episodes, progress=False, model_factory=model_factory
+            candidate.path, objective_cfg, episodes=eval_episodes, progress=False
         )
         summary = {
             "candidate": candidate_index,
@@ -81,7 +80,6 @@ def checkpoint_scores(
     *,
     episodes: int = 100,
     progress: bool = True,
-    model_factory: ModelFactory = DQN,
 ) -> pd.DataFrame:
     """Return greedy episode scores for each evaluation world."""
     if episodes < 1:
@@ -90,9 +88,7 @@ def checkpoint_scores(
     device = resolve_device(objective_cfg.device)
     make_envs = objective_cfg.environment_factory.evaluation_envs()
     q_net_env = next(iter(make_envs.values()))
-    q_net = q_net_from_checkpoint(
-        checkpoint_path, make_env=q_net_env, device=device, model_factory=model_factory
-    )
+    q_net = q_net_from_checkpoint(checkpoint_path, make_env=q_net_env, device=device)
     q_net.eval()
 
     rows = []
@@ -122,12 +118,9 @@ def robustness_over_all_worlds(
     *,
     episodes: int = 100,
     progress: bool = True,
-    model_factory: ModelFactory = DQN,
 ) -> dict[str, Any]:
     """Return one checkpoint's robustness summary over all evaluation worlds."""
-    scores = checkpoint_scores(
-        checkpoint_path, objective_cfg, episodes=episodes, progress=progress, model_factory=model_factory
-    )
+    scores = checkpoint_scores(checkpoint_path, objective_cfg, episodes=episodes, progress=progress)
     values = scores["score"]
     world_scores = scores.groupby("world", sort=False)["score"].mean()
     return {
@@ -162,7 +155,7 @@ def score_summary(scores: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def q_net_from_checkpoint(path: str | Path, *, make_env, device=None, model_factory: ModelFactory = DQN):
+def q_net_from_checkpoint(path: str | Path, *, make_env, device=None):
     """Build a Q-net from env dimensions and load checkpoint weights into it."""
     device = resolve_device(device)
     hidden_size = _checkpoint_hidden_size(path)
@@ -171,11 +164,7 @@ def q_net_from_checkpoint(path: str | Path, *, make_env, device=None, model_fact
         observation, _ = env.reset()
         n_observations = math.prod(tuple(observation.shape))
         n_actions = env.action_space.n
-        q_net = (
-            DQN(n_observations, n_actions, hidden_size)
-            if model_factory is DQN
-            else model_factory(n_observations, n_actions)
-        ).to(device)
+        q_net = DQN(n_observations, n_actions, hidden_size).to(device)
         load_checkpoint(q_net, path, device)
         return q_net
     finally:

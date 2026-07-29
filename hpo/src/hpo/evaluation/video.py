@@ -13,7 +13,7 @@ from gymnasium.envs.box2d import lunar_lander
 from gymnasium.utils import seeding
 from gymnasium.wrappers import RecordVideo
 
-from dqn import DQN, ModelFactory, resolve_device
+from dqn import DQN, resolve_device
 from hpo.checkpointing import checkpoint_metadata as load_checkpoint_metadata
 from hpo.checkpointing import load_checkpoint
 from hpo.environments.solar_system_lander.env import env_world_name
@@ -52,7 +52,6 @@ class InfraCfg:
 
 
 def record_video(
-    model_factory: ModelFactory,
     env,
     *,
     study_name: str,
@@ -72,7 +71,6 @@ def record_video(
     output_dir.mkdir(parents=True, exist_ok=True)
     return _record_checkpoint_video(
         checkpoint_path,
-        model_factory,
         env,
         seed=seed,
         max_steps=max_steps,
@@ -143,7 +141,6 @@ def _mount_google_drive_if_available() -> None:
 
 def _record_checkpoint_video(
     checkpoint_path: str | Path,
-    model_factory: ModelFactory,
     env,
     *,
     seed: int | None,
@@ -158,7 +155,7 @@ def _record_checkpoint_video(
     if render_cfg is not None:
         env = wrap_env(env, render_cfg)
 
-    q_net = _q_net_from_env_checkpoint(checkpoint_path, env, device=device, model_factory=model_factory)
+    q_net = _q_net_from_env_checkpoint(checkpoint_path, env, device=device)
     q_net.eval()
 
     name = _record_video_name(checkpoint_path, env, seed)
@@ -217,15 +214,11 @@ def _greedy_action(q_net, observation, device) -> int:
         return int(q_net(state).argmax(dim=1).item())
 
 
-def _q_net_from_env_checkpoint(path: str | Path, env, *, device, model_factory: ModelFactory):
+def _q_net_from_env_checkpoint(path: str | Path, env, *, device):
     n_observations = math.prod(tuple(env.observation_space.shape))
     n_actions = env.action_space.n
     hidden_size = _checkpoint_hidden_size(path)
-    q_net = (
-        DQN(n_observations, n_actions, hidden_size)
-        if model_factory is DQN
-        else model_factory(n_observations, n_actions)
-    ).to(device)
+    q_net = DQN(n_observations, n_actions, hidden_size).to(device)
     load_checkpoint(q_net, path, device)
     return q_net
 

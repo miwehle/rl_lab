@@ -65,7 +65,7 @@ def test_record_video_records_one_greedy_episode(monkeypatch, tmp_path):
     monkeypatch.setattr(video, "_q_net_from_env_checkpoint", lambda *_args, **_kwargs: FakeQNet())
     cfg = video.InfraCfg(drive_study_dir=tmp_path)
 
-    path = video.record_video(video.DQN, FakeEnv(), study_name="study", seed=10_000, cfg=cfg)
+    path = video.record_video(FakeEnv(), study_name="study", seed=10_000, cfg=cfg)
 
     assert path == tmp_path / "videos" / "study" / "best_eval_checkpoint_venus_seed_10000.mp4"
     assert path.read_bytes() == b"video"
@@ -92,7 +92,7 @@ def test_record_video_wraps_env_for_render_config(monkeypatch, tmp_path):
     render_cfg = video.RenderConfig(colors_by_world=(None,))
     cfg = video.InfraCfg(drive_study_dir=tmp_path)
 
-    video.record_video(video.DQN, env, study_name="study", render_cfg=render_cfg, cfg=cfg)
+    video.record_video(env, study_name="study", render_cfg=render_cfg, cfg=cfg)
 
     assert calls == [(env, render_cfg)]
     assert recorded_envs == [wrapped_env]
@@ -102,7 +102,7 @@ def test_record_video_rejects_invalid_max_steps(tmp_path):
     cfg = video.InfraCfg(drive_study_dir=tmp_path)
 
     with pytest.raises(ValueError, match="max_steps"):
-        video.record_video(video.DQN, FakeEnv(), study_name="study", max_steps=0, cfg=cfg)
+        video.record_video(FakeEnv(), study_name="study", max_steps=0, cfg=cfg)
 
 
 def test_checkpoint_metadata_reads_conventional_metadata(tmp_path):

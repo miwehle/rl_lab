@@ -3,7 +3,6 @@ import time
 import gymnasium as gym
 import pytest
 
-from dqn.model import DQN
 from dqn.training import Trainer, TrainingConfig, TrainingResult
 from helpers import model_hash, ema
 
@@ -74,7 +73,7 @@ def test_cartpole_training() -> None:
     config = training_config(num_episodes=100)
     
     try:
-        trainer = Trainer(env, model_factory=DQN, seed=42)
+        trainer = Trainer(env, seed=42)
         start_time = time.perf_counter()
         result = trainer.train(config)
         elapsed_seconds = time.perf_counter() - start_time

@@ -43,13 +43,13 @@ Hide infrastructure cfg behind the convention: Drive layout, checkpoint director
 The normal notebook call should move toward:
 
 ```python
-record_video(DQN, env, study_name=STUDY_NAME, seed=seed)
+record_video(env, study_name=STUDY_NAME, seed=seed)
 ```
 
 Advanced users may override the infrastructure convention:
 
 ```python
-record_video(DQN, env, study_name=STUDY_NAME, seed=seed, cfg=custom_video_infra_cfg)
+record_video(env, study_name=STUDY_NAME, seed=seed, cfg=custom_video_infra_cfg)
 ```
 
 KISS rule: do not add a global config framework, singleton, or large generic convention system. Start with one concrete `DefaultVideoInfraCfg` for this video use case.
@@ -152,13 +152,13 @@ Design the public API from the desired notebook cell outward. Existing function 
 Preferred normal shape:
 
 ```python
-record_video(DQN, env, study_name=STUDY_NAME, seed=seed)
+record_video(env, study_name=STUDY_NAME, seed=seed)
 ```
 
 Advanced override shape:
 
 ```python
-record_video(DQN, env, study_name=STUDY_NAME, seed=seed, cfg=custom_video_infra_cfg)
+record_video(env, study_name=STUDY_NAME, seed=seed, cfg=custom_video_infra_cfg)
 ```
 
 No Colab, Drive, path, logging, device, backup, checkpoint filename, or artifact layout code should appear in the notebook normal path.

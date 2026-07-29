@@ -33,7 +33,7 @@ Use `dqn/notebooks/RL_DQN.ipynb` for normal work.
 Import reusable DQN components from the package root:
 
 ```python
-from dqn import DQN, ModelFactory, VectorTrainer, VectorTrainingConfig, VectorTrainingResult, resolve_device
+from dqn import DQN, VectorTrainer, VectorTrainingConfig, VectorTrainingResult, resolve_device
 ```
 
 ## Terminal Scripts (Optional)

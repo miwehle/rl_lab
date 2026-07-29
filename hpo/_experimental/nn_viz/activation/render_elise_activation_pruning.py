@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
-from dqn.model import DQN
+from dqn import DQN
 
 from hpo.environments.solar_system_lander.env import DEFAULT_WORLD_MIX, EnvFactory, EnvWrapper, World, WorldConfig
 from hpo.evaluation.rendering.solar_system_lander._env_state import _initial_kick

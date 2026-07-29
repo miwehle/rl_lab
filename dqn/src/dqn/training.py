@@ -15,7 +15,6 @@ References:
     https://introml.mit.edu/notes/reinforcement_learning.html#q-learning-with-function-approximation, ch. 12.2
 """
 
-from collections.abc import Callable
 from collections import deque, namedtuple
 from dataclasses import dataclass
 from itertools import count
@@ -30,7 +29,6 @@ from dqn.model import DQN
 
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
-ModelFactory = Callable[[int, int], nn.Module]
 
 # DQN Big 5 member
 class ReplayMemory:
@@ -95,7 +93,6 @@ class Trainer:
         seed: int | None = None,
         device=None,
         replay_memory_capacity: int = 10_000,
-        model_factory: ModelFactory = DQN,
     ) -> None:
         self.env = env
         self.steps_done = 0
@@ -110,8 +107,8 @@ class Trainer:
         n_observations = len(observation)
 
         # DQN Big 5 members: Q-network and target network
-        self.q_net = model_factory(n_observations, n_actions).to(self.device)
-        self.target_net = model_factory(n_observations, n_actions).to(self.device)
+        self.q_net = DQN(n_observations, n_actions).to(self.device)
+        self.target_net = DQN(n_observations, n_actions).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = optim.AdamW(
             self.q_net.parameters(),

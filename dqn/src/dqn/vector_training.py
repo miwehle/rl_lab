@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from dqn.model import DQN
-from dqn.training import ModelFactory, TrainingConfig, TrainingResult, resolve_device
+from dqn.training import TrainingConfig, TrainingResult, resolve_device
 
 
 @dataclass(kw_only=True)
@@ -146,7 +146,6 @@ class VectorTrainer:
         seed: int | None = None,
         device=None,
         replay_memory_capacity: int = 100_000,
-        model_factory: ModelFactory = DQN,
         hidden_size: int = 128,
     ) -> None:
         self.env = env
@@ -165,18 +164,8 @@ class VectorTrainer:
         n_observations = math.prod(self.observation_shape)
         n_actions = env.single_action_space.n
 
-        self.q_net = _make_model(
-            model_factory,
-            n_observations,
-            n_actions,
-            hidden_size,
-        ).to(self.device)
-        self.target_net = _make_model(
-            model_factory,
-            n_observations,
-            n_actions,
-            hidden_size,
-        ).to(self.device)
+        self.q_net = DQN(n_observations, n_actions, hidden_size).to(self.device)
+        self.target_net = DQN(n_observations, n_actions, hidden_size).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = optim.AdamW(
             self.q_net.parameters(),
@@ -413,17 +402,6 @@ def set_vector_seeds(env, seed: int) -> None:
     env.action_space.seed(seed)
     env.single_action_space.seed(seed)
     env.single_observation_space.seed(seed)
-
-
-def _make_model(
-    model_factory: ModelFactory,
-    n_observations: int,
-    n_actions: int,
-    hidden_size: int,
-) -> nn.Module:
-    if model_factory is DQN:
-        return DQN(n_observations, n_actions, hidden_size)
-    return model_factory(n_observations, n_actions)
 
 
 def _should_extend_training(
